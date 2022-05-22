@@ -1,0 +1,6 @@
+{
+  "runHaplotag.haplotag.vcfGz": "/data2/dip_alignment/HG002/giab/test.vcf.gz",
+  "runHaplotag.haplotag.bam": "/data2/dip_alignment/HG002/chr10/alignment/HG002_guppy4.chr10.bam",
+  "runHaplotag.haplotag.bai": "/data2/dip_alignment/HG002/chr10/alignment/HG002_guppy4.chr10.bam.bai"
+}
+
