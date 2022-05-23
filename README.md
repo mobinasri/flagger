@@ -1,9 +1,8 @@
 ## Evaluating dual assemblies with Flagger
 
 ### Overview
-Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual assembly. One core component of this pipeline is another pipeline named [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/coverage). Flagger recieves the read alignments to a draft dual assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
+Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is another pipeline named [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/coverage). Flagger recieves the read alignments to a draft dual assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
 
-*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly).*
 
 This evaluation has 5 steps:
 - Align long reads to the diploid assembly
@@ -85,7 +84,7 @@ bcftools view -Ov -f PASS -m2 -M2 -v snps -e 'FORMAT/VAF<~{vafCutoff} | FORMAT/G
 ````
 
 ### 4. Remove the alignments with alternative alleles
-By having the biallelic snps it is possible to find the alignments with alternative alleles, remove them from the bam file and produce a new bam file.
+By having the biallelic snps it is possible to find the alignments with alternative alleles, remove them from the bam file.
 `filter_alt_reads` is a program that can be used for this aim.
 ```
 ## Run filter_alt_reads to get a bam file with no alternative-contained alignments
@@ -103,13 +102,12 @@ docker run \
  -r 0.4
 ```
 
-For each alignment `filter_alt_reads` iterates over the CIGAR string and clusters the snps closer than the number given to the `-m` parameter. That alignment will be removed if it encompasses a cluster in which more than `-r` ratio of the snps have alternative alleles. 
+For each alignment `filter_alt_reads` iterates over the CIGAR string and clusters the snps closer than the number given to the `-m` parameter. That alignment will be removed if it encompasses a snp cluster in which more than `-r` ratio of the snps have alternative alleles. 
 `${ALT_FILTERED_BAM}` is the cleaned bam file and `${ALT_BAM}` includes the removed alignments.
 
 ### 5. Run Flagger on the alignments with no alternative allele
-`${ALT_FILTERED_BAM}` is then used as the input to Flagger. Flagger outputs a bed file for each of the 4 components; 
-erroneous, duplicated, haploid and collapsed. Any component other than the haploid one is pointing to unreliable blocks in
-assembly. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
+`${ALT_FILTERED_BAM}` is then used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
+erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
 
 More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage)
 
