@@ -1,15 +1,15 @@
 version 1.0 
 
-workflow runCov2CountsContigWise{
-    call cov2countsContigWise
+workflow runCov2CountsByWindow{
+    call cov2countsByWindow
     output {
-        File contigCountsTarGz = cov2countsContigWise.contigCountsTarGz
-        File contigCovsTarGz = cov2countsContigWise.contigCovsTarGz
-        File windowsText = cov2countsContigWise.windowsText
+        File windowCountsTarGz = cov2countsByWindow.windowCountsTarGz
+        File windowCovsTarGz = cov2countsByWindow.windowCovsTarGz
+        File windowsText = cov2countsByWindow.windowsText
     }
 }
 
-task cov2countsContigWise {
+task cov2countsByWindow {
     input {
         File coverageGz
         File fai
@@ -42,7 +42,7 @@ task cov2countsContigWise {
         gunzip -c ~{coverageGz} > ${PREFIX_COV}.cov
         mkdir covs counts
         # Make a separate cov file for each contig
-        split_contigs_cov_v2 -c ${PREFIX_COV}.cov -f ~{fai} -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
+        split_cov_by_window -c ${PREFIX_COV}.cov -f ~{fai} -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
         # Count each window-specific cov file
         for c in $(ls covs);do cov2counts -i covs/$c -o counts/${c/.cov/.counts}; echo $c" finished";done
 
@@ -62,8 +62,8 @@ task cov2countsContigWise {
         preemptible : preemptible
     }
     output {
-        File contigCountsTarGz = glob("*.counts.tar.gz")[0]
-        File contigCovsTarGz = glob("*.covs.tar.gz")[0]
+        File windowCountsTarGz = glob("*.counts.tar.gz")[0]
+        File windowCovsTarGz = glob("*.covs.tar.gz")[0]
         File windowsText = glob("*.windows.txt")[0]
     }
 }

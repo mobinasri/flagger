@@ -1,13 +1,13 @@
 version 1.0 
 
-workflow runFitModelContigWise{
-    call fitModelContigWise
+workflow runFitModelByWindow{
+    call fitModelByWindow
     output {
-       File contigProbTablesTarGz = fitModelContigWise.contigProbTablesTarGz
+       File windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz
     }
 }
 
-task fitModelContigWise {
+task fitModelByWindow {
     input {
         File windowsText
         File countsTarGz
@@ -39,7 +39,7 @@ task fitModelContigWise {
         FILENAME="$(basename ~{countsTarGz})"
         export PREFIX=${FILENAME%.counts.tar.gz}
         
-        cat ~{windowsText} | awk '~{minContigSize} <= $3' | xargs -n 3 -P ~{threadCount} sh -c 'python3 ${FIT_MODEL_EXTRA_PY}  --cov ~{cov} --counts counts/"${PREFIX}".$0_$1_$2.counts --output tables/"${PREFIX}".$0_$1_$2.table'
+        cat ~{windowsText} | awk '~{minContigSize} <= $3' | xargs -n 3 -P ~{threadCount} sh -c 'python3 ${FIT_GMM_PY}  --cov ~{cov} --counts counts/"${PREFIX}".$0_$1_$2.counts --output tables/"${PREFIX}".$0_$1_$2.table'
         tar -cf ${PREFIX}.tables.tar tables
         gzip ${PREFIX}.tables.tar
     >>> 
@@ -51,7 +51,7 @@ task fitModelContigWise {
         preemptible : preemptible
     }
     output {
-        File contigProbTablesTarGz = glob("*.tables.tar.gz")[0]
+        File windowProbTablesTarGz = glob("*.tables.tar.gz")[0]
     }
 }
 

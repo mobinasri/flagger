@@ -31,7 +31,7 @@ task fitModel {
 
         FILENAME=$(basename ~{counts})
         PREFIX=${FILENAME%.counts}
-        python3 ${FIT_MODEL_EXTRA_PY} --counts ~{counts} --output ${PREFIX}.table --cov ~{cov}
+        python3 ${FIT_GMM_PY} --counts ~{counts} --output ${PREFIX}.table --cov ~{cov}
     >>> 
     runtime {
         docker: dockerImage

@@ -1,18 +1,18 @@
 version 1.0
 
-workflow runFindBlocksContigWise{
-    call findBlocksContigWise
+workflow runFindBlocksByWindow{
+    call findBlocksByWindow
     output {
-        File contigBedsTarGz = findBlocksContigWise.contigBedsTarGz
+        File windowBedsTarGz = findBlocksByWindow.windowBedsTarGz
     }
 }
 
 
-task findBlocksContigWise {
+task findBlocksByWindow {
     input {
-        File contigCovsTarGz
-        File contigProbTablesTarGz
-        Int minContigSize=5000000
+        File windowCovsTarGz
+        File windowProbTablesTarGz
+        Int minWindowSize=5000000
         File windowsText
         String suffix="window_based"
         # runtime configurations
@@ -35,15 +35,15 @@ task findBlocksContigWise {
         set -o xtrace
 
         mkdir covs
-        tar --strip-components 1 -xvzf ~{contigCovsTarGz} --directory covs
-        FILENAME=$(basename ~{contigCovsTarGz})
+        tar --strip-components 1 -xvzf ~{windowCovsTarGz} --directory covs
+        FILENAME=$(basename ~{windowCovsTarGz})
         export PREFIX=${FILENAME%.covs.tar.gz}
         
         mkdir tables
-        tar --strip-components 1 -xvzf ~{contigProbTablesTarGz} --directory tables
+        tar --strip-components 1 -xvzf ~{windowProbTablesTarGz} --directory tables
         
         mkdir tmp
-        cat ~{windowsText} | awk '~{minContigSize} <= $3' | xargs -n3 -P ~{threadCount} sh -c 'find_blocks_from_table -c covs/"${PREFIX}".$0_$1_$2.cov -t tables/"${PREFIX}".$0_$1_$2.table -p tmp/"${PREFIX}".$0_$1_$2'
+        cat ~{windowsText} | awk '~{minWindowSize} <= $3' | xargs -n3 -P ~{threadCount} sh -c 'find_blocks_from_table -c covs/"${PREFIX}".$0_$1_$2.cov -t tables/"${PREFIX}".$0_$1_$2.table -p tmp/"${PREFIX}".$0_$1_$2'
         mkdir ~{suffix}
         cat tmp/*.error.bed | bedtools sort -i - | bedtools merge -i - > ~{suffix}/${PREFIX}.~{suffix}.error.bed
         cat tmp/*.duplicated.bed | bedtools sort -i - | bedtools merge -i - > ~{suffix}/${PREFIX}.~{suffix}.duplicated.bed
@@ -60,6 +60,6 @@ task findBlocksContigWise {
         preemptible : preemptible
     }
     output {
-        File contigBedsTarGz = glob("*.${suffix}.tar.gz")[0]
+        File windowBedsTarGz = glob("*.${suffix}.tar.gz")[0]
     }
 }

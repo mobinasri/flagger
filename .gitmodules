@@ -1,0 +1,3 @@
+[submodule "external/secphase"]
+	path = external/secphase
+	url = https://github.com/mobinasri/secphase

@@ -8,7 +8,7 @@ workflow runPdfGenerator{
 }
 task pdfGenerator{
     input {
-        File contigProbTablesTarGz
+        File windowProbTablesTarGz
         File genomeProbTable
         Boolean isDiploid=true
         # runtime configurations
@@ -31,8 +31,8 @@ task pdfGenerator{
         set -o xtrace
         
         mkdir tables
-        tar --strip-components 1 -xvzf ~{contigProbTablesTarGz} --directory tables
-        FILENAME=$(basename ~{contigProbTablesTarGz})
+        tar --strip-components 1 -xvzf ~{windowProbTablesTarGz} --directory tables
+        FILENAME=$(basename ~{windowProbTablesTarGz})
         PREFIX=${FILENAME%.tables.tar.gz}
         python3 ${PDF_GENERATOR_PY} \
             --table  ~{genomeProbTable} \
