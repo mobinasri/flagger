@@ -1,7 +1,7 @@
 version 1.0
 
 import "deep_variant.wdl" as dv_t
-import "../../../asset/wdl/tasks/variant_calling.wdl" as var_t
+import "variant_calling.wdl" as var_t
 import "pepper_margin_deep_variant.wdl" as pmdv_t
 
 workflow runPepperMarginDeepVariantSplit{

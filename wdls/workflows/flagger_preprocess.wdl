@@ -1,12 +1,12 @@
 version 1.0
 
-import "../../external/secphase/wdl/tasks/correct_bam.wdl" as correct_bam_t
+import "../../ext/secphase/wdls/workflows/correct_bam.wdl" as correct_bam_t
 import "../tasks/deep_variant.wdl" as deep_variant_t
 import "../tasks/filter_alt_reads.wdl" as filter_alt_reads_t
 import "../tasks/bam_coverage.wdl" as bam_coverage_t
 import "../tasks/pepper_margin_deep_variant_split.wdl" as pmdv_split_t
 
-workflow runFlaggerPhase1{
+workflow runFlaggerPreprocess{
     input {
         File bam
         File assemblyFastaGz

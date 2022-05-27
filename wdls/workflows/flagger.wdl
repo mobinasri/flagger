@@ -1,16 +1,16 @@
 version 1.0
 
 import "../tasks/cov2counts.wdl" as cov2counts_t
-import "../tasks/cov2counts_contig_wise.wdl" as cov2counts_contig_wise_t
+import "../tasks/cov2counts_by_window.wdl" as cov2counts_by_window_t
 import "../tasks/fit_model.wdl" as fit_model_t
-import "../tasks/fit_model_contig_wise.wdl" as fit_model_contig_wise_t
+import "../tasks/fit_model_by_window.wdl" as fit_model_by_window_t
 import "../tasks/find_blocks.wdl" as find_blocks_t
-import "../tasks/find_blocks_contig_wise.wdl" as find_blocks_contig_wise_t
+import "../tasks/find_blocks_by_window.wdl" as find_blocks_by_window_t
 import "../tasks/pdf_generator.wdl" as pdf_generator_t
 import "../tasks/bedtools.wdl" as bedtools_t
 import "../tasks/fit_model_bed.wdl" as fit_model_bed_t
 
-workflow runFlaggerPhase2{
+workflow runFlagger{
     input {
         File hsatBedsTsv
         File coverageGz
@@ -29,7 +29,7 @@ workflow runFlaggerPhase2{
                 margin = 50000,
                 outputPrefix = basename(hsatBed[0], ".bed")
         }
-        call String2Float{
+        call String2Float as biasFactor{
             input:
                 str = hsatBed[1]
         }
@@ -38,7 +38,7 @@ workflow runFlaggerPhase2{
                 bed = merge.mergedBed,
                 suffix = hsatBed[2],
                 coverageGz = coverageGz,
-                covFloat = covFloat * String2Float.number
+                covFloat = covFloat * biasFactor.number
          }
     }
     call mergeHsatBeds {
@@ -58,25 +58,25 @@ workflow runFlaggerPhase2{
             coverageGz = coverageGz,
             table = fitModel.probabilityTable
     }
-    call cov2counts_contig_wise_t.cov2countsContigWise {
+    call cov2counts_by_window_t.cov2countsByWindow {
         input:
             coverageGz = coverageGz,
             fai = fai
     }
-    call fit_model_contig_wise_t.fitModelContigWise {
+    call fit_model_by_window_t.fitModelByWindow {
         input:
-            windowsText = cov2countsContigWise.windowsText,
-            countsTarGz = cov2countsContigWise.contigCountsTarGz 
+            windowsText = cov2countsByWindow.windowsText,
+            countsTarGz = cov2countsByWindow.windowCountsTarGz 
     }
-    call find_blocks_contig_wise_t.findBlocksContigWise {
+    call find_blocks_by_window_t.findBlocksByWindow {
         input:
-            contigCovsTarGz = cov2countsContigWise.contigCovsTarGz,
-            contigProbTablesTarGz = fitModelContigWise.contigProbTablesTarGz,
-            windowsText = cov2countsContigWise.windowsText
+            windowCovsTarGz = cov2countsByWindow.windowCovsTarGz,
+            windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz,
+            windowsText = cov2countsByWindow.windowsText
     }
     call pdf_generator_t.pdfGenerator {
         input:
-            contigProbTablesTarGz = fitModelContigWise.contigProbTablesTarGz,
+            windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz,
             genomeProbTable = fitModel.probabilityTable,
             isDiploid = isDiploid
     }
@@ -86,7 +86,7 @@ workflow runFlaggerPhase2{
             firstPrefix = "whole_genome",
             secondPrefix = "window_based",
             firstBedsTarGz = findBlocks.bedsTarGz,
-            secondBedsTarGz = findBlocksContigWise.contigBedsTarGz
+            secondBedsTarGz = findBlocksByWindow.windowBedsTarGz
     }
     call combineBeds as combineHsatBased{
        input:
@@ -108,19 +108,26 @@ workflow runFlaggerPhase2{
             fai = fai,
             dupCorrectedBedsTarGz = dupCorrectBeds.dupCorrectedBedsTarGz
     }
+
+    call getFinalBed {
+        input:
+            bedsTarGz = filterBeds.filteredBedsTarGz
+    }
+
     output {
         File genomeCounts = cov2counts.counts
         File genomeProbTable = fitModel.probabilityTable
         File genomeBedsTarGz = findBlocks.bedsTarGz
-        File windowCountsTarGz = cov2countsContigWise.contigCountsTarGz
-        File windowCovsTarGz = cov2countsContigWise.contigCovsTarGz
-        File windowProbTablesTarGz = fitModelContigWise.contigProbTablesTarGz
-        File windowBedsTarGz = findBlocksContigWise.contigBedsTarGz
+        File windowCountsTarGz = cov2countsByWindow.windowCountsTarGz
+        File windowCovsTarGz = cov2countsByWindow.windowCovsTarGz
+        File windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz
+        File windowBedsTarGz = findBlocksByWindow.windowBedsTarGz
         File pdf = pdfGenerator.pdf
         File combinedBedsTarGz = combineWindowBased.combinedBedsTarGz
         File dupCorrectedBedsTarGz = dupCorrectBeds.dupCorrectedBedsTarGz
         File filteredBedsTarGz = filterBeds.filteredBedsTarGz
         File hsatCorrectedBedsTarGz =  combineHsatBased.combinedBedsTarGz
+        File finalBed = getFinalBed.finalBed 
     }
 }
 
@@ -399,5 +406,48 @@ task mergeHsatBeds {
     }
     output {
         File bedsTarGz = glob("*.beds.hsat_based.tar.gz")[0]
+    }
+}
+
+task getFinalBed {
+    input {
+        File bedsTarGz
+        String sampleName
+        String suffix
+        # runtime configurations
+        Int memSize=4
+        Int threadCount=2
+        Int diskSize=32
+        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
+        Int preemptible=2
+    }
+    command <<<
+        # Set the exit code of a pipeline to that of the rightmost command
+        # to exit with a non-zero status, or zero if all commands of the pipeline exit
+        set -o pipefail
+        # cause a bash script to exit immediately when a command fails
+        set -e
+        # cause the bash shell to treat unset variables as an error and exit immediately
+        set -u
+        # echo each line of the script to stdout so we can see what is happening
+        # to turn off echo do 'set +o xtrace'
+        set -o xtrace
+       
+        mkdir output
+        bash /home/scripts/combine_comp_beds.sh \
+            -b ~{bedsTarGz} \
+            -m /home/scripts/colors.txt \
+            -t ~{sampleName}.~{suffix} \
+            -o output/~{sampleName}.~{suffix}.flagger_final.bed
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+    }
+    output {
+        File finalBed = glob("output/*.flagger_final.bed")[0]
     }
 }

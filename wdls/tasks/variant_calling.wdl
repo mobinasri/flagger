@@ -1,56 +1,47 @@
 version 1.0
 
-import "variant_calling.wdl" as var_t
-
-workflow runVariantCalling{
+workflow VariantCalling{
     input {
         File assemblyFastaGz
         File bam
         File bamIndex
-        String deepVariantModelType
-        Int minMAPQ = 0
+        Int minMAPQ
+        Int ploidy = 2
         Int numberOfCallerNodes=16
         Int nodeThreadCount=16
-        String includeSecondary="False"
-        String includeSupplementary="False"
+        String sampleName
+        String sampleSuffix
+        String platform
     }
-    call splitBamContigWise {
+    call splitBam {
         input:
             assemblyFastaGz = assemblyFastaGz,
             bam = bam,
             bamIndex = bamIndex,
             splitNumber = numberOfCallerNodes,
-            threadCount = numberOfCallerNodes,
-            diskSize = 2 * ceil(size(bam, "GB")) + 64
+            threadCount = numberOfCallerNodes
     }
-    scatter (part in zip(splitBamContigWise.splitBams, splitBamContigWise.splitBeds)) {
-        #call increaseMapq{
-        #    input:
-        #       bam = part.left
-        #}
-        call deepVariant{
+    scatter (part in zip(splitBam.splitBams, splitBam.splitBeds)) {
+        call callVariant{
             input:
-                modelType = deepVariantModelType,
                 assemblyFastaGz = assemblyFastaGz,
                 bam = part.left,
                 bed = part.right,
-                includeSecondary = includeSecondary,
-                includeSupplementary = includeSupplementary,
-                minMAPQ = minMAPQ,
-                diskSize = 2 * ceil(size(part.left, "GB")) + 64
+                ploidy = ploidy,
+                minMAPQ = minMAPQ
         }
     }
-    call var_t.mergeVcf{
+    call mergeVcf{
         input:
-            vcfGzFiles = deepVariant.vcfGz,
-            outputName = basename("${bam}", ".bam")
+            vcfGzFiles = callVariant.vcfGz,
+            outputName = "${sampleName}.${sampleSuffix}.${platform}"
     }
     output{
         File vcfGz = mergeVcf.vcfGz 
     }
 }
 
-task splitBamContigWise{
+task splitBam{
     input{
         File assemblyFastaGz
         File bam
@@ -92,11 +83,10 @@ task splitBamContigWise{
 
         ## split the bed file of the whole assembly into multiple bed files
         mkdir split_beds split_bams
-        python3 ${SPLIT_BED_CONTIG_WISE_PY} --bed ${ASSEMBLY_PREFIX}.bed --n ~{splitNumber} --dir split_beds --prefix ${ASSEMBLY_PREFIX}
-        
+        python3 ${SPLIT_BED_PY} --bed ${ASSEMBLY_PREFIX}.bed --n 16 --dir split_beds --prefix ${ASSEMBLY_PREFIX}
+
         ## make a separate bam for each bed file
-        n=$(ls split_beds/ | wc -l)
-        seq 1 ${n} | xargs -I {} -n 1 -P ~{threadCount} sh -c "samtools view -h -b -L split_beds/${ASSEMBLY_PREFIX}_{}.bed ${BAM_PREFIX}.bam > split_bams/${BAM_PREFIX}_{}.bam"
+        seq 1 ~{splitNumber} | xargs -I {} -n 1 -P ~{threadCount} sh -c "samtools view -h -b -L split_beds/${ASSEMBLY_PREFIX}_{}.bed ${BAM_PREFIX}.bam > split_bams/${BAM_PREFIX}_{}.bam"
     >>>
     runtime {
         docker: dockerImage
@@ -112,65 +102,19 @@ task splitBamContigWise{
     }
 }
 
-
-task increaseMapq{
+task callVariant{
     input{
         File bam
-        Int threshold=20
-        Int memSize=4
-        Int threadCount=2
-        Int diskSize=64
-        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
-        Int preemptible=2
-        String zones="us-west2-a"
-    }
-    command <<<
-        # Set the exit code of a pipeline to that of the rightmost command
-        # to exit with a non-zero status, or zero if all commands of the pipeline exit
-        set -o pipefail
-        # cause a bash script to exit immediately when a command fails
-        set -e
-        # cause the bash shell to treat unset variables as an error and exit immediately
-        set -u
-        # echo each line of the script to stdout so we can see what is happening
-        # to turn off echo do 'set +o xtrace'
-        set -o xtrace
-
-        ## hard link the bam and bai files to the working directory
-        BAM_NAME=$(basename ~{bam})
-        BAM_PREFIX=${BAM_NAME%%.bam}
-
-        mkdir output
-        increase_mapq -i ~{bam} -o output/${BAM_PREFIX}.increased_mapq.bam -t ~{threshold}
-    >>>
-    runtime {
-        docker: dockerImage
-        memory: memSize + " GB"
-        cpu: threadCount
-        disks: "local-disk " + diskSize + " SSD"
-        preemptible : preemptible
-        zones: zones
-    }
-    output {
-        File outputBam = glob("output/*.bam")[0]
-    }
-}
-
-task deepVariant{
-    input{
-        File bam
-        File? bamIndex
         File assemblyFastaGz
-        File? bed
+        File bed
+        Int ploidy
         Int minMAPQ
-        String includeSecondary="False"
-        String includeSupplementary="False"
-        String modelType
+        String extraArgs=""
         # runtime configurations
         Int memSize=32
         Int threadCount=16
-        Int diskSize=64
-        String dockerImage="google/deepvariant:latest"
+        Int diskSize=256
+        String dockerImage="quay.io/masri2019/hpp_bcftools:latest"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -190,42 +134,27 @@ task deepVariant{
         BAM_NAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_NAME%%.bam}
         ln -f ~{bam} > ${BAM_PREFIX}.bam
-        if [ -n "~{bamIndex}" ]; then
-            ln -f ~{bamIndex} > ${BAM_PREFIX}.bam.bai
-        else       
-            samtools index -@~{threadCount} ${BAM_PREFIX}.bam
-        fi
+        samtools index ${BAM_PREFIX}.bam
 
         ## unzip the fasta file and produce its index
         gunzip -c ~{assemblyFastaGz} > asm.fa
         samtools faidx asm.fa
 
-        MAKE_EXAMPLES_EXTRA_ARGS="min_mapping_quality=~{minMAPQ}"
-        if [ ~{includeSecondary} == "True"]; then
-            MAKE_EXAMPLES_EXTRA_ARGS="${MAKE_EXAMPLES_EXTRA_ARGS},keep_secondary_alignments=true"
-        fi
-        if [ ~{includeSupplementary} == "True" ]; then
-            MAKE_EXAMPLES_EXTRA_ARGS="${MAKE_EXAMPLES_EXTRA_ARGS},keep_supplementary_alignments=true"
-        fi
-
-        MORE_OPTIONS=""
-        if [ -n "~{bed}" ]; then
-            MORE_OPTIONS="--regions=~{bed}"
-        fi
-
-        ## call deepvariant 
-        /opt/deepvariant/bin/run_deepvariant \
-        --model_type=~{modelType} \
-        --ref=asm.fa \
-        --reads=${BAM_PREFIX}.bam \
-        --output_vcf=${BAM_PREFIX}.vcf \
-        --make_examples_extra_args=${MAKE_EXAMPLES_EXTRA_ARGS} \
-        --call_variants_extra_args="use_openvino=true" \
-        --num_shards=$(nproc) \
-        --dry_run=false ${MORE_OPTIONS}
-
-        gzip -c ${BAM_PREFIX}.vcf > ${BAM_PREFIX}.vcf.gz 
+        ## split the previously split bed file again into smaller chunks for the sake of parallelism
+        mkdir split_beds
+        python3 ${SPLIT_BED_PY} --bed ~{bed} --n ~{threadCount} --dir split_beds --prefix tmp
         
+        ## run the variant caller for each small temporary bed file
+        mkdir vcf_files
+        seq 1 ~{threadCount} | xargs -I {} -n 1 -P ~{threadCount} sh -c "bcftools mpileup -a FORMAT/AD -a INFO/AD ~{extraArgs} -q~{minMAPQ} -B -d 100000 -f asm.fa -R split_beds/tmp_{}.bed ${BAM_PREFIX}.bam | bcftools call -cv --ploidy ~{ploidy} -Oz -o vcf_files/tmp.{}.vcf.gz"
+        
+        ## make a header for the merged vcf file
+        zcat vcf_files/tmp.1.vcf.gz | awk 'substr($0,1,1) == "#"' | awk -v colname="${BAM_PREFIX}" '{if ($1 == "#CHROM"){ for(i =1; i < 10; i++){printf("%s\t",$i)}; printf("%s\n",colname)} else {print $0}}' > merged.vcf
+        zcat vcf_files/*.vcf.gz | awk 'substr($0,1,1) != "#"' >> merged.vcf
+        
+        ## sort the merged vcf file and produce the final gzipped vcf file
+        mkdir final_vcf
+        bcftools sort -o final_vcf/${BAM_PREFIX}.vcf.gz -Oz merged.vcf
     >>>
     runtime {
         docker: dockerImage
@@ -236,7 +165,58 @@ task deepVariant{
         zones: zones
     }
     output {
-        File vcfGz = glob("*.vcf.gz")[0]
+        File vcfGz = glob("final_vcf/*.vcf.gz")[0]
     }
+}
+
+
+task mergeVcf{
+    input{
+        Array[File] vcfGzFiles
+        String outputName
+        # runtime configurations
+        Int memSize=32
+        Int threadCount=16
+        Int diskSize=512
+        String dockerImage="quay.io/masri2019/hpp_bcftools:latest"
+        Int preemptible=2
+        String zones="us-west2-a"
+    }
+    command <<<
+        # Set the exit code of a pipeline to that of the rightmost command
+        # to exit with a non-zero status, or zero if all commands of the pipeline exit
+        set -o pipefail
+        # cause a bash script to exit immediately when a command fails
+        set -e
+        # cause the bash shell to treat unset variables as an error and exit immediately
+        set -u
+        # echo each line of the script to stdout so we can see what is happening
+        # to turn off echo do 'set +o xtrace'
+        set -o xtrace
+
+        mkdir vcf_files
+        ln ~{sep=" " vcfGzFiles} vcf_files
+        files=(vcf_files/*) 
+
+        ## make a header for the merged vcf file
+        zcat ${files[0]} | awk 'substr($0,1,1) == "#"' | awk -v colname="~{outputName}" '{if ($1 == "#CHROM"){ for(i =1; i < 10; i++){printf("%s\t",$i)}; printf("%s\n",colname)} else {print $0}}' > merged.vcf
+        zcat vcf_files/*.vcf.gz | awk 'substr($0,1,1) != "#"' >> merged.vcf
+
+        ## sort the merged vcf file and produce the final gzipped vcf file
+        mkdir final_vcf
+        bcftools sort -o final_vcf/~{outputName}.vcf.gz -Oz merged.vcf
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+        zones: zones
+    }
+    output {
+        File vcfGz = "final_vcf/~{outputName}.vcf.gz"
+    }
+
 }
 
