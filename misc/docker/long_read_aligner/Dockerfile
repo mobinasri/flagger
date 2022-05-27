@@ -1,4 +1,4 @@
-FROM quay.io/masri2019/hpp_base:latest
+FROM mobinasri/bio_base:latest
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
 RUN apt-get update && apt-get install -y zip unzip curl

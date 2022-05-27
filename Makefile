@@ -1,6 +1,6 @@
 # Definitions
-repository = quay.io/masri2019
-identifier = hpp_long_read_aligner
+repository = mobinasri
+identifier = flagger
 version = 0.0.0
 git_commit ?= $(shell git log --pretty=oneline -n 1 | cut -f1 -d " ")
 name = ${repository}/${identifier}

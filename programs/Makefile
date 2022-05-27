@@ -13,13 +13,10 @@ BINS=$(patsubst ${SRC_DIR}/%.c,${BIN_DIR}/%,$(SRCS))
 
 .PHONY: all
 
-all: ${OBJS} ${BIN_DIR} $(BINS) ${BIN_DIR}/secphase_debug
+all: ${OBJS} ${BIN_DIR} $(BINS)
 
 bin/%: src/%.c $(OBJS)
 	$(CC) -o $@ $< $(OBJS) $(CCFLAGS)
-
-bin/secphase_debug: src/secphase.c $(OBJS)
-	$(CC) -o$@ $< $(OBJS) -DDEBUG $(CCFLAGS)
 
 ${BIN_DIR}:
 	@mkdir -p bin

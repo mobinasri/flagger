@@ -1,7 +1,7 @@
 version 1.0
 
-import "../../../QC/wdl/tasks/extract_reads.wdl" as extractReads_t
-import "../../../QC/wdl/tasks/arithmetic.wdl" as arithmetic_t
+import "../../external/hpp_production_workflows/QC/wdl/tasks/extract_reads.wdl" as extractReads_t
+import "../../external/hpp_production_workflows/QC/wdl/tasks/arithmetic.wdl" as arithmetic_t
 import "merge_bams.wdl" as mergeBams_t
 
 workflow longReadAlignment {

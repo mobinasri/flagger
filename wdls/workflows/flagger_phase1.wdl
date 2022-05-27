@@ -1,6 +1,6 @@
 version 1.0
 
-import "../tasks/correct_bam.wdl" as correct_bam_t
+import "../../external/secphase/wdl/tasks/correct_bam.wdl" as correct_bam_t
 import "../tasks/deep_variant.wdl" as deep_variant_t
 import "../tasks/filter_alt_reads.wdl" as filter_alt_reads_t
 import "../tasks/bam_coverage.wdl" as bam_coverage_t

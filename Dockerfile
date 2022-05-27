@@ -1,4 +1,4 @@
-FROM masri2019/base:latest
+FROM mobinasri/bio_base:latest
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
 RUN mkdir -p /home/apps
@@ -57,8 +57,9 @@ RUN apt-get install -y tabix
 ENV LANG="C.UTF-8" 
 RUN pip3 install cython && pip3 install whatshap
 
-
 COPY ./programs /home/programs
+# Add cigar_it to the submodules dir
+COPY ./ext/secphase/programs/submodules/cigar_it /home/programs/submodules
 COPY ./scripts  /home/scripts
 RUN cd /home/programs && make
 ENV PATH="$PATH:/home/programs/bin"

@@ -5,7 +5,7 @@ RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y build-
 
 RUN mkdir /home/apps
 
-RUN cd /home/apps && wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+RUN cd /home/apps && wget https://bootstrap.pypa.io/pip/3.6/get-pip.py && python3 get-pip.py
 
 
 RUN cd /home/apps && \
