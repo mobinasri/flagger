@@ -90,6 +90,3 @@ workflows:
    -  name: PepperMarginDeepVariant
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/pepper_margin_deep_variant.wdl
-   -  name: AlignSubetReads
-      subclass: WDL
-      primaryDescriptorPath: /wdls/tasks/other/align_subset_reads.wdl
