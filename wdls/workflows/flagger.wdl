@@ -1,14 +1,14 @@
 version 1.0
 
-import "../tasks/cov2counts.wdl" as cov2counts_t
-import "../tasks/cov2counts_by_window.wdl" as cov2counts_by_window_t
-import "../tasks/fit_model.wdl" as fit_model_t
-import "../tasks/fit_model_by_window.wdl" as fit_model_by_window_t
-import "../tasks/find_blocks.wdl" as find_blocks_t
-import "../tasks/find_blocks_by_window.wdl" as find_blocks_by_window_t
-import "../tasks/pdf_generator.wdl" as pdf_generator_t
-import "../tasks/bedtools.wdl" as bedtools_t
-import "../tasks/fit_model_bed.wdl" as fit_model_bed_t
+import "../tasks/coverage/cov2counts.wdl" as cov2counts_t
+import "../tasks/coverage/cov2counts_by_window.wdl" as cov2counts_by_window_t
+import "../tasks/mixture_model/fit_model.wdl" as fit_model_t
+import "../tasks/mixture_model/fit_model_by_window.wdl" as fit_model_by_window_t
+import "../tasks/mixture_model/find_blocks.wdl" as find_blocks_t
+import "../tasks/mixture_model/find_blocks_by_window.wdl" as find_blocks_by_window_t
+import "../tasks/mixture_model/pdf_generator.wdl" as pdf_generator_t
+import "../tasks/other/bedtools.wdl" as bedtools_t
+import "../tasks/mixture_model/fit_model_bed.wdl" as fit_model_bed_t
 
 workflow runFlagger{
     input {
@@ -139,7 +139,7 @@ task String2Float {
         echo ~{str} > file.txt
     >>>
     runtime {
-        docker: "quay.io/masri2019/hpp_coverage:latest"
+        docker: "mobinasri/flagger:v0.1"
         memory: "1 GB"
         cpu: 1
         disks: "local-disk 1 SSD"
@@ -159,7 +159,7 @@ task combineBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
+        String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
     command <<<
@@ -217,7 +217,7 @@ task dupCorrectBeds {
         Int memSize=16
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
+        String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
 
@@ -291,7 +291,7 @@ task filterBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
+        String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
 
@@ -364,7 +364,7 @@ task mergeHsatBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
+        String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
     command <<<
@@ -418,7 +418,7 @@ task getFinalBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
+        String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
     command <<<

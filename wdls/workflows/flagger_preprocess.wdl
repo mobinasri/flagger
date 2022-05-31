@@ -1,10 +1,10 @@
 version 1.0
 
 import "../../ext/secphase/wdls/workflows/correct_bam.wdl" as correct_bam_t
-import "../tasks/deep_variant.wdl" as deep_variant_t
-import "../tasks/filter_alt_reads.wdl" as filter_alt_reads_t
-import "../tasks/bam_coverage.wdl" as bam_coverage_t
-import "../tasks/pepper_margin_deep_variant_split.wdl" as pmdv_split_t
+import "../tasks/alignment/filter_alt_reads.wdl" as filter_alt_reads_t
+import "../tasks/coverage/bam_coverage.wdl" as bam_coverage_t
+import "../tasks/variant_calling/deep_variant_scattered.wdl" as dv_scat_t
+import "../tasks/variant_calling/pepper_margin_deep_variant_scattered.wdl" as pmdv_scat_t
 
 workflow runFlaggerPreprocess{
     input {
@@ -34,7 +34,7 @@ workflow runFlaggerPreprocess{
     ## If the user selected deepvariant as the variant caller
     if ("${variantCaller}" == "dv") { 
         ## Call variants to be used for finding the reads with alternative alleles
-        call deep_variant_t.runVariantCalling as dpv {
+        call dv_scat_t.runDeepVariantScattered as dv {
             input:
                 deepVariantModelType = deepVariantModelType,
                 assemblyFastaGz = assemblyFastaGz,
@@ -49,7 +49,7 @@ workflow runFlaggerPreprocess{
     ## If the user selected pepper-margin-deepvariant as the variant caller 
     if ("${variantCaller}" == "pmdv") {
         ## Call variants to be used for finding the reads with alternative alleles
-        call pmdv_split_t.runPepperMarginDeepVariantSplit as pmdv {
+        call pmdv_scat_t.runPepperMarginDeepVariantScattered as pmdv {
             input:
                 pmdvModelType = pepperModelType,
                 assemblyFastaGz = assemblyFastaGz,
@@ -61,7 +61,7 @@ workflow runFlaggerPreprocess{
         }
     }
    
-    File vcfGz = select_first([dpv.vcfGz, pmdv.vcfGz])     
+    File vcfGz = select_first([dv.vcfGz, pmdv.vcfGz])     
 
     ## Filter the reads with alternative alleles
     call filter_alt_reads_t.filterAltReads {

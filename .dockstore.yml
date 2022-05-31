@@ -1,0 +1,95 @@
+version: 1.2
+workflows:
+   -  name: Asm2AsmAligner
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/alignment/asm2asm_aligner.wdl
+   -  name: ProduceFai
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/alignment/produce_fai.wdl
+   -  name: DeepVariantScattered
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/variant_calling/deep_variant_scattered.wdl
+   -  name: ProjectBlocks
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/other/project_blocks.wdl
+   -  name: SubsetCoverage
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/coverage/subset_coverage.wdl
+   -  name: LongReadAlignerScattered
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/alignment/long_read_aligner_scattered.wdl
+   -  name: LongReadAlignerScatteredPaf
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/alignment/long_read_aligner_scattered_paf.wdl
+   -  name: UnionBedFiles
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/other/union_bed_files.wdl
+   -  name: SubtractBedFiles
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/other/subtract_bed_files.wdl
+   -  name: Cov2Counts
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/coverage/cov2counts.wdl
+   -  name: Bam2Paf
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/alignment/bam2paf.wdl
+   -  name: BamCoverage
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/coverage/bam_coverage.wdl
+   -  name: BamCoverage
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/coverage/bam_coverage.wdl
+   -  name: FitModelByCounts
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/mixture_model/fit_model.wdl
+   -  name: ProbTable2Bed
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/mixture_model/prob_table2bed.wdl
+   -  name: CalMD
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/alignment/calmd.wdl
+   -  name: ConcatAssemblies
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/alignment/concat_assemblies.wdl
+   -  name: MergeColorBeds
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/other/merge_color_beds.wdl
+   -  name: GenerateWig
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/coverage/generate_wig.wdl
+   -  name: AdjustMapQ
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/other/adjust_mapq.wdl
+   -  name: FilterAltReads
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/alignment/filter_alt_reads.wdl
+   -  name: Cov2Wig
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/coverage/cov2wig.wdl
+   -  name: Wig2TDF
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/coverage/wig2tdf.wdl
+   -  name: Flagger
+      subclass: WDL
+      primaryDescriptorPath: /wdls/workflows/flagger.wdl
+   -  name: FlaggerPreprocess
+      subclass: WDL
+      primaryDescriptorPath: /wdls/workflows/flagger_preprocess.wdl
+   -  name: DeepVariant
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/variant_calling/deep_variant.wdl
+   -  name: PepperMarginDeepVariantScattered
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/variant_calling/pepper_margin_deep_variant_scattered.wdl
+   -  name: GetFlaggerFinalBed
+      subclass: WDL
+      primaryDescriptorPath: /wdls/workflows/get_flagger_final_bed.wdl
+   -  name: ProjectFlaggerFinalBed
+      subclass: WDL
+      primaryDescriptorPath: /wdls/workflows/project_flagger_final_bed.wdl
+   -  name: PepperMarginDeepVariant
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/pepper_margin_deep_variant.wdl
+   -  name: AlignSubetReads
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/other/align_subset_reads.wdl

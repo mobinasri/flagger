@@ -1,23 +1,25 @@
-version 1.0 
+version 1.0
 
-workflow runGetFinalBed{
-    call getFinalBed
-    output {
-        File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
+workflow runGenerateWig{
+    call generateWig
+    output{
+        File wig = generateWig.wig
     }
 }
 
-task getFinalBed {
-    input {
-        File correctedBedsTarGz
-        File altRemovedBedsTarGz
+task generateWig{
+    input{
         String sampleName
-        String suffix
+        String sampleSuffix
+        String platform
+        File bamFile
+        Int minMAPQ
+        String extraOptions = "-z 5 -w 25 -e 250"
+        File assemblyFastaGz
         # runtime configurations
-        Int memSize=4
-        Int threadCount=2
-        Int diskSize=32
+        Int memSize=16
+        Int threadCount=4
+        Int diskSize=512
         String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
@@ -32,16 +34,17 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-       
+        
+        # Extract assembly and index
+        FILENAME=`basename ~{assemblyFastaGz}`
+        PREFIX="${FILENAME%.*.*}"
+        gunzip -c ~{assemblyFastaGz} > $PREFIX.fa
+        samtools faidx $PREFIX.fa
+
         mkdir output
-        bash /home/scripts/combine_alt_removed_beds.sh \
-            -a ~{correctedBedsTarGz} \
-            -b ~{altRemovedBedsTarGz} \
-            -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
-   
-    >>> 
+        samtools view -h -F256 -F4 -q ~{minMAPQ} ~{bamFile} > output/pri.bam
+        igvtools count ~{extraOptions} output/pri.bam output/~{sampleName}.~{sampleSuffix}.~{platform}.wig $PREFIX.fa
+    >>>
     runtime {
         docker: dockerImage
         memory: memSize + " GB"
@@ -49,9 +52,8 @@ task getFinalBed {
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
     }
-    output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+    output{
+        File wig = glob("output/*.wig")[0]
     }
 }
 

@@ -1,23 +1,18 @@
 version 1.0 
 
-workflow runGetFinalBed{
-    call getFinalBed
+workflow runCov2Counts{
+    call cov2counts
     output {
-        File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
+        File counts = cov2counts.counts
     }
 }
-
-task getFinalBed {
+task cov2counts {
     input {
-        File correctedBedsTarGz
-        File altRemovedBedsTarGz
-        String sampleName
-        String suffix
+        File coverageGz
         # runtime configurations
-        Int memSize=4
-        Int threadCount=2
-        Int diskSize=32
+        Int memSize=8
+        Int threadCount=4
+        Int diskSize=64
         String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
@@ -32,15 +27,12 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-       
-        mkdir output
-        bash /home/scripts/combine_alt_removed_beds.sh \
-            -a ~{correctedBedsTarGz} \
-            -b ~{altRemovedBedsTarGz} \
-            -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
-   
+
+        FILENAME=$(basename ~{coverageGz})
+        PREFIX=${FILENAME%.cov.gz}
+        
+        gunzip -c ~{coverageGz} > ${PREFIX}.cov
+        cov2counts -i ${PREFIX}.cov -o ${PREFIX}.counts
     >>> 
     runtime {
         docker: dockerImage
@@ -50,8 +42,7 @@ task getFinalBed {
         preemptible : preemptible
     }
     output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+        File counts = glob("*.counts")[0]
     }
 }
 

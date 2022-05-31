@@ -1,19 +1,15 @@
 version 1.0 
 
-workflow runGetFinalBed{
-    call getFinalBed
+workflow runFitModel{
+    call fitModel
     output {
-        File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
+       File probabilityTable = fitModel.probabilityTable 
     }
 }
-
-task getFinalBed {
+task fitModel {
     input {
-        File correctedBedsTarGz
-        File altRemovedBedsTarGz
-        String sampleName
-        String suffix
+        File counts
+        Float cov=20.0
         # runtime configurations
         Int memSize=4
         Int threadCount=2
@@ -32,15 +28,10 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-       
-        mkdir output
-        bash /home/scripts/combine_alt_removed_beds.sh \
-            -a ~{correctedBedsTarGz} \
-            -b ~{altRemovedBedsTarGz} \
-            -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
-   
+
+        FILENAME=$(basename ~{counts})
+        PREFIX=${FILENAME%.counts}
+        python3 ${FIT_GMM_PY} --counts ~{counts} --output ${PREFIX}.table --cov ~{cov}
     >>> 
     runtime {
         docker: dockerImage
@@ -50,8 +41,7 @@ task getFinalBed {
         preemptible : preemptible
     }
     output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+        File probabilityTable = glob("*.table")[0]
     }
 }
 

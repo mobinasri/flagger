@@ -2,8 +2,8 @@ version 1.0
 
 import "../../ext/hpp_production_workflows/QC/wdl/tasks/extract_reads.wdl" as extractReads_t
 import "../../ext/hpp_production_workflows/QC/wdl/tasks/arithmetic.wdl" as arithmetic_t
-import "../tasks/long_read_aligner.wdl" as longReadAligner_t
-import "../tasks/merge_bams.wdl" as mergeBams_t
+import "../tasks/alignment/long_read_aligner.wdl" as longReadAligner_t
+import "../tasks/alignment/merge_bams.wdl" as mergeBams_t
 
 workflow AlignSubsetReads {
     input {
@@ -83,7 +83,7 @@ task subset {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
+        String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
     command <<<

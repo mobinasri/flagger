@@ -1,25 +1,24 @@
-version 1.0 
+version 1.0
 
-workflow runGetFinalBed{
-    call getFinalBed
-    output {
-        File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
+workflow MergePafFiles{
+    call merge
+    output{
+        File mergedPaf = merge.mergedPaf
     }
 }
 
-task getFinalBed {
-    input {
-        File correctedBedsTarGz
-        File altRemovedBedsTarGz
+task merge{
+    input{
+        Array[File] pafFiles
         String sampleName
-        String suffix
+        String sampleSuffix
         # runtime configurations
-        Int memSize=4
+        Int memSize=8
         Int threadCount=2
-        Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.1"
+        Int diskSize=256
+        String dockerImage="mobinasri/bio_base:v0.1"
         Int preemptible=2
+        String zones
     }
     command <<<
         # Set the exit code of a pipeline to that of the rightmost command
@@ -32,26 +31,19 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-       
-        mkdir output
-        bash /home/scripts/combine_alt_removed_beds.sh \
-            -a ~{correctedBedsTarGz} \
-            -b ~{altRemovedBedsTarGz} \
-            -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
-   
-    >>> 
+        
+        cat ~{sep=" " pafFiles} | sort -k6,8 -n > ~{sampleName}.~{sampleSuffix}.paf
+    >>>
     runtime {
         docker: dockerImage
         memory: memSize + " GB"
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
+        zones: zones
     }
     output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+        File mergedPaf = "~{sampleName}.~{sampleSuffix}.paf"
     }
 }
 

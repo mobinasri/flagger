@@ -1,24 +1,19 @@
 version 1.0 
 
-workflow runGetFinalBed{
-    call getFinalBed
+workflow runProduceFai{
+    call produceFai
     output {
-        File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
+        File fai = produceFai.fai
     }
 }
-
-task getFinalBed {
+task produceFai {
     input {
-        File correctedBedsTarGz
-        File altRemovedBedsTarGz
-        String sampleName
-        String suffix
+        File assemblyGz
         # runtime configurations
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.1"
         Int preemptible=2
     }
     command <<<
@@ -32,15 +27,11 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-       
-        mkdir output
-        bash /home/scripts/combine_alt_removed_beds.sh \
-            -a ~{correctedBedsTarGz} \
-            -b ~{altRemovedBedsTarGz} \
-            -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
-   
+        
+        FILENAME=$(basename ~{assemblyGz})
+        PREFIX=${FILENAME%.gz}
+        gunzip -c ~{assemblyGz} > ${PREFIX}
+        samtools faidx ${PREFIX}
     >>> 
     runtime {
         docker: dockerImage
@@ -50,8 +41,7 @@ task getFinalBed {
         preemptible : preemptible
     }
     output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+        File fai = glob("*.fai")[0]
     }
 }
 

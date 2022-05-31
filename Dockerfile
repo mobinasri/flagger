@@ -1,4 +1,4 @@
-FROM mobinasri/bio_base:latest
+FROM mobinasri/bio_base:v0.1
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
 RUN mkdir -p /home/apps
@@ -12,20 +12,6 @@ RUN cd /home/apps && \
     wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz && \
     tar -xvzf jdk-17_linux-x64_bin.tar.gz
 ENV PATH=$PATH:/home/apps/jdk-17.0.1/bin
-
-#download picard.jar
-RUN cd /home/apps && \
-    wget https://github.com/broadinstitute/picard/releases/download/2.26.10/picard.jar
-
-#install bcftools
-RUN cd /home/apps && \
-        wget https://github.com/samtools/bcftools/releases/download/1.12/bcftools-1.12.tar.bz2 && \
-        tar -vxjf bcftools-1.12.tar.bz2 && \
-        rm -rf bcftools-1.12.tar.bz2 && \
-        cd bcftools-1.12 && \
-        make
-ENV PATH=/home/apps/bcftools-1.12:$PATH
-
 
 #intstall IGV
 RUN cd /home/apps && \

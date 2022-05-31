@@ -1,7 +1,7 @@
 version 1.0
 
-import "../tasks/bam2paf.wdl" as bam2paf_t
-import "../tasks/project_blocks.wdl" as projectBlocks_t
+import "../tasks/alignment/bam2paf.wdl" as bam2paf_t
+import "../tasks/other/project_blocks.wdl" as projectBlocks_t
 
 workflow runProjectFlaggerFinalBed {
     input {
@@ -86,7 +86,7 @@ task extractComps{
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="quay.io/masri2019/hpp_base:latest"
+        String dockerImage="mobinasri/bio_base:v0.1"
         Int preemptible=2
     }
     command <<<
@@ -132,7 +132,7 @@ task getHapBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="quay.io/masri2019/hpp_base:latest"
+        String dockerImage="mobinasri/bio_base:v0.1"
         Int preemptible=2
     }
 
@@ -177,7 +177,7 @@ task extractBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="quay.io/masri2019/hpp_base:latest"
+        String dockerImage="mobinasri/bio_base:v0.1"
         Int preemptible=2
     }
 
@@ -222,7 +222,7 @@ task mergeBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="quay.io/masri2019/hpp_coverage:latest"
+        String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
 

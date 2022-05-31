@@ -1,23 +1,20 @@
 version 1.0 
 
-workflow runGetFinalBed{
-    call getFinalBed
+workflow runPdfGenerator{
+    call pdfGenerator
     output {
-        File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
+        File pdf = pdfGenerator.pdf
     }
 }
-
-task getFinalBed {
+task pdfGenerator{
     input {
-        File correctedBedsTarGz
-        File altRemovedBedsTarGz
-        String sampleName
-        String suffix
+        File windowProbTablesTarGz
+        File genomeProbTable
+        Boolean isDiploid=true
         # runtime configurations
-        Int memSize=4
-        Int threadCount=2
-        Int diskSize=32
+        Int memSize=16
+        Int threadCount=8
+        Int diskSize=128
         String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
@@ -32,15 +29,17 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-       
-        mkdir output
-        bash /home/scripts/combine_alt_removed_beds.sh \
-            -a ~{correctedBedsTarGz} \
-            -b ~{altRemovedBedsTarGz} \
-            -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
-   
+        
+        mkdir tables
+        tar --strip-components 1 -xvzf ~{windowProbTablesTarGz} --directory tables
+        FILENAME=$(basename ~{windowProbTablesTarGz})
+        PREFIX=${FILENAME%.tables.tar.gz}
+        python3 ${PDF_GENERATOR_PY} \
+            --table  ~{genomeProbTable} \
+            --dir tables \
+            --pdf ${PREFIX}.cov_dist.pdf \
+            ~{true="--diploid" false="" isDiploid}
+        
     >>> 
     runtime {
         docker: dockerImage
@@ -50,8 +49,7 @@ task getFinalBed {
         preemptible : preemptible
     }
     output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+        File pdf = glob("*.pdf")[0]
     }
 }
 

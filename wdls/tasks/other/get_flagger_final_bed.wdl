@@ -4,7 +4,6 @@ workflow runGetFinalBed{
     call getFinalBed
     output {
         File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
     }
 }
 
@@ -38,8 +37,8 @@ task getFinalBed {
             -a ~{correctedBedsTarGz} \
             -b ~{altRemovedBedsTarGz} \
             -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
+            -t ~{sampleName} \
+            -o output/~{sampleName}.~{suffix}.flagger.bed
    
     >>> 
     runtime {
@@ -50,8 +49,7 @@ task getFinalBed {
         preemptible : preemptible
     }
     output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+        File finalBed = glob("output/*.bed")[0]
     }
 }
 

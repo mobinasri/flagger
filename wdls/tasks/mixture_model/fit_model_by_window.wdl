@@ -1,23 +1,22 @@
 version 1.0 
 
-workflow runGetFinalBed{
-    call getFinalBed
+workflow runFitModelByWindow{
+    call fitModelByWindow
     output {
-        File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
+       File windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz
     }
 }
 
-task getFinalBed {
+task fitModelByWindow {
     input {
-        File correctedBedsTarGz
-        File altRemovedBedsTarGz
-        String sampleName
-        String suffix
+        File windowsText
+        File countsTarGz
+        Float cov=20
+        Int minContigSize=5000000
         # runtime configurations
-        Int memSize=4
-        Int threadCount=2
-        Int diskSize=32
+        Int memSize=8
+        Int threadCount=32
+        Int diskSize=64
         String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
@@ -32,15 +31,17 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-       
-        mkdir output
-        bash /home/scripts/combine_alt_removed_beds.sh \
-            -a ~{correctedBedsTarGz} \
-            -b ~{altRemovedBedsTarGz} \
-            -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
-   
+
+        mkdir counts tables
+        tar --strip-components 1 -xvzf ~{countsTarGz} --directory counts
+        
+        
+        FILENAME="$(basename ~{countsTarGz})"
+        export PREFIX=${FILENAME%.counts.tar.gz}
+        
+        cat ~{windowsText} | awk '~{minContigSize} <= $3' | xargs -n 3 -P ~{threadCount} sh -c 'python3 ${FIT_GMM_PY}  --cov ~{cov} --counts counts/"${PREFIX}".$0_$1_$2.counts --output tables/"${PREFIX}".$0_$1_$2.table'
+        tar -cf ${PREFIX}.tables.tar tables
+        gzip ${PREFIX}.tables.tar
     >>> 
     runtime {
         docker: dockerImage
@@ -50,8 +51,7 @@ task getFinalBed {
         preemptible : preemptible
     }
     output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+        File windowProbTablesTarGz = glob("*.tables.tar.gz")[0]
     }
 }
 

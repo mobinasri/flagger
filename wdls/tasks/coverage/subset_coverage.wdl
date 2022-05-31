@@ -1,23 +1,22 @@
 version 1.0 
 
-workflow runGetFinalBed{
-    call getFinalBed
+workflow runSubsetCoverage{
+    call subsetCoverage
     output {
-        File finalBed = getFinalBed.finalBed
-        File simplifiedFinalBed = getFinalBed.simplifiedFinalBed
+        File subsetCoverageGz = subsetCoverage.outputCoverageGz
     }
 }
 
-task getFinalBed {
+
+task subsetCoverage {
     input {
-        File correctedBedsTarGz
-        File altRemovedBedsTarGz
-        String sampleName
+        File coverageGz
+        File blocksBed
         String suffix
         # runtime configurations
-        Int memSize=4
-        Int threadCount=2
-        Int diskSize=32
+        Int memSize=8
+        Int threadCount=4
+        Int diskSize=128
         String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
     }
@@ -32,16 +31,15 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-       
-        mkdir output
-        bash /home/scripts/combine_alt_removed_beds.sh \
-            -a ~{correctedBedsTarGz} \
-            -b ~{altRemovedBedsTarGz} \
-            -m /home/scripts/colors.txt \
-            -t ~{sampleName}.~{suffix} \
-            -o output/~{sampleName}.~{suffix}.flagger_final.bed
-   
-    >>> 
+
+        FILENAME=$(basename ~{coverageGz})
+        PREFIX=${FILENAME%.cov.gz}
+
+        zcat ~{coverageGz} | \
+            awk '{if(substr($1,1,1) == ">") {contig=substr($1,2,40); len_contig=$2} else {print contig"\t"$1-1"\t"$2"\t"$3"\t"len_contig}}' | \
+            bedtools intersect -a - -b ~{blocksBed} | \
+            awk '{if(contig != $1){contig=$1; print ">"contig" "$5}; print $2+1"\t"$3"\t"$4}' | pigz -p4 > ${PREFIX}.~{suffix}.cov.gz
+    >>>
     runtime {
         docker: dockerImage
         memory: memSize + " GB"
@@ -50,8 +48,6 @@ task getFinalBed {
         preemptible : preemptible
     }
     output {
-        File finalBed = glob("output/*.flagger_final.bed")[0]
-        File simplifiedFinalBed = glob("output/*.flagger_final.simplified.bed")[0]
+        File outputCoverageGz = glob("*.${suffix}.cov.gz")[0]
     }
 }
-
