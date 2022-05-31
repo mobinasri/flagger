@@ -1,7 +1,7 @@
 version 1.0
 
-import "../../ext/hpp_production_workflows/QC/wdl/tasks/extract_reads.wdl" as extractReads_t
-import "../../ext/hpp_production_workflows/QC/wdl/tasks/arithmetic.wdl" as arithmetic_t
+import "../../../ext/hpp_production_workflows/QC/wdl/tasks/extract_reads.wdl" as extractReads_t
+import "../../../ext/hpp_production_workflows/QC/wdl/tasks/arithmetic.wdl" as arithmetic_t
 import "merge_pafs.wdl" as mergePafs_t
 import "read_set_splitter.wdl" as readSetSplitter_t
 import "long_read_aligner.wdl" as longReadAligner_t
