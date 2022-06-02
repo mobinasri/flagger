@@ -1,0 +1,5 @@
+{
+  "runReadStats.identifier": "HG005",
+  "runReadStats.reads": ["s3://human-pangenomics/working/HPRC_PLUS/HG005/raw_data/PacBio_HiFi/PBmixSequel842_3_C01_PCCD_30hours_15kbV2PD_70pM_HumanHG005_CCS/m64017_200802_073944.fastq.gz"]
+}
+
