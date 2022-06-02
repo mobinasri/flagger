@@ -1,0 +1,119 @@
+version: 1.2
+workflows:
+   -  name: Dipcall
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/dipcall.wdl
+   -  name: BUSCO
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/busco.wdl
+   -  name: Quast
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/quast.wdl
+      testParameterFiles:
+        - /QC/test/s3_quast.json
+   -  name: Meryl
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/meryl.wdl
+   -  name: Merqury
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/merqury.wdl
+   -  name: Asmgene
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/asmgene.wdl
+   -  name: YakAsmStats
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/yak.wdl
+   -  name: YakAsmStatsnoQV
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/yak_no_qv.wdl
+   -  name: Mash
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/mash.wdl
+   -  name: NTSM
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/ntsm.wdl
+   -  name: MaskAssembly
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/mask_assembly.wdl
+   -  name: FinalizeAssembly
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/finalizeAssembly.wdl
+   -  name: finalizeGenbankAssembly
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/finalizeGenbankAssembly.wdl
+   -  name: findMitoContigs
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/findMitoContigs.wdl
+   -  name: ReadStats
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/read_stats.wdl
+      testParameterFiles:
+        - /QC/test/s3_read_stats.json
+   -  name: FullQC
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/full_qc.wdl
+   -  name: StandardQC
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/standard_qc.wdl
+   -  name: StandardQCnoQV
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/standard_qc_no_qv.wdl
+   -  name: FilterHiFiAdapter
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/filter_hifi_adapter.wdl
+   -  name: ExtractMitoContigs
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/extractMitoContigs.wdl
+   -  name: dropFastaContigs
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/dropFastaContigs.wdl
+   -  name: writeUnmappedReads
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/writeUnmappedReads.wdl
+   -  name: fastqReadCounts
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/fastqReadCounts.wdl
+      testParameterFiles:
+        - /QC/test/s3_fastqReadCounts.json
+   -  name: fastqReadCoverage
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/fastqReadCoverage.wdl
+   -  name: TrioHifiasmAssembly
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/workflows/trio_hifiasm_assembly.wdl
+   -  name: TrioHifiasmAssemblyYakInput
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/workflows/trio_hifiasm_assembly_yak_input.wdl
+   -  name: TrioHifiasmAssemblyYakInputCutadapt
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/workflows/trio_hifiasm_assembly_yak_input_cutadapt.wdl
+   -  name: YakNoStats
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/yak_no_stats.wdl
+   -  name: YakNoStatsHiFi
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/yak_no_stats_hifi.wdl
+   -  name: PhasedGFAs2Fasta
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/gfatools.wdl
+   -  name: StandardQCHaploid
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/standard_qc_haploid.wdl
+   -  name: Contamination
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/contamination.wdl
+   -  name: MinigraphMap
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/minigraph.wdl
+   -  name: MisjoinCheck
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/misjoinCheck.wdl
+   -  name: snvInDelAssembly
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/snv_indel_assembly.wdl
+   -  name: svAssembly
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/SV_assembly.wdl
+   -  name: Guppy
+      subclass: WDL
+      primaryDescriptorPath: /data_processing/wdl/scatterGuppy.wdl
