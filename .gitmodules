@@ -1,3 +1,6 @@
 [submodule "ext/secphase"]
 	path = ext/secphase
 	url = https://github.com/mobinasri/secphase
+[submodule "hpp_production_workflows"]
+	path = hpp_production_workflows
+	url = https://github.com/human-pangenomics/hpp_production_workflows
