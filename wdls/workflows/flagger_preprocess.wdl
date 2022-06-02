@@ -1,6 +1,6 @@
 version 1.0
 
-import "../../ext/secphase/wdls/workflows/correct_bam.wdl" as correct_bam_t
+import "/ext/secphase/wdls/workflows/correct_bam.wdl" as correct_bam_t
 import "../tasks/alignment/filter_alt_reads.wdl" as filter_alt_reads_t
 import "../tasks/coverage/bam_coverage.wdl" as bam_coverage_t
 import "../tasks/variant_calling/deep_variant_scattered.wdl" as dv_scat_t
