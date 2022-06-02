@@ -1,4 +1,0 @@
-{
-  "fastqReadCounts.countFastqReads.inputFastq": ["s3://human-pangenomics/working/HPRC_PLUS/HG005/raw_data/Illumina/child/5A1-24481579/5A1_S5_L001_R1_001.fastq.gz"]
-}
-
