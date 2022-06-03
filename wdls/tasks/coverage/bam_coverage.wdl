@@ -12,7 +12,7 @@ workflow runBamCoverage{
 
 task bamCoverage{
     input{
-        File bamFile
+        File bam
         Int minMAPQ
         File assemblyFastaGz
         # runtime configurations
@@ -40,9 +40,9 @@ task bamCoverage{
         gunzip -c ~{assemblyFastaGz} > ${FA_PREFIX}.fa
         samtools faidx ${FA_PREFIX}.fa
 
-        BAM_FILENAME=`basename ~{bamFile}`
+        BAM_FILENAME=`basename ~{bam}`
         BAM_PREFIX="${BAM_FILENAME%.*}"
-        samtools depth -aa -Q ~{minMAPQ} ~{bamFile}  > ${BAM_PREFIX}.depth
+        samtools depth -aa -Q ~{minMAPQ} ~{bam}  > ${BAM_PREFIX}.depth
         
         # Convert the output of samtools depth into a compressed format
         depth2cov -d ${BAM_PREFIX}.depth -f ${FA_PREFIX}.fa.fai -o ${BAM_PREFIX}.cov

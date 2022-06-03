@@ -17,7 +17,7 @@ workflows:
       primaryDescriptorPath: /wdls/tasks/coverage/subset_coverage.wdl
    -  name: LongReadAlignerScattered
       subclass: WDL
-      primaryDescriptorPath: /wdls/tasks/alignment/long_read_aligner_scattered.wdl
+      primaryDescriptorPath: /wdls/workflows/long_read_aligner_scattered.wdl
    -  name: LongReadAlignerScatteredPaf
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/alignment/long_read_aligner_scattered_paf.wdl
@@ -42,9 +42,6 @@ workflows:
    -  name: FitModelByCounts
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/mixture_model/fit_model.wdl
-   -  name: ProbTable2Bed
-      subclass: WDL
-      primaryDescriptorPath: /wdls/tasks/mixture_model/prob_table2bed.wdl
    -  name: CalMD
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/alignment/calmd.wdl
@@ -89,4 +86,4 @@ workflows:
       primaryDescriptorPath: /wdls/workflows/project_flagger_final_bed.wdl
    -  name: PepperMarginDeepVariant
       subclass: WDL
-      primaryDescriptorPath: /wdls/tasks/pepper_margin_deep_variant.wdl
+      primaryDescriptorPath: /wdls/tasks/variant_calling/pepper_margin_deep_variant.wdl
