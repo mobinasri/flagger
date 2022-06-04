@@ -111,7 +111,17 @@ erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Un
 
 More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
 
-Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using the workflow [flagger_preprocess.wdl](https://dockstore.org/my-workflows/github.com/mobinasri/flagger/FlaggerPreprocess) and the second part of step 5 (fitting the mixture model and flagging the assembly) can be run using the workflow [flagger.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/Flagger:main?tab=info)
+Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using the workflow [flagger_preprocess.wdl](https://dockstore.org/my-workflows/github.com/mobinasri/flagger/FlaggerPreprocess) and the second part of step 5 (fitting the mixture model and flagging the assembly) can be run using the workflow [flagger.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/Flagger:main?tab=info).
+
+Recommended values for the parameters of flagger_preprocess.wdl:
+- runFlaggerPreprocess.maxDivergence = 0.12 for ONT-guppy4 and 0.01 for HiFi
+- runFlaggerPreprocess.variantCaller = "pmdv" for ONT and "dv" for HiFi
+- runFlaggerPreprocess.deepVariantModelType = set based on the latest version of deepvariant ("PACBIO" for v1.3.0)
+- runFlaggerPreprocess.pepperModelType = set based on the ONT guppy version  (read https://github.com/kishwarshafin/pepper) "--ont_r9_guppy5_sup" for R9-guppy5
+- runFlaggerPreprocess.phasingLogText = The output log of secphase.wdl (optional)
+- filterAltReads.moreOptions = "-m 1000 -r 0.4" for HiFi
+- filterAltReads.qCutoff = 37 for ONT-guppy4 and 10 for HiFi
+- filterAltReads.vafCutoff = 0.3
 
 ### Components
 
