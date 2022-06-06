@@ -23,14 +23,14 @@ Here are the commands for producing the alignments (taken from the [winnowmap do
   winnowmap -W repetitive_k15.txt -ax [map-ont | map-pb] -Y -L --eqx --cs -I8g <(cat pat_asm.fa mat_asm.fa) reads.fq.gz | \
     samtools view -hb > read_alignment.bam
 ````
-Any other appropriate long read alinger can be employed in this step.
+Any other appropriate long read aligner can also be employed in this step.
 
 ### 2. Relocalize wrongly phased reads
 In this step we use Secphase to phase and relocalize the reads with multiple alignments. To be more precise all the secondary and primary
 alignments of the same read are scored based on marker consistency and 
 the alignment with the highest score is selected as the primary alignment. The output of this section is 
 a corrected version of the input bam file, in which the primary and secondary alignments are swapped 
-whenever neccessary. Secphase can be useful only if the secondary alignments are available with the full sequence and base quality array.
+whenever neccessary. Secphase can work0 only if the secondary alignments are available with the full sequence and base quality array.
 
 More information about Secphase is available [here](https://github.com/mobinasri/secphase)
 
@@ -59,7 +59,7 @@ docker run \
 sudo docker run \
   -v ${INPUT_DIR}:/input \
   -v ${OUTPUT_DIR}:/output \
-  kishwars/pepper_deepvariant:r0.6 \
+  kishwars/pepper_deepvariant:r0.8 \
   run_pepper_margin_deepvariant call_variant \
   -b "/input/${INPUT_BAM}" \
   -f "/input/${ASSEMBLY_FASTA}" \
@@ -91,7 +91,7 @@ By having the biallelic snps it is possible to find the alignments with alternat
 docker run \
  -v ${INPUT_DIR}:/input \
  -v ${OUTPUT_DIR}:/output \
- quay.io/masri2019/hpp_coverage:latest \
+ mobinasri/flagger:v0.1 \
  filter_alt_reads \
  -i "/input/${INPUT_BAM}" \
  -o "/output/${ALT_FILTERED_BAM}"
@@ -109,7 +109,21 @@ For each alignment `filter_alt_reads` iterates over the CIGAR string and cluster
 `${ALT_FILTERED_BAM}` is then used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
 erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
 
-More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage)
+More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
+
+Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using the workflow [flagger_preprocess.wdl](https://dockstore.org/my-workflows/github.com/mobinasri/flagger/FlaggerPreprocess) and the second part of step 5 (fitting the mixture model and flagging the assembly) can be run using the workflow [flagger.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/Flagger:main?tab=info).
+
+Recommended values for the parameters of flagger_preprocess.wdl:
+|Parameter| Value|
+|:--------|:-----|
+|runFlaggerPreprocess.maxDivergence | 0.12 for ONT-guppy4 and 0.01 for HiFi|
+|runFlaggerPreprocess.variantCaller | "pmdv" for ONT and "dv" for HiFi|
+|runFlaggerPreprocess.deepVariantModelType | Should be set based on the latest version of deepvariant ("PACBIO" for v1.3.0)|
+|runFlaggerPreprocess.pepperModelType | Should be set based on the ONT guppy version  (read https://github.com/kishwarshafin/pepper) "--ont_r9_guppy5_sup" for R9-guppy5 |
+|runFlaggerPreprocess.phasingLogText | The output log of secphase.wdl (optional)|
+|filterAltReads.moreOptions | "-m 1000 -r 0.4" |
+|filterAltReads.qCutoff | ~37 for ONT-guppy4 and ~10 for HiFi|
+|filterAltReads.vafCutoff | 0.3|
 
 ### Components
 
@@ -119,6 +133,7 @@ More information about Flagger is available [here](https://github.com/mobinasri/
 |Dup  |**Duplicated** |Orange| This block is potentially a false duplication of another block. It should mainly include low-MAPQ alignments with half of the expected coverage. Probably one of the copies has to be polished to fix this issue|
 |Hap  | **Haploid** |Green| This block is correctly assembled and has the expected read coverage |
 |Col |**Collapsed** |Purple| Two or more highly similar haplotypes are collapsed into this block |
+|Unk |**Unknown** |Gray| These blocks could not be assigned confidently (usually on the edges of other components)|
 
 Each of these components has their own color when they are shown in the IGV or the UCSC Genome Browser.
 
