@@ -12,29 +12,30 @@ typedef struct{
 	int contigLength;
 	int start; //inclusive 1-based
 	int end; //inclusive 1-based
-}Segment;
+}Window;
 
 
-Segment* Segment_construct(char* contigName, int length, int start, int end){
-	Segment* sg = malloc(sizeof(Segment));
-	sg->contigName = malloc(50);
-	strcpy(sg->contigName, contigName);
-	sg->contigLength = length;
-	sg->start = start;
-	sg->end = end;
+Window* Window_construct(char* contigName, int length, int start, int end){
+	Window* wnd = malloc(sizeof(Window));
+	wnd->contigName = malloc(50);
+	strcpy(wnd->contigName, contigName);
+	wnd->contigLength = length;
+	wnd->start = start;
+	wnd->end = end;
+	return wnd;
 }
 
-void Segment_destruct(void* segment){
-	Segment* sg = segment;
-        free(sg->contigName);
-	sg->contigName = NULL;
-	free(sg);
+void Window_destruct(void* window){
+	Window* wnd = window;
+        free(wnd->contigName);
+	wnd->contigName = NULL;
+	free(wnd);
 }
 
 
 
-stList* getSegments(char* faiPath, int segmentSize){
-	stList* segments = stList_construct3(0, Segment_destruct);
+stList* getWindows(char* faiPath, int windowSize){
+	stList* windows = stList_construct3(0, Window_destruct);
 	char contigName[50]; int s, e, contigSize;
 	FILE* faif = fopen(faiPath, "r");
 	size_t len = 0;
@@ -46,19 +47,19 @@ stList* getSegments(char* faiPath, int segmentSize){
         	strcpy(contigName, token);
         	token = strtok(NULL, "\t");
         	contigSize = atoi(token);
-		n = contigSize / segmentSize;
+		n = contigSize / windowSize;
 		for(int i=0; i < n; i++){
-			s = i * segmentSize + 1;
-			e = ( s + 2 * segmentSize - 1 <= contigSize) ? (i + 1) * segmentSize : contigSize;
-			stList_append(segments, Segment_construct(contigName, contigSize, s, e)); //inclusive 1-based
+			s = i * windowSize + 1;
+			e = ( s + 2 * windowSize - 1 <= contigSize) ? (i + 1) * windowSize : contigSize;
+			stList_append(windows, Window_construct(contigName, contigSize, s, e)); //inclusive 1-based
 		}
 		if (n == 0){
 			s = 1;
 			e = contigSize;
-			stList_append(segments, Segment_construct(contigName, contigSize, s, e)); //inclusive 1-based
+			stList_append(windows, Window_construct(contigName, contigSize, s, e)); //inclusive 1-based
 		}
 	}
-	return segments;
+	return windows;
 }
 
 int getBlockTypeIndex(float* probArray){
@@ -105,7 +106,7 @@ int readNextBlock(FILE* fileReader, char** contig, int*contigLength, int* blockS
     return 1;
 }
 
-void splitCov(char* covPath, char* prefix, stList* segments){
+void splitCov(char* covPath, char* prefix, stList* windows){
     FILE* fp; FILE* fo = NULL;
     char outputPath[200];
     
@@ -119,40 +120,34 @@ void splitCov(char* covPath, char* prefix, stList* segments){
     char* preContig = malloc(50);
     int blockStart=0;
     int start=0, end=0, cov=0;
-    int sg_idx = 0;
-    Segment* sg = stList_get(segments, sg_idx);
-    printf("%s\t%d\t%d\n", sg->contigName, sg->start, sg->end);
-    sprintf(outputPath, "%s.%s_%d_%d.cov", prefix, sg->contigName, sg->start, sg->end);
+    int wnd_idx = 0;
+    Window* wnd = stList_get(windows, wnd_idx);
+    printf("%s\t%d\t%d\n", wnd->contigName, wnd->start, wnd->end);
+    sprintf(outputPath, "%s.%s_%d_%d.cov", prefix, wnd->contigName, wnd->start, wnd->end);
     fo = fopen(outputPath, "w");
     while (readNextBlock(fp, &contig, &contigLength, &start, &end, &cov) == 1) {
-	if ((strcmp(preContig, contig) != 0) ||  sg->end <= end){
-		if ((strcmp(preContig, contig) != 0)) fprintf(fo, ">%s %d\n", contig, contigLength);
-		//iterate over segments untill a the end of the currect coverage block is covered
-		while (sg && strcmp(sg->contigName, contig) == 0 && sg->end <= end)  {
-			fprintf(fo, "%d\t%d\t%d\n", max(start, sg->start), sg->end, cov);
-			sg_idx++;
-			if(sg_idx < stList_length(segments)) {
-			       	sg = stList_get(segments, sg_idx);
-			        printf("%s\t%d\t%d\n", sg->contigName, sg->start, sg->end);
-				fflush(fo);
-                        	fclose(fo);
-				sprintf(outputPath, "%s.%s_%d_%d.cov", prefix, sg->contigName, sg->start, sg->end);
-                        	fo = fopen(outputPath, "w");
-				if ((strcmp(sg->contigName, contig) == 0)) fprintf(fo, ">%s %d\n", contig, contigLength);
-			}
-			else {
-			       	sg = NULL;
-				break;
-			}
-		}
-		if (sg && strcmp(sg->contigName, contig) == 0 && sg->start < end && end < sg->end) { // write the first part of the next segment
-			fprintf(fo, "%d\t%d\t%d\n", sg->start, end, cov);
-		}
-		strcpy(preContig, contig);
-	}
-	if (sg && strcmp(sg->contigName, contig) == 0 && sg->start < start && end < sg->end)  {
-		fprintf(fo, "%d\t%d\t%d\n", start, end, cov);
-	}
+	    if ((strcmp(preContig, contig) != 0)) fprintf(fo, ">%s %d\n", contig, contigLength);
+	    fprintf(fo, "%d\t%d\t%d\n", max(start, wnd->start), min(wnd->end, end), cov);
+	    while (wnd && strcmp(wnd->contigName, contig) == 0 && wnd->end <= end) {
+			    wnd_idx++;
+			    if (wnd_idx < stList_length(windows)) {
+			    	wnd = stList_get(windows, wnd_idx);
+			    }
+			    else {
+				    wnd = NULL;
+				    break;
+			    }
+			    printf("%s\t%d\t%d\n", wnd->contigName, wnd->start, wnd->end);
+			    fflush(fo);
+			    fclose(fo);
+			    sprintf(outputPath, "%s.%s_%d_%d.cov", prefix, wnd->contigName, wnd->start, wnd->end);
+			    fo = fopen(outputPath, "w");
+			    if (strcmp(wnd->contigName, contig) == 0) fprintf(fo, ">%s %d\n", contig, contigLength);
+			    if (strcmp(wnd->contigName, contig) == 0 && wnd->start <= end){
+				    fprintf(fo, "%d\t%d\t%d\n", max(start, wnd->start), min(wnd->end, end), cov);
+			    }
+	    }
+	    strcpy(preContig, contig);
     }
     fflush(fo);
     fclose(fo);
@@ -161,7 +156,7 @@ void splitCov(char* covPath, char* prefix, stList* segments){
 
 int main(int argc, char *argv[]) {
    int c;
-   int segmentSize=15e6;
+   int windowSize=5e6;
    char* faiPath;
    char* covPath;
    char* prefix;
@@ -179,7 +174,7 @@ int main(int argc, char *argv[]) {
                                 faiPath = optarg;
                                 break;
 			case 's':
-                                segmentSize = atoi(optarg);
+                                windowSize = atoi(optarg);
                                 break;
 			default:
 				if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
@@ -189,12 +184,12 @@ help:
 				fprintf(stderr, "         -c         coverage file\n");
 				fprintf(stderr, "         -f         fai file\n");
 				fprintf(stderr, "         -p         prefix for the output cov files\n");
-				fprintf(stderr, "         -s         segment size[default : 15Mb]\n");
+				fprintf(stderr, "         -s         window size[default : 5Mb]\n");
 				return 1;	
 		}		
    }
-   stList* segments = getSegments(faiPath, segmentSize);
-   splitCov(covPath, prefix, segments);
-   stList_destruct(segments);
+   stList* windows = getWindows(faiPath, windowSize);
+   splitCov(covPath, prefix, windows);
+   stList_destruct(windows);
    return 0;
 }

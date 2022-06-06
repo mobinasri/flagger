@@ -56,7 +56,7 @@ task splitBamContigWise{
         Int memSize=32
         Int threadCount
         Int diskSize=512
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/flagger:v0.1"
         Int preemptible=2
         String zones="us-west2-a"
     }

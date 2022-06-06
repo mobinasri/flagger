@@ -53,10 +53,9 @@ ENV PATH="$PATH:/home/programs/bin"
 ENV CALC_MEAN_SD_PY=/home/programs/src/calc_mean_sd.py
 ENV FIT_MODEL_PY=/home/programs/src/fit_model.py
 ENV PROJECT_BLOCKS_PY=/home/programs/src/project_blocks.py
-ENV ASSIGN_GAPS_PY=/home/programs/src/assign_gaps.py
-ENV FIT_MODEL_EXTRA_PY=/home/programs/src/fit_model_extra.py
+ENV FIT_GMM_PY=/home/programs/src/fit_gmm.py
 ENV PDF_GENERATOR_PY=/home/programs/src/pdf_generator.py
-ENV PARTITION_SECPHASE_READS_PY=/home/programs/src/partition_secphase_reads.py
+ENV SPLIT_BED_CONTIG_WISE_PY=/home/programs/src/split_bed_contig_wise.py
 
 ## UCSC convention is to work in /data
 RUN mkdir -p /data
