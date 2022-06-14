@@ -8,7 +8,7 @@ This evaluation has 5 steps:
 - Align long reads to the diploid assembly
 - Phase and relocalize the reads with secondary alignments using [secphase](https://github.com/mobinasri/secphase) (Optional)
 - Call and filter variants
-- Remove the alignments with alternative alleles
+- Use biallelic SNVs to remove the alignments with alternative alleles
 - Run Flagger using the alignments with no alternative alleles
 
 ### 1. Align long reads
