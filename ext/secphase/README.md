@@ -1,7 +1,7 @@
-## SecPhase: Phasing the long reads aligned to the diploid assemblies
+## SecPhase: Phasing the long reads aligned to dual/diploid assemblies
 
 ### Motivation
-When we align long reads (HiFi or ONT at this time!) to the diploid assembly of the same sample, the reads coming from homozygous regions may
+When we align long reads (HiFi or ONT at this time!) to the dual/diploid assembly of the same sample, the reads coming from homozygous regions may
 not be aligned to the correct haplotype. Other possible locations of such reads are usually reported in the secondary alignments by the aligner. Finding 
 the correct haplotype becomes even harder if our assemblies are erroneous. Breaks and indel errors in the assembly may mislead the aligner. 
 
@@ -38,7 +38,7 @@ because it can be either a misassembly on the haplotype that induces the inserti
 After filtering the markers within insertions the remaining markers are all either match or mismatch in any of the alignments. 
 The other issue is that sometimes the alignment around a marker is not reliable due to the errors in the reads or the assembly especially homopolymer run errors. To measure the reliability of the alignment around each marker we calculate 
 Base Alignment Quality ( BAQ ). This is an adjustment to the raw base quality of the marker and works by realiging the reads to where they were 
-already aligned to. This realignment is performed through a banded HMM which parameters have to be tuned before hand. 
+already aligned to. This realignment is performed through a banded HMM whose parameters have to be tuned before hand. 
 There are three parameters that have to be tuned for each sequencing platform; gap opening probability, gap extenstion probability and the bandwidth of the HMM.
 
 After tuning the parameters based on the platform (which is either HiFi or ONT here) we filtered the markers with BAQs lower than a specific threshold (20 for HiFi and 10 for ONT). 
@@ -58,16 +58,17 @@ After finding the confident markers we calculate marker consistency score for ea
 Two heuristics are applied for increasing specificity:
 - If the selected alignment is having a score lower than a specific threshold (in this pipeline `-50`) it is not reported as the correct one.
 - If the selected alignment is secondary its score should be at least `20` (`10` for ONT) units larger than the score of the primary alignment otherwise it is not reported as the correct one.
+(These parameters will be tuned more systematically in the later versions)
 
 ### How To Run The Phasing Program
 
-To run the phasing program it is recommended to use the docker image `quay.io/masri2019/hpp_coverage:latest`.
+To run the phasing program it is recommended to use the docker image `mobinasri/secphase:v0.1`.
 
-Here are the parameters `phase_reads` can accept:
+Here are the parameters `secphase` can accept:
 ```
-./phase_reads -h
+./secphase -h
 
-Usage: phase_reads  -i <INPUT_BAM> -f <FASTA> 
+Usage: secphase  -i <INPUT_BAM> -f <FASTA> 
 Options:
          -i         Input bam file (sorted by qname and must contain cs tag) [required]
          -f         Input fasta file [required]
@@ -90,21 +91,21 @@ samtools sort -n -@8 ${INPUT_DIR}/${BAM_PREFIX}.bam > ${INPUT_DIR}/${BAM_PREFIX}
 ## Phase reads for HiFi
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
-	quay.io/masri2019/hpp_coverage:latest \
-	phase_reads -q -c -t10 -d 1e-4 -e 0.1 -b20 -m20 -s40 \
+	mobinasri/secphase:v0.1 \
+	secphase -q -c -t10 -d 1e-4 -e 0.1 -b20 -m20 -s40 \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
 	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa > ${PHASING_OUT}.log
 
 ## Phase reads for ONT
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
-	quay.io/masri2019/hpp_coverage:latest \
-	phase_reads -q -c -t20 -d 1e-2 -e 0.1 -b20 -m10 -s20 \
+	mobinasri/secphase:v0.1 \
+	secphase -q -c -t20 -d 1e-2 -e 0.1 -b20 -m10 -s20 \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
 	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa > ${OUTPUT_DIR}/${PHASING_OUT}.log
 ```
 
-`${PHASING_OUT}.log` conatins the names of the reads which secondary and primary alignments have to be swapped. 
+`${PHASING_OUT}.log` conatins the names of the reads whose secondary and primary alignments have to be swapped. 
 Here is an example of a record in the `${PHASING_OUT}.log`:
 
 ```
@@ -119,12 +120,11 @@ Based on the initial letter of each line we can indentify the correct phasing of
 - `@` proceeds the score and the start position of the secondary alignment which is to the correct haplotype
 - `!` proceeds the score and the start position of any other alignments (This example has only two alignments)
 
-The source code of the phasing program is available in [`phase_reads.c`](https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docker/coverage/programs/src/phase_reads.c).
 
 ### How To Run The Correction Program
 
 To swap the pri/sec tags of the reads reported in `${PHASING_OUT}.log` and produce a modified bam file you can run the program  `correct_bam`.
-Again it is recommended to run it using the docker image `quay.io/masri2019/hpp_coverage:latest`.
+Again it is recommended to run it using the docker image `mobinasri/secphase:v0.1`.
 
 Here are the parameters `correct_bam` can accept:
 ```
@@ -159,7 +159,7 @@ To produce the modified bam file: (Here the input bam file can be sorted by refe
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
 	-v ${OUTPUT_DIR}:${OUTPUT_DIR} \
-	quay.io/masri2019/hpp_coverage:latest \
+	mobinasri/secphase:v0.1 \
 	correct_bam \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.bam \
 	-P ${INPUT_DIR}/${PHASING_OUT}.log \
@@ -169,12 +169,13 @@ docker run \
 
 Note the default values for `--minReadLen` and `--minAlignmentLen` are both `5k` and should be changed if not desired.
 
-The source code of the correction program is written in C and is available in [`correct_bam.c`](https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docker/coverage/programs/src/correct_bam.c).
 
 ### Workflows
 
-Each of the phasing and correction programs is wdlized separately and the wdl files can be found  [here](https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/wdl/tasks). The phasing wdl file is named [`phase_reads.wdl`](https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/wdl/tasks/phase_reads.wdl) and the correction wdl file is named [`correct_bam.wdl`](https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/wdl/tasks/correct_bam.wdl).
+Each of the phasing and correction programs is wdlized separately. The phasing wdl file is named [`secphase.wdl`](https://dockstore.org/workflows/github.com/mobinasri/secphase/Secphase:v0.1?tab=info) and the correction wdl file is named [`correct_bam.wdl`](https://dockstore.org/my-workflows/github.com/mobinasri/secphase/CorrectBam). These links can be used for importing the workflows to Terra or running locally with cromwell.
+Some notes about the inputs to these workflows:
+- For `secphase.wdl` set `secphase.options` to `-q -c -t20 -d 1e-2 -e 0.1 -b20 -m10 -s20` for ONT-guppy4(and 5) data and change it to `-q -c -t10 -d 1e-4 -e 0.1 -b20 -m20 -s40` for HiFi data.
 
 ### Acknowledgements
 
-Thanks to Heng Li for sharing the core idea of [`mmphase`](https://github.com/lh3/minimap2/tree/master/misc) which is incorporated in `phase_reads` with some modifications.
+Thanks to Heng Li for sharing the core idea of [`mmphase`](https://github.com/lh3/minimap2/tree/master/misc) which is incorporated in Secphase with the modifications mentioned above.

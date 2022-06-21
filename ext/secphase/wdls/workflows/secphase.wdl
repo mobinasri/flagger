@@ -76,7 +76,7 @@ task secphase {
         samtools faidx asm.fa
 
         mkdir output
-        COMMAND=~{true="secphase_debug" false="phase_reads" debugMode}
+        COMMAND=~{true="secphase_debug" false="secphase" debugMode}
         ${COMMAND} ~{options} -i ~{bamFile} -f asm.fa 2> err.log > out.log || true
     >>>
     runtime {
@@ -208,7 +208,7 @@ task sortByName {
         mkdir output
         if [ ~{excludeSingleAlignment} == "yes" ]; then
             samtools view ~{bamFile} | cut -f1 | sort | uniq -c > readnames.txt
-            cat readnames.txt | awk '$1 > 1' | cut -f2 > selected_readnames.txt
+            cat readnames.txt | awk '$1 > 1' | tr -s ' ' | cut -d ' ' -f3 > selected_readnames.txt
             extract_reads -i ~{bamFile} -o output/${BAM_PREFIX}.bam -r selected_readnames.txt
         else
             ln ~{bamFile} output/${BAM_PREFIX}.bam

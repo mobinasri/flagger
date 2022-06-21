@@ -1,13 +1,22 @@
 FROM ubuntu:18.04
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
-RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y build-essential git zlib1g-dev wget libbz2-dev pkg-config libncurses5-dev libncursesw5-dev liblzma-dev libcurl4-openssl-dev pigz python python3 python3-dev curl
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y build-essential git zlib1g-dev wget libbz2-dev pkg-config libncurses5-dev libncursesw5-dev liblzma-dev libcurl4-openssl-dev pigz python python3 python3-dev curl libssl-dev
 
 RUN mkdir /home/apps
 
 RUN cd /home/apps && wget https://bootstrap.pypa.io/pip/3.6/get-pip.py && python3 get-pip.py
 
+#install cmake
+RUN cd /home/apps && \
+    wget https://github.com/Kitware/CMake/releases/download/v3.23.2/cmake-3.23.2.tar.gz && \
+    tar -xzvf cmake-3.23.2.tar.gz && \
+    cd cmake-3.23.2 && \
+    ./bootstrap && \
+    make && \
+    make install
 
+# install samtools
 RUN cd /home/apps && \
 	wget https://github.com/samtools/samtools/releases/download/1.12/samtools-1.12.tar.bz2 && \
 	tar -vxjf samtools-1.12.tar.bz2 && \
@@ -16,6 +25,7 @@ RUN cd /home/apps && \
 	make
 ENV PATH="/home/apps/samtools-1.12:$PATH"
 
+# install bedtools
 RUN cd home/apps && \
 	wget https://github.com/arq5x/bedtools2/releases/download/v2.29.1/bedtools-2.29.1.tar.gz && \
 	tar -zxvf bedtools-2.29.1.tar.gz && \ 
