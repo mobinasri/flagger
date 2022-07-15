@@ -14,7 +14,7 @@ def getCigarList(cigarString):
     cigarOps = re.compile("[0-9]+").split(cigarString)[1:]
     # H (hard clipping) or S (Soft clipping) are not included since in the PAF format 
     # the start and end positions are shifted instead of adding H or S to the cigar string
-    cigarSizes = [int(size) for size in re.compile("M|I|D").split(cigarString)[:-1]]
+    cigarSizes = [int(size) for size in re.compile("M|I|D|X|=").split(cigarString)[:-1]]
     cigarList = [ (op, size) for op, size in zip(cigarOps, cigarSizes)]
     return cigarList
 
@@ -49,7 +49,7 @@ def convertIndelsInCigar(cigarList):
             newCigarList.append(('I', cigarSize))
         elif cigarOp == 'I':
             newCigarList.append(('D', cigarSize))
-        else: # 'M'
+        else: # 'M'/'='/'X'
             newCigarList.append((cigarOp, cigarSize))
     return newCigarList
 
@@ -133,7 +133,7 @@ def findProjections(mode, cigarList, forwardBlocks,
     for cigarOp, cigarSize in cigarList:
         #print(cigarOp,cigarSize)
         # Case 1: Mismatch or Match
-        if cigarOp == 'M':
+        if cigarOp == 'M' or cigarOp == 'X' or cigarOp == '=':
             currOpStartContig = nextOpStartContig
             currOpStartRef = nextOpStartRef
             nextOpStartContig = currOpStartContig + cigarSize
