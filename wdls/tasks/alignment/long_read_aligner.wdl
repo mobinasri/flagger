@@ -104,9 +104,12 @@ task alignmentBam{
              echo "UNSUPPORTED ALIGNER (expect minimap2 or winnowmap): ~{aligner}"
              exit 1
         fi
-        
+         
         fileBasename=$(basename ~{readFastq_or_queryAssembly})
-        ${ALIGNER_CMD} -a -x ~{preset} ~{options} -t~{threadCount} ~{refAssembly} ~{readFastq_or_queryAssembly} | samtools view -h -b > ${fileBasename%.*.*}.bam
+        gunzip -c ~{refAssembly} > asm.fa
+        # Sort fasta based on contig names
+        seqkit sort -nN asm.fa > asm.sorted.fa
+        ${ALIGNER_CMD} -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${fileBasename%.*.*}.bam
         
         if [ -z ~{suffix} ]; then
             OUTPUT_FILE=${fileBasename%.*.*}.sorted.bam

@@ -25,6 +25,13 @@ RUN cd /home/apps && \
 	make
 ENV PATH="/home/apps/samtools-1.12:$PATH"
 
+#install seqtk
+RUN cd /home/apps && \
+        git clone https://github.com/lh3/seqtk.git && \
+        cd seqtk && \
+        make
+ENV PATH="/home/apps/seqtk:$PATH"
+
 # install bedtools
 RUN cd home/apps && \
 	wget https://github.com/arq5x/bedtools2/releases/download/v2.29.1/bedtools-2.29.1.tar.gz && \
