@@ -18,12 +18,21 @@ RUN cd /home/apps && \
 
 # install samtools
 RUN cd /home/apps && \
-	wget https://github.com/samtools/samtools/releases/download/1.12/samtools-1.12.tar.bz2 && \
-	tar -vxjf samtools-1.12.tar.bz2 && \
-	rm -rf samtools-1.12.tar.bz2 && \
-	cd samtools-1.12 && \
+	wget https://github.com/samtools/samtools/releases/download/1.15.1/samtools-1.15.1.tar.bz2 && \
+	tar -vxjf samtools-1.15.1.tar.bz2 && \
+	rm -rf samtools-1.15.1.tar.bz2 && \
+	cd samtools-1.15.1 && \
 	make
-ENV PATH="/home/apps/samtools-1.12:$PATH"
+ENV PATH="/home/apps/samtools-1.15.1:$PATH"
+
+#install seqkit
+RUN cd /home/apps && \
+        mkdir seqkit && \ 
+        cd seqkit && \
+        wget https://github.com/shenwei356/seqkit/releases/download/v2.2.0/seqkit_linux_amd64.tar.gz && \
+        tar -xvzf seqkit_linux_amd64.tar.gz
+ENV PATH="/home/apps/seqkit:$PATH"
+        
 
 #install seqtk
 RUN cd /home/apps && \
