@@ -7,7 +7,7 @@ def getCigarList(cigarString):
     """
         Returns a list of tuples based on the cigar string. 
         Each tuple has two elements; the first one is showing 
-        the operation which could be one of M, I or D and the 
+        the operation which could be one of =, X, M, I or D and the 
         second element is an integer which shows the length of 
         the associated operation.
     """
@@ -17,6 +17,36 @@ def getCigarList(cigarString):
     cigarSizes = [int(size) for size in re.compile("M|I|D|X|=").split(cigarString)[:-1]]
     cigarList = [ (op, size) for op, size in zip(cigarOps, cigarSizes)]
     return cigarList
+
+class Alignment:
+    """
+        A class for saving alignment data
+        The constructor receives a line from a file with PAF format
+        (More about PAF format https://github.com/lh3/miniasm/blob/master/PAF.md)
+        and parse the info about the alignment such as the coordinates and the cigar operations.
+    """
+
+    def __init__(self, paf_line):
+
+        cols = paf_line.strip().split()
+        self.contigName = cols[0]
+        self.contigLength = int(cols[1])
+        self.contigStart = int(cols[2]) # 0-based closed
+        self.contigEnd = int(cols[3]) # 0-based open
+        self.orientation = cols[4]
+        self.chromName = cols[5]
+        self.chromLength = int(cols[6])
+        self.chromStart = int(cols[7]) # 0-based closed
+        self.chromEnd = int(cols[8]) # 0-based open
+        priTag = cols[12]
+        if priTag == "tp:A:P":
+            self.isPrimary = True
+        else:
+            self.isPrimary = False
+        # The cigar string starts after "cg:Z:"
+        afterCg = paf_line.strip().split("cg:Z:")[1]
+        cigarString = afterCg.split()[0]
+        self.cigarList = getCigarList(cigarString)
 
 def reverseInterval(interval, contigLength):
     """
@@ -265,46 +295,42 @@ def main():
     with open(pafPath,"r") as fPaf, open(outputProjection, "w") as fRef, open(outputProjectable, "w") as fQuery:
         for line in fPaf:
             # Extract the alignment attributes like the contig name, alignment boundaries, orientation and cigar 
-            attrbs = line.strip().split()
-            contigName = attrbs[0]
-            contigLength = int(attrbs[1])
-            contigStart = int(attrbs[2]) + 1 # 1-based
-            contigEnd = int(attrbs[3])
-            orientation = attrbs[4]
-            chrom = attrbs[5]
-            chromLength = int(attrbs[6])
-            chromStart = int(attrbs[7]) + 1 # 1-based
-            chromEnd = int(attrbs[8])
-            # The cigar string starts after "cg:Z:"
-            afterCg = line.strip().split("cg:Z:")[1]
-            cigarString = afterCg.split()[0]
-            cigarList = getCigarList(cigarString)
-            #print(orientation,chromStart,chromEnd,cigarString)
+            alignment = Alignment(line);
+            chromName = alignment.chromName
+            contigName = alignment.contigName
             # rBlocks contains the projections and 
             # qBlocks contains the projectable blocks
             if mode == "asm2ref":
                 if len(blocks[contigName]) == 0: # Continue if there is no block in the contig
                     continue
                 #print(blocks[contigName], contigStart, contigEnd, chrom, chromStart, chromEnd)
-                qBlocks, rBlocks = findProjections(mode, cigarList, blocks[contigName],
-                                                    chromLength, chromStart, chromEnd, 
-                                                    contigLength, contigStart, contigEnd,
-                                                    orientation)
+                qBlocks, rBlocks = findProjections(mode, 
+                                                   alignment.cigarList, 
+                                                   blocks[contigName],
+                                                   alignment.chromLength, 
+                                                   alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
+                                                   alignment.contigLength, 
+                                                   alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
+                                                   alignment.orientation)
             else:
-                if len(blocks[chrom]) == 0: # Continue if there is no block in the chrom
+                if len(blocks[chromName]) == 0: # Continue if there is no block in the chrom
                     continue
-                qBlocks, rBlocks = findProjections(mode, cigarList, blocks[chrom],
-                                                    chromLength, chromStart, chromEnd,
-                                                    contigLength, contigStart, contigEnd,
-                                                    orientation)
+                qBlocks, rBlocks = findProjections(mode, 
+                                                   alignment.cigarList, 
+                                                   blocks[chromName],
+                                                   alignment.chromLength, 
+                                                   alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
+                                                   alignment.contigLength, 
+                                                   alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
+                                                   alignment.orientation)
             if mode == "asm2ref":
                 for rBlock in rBlocks:
-                    fRef.write("{}\t{}\t{}\n".format(chrom, rBlock[0] - 1, rBlock[1]))
+                    fRef.write("{}\t{}\t{}\n".format(chromName, rBlock[0] - 1, rBlock[1]))
                 for qBlock in qBlocks:
                     fQuery.write("{}\t{}\t{}\n".format(contigName, qBlock[0] - 1, qBlock[1]))
             else: # mode = "ref2asm"
                 for rBlock in rBlocks:
                     fRef.write("{}\t{}\t{}\n".format(contigName, rBlock[0] - 1, rBlock[1]))
                 for qBlock in qBlocks:
-                    fQuery.write("{}\t{}\t{}\n".format(chrom, qBlock[0] - 1, qBlock[1]))
+                    fQuery.write("{}\t{}\t{}\n".format(chromName, qBlock[0] - 1, qBlock[1]))
 main()
