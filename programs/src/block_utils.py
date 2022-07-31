@@ -49,10 +49,13 @@ class Alignment:
         afterCg = paf_line.strip().split("cg:Z:")[1]
         cigarString = afterCg.split()[0]
         self.cigarList = getCigarList(cigarString)
-        # The edit distance starts after "NM:i:"
-        afterNM = paf_line.strip().split("NM:i:")[1]
-        editString = afterNM.split()[0]
-        self.editDistance = int(editDistance)
+        if "NM:i:" in paf_line:
+            # The edit distance starts after "NM:i:"
+            afterNM = paf_line.strip().split("NM:i:")[1]
+            editString = afterNM.split()[0]
+            self.editDistance = int(editDistance)
+        else:
+            self.editDistance = None
 
 
 def reverseInterval(interval, contigLength):
