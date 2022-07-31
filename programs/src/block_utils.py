@@ -49,6 +49,11 @@ class Alignment:
         afterCg = paf_line.strip().split("cg:Z:")[1]
         cigarString = afterCg.split()[0]
         self.cigarList = getCigarList(cigarString)
+        # The edit distance starts after "NM:i:"
+        afterNM = paf_line.strip().split("NM:i:")[1]
+        editString = afterNM.split()[0]
+        self.editDistance = int(editDistance)
+
 
 def reverseInterval(interval, contigLength):
     """
@@ -403,7 +408,22 @@ def getLongInsertionBlocks(alignment, threshold):
             blocks.append((alignment.contigName, contigInterval[0], contigInterval[1]))
     return blocks
     
-
+def getLongDeletionBlocks(alignment, threshold):
+    """
+        Arguments:
+            alignment: An Alignment object containing the alignment info
+            threshold: Any deletion longer than this threshold would be returned
+        Returns:
+            A list of blocks showing the start and end coordinates of long deletion
+            in the corresponding reference chromosome
+            Each block is a tuple of (chrom name, start, end)
+            Note that start is 0-based closed and end is 0-based open
+    """
+    blocks = []
+    for op, opLen, refInterval, contigInterval in iterateCigar(alignment):
+        if op == 'D' and opLen > threshold:
+            blocks.append((alignment.chromName, refInterval[0], refInterval[1]))
+    return blocks
 
 def parseAssemblyIntervals(faiPath):
     """

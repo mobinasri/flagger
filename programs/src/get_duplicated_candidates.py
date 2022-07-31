@@ -88,7 +88,7 @@ def getDupCandidates(pafPath: str , faiPath: str, indelThreshold: int):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='A program for extracting collapsed candidates in a draft assembly. It needs the alignments of the assembly contigs to the reference (or high quality assembly). The alignment file should be sorted and be in the PAF format. The output is a BED file needs to be sorted and merged.')
+    parser = argparse.ArgumentParser(description='A program for extracting duplicated candidates in a draft assembly. It needs the alignments of the assembly contigs to the reference (or high quality assembly). The alignment file should be sorted and be in the PAF format. The output is a BED file needs to be sorted and merged.')
     parser.add_argument('--paf', type=str,
                     help='(PAF format) The alignments of the assembly to the reference. It should include the cigar format.')
     parser.add_argument('--fai', type=str,
