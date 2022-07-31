@@ -1,6 +1,6 @@
 import sys
 import argparse
-from block_utils import findProjections, Alignment, parseAssemblyIntervals, subtractInterval, getLongInsertionBlocks
+from block_utils import findProjections, Alignment, parseAssemblyIntervals, subtractInterval, getLongDeletionBlocks
 
 def getColCandidates(pafPath: str , faiPath: str, indelThreshold: int):
     deletionBlocks = []
