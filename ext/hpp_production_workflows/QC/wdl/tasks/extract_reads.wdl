@@ -31,7 +31,7 @@ task extractReads {
         Int threadCount = 8
         Int diskSizeGB = 128
         String fastqOptions = ""
-        String dockerImage = "tpesout/hpp_base:latest"
+        String dockerImage = "mobinasri/bio_base:dev-v0.1"
     }
 
 
@@ -47,7 +47,7 @@ task extractReads {
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
         # load samtools
-        export PATH=$PATH:/root/bin/samtools_1.9/
+        #export PATH=$PATH:/root/bin/samtools_1.9/
 
         FILENAME=$(basename -- "~{readFile}")
         PREFIX="${FILENAME%.*}"
