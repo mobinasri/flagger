@@ -30,7 +30,7 @@ workflow longReadAlignmentScattered {
                 memSizeGB=4,
                 threadCount=4,
                 diskSizeGB=extractReadsDiskSize,
-                dockerImage="tpesout/hpp_base:latest"
+                dockerImage="mobinasri/bio_base:dev-v0.1"
         }
     }
     call arithmetic_t.sum as readSize {
