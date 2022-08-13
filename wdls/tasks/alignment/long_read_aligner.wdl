@@ -93,9 +93,14 @@ task alignmentBam{
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
 
-        
+       
+
+	gunzip -c ~{refAssembly} > asm.fa
+        # Sort fasta based on contig names
+        seqkit sort -nN asm.fa > asm.sorted.fa	
+ 
         if [[ ~{aligner} == "winnowmap" ]]; then
-            meryl count k=~{kmerSize} output merylDB ~{refAssembly}
+            meryl count k=~{kmerSize} output merylDB asm.sorted.fa
             meryl print greater-than distinct=0.9998 merylDB > repetitive_k~{kmerSize}.txt
             ALIGNER_CMD="winnowmap -W repetitive_k~{kmerSize}.txt"
         elif [[ ~{aligner} == "minimap2" ]] ; then
@@ -106,9 +111,6 @@ task alignmentBam{
         fi
          
         fileBasename=$(basename ~{readFastq_or_queryAssembly})
-        gunzip -c ~{refAssembly} > asm.fa
-        # Sort fasta based on contig names
-        seqkit sort -nN asm.fa > asm.sorted.fa
         ${ALIGNER_CMD} -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${fileBasename%.*.*}.bam
         
         if [ -z ~{suffix} ]; then
