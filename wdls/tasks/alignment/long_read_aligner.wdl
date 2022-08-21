@@ -95,7 +95,7 @@ task alignmentBam{
 
        
 
-	gunzip -c ~{refAssembly} > asm.fa
+        gunzip -c ~{refAssembly} > asm.fa
         # Sort fasta based on contig names
         seqkit sort -nN asm.fa > asm.sorted.fa	
  
