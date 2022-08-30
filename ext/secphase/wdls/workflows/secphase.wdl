@@ -53,7 +53,7 @@ task secphase {
         Int memSize=4
         Int threadCount=2
         Int diskSize=128
-        String dockerImage="mobinasri/secphase:v0.1"
+        String dockerImage="mobinasri/secphase:dev-v0.1"
         Int preemptible=2
         String zones="us-west2-a"
     }
