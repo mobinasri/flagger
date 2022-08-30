@@ -19,6 +19,7 @@ workflow longReadFullAlignment {
         String zones="us-west2-a"
     }
 
+    # Aligning reads using either minimap2 or winnowmap
     call aligner_t.longReadAlignmentScattered as aligner{
         input:
             aligner = aligner,
@@ -33,12 +34,16 @@ workflow longReadFullAlignment {
             extractReadsDiskSize = extractReadsDiskSize,
             zones = "us-west2-a"
     }
+
+    # Running Secphase to find the alignments that need correction
     call secphase_t.runSecPhase as secphase {
         input:
             inputBam = aligner.bamFile,
             diploidAssemblyFastaGz = assembly,
             debugMode = false
     }
+
+    # Running correctBam to swap primary/secondary tag for detected alignments
     call correct_bam_t.correctBam {
         input:
             phasingLogText = secphase.outLog,
@@ -54,6 +59,7 @@ workflow longReadFullAlignment {
             dockerImage="mobinasri/secphase:dev-v0.1",
             preemptible=2
     }
+
     output {
         File finalBam = correctBam.correctedBam
         File finalBamIndex = correctBam.correctedBamIndex
