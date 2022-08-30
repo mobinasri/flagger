@@ -14,7 +14,8 @@ workflow longReadFullAlignment {
         Int splitNumber = 16
         File assembly
         Int kmerSize = 15
-        String options=""
+        String alignerOptions="--eqx -I8g"
+        String fastqOptions=""
         File? referenceFasta
         Int preemptible=2
         Int extractReadsDiskSize=512
@@ -34,7 +35,8 @@ workflow longReadFullAlignment {
             referenceFasta = referenceFasta,
             preemptible = 2,
             extractReadsDiskSize = extractReadsDiskSize,
-            options = options,
+            alignerOptions = alignerOptions,
+            fastqOptions = fastqOptions,
             kmerSize = kmerSize,
             zones = "us-west2-a"
     }

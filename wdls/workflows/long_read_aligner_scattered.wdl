@@ -17,7 +17,8 @@ workflow longReadAlignmentScattered {
         Int splitNumber = 16
         File assembly
         File? referenceFasta
-        String options=""
+        String alignerOptions=""
+        String fastqOptions=""
         Int kmerSize = 15
         Int preemptible=2
         Int extractReadsDiskSize=512
@@ -29,6 +30,7 @@ workflow longReadAlignmentScattered {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
+                fastqOptions = fastqOptions,
                 memSizeGB=4,
                 threadCount=4,
                 diskSizeGB=extractReadsDiskSize,
@@ -58,7 +60,7 @@ workflow longReadAlignmentScattered {
                  diskSize = 8 + floor(readFastqAndSize.right) * 6,
                  preemptible = preemptible,
                  zones = zones,
-                 options = options,
+                 options = alignerOptions,
                  kmerSize = kmerSize
         }
     }
