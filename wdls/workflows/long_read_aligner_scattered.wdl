@@ -76,7 +76,7 @@ workflow longReadAlignmentScattered {
             sampleSuffix = sampleSuffix,
             sortedBamFiles = alignment.sortedBamFile,
             # runtime configurations
-            diskSize = floor(bamSize.value * 2.5),
+            diskSize = floor(bamSize.value * 2.5) + 32,
             preemptible = preemptible,
             zones = zones
     }
@@ -86,7 +86,7 @@ workflow longReadAlignmentScattered {
         input:
             bamFile = mergeBams.mergedBam,
             assemblyFastaGz = assembly,
-            diskSize = floor(bamSize.value * 2.5),
+            diskSize = floor(bamSize.value * 2.5) + 32,
             preemptible = preemptible,
             zones = zones
     }
