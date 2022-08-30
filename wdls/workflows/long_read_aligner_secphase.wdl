@@ -20,7 +20,7 @@ workflow longReadFullAlignment {
     }
 
     # Aligning reads using either minimap2 or winnowmap
-    call aligner_t.longReadAlignmentScattered as aligner{
+    call aligner_t.longReadAlignmentScattered as readAligner{
         input:
             aligner = aligner,
             preset = preset,
@@ -38,7 +38,7 @@ workflow longReadFullAlignment {
     # Running Secphase to find the alignments that need correction
     call secphase_t.runSecPhase as secphase {
         input:
-            inputBam = aligner.bamFile,
+            inputBam = readAligner.bamFile,
             diploidAssemblyFastaGz = assembly,
             debugMode = false
     }
@@ -47,7 +47,7 @@ workflow longReadFullAlignment {
     call correct_bam_t.correctBam {
         input:
             phasingLogText = secphase.outLog,
-            bam = aligner.bamFile,
+            bam = readAligner.bamFile,
             options = "--minReadLen 100 --minAlignment 100 --maxDiv 0.5",
             suffix = "secphase",
             flagRemoveMultiplePrimary = false,
