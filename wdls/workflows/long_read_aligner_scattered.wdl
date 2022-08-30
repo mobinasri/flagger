@@ -17,6 +17,8 @@ workflow longReadAlignmentScattered {
         Int splitNumber = 16
         File assembly
         File? referenceFasta
+        String options=""
+        Int kmerSize = 15
         Int preemptible=2
         Int extractReadsDiskSize=512
         String zones="us-west2-a"
@@ -55,7 +57,9 @@ workflow longReadAlignmentScattered {
                  readFastq_or_queryAssembly = readFastqAndSize.left,
                  diskSize = 8 + floor(readFastqAndSize.right) * 6,
                  preemptible = preemptible,
-                 zones = zones
+                 zones = zones,
+                 options = options,
+                 kmerSize = kmerSize
         }
     }
     call arithmetic_t.sum as bamSize {
