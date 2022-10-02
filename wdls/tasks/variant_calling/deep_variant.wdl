@@ -9,6 +9,7 @@ workflow runDeepVariant{
         Int minMAPQ = 0
         String includeSecondary="False"
         String includeSupplementary="True"
+        String openvinoString="use_openvino=false" # for deepvariant_1.4 it should be false
     }
     call deepVariant{
         input:
@@ -21,7 +22,8 @@ workflow runDeepVariant{
             minMAPQ = minMAPQ,
             threadCount=64,
             memSize=256,
-            diskSize= 2 * ceil(size(bam, "GB")) + 64
+            diskSize= 2 * ceil(size(bam, "GB")) + 64,
+            openvinoString=openvinoString
     }
     output{
         File vcfGz = deepVariant.vcfGz
@@ -39,6 +41,7 @@ task deepVariant{
         String includeSecondary="False"
         String includeSupplementary="False"
         String modelType
+        String openvinoString="openvino=false"
         # runtime configurations
         Int memSize=32
         Int threadCount=16
@@ -93,7 +96,7 @@ task deepVariant{
         --reads=${BAM_PREFIX}.bam \
         --output_vcf=${BAM_PREFIX}.vcf \
         --make_examples_extra_args=${MAKE_EXAMPLES_EXTRA_ARGS} \
-        --call_variants_extra_args="use_openvino=true" \
+        --call_variants_extra_args=~{openvinoString} \
         --num_shards=$(nproc) \
         --dry_run=false ${MORE_OPTIONS}
 
