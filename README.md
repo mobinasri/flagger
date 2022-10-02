@@ -49,7 +49,7 @@ docker run \
   --ref="/input/${ASSEMBLY_FASTA}" \
   --reads="/input/${INPUT_BAM}" \
   --output_vcf="/output/${OUTPUT_VCF}" \
-  --make_examples_extra_args="keep_supplementary_alignments=true, min_mapping_quality=0" \
+  --make_examples_extra_args="keep_supplementary_alignments=true,min_mapping_quality=0" \
   --call_variants_extra_args="use_openvino=true" \
   --num_shards=$(nproc) \
   --dry_run=false 
