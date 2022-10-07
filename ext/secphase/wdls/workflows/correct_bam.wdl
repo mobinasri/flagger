@@ -22,7 +22,7 @@ task correctBam {
         Int memSize=8
         Int threadCount=8
         Int diskSize=512
-        String dockerImage="mobinasri/secphase:v0.1"
+        String dockerImage="mobinasri/secphase:dev-v0.1"
         Int preemptible=2
     }
     command <<<
@@ -53,9 +53,12 @@ task correctBam {
             OPTIONS="${OPTIONS} --mapqTable ~{mapqTableText}"
         fi
 
+        # Create an empty file in case flagRemoveMultiplePrimary and flagRemoveSupplementary both are false
+        touch ${PREFIX}.excluded_read_ids.txt
+
         if [ -n "~{true="REMOVE" false="" flagRemoveMultiplePrimary}" ]
         then
-            samtools view -F 0x904 ~{bam} | cut -f 1 | sort | uniq -c | awk '$1 > 1' | cut -f2 > ${PREFIX}.excluded_read_ids.txt 
+            samtools view -F 0x904 ~{bam} | cut -f 1 | sort | uniq -c | awk '$1 > 1{print $2}' > ${PREFIX}.excluded_read_ids.txt 
         fi
         
         if [ -n "~{true="REMOVE" false="" flagRemoveSupplementary}" ]
