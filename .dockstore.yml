@@ -39,9 +39,6 @@ workflows:
    -  name: BamCoverage
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/coverage/bam_coverage.wdl
-   -  name: BamCoverage
-      subclass: WDL
-      primaryDescriptorPath: /wdls/tasks/coverage/bam_coverage.wdl
    -  name: FitModelByCounts
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/mixture_model/fit_model.wdl
