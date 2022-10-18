@@ -40,11 +40,9 @@ class Alignment:
         self.chromLength = int(cols[6])
         self.chromStart = int(cols[7]) # 0-based closed
         self.chromEnd = int(cols[8]) # 0-based open
-        priTag = cols[12]
-        if priTag == "tp:A:P":
+        self.isPrimary = False
+        if "tp:A:P" in paf_line:
             self.isPrimary = True
-        else:
-            self.isPrimary = False
         # The cigar string starts after "cg:Z:"
         afterCg = paf_line.strip().split("cg:Z:")[1]
         cigarString = afterCg.split()[0]
@@ -53,7 +51,7 @@ class Alignment:
             # The edit distance starts after "NM:i:"
             afterNM = paf_line.strip().split("NM:i:")[1]
             editString = afterNM.split()[0]
-            self.editDistance = int(editDistance)
+            self.editDistance = int(editString)
         else:
             self.editDistance = None
 
@@ -75,7 +73,9 @@ def reverseBlocks(blocks, contigLength):
     """
     reverseBlocks = []
     for i in range(len(blocks)-1, -1, -1):
-        reverseBlocks.append(reverseInterval(blocks[i], contigLength))
+        reversedInterval = reverseInterval(blocks[i], contigLength)
+        info = blocks[i][2]
+        reverseBlocks.append((reversedInterval[0], reversedInterval[1], info))
     return reverseBlocks
 
 def convertIndelsInCigar(cigarList):
@@ -114,7 +114,7 @@ def findProjections(mode, cigarList, forwardBlocks,
                                     the output will be the projections of those blocks onto the reference
             * cigarList: A list of tuples which contains the cigar operations and their lengths 
                         [(op1, length1) , (op2, length2), ...]
-            * forwardBlocks: A list of tuples which contains the blocks in the coordinates of the contig. Each block is a tuple of (start, end). start and end should be 1-based closed.
+            * forwardBlocks: A list of tuples which contains the blocks in the coordinates of the contig. Each block is a tuple of (start, end, info). start and end should be 1-based closed, info is optional and can be empty
             * chromLength: (Integer) The total length of the reference chromosome
             * chromStart: (Integer) Where the alignment begins in the coordinates of the reference (should be 1-based and closed)
             * contigLength: (Integer) The total length of the contig
@@ -148,7 +148,7 @@ def findProjections(mode, cigarList, forwardBlocks,
     nextOpStartContig = None
     currOpStartRef = None
     currOpStartContig = None
-    # Return if the blocks has not overlap with the alignment
+    # Return if the blocks has no overlap with the alignment
     if (forwardBlocks[-1][1] < contigStart) or (contigEnd < forwardBlocks[0][0]):
         return projectionBlocks, projectableBlocks
     # The cigar starts from the end of the contig if the alignment orientation is negative,
@@ -200,11 +200,13 @@ def findProjections(mode, cigarList, forwardBlocks,
                     projectableStartPos = blocks[blockIdx][0]
                 projectionEndPos = currOpStartRef + blocks[blockIdx][1] - currOpStartContig
                 projectableEndPos = blocks[blockIdx][1]
-                projectionBlocks.append((projectionStartPos, projectionEndPos))
+                info = blocks[blockIdx][2]
+                projectionBlocks.append((projectionStartPos, projectionEndPos, info))
                 if orientation == '+':
-                    projectableBlocks.append((projectableStartPos, projectableEndPos))
+                    projectableBlocks.append((projectableStartPos, projectableEndPos, info))
                 else:
-                    projectableBlocks.append(reverseInterval((projectableStartPos, projectableEndPos), contigLength))
+                    reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
+                    projectableBlocks.append((reversedInterval[0], reversedInterval[1], info))
                 blockIdx += 1
             if blockIdx >= len(blocks):
                 break
@@ -230,11 +232,13 @@ def findProjections(mode, cigarList, forwardBlocks,
                 # Note that one base before the insertion is absolutely an M
                 projectionEndPos = currOpStartRef - 1
                 projectableEndPos = currOpStartContig - 1
-                projectionBlocks.append((projectionStartPos, projectionEndPos))
+                info = blocks[blockIdx][2]
+                projectionBlocks.append((projectionStartPos, projectionEndPos, info))
                 if orientation == '+':
-                    projectableBlocks.append((projectableStartPos, projectableEndPos))
+                    projectableBlocks.append((projectableStartPos, projectableEndPos, info))
                 else:
-                    projectableBlocks.append(reverseInterval((projectableStartPos, projectableEndPos), contigLength))
+                    reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
+                    projectableBlocks.append((reversedInterval[0], reversedInterval[1], info))
                 blockIdx += 1
             if blockIdx >= len(blocks):
                 break
@@ -254,11 +258,13 @@ def findProjections(mode, cigarList, forwardBlocks,
     if (blockIdx < len(blocks)) and (blocks[blockIdx][0] < nextOpStartContig):
         projectionEndPos = nextOpStartRef - 1
         projectableEndPos = nextOpStartContig - 1
-        projectionBlocks.append((projectionStartPos, projectionEndPos))
+        info = blocks[blockIdx][2]
+        projectionBlocks.append((projectionStartPos, projectionEndPos, info))
         if orientation == '+':
-            projectableBlocks.append((projectableStartPos, projectableEndPos))
+            projectableBlocks.append((projectableStartPos, projectableEndPos, info))
         else:
-            projectableBlocks.append(reverseInterval((projectableStartPos, projectableEndPos), contigLength))
+            reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
+            projectableBlocks.append((reversedInterval[0], reversedInterval[1], info))
     return projectableBlocks, projectionBlocks
                 
 
