@@ -58,7 +58,7 @@ task splitBamContigWise{
         Int memSize=32
         Int threadCount
         Int diskSize=512
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/flagger:dev-0.1"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -119,7 +119,7 @@ task increaseMapq{
         Int memSize=4
         Int threadCount=2
         Int diskSize=64
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/flagger:dev-0.1"
         Int preemptible=2
         String zones="us-west2-a"
     }
