@@ -17,7 +17,7 @@ task fitModelByWindow {
         Int memSize=8
         Int threadCount=32
         Int diskSize=64
-        String dockerImage="mobinasri/flagger:dev-0.1"
+        String dockerImage="mobinasri/flagger:dev-v0.1"
         Int preemptible=2
     }
     command <<<

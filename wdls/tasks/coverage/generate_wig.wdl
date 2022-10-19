@@ -20,7 +20,7 @@ task generateWig{
         Int memSize=16
         Int threadCount=4
         Int diskSize=512
-        String dockerImage="mobinasri/flagger:dev-0.1"
+        String dockerImage="mobinasri/flagger:dev-v0.1"
         Int preemptible=2
     }
     command <<<

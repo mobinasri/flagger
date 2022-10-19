@@ -16,7 +16,7 @@ task wig2tdf{
         Int memSize=8
         Int threadCount=4
         Int diskSize=256
-        String dockerImage="mobinasri/flagger:dev-0.1"
+        String dockerImage="mobinasri/flagger:dev-v0.1"
         Int preemptible=2
     }
     command <<<
