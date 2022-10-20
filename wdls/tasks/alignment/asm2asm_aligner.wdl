@@ -19,7 +19,6 @@ workflow asm2asmAlignment {
             refAssembly = refAssemblyFastaGz,
             readFastq_or_queryAssembly = queryAssemblyFastaGz,
             kmerSize = 19,
-            preemptible = 2,
             zones = zones
     }
     output {
