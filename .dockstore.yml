@@ -87,3 +87,6 @@ workflows:
    -  name: PepperMarginDeepVariant
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/variant_calling/pepper_margin_deep_variant.wdl
+   -  name: mergeCoverage
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/other/merge_coverage.wdl
