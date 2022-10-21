@@ -59,7 +59,7 @@ task mergeCoverage {
         gunzip -c ~{highMapqCovGz} > high_mapq.cov
         merge_blocks -a all.cov -b high_mapq.cov -o merged.cov
         merge_blocks -a merged.cov -b regions.bed -o ${PREFIX}.merged.cov
-        pigz -p~{threadCount} ${PREFIX}.merged.cov > ${PREFIX}.merged.cov.gz
+        pigz -p~{threadCount} ${PREFIX}.merged.cov
     >>> 
     runtime {
         docker: dockerImage
