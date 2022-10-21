@@ -90,7 +90,7 @@ workflows:
    -  name: mergeCoverage
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/other/merge_coverage.wdl
-   -  name:HMM_Flagger
+   -  name: HMM-Flagger
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/hmm_flagger.wdl
 
