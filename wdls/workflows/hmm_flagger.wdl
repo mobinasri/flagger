@@ -44,7 +44,7 @@ task hmmFlagger {
         FILENAME=$(basename ~{mergedCovGz})
         PREFIX=${FILENAME%%.cov.gz}
 
-        gunzip -c {mergedCovGz} > ${PREFIX}.cov
+        gunzip -c ~{mergedCovGz} > ${PREFIX}.cov
 
         # index coverage file
         index_cov -c ${PREFIX}.cov -l ~{chunkLen} 
