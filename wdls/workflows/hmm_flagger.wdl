@@ -53,7 +53,7 @@ task hmmFlagger {
         hmm_flagger --inputCov ${PREFIX}.cov \
                     --threads ~{threadCount} \
                     --chunkLen ~{chunkLen} \
-                    --iterations ~{iterations} \ 
+                    --iterations ~{iterations} \
                     --windowLen ~{windowLen} \
                     --coverage ~{coverage} \
                     --regions  ~{regions} \
