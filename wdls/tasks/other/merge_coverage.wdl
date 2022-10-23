@@ -54,7 +54,7 @@ task mergeCoverage {
 
         # put chrM last
         cat regions.bed | grep -v "chrM" > regions_no_M.bed
-        cat regions.bed | grep "chrM" > regions_only_M.bed
+        cat regions.bed | grep "chrM" > regions_only_M.bed || true
         cat regions_no_M.bed regions_only_M.bed > regions.bed
 
         FILENAME=$(basename ~{covGz})
