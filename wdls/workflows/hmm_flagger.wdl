@@ -4,6 +4,8 @@ workflow runHmmFlagger{
     call hmmFlagger
     output {
         File bed = hmmFlagger.bed
+        File emissionStatsText = hmmFlagger.emissionStatsText
+        File transitionStatsText = hmmFlagger.transitionStatsText
     }
 }
 
