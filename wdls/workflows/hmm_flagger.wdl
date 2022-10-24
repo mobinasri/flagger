@@ -66,6 +66,9 @@ task hmmFlagger {
                     --regionFactors ~{regionFactors} \
                     --maxHighMapqRatio ~{maxHighMapqRatio}
 
+          NUMBER=~{iterations}
+          mv output/emission_$((NUMBER - 1)).txt output/emission_stats.txt
+          mv output/transition_$((NUMBER - 1)).txt output/transition_stats.txt
     >>> 
     runtime {
         docker: dockerImage
@@ -76,6 +79,8 @@ task hmmFlagger {
     }
     output {
         File bed = glob("output/*.bed")[0]
+        File emissionStatsText = glob("output/emission_stats.txt")[0]
+        File transitionStatsText = glob("output/transition_stats.txt")[0]
     }
 }
 
