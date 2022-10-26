@@ -12,6 +12,7 @@ task mergeCoverage {
         File fai
         File covGz
         File highMapqCovGz
+        Boolean sortByChr=false
         # runtime configurations
         Int memSize=8
         Int threadCount=4
@@ -50,12 +51,18 @@ task mergeCoverage {
             bedtools sort -i - | \
             bedtools merge -i - | \
             awk '{print $0"\t"0}'> r_0.bed
-        cat r_*.bed | sort -k1,1V -k2,2n > regions.bed
 
-        # put chrM last
-        cat regions.bed | grep -v "chrM" > regions_no_M.bed
-        cat regions.bed | grep "chrM" > regions_only_M.bed || true
-        cat regions_no_M.bed regions_only_M.bed > regions.bed
+        if [ -n "~{true="sortV" false="" sortByChr}" ]
+        then
+            cat r_*.bed | sort -k1,1V -k2,2n > regions.bed
+            # put chrM last
+            cat regions.bed | grep -v "chrM" > regions_no_M.bed
+            cat regions.bed | grep "chrM" > regions_only_M.bed || true
+            cat regions_no_M.bed regions_only_M.bed > regions.bed
+        else
+             cat r_*.bed | sort -k1,1 -k2,2n > regions.bed
+        fi
+
 
         FILENAME=$(basename ~{covGz})
         PREFIX=${FILENAME%%.cov.gz}
