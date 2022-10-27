@@ -59,8 +59,8 @@ task flaggerStats {
             columns="${columns}\t${columns_curr}"
         done
 
-        echo ${columns} > ~{sample}.~{prefix}.flagger_stats.tsv
-        echo ${values} >> ~{sample}.~{prefix}.flagger_stats.tsv
+        printf ${columns}"\n" > ~{sample}.~{prefix}.flagger_stats.tsv
+        printf ${values}"\n" >> ~{sample}.~{prefix}.flagger_stats.tsv
  
     >>> 
     runtime {
