@@ -2,6 +2,9 @@ version 1.0
 
 workflow runFlaggerStats{
     call flaggerStats
+    output{
+        File flaggerStatsTsv = flaggerStats.flaggerStatsTsv
+    }
 }
 task flaggerStats {
     input {
