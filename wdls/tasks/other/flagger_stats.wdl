@@ -45,7 +45,7 @@ task flaggerStats {
 
         values="sample\tinfo"
         columns="~{sample}\t~{prefix}"
-        for x in asm.bed,All ~{sexBed},sex autosome.bed,Autosome ~{difficultBed},~{difficultString} easy.bed,Non_~{difficultString} autosome_easy.bed,Autosome_Non_~{difficultString} autosome_easy_long,Autosome_Non_~{difficultString}_Long
+        for x in asm.bed,All ~{sexBed},sex autosome.bed,Autosome ~{difficultBed},~{difficultString} easy.bed,Non_~{difficultString} autosome_easy.bed,Autosome_Non_~{difficultString} autosome_easy_long.bed,Autosome_Non_~{difficultString}_Long
         do
             IFS=, read bed name <<< "$x"
             err=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Err" | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}')
