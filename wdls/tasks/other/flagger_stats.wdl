@@ -53,7 +53,7 @@ task flaggerStats {
             hap=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Hap" | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}')
             col=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Col" | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}')
             tot=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}')
-            values_curr=$(echo ${err} ${dup} ${hap} ${col} ${tot} | awk '{printf $1"\t"$2"\t"$3"\t"$4"\t"$1+$2+$4"\t"$1+$2+$4/$5 * 100"\t"$5}')
+            values_curr=$(echo ${err} ${dup} ${hap} ${col} ${tot} | awk '{printf $1"\\t"$2"\\t"$3"\\t"$4"\\t"$1+$2+$4"\\t"$1+$2+$4/$5 * 100"\\t"$5}')
             columns_curr="Err_${name}\tDup_${name}\tHap_${name}\tCol_${name}\tUnreliable_${name}\tUnreliable_${name}_Percent\tTotal_${name}"
             values="${values}\t${values_curr}"
             columns="${columns}\t${columns_curr}"
