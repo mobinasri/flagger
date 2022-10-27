@@ -11,7 +11,7 @@ task flaggerStats {
         File fai
         File flaggerBed
         File difficultBed
-        File difficultString
+        String difficultString
         File sexBed
         String sample
         String prefix
