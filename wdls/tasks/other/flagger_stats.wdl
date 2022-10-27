@@ -44,7 +44,7 @@ task flaggerStats {
         
 
         values="sample\tinfo"
-        columns="${sample}\t${prefix}"
+        columns="~{sample}\t~{prefix}"
         for x in asm.bed,All ~{sexBed},sex autosome.bed,Autosome ~{difficultBed},~{difficultString} easy.bed,Non_~{difficultString} autosome_easy.bed,Autosome_Non_~{difficultString} autosome_easy_long,Autosome_Non_~{difficultString}_Long
         do
             IFS=, read bed name <<< "$x"
@@ -59,8 +59,8 @@ task flaggerStats {
             columns="${columns}\t${columns_curr}"
         done
 
-        echo ${columns} > ${sample}.${prefix}.flagger_stats.tsv
-        echo ${values} >> ${sample}.${prefix}.flagger_stats.tsv
+        echo ${columns} > ~{sample}.~{prefix}.flagger_stats.tsv
+        echo ${values} >> ~{sample}.~{prefix}.flagger_stats.tsv
  
     >>> 
     runtime {
