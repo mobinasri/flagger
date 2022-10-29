@@ -61,11 +61,11 @@ task hmmFlagger {
                     --regions  ~{regions} \
                     --trackName ${PREFIX} \
                     --outputDir output \
+                    --regionFactors ~{regionFactors} \
                     #--minColScore ~{minColScore} \
                     #--minColLen ~{minColLen} \
                     #--maxDupScore ~{maxDupScore} \
                     #--minDupLen ~{minDupLen} \
-                    #--regionFactors ~{regionFactors} \
                     #--maxHighMapqRatio ~{maxHighMapqRatio}
 
           NUMBER=~{iterations}
