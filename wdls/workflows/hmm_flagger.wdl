@@ -52,7 +52,7 @@ task hmmFlagger {
         index_cov -c ${PREFIX}.cov -l ~{chunkLen} 
 
         # run hmm_flagger
-        hmm_flagger --inputCov ${PREFIX}.cov \
+        hmm_flagger_bivariate --inputCov ${PREFIX}.cov \
                     --threads ~{threadCount} \
                     --chunkLen ~{chunkLen} \
                     --iterations ~{iterations} \
@@ -61,12 +61,12 @@ task hmmFlagger {
                     --regions  ~{regions} \
                     --trackName ${PREFIX} \
                     --outputDir output \
-                    --minColScore ~{minColScore} \
-                    --minColLen ~{minColLen} \
-                    --maxDupScore ~{maxDupScore} \
-                    --minDupLen ~{minDupLen} \
-                    --regionFactors ~{regionFactors} \
-                    --maxHighMapqRatio ~{maxHighMapqRatio}
+                    #--minColScore ~{minColScore} \
+                    #--minColLen ~{minColLen} \
+                    #--maxDupScore ~{maxDupScore} \
+                    #--minDupLen ~{minDupLen} \
+                    #--regionFactors ~{regionFactors} \
+                    #--maxHighMapqRatio ~{maxHighMapqRatio}
 
           NUMBER=~{iterations}
           mv output/emission_$((NUMBER - 1)).txt output/emission_stats.txt
