@@ -40,9 +40,10 @@ task cov2countsByWindow {
         PREFIX_COV=${FILENAME%.cov.gz}
         
         gunzip -c ~{coverageGz} > ${PREFIX_COV}.cov
+        cat ~{fai} | sort -V > ${PREFIX_FAI}.fai
         mkdir covs counts
         # Make a separate cov file for each contig
-        split_cov_by_window -c ${PREFIX_COV}.cov -f ~{fai} -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
+        split_cov_by_window -c ${PREFIX_COV}.cov -f ${PREFIX_FAI}.fai -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
         # Count each window-specific cov file
         for c in $(ls covs);do cov2counts -i covs/$c -o counts/${c/.cov/.counts}; echo $c" finished";done
 
