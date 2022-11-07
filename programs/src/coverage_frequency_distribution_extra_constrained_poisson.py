@@ -21,6 +21,7 @@ def trunc_exp_pdf(x, lam, b):
     else:
         return exp_pdf(x, lam) / (1.0 - exp(-lam * b)) 
 def norm_pdf(x, mu, sigma):
+    if sigma == 0: sigma  = 1
     z = (x - mu) / sigma
     return 1.0 / (sigma * sqrt(2.0 * pi)) * exp(-z * z / 2.0)
 
