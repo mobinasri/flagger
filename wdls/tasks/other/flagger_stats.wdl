@@ -10,8 +10,10 @@ task flaggerStats {
     input {
         File fai
         File flaggerBed
-        File difficultBed
-        String difficultString
+        File difficultBed_1
+        String difficultString_1
+        File difficultBed_2
+        String difficultString_2
         File sexBed
         String sample
         String prefix
@@ -38,14 +40,21 @@ task flaggerStats {
         cat ~{fai} | awk '{print $1"\t0\t"$2}' | bedtools sort -i - > asm.bed
         cat ~{fai} | awk '$2>~{minContigSize}{print $1"\t0\t"$2}' > asm_long.bed
         bedtools subtract -a asm.bed -b ~{sexBed} > autosome.bed
-        bedtools subtract -a asm.bed -b ~{difficultBed} > easy.bed
-        bedtools intersect -a autosome.bed -b easy.bed > autosome_easy.bed
-        bedtools intersect -a autosome_easy.bed -b asm_long.bed > autosome_easy_long.bed
+        bedtools subtract -a asm.bed -b ~{difficultBed_1} > easy_1.bed
+        bedtools subtract -a asm.bed -b ~{difficultBed_2} > easy_2.bed
+        bedtools intersect -a easy_1.bed -b easy_2.bed > easy_all.bed
+
+        bedtools intersect -a autosome.bed -b easy_1.bed > autosome_easy_1.bed
+        bedtools intersect -a autosome.bed -b easy_2.bed > autosome_easy_2.bed
+        bedtools intersect -a autosome.bed -b easy_all.bed > autosome_easy_all.bed
+
+        bedtools intersect -a autosome_easy_all.bed -b asm_long.bed > autosome_easy_all_long.bed
+        
         
 
-        values="sample\tinfo"
-        columns="~{sample}\t~{prefix}"
-        for x in asm.bed,All ~{sexBed},sex autosome.bed,Autosome ~{difficultBed},~{difficultString} easy.bed,Non_~{difficultString} autosome_easy.bed,Autosome_Non_~{difficultString} autosome_easy_long.bed,Autosome_Non_~{difficultString}_Long
+        columns="sample\tinfo"
+        values="~{sample}\t~{prefix}"
+        for x in asm.bed,All ~{sexBed},sex autosome.bed,Autosome ~{difficultBed_1},~{difficultString_1} ~{difficultBed_2},~{difficultString_2} easy_1.bed,Non_~{difficultString_1} easy_2.bed,Non_~{difficultString_2} autosome_easy_1.bed,Autosome_Non_~{difficultString_1} autosome_easy_2.bed,Autosome_Non_~{difficultString_2} autosome_easy_all.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2} autosome_easy_all_long.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2}_Long
         do
             IFS=, read bed name <<< "$x"
             err=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Err" | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}') || true
