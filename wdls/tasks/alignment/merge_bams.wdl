@@ -10,7 +10,7 @@ workflow MergeBamFiles{
 
 task merge{
     input{
-        Array[File] sortedBamFiles
+        Array[File?] sortedBamFiles
         String sampleName
         String sampleSuffix
         # runtime configurations
