@@ -12,8 +12,9 @@ workflow runCov2CountsByWindow{
 task cov2countsByWindow {
     input {
         File coverageGz
-        File fai
         Int windowSize
+        File fai
+        Array[File] excludeBedArray
         # runtime configurations
         Int memSize=8
         Int threadCount=8
@@ -40,10 +41,23 @@ task cov2countsByWindow {
         PREFIX_COV=${FILENAME%.cov.gz}
         
         gunzip -c ~{coverageGz} > ${PREFIX_COV}.cov
-        cat ~{fai} | sort -V > ${PREFIX_FAI}.fai
+
+        # Make a bed file of the included regions
+        cat ~{fai} | awk '{print $1"\t0\t"$2}' | sort -k1,1V -k2,2 > asm.bed
+        cat ~{sep=" " excludeBedArray} | sort -k1,1V -k2,2 | bedtools merge -i - > exclude.bed || true
+        bedtools subtract -a asm.bed -b exclude.bed > asm.excluded.bed
+
+        # Remove excluded regions from cov file
+        cat ${PREFIX_COV}.cov | \
+            awk '{if(substr($1,1,1) == ">") {contig=substr($1,2); len_contig=$2} else {print contig"\t"$1-1"\t"$2"\t"$3"\t"len_contig}}' | \
+            bedtools intersect -a - -b asm.excluded.bed | \
+            awk '{if(contig != $1){contig=$1; print ">"contig" "$5}; print $2+1"\t"$3"\t"$4}' | pigz -p4 > ${PREFIX_COV}.excluded.cov
+        
+        # make a tab-delimited file including the contig names and their effective length (not excluded)
+        cat asm.excluded.bed | awk '{ctg_len[$1] += $3-$2}END{for (c in ctg_len){print c"\t"ctg_len[c]}}' > ctg_lens.txt
         mkdir covs counts
-        # Make a separate cov file for each contig
-        split_cov_by_window -c ${PREFIX_COV}.cov -f ${PREFIX_FAI}.fai -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
+        # Make a separate cov file for each window
+        split_cov_by_window_test -c ${PREFIX_COV}.cov -f ctg_lens.txt -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
         # Count each window-specific cov file
         for c in $(ls covs);do cov2counts -i covs/$c -o counts/${c/.cov/.counts}; echo $c" finished";done
 
