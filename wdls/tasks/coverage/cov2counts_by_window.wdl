@@ -44,7 +44,7 @@ task cov2countsByWindow {
 
         # Make a bed file of the included regions
         cat ~{fai} | awk '{print $1"\t0\t"$2}' | sort -k1,1V -k2,2 > asm.bed
-        cat ~{sep=" " excludeBedArray} | sort -k1,1V -k2,2 | bedtools merge -i - > exclude.bed || true
+        cat ~{sep=" " excludeBedArray} | sort -k1,1V -k2,2n | bedtools merge -i - > exclude.bed || true
         bedtools subtract -a asm.bed -b exclude.bed > asm.excluded.bed
 
         # Remove excluded regions from cov file
