@@ -67,6 +67,9 @@ workflow longReadAlignment {
 task alignmentBam{
     input{
         String aligner
+        # For winnowmap-v2.03 -> map-pb/map-ont/asm5/asm10
+        # For minimap2-v2.24 -> map-pb/map-hifi/map-ont/asm5/asm10 
+        # For veritymap v2.1.2-alpha -> hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete
         String preset
         String suffix=""
         String options=""
@@ -98,20 +101,35 @@ task alignmentBam{
         gunzip -c ~{refAssembly} > asm.fa
         # Sort fasta based on contig names
         seqkit sort -nN asm.fa > asm.sorted.fa	
- 
+
+        fileBasename=$(basename ~{readFastq_or_queryAssembly})
+
         if [[ ~{aligner} == "winnowmap" ]]; then
+            # Run meryl for winnowmap
             meryl count k=~{kmerSize} output merylDB asm.sorted.fa
             meryl print greater-than distinct=0.9998 merylDB > repetitive_k~{kmerSize}.txt
-            ALIGNER_CMD="winnowmap -W repetitive_k~{kmerSize}.txt"
+
+            # run winnowmap
+            winnowmap -W repetitive_k~{kmerSize}.txt -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${fileBasename%.*.*}.bam
         elif [[ ~{aligner} == "minimap2" ]] ; then
-            ALIGNER_CMD="minimap2 -k ~{kmerSize}"
+            # Run minimap2
+            minimap2 -k ~{kmerSize} -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${fileBasename%.*.*}.bam
+        elif [[ ~{aligner} == "veritymap" ]] ; then
+            # Run veritymap
+            python3 ${VERITY_MAP_PY} --reads ~{readFastq_or_queryAssembly} -o output -t~{threadCount} -d ~{preset} ~{options} asm.sorted.fa
+
+            # Convert sam to bam, sort and index bam file
+            SAM_PATH=$(ls output/*.sam)
+            SAM_FILENAME=$(basename ${SAM_PATH})
+            SAM_PREFIX=${SAM_FILENAME%%.sam}
+            samtools view -hb output/${SAM_PREFIX}.sam > ${fileBasename%.*.*}.bam
+            # To save some space
+            rm -rf output/${SAM_PREFIX}.sam
+
         else
              echo "UNSUPPORTED ALIGNER (expect minimap2 or winnowmap): ~{aligner}"
              exit 1
         fi
-         
-        fileBasename=$(basename ~{readFastq_or_queryAssembly})
-        ${ALIGNER_CMD} -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${fileBasename%.*.*}.bam
         
         if [ -z ~{suffix} ]; then
             OUTPUT_FILE=${fileBasename%.*.*}.sorted.bam

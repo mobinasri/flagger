@@ -2,7 +2,7 @@ version 1.0
 
 task max {
     input {
-        Array[Int?] integers
+        Array[Int] integers
     }
 
     command <<<
@@ -26,7 +26,7 @@ task max {
 
 task sum {
     input {
-        Array[Int?] integers
+        Array[Int] integers
     }
 
     command <<<
