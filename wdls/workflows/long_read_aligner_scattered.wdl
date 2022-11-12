@@ -9,7 +9,13 @@ import "../tasks/alignment/calmd.wdl" as calmd_t
 
 workflow longReadAlignmentScattered {
     input {
-        String aligner="winnowmap" # can be either minimap2, winnowmap and veritymap
+        # aligner:
+        #     Can be either minimap2, winnowmap and veritymap
+        String aligner="winnowmap"
+        # preset:
+        #     For winnowmap-v2.03 -> map-pb/map-ont/asm5/asm10
+        #     For minimap2-v2.24 -> map-pb/map-hifi/map-ont/asm5/asm10
+        #     For veritymap v2.1.2-alpha -> hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete
         String preset
         String sampleName
         String sampleSuffix
@@ -17,7 +23,13 @@ workflow longReadAlignmentScattered {
         Int splitNumber = 16
         File assembly
         File? referenceFasta
+        # options:
+        #     For winnowmap/minimap2 recommended "--eqx --cs -Y -L" (if diploid assembly "-I8g")
+        #     For veritymap "--careful" can be used but not recommended for whole-genome assembly
+        #     Only winnowmap/minimap2 supports methylation tags in reads (parameter should contain "-TMl,Mm")
         String options=""
+        # fastqOptions:
+        #     For reads with methylation "-y"
         String fastqOptions=""
         Int kmerSize = 15
         Int preemptible=2
