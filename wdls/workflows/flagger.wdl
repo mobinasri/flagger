@@ -32,6 +32,7 @@ workflow runFlagger{
         File fai
         Float covFloat # the coverage with the highest frequency (most of the time same as mean coverage)
         Boolean isDiploid # This is only used for pdf generation and separating the pages for each haplotype
+        cov2countsDiskSizeGB = 128
     }
     scatter (biasedRegionData in zip(biasedRegionBedArray, zip(biasedRegionNameArray, biasedRegionFactorArray))){
         File biasedRegionBed = biasedRegionData.left
@@ -57,11 +58,13 @@ workflow runFlagger{
     }
     call cov2counts_t.cov2counts {
         input:
-            coverageGz = coverageGz 
+            coverageGz = coverageGz,
+            diskSize = cov2countsDiskSizeGB
     }
     call fit_model_t.fitModel {
         input:
-            counts = cov2counts.counts
+            counts = cov2counts.counts,
+            cov = covFloat
     }
     call find_blocks_t.findBlocks {
         input:
@@ -72,12 +75,14 @@ workflow runFlagger{
         input:
             coverageGz = coverageGz,
             excludeBedArray = biasedRegionBedArray,
-            fai = fai
+            fai = fai,
+            diskSize = cov2countsDiskSizeGB
     }
     call fit_model_by_window_t.fitModelByWindow {
         input:
             windowsText = cov2countsByWindow.windowsText,
-            countsTarGz = cov2countsByWindow.windowCountsTarGz 
+            countsTarGz = cov2countsByWindow.windowCountsTarGz,
+            cov = covFloat 
     }
     call find_blocks_by_window_t.findBlocksByWindow {
         input:
