@@ -51,13 +51,13 @@ task cov2countsByWindow {
         cat ${PREFIX_COV}.cov | \
             awk '{if(substr($1,1,1) == ">") {contig=substr($1,2); len_contig=$2} else {print contig"\t"$1-1"\t"$2"\t"$3"\t"len_contig}}' | \
             bedtools intersect -a - -b asm.excluded.bed | \
-            awk '{if(contig != $1){contig=$1; print ">"contig" "$5}; print $2+1"\t"$3"\t"$4}' | pigz -p4 > ${PREFIX_COV}.excluded.cov
+            awk '{if(contig != $1){contig=$1; print ">"contig" "$5}; print $2+1"\t"$3"\t"$4}' > ${PREFIX_COV}.excluded.cov
         
         # make a tab-delimited file including the contig names and their effective length (not excluded)
         cat asm.excluded.bed | awk '{ctg_len[$1] += $3-$2}END{for (c in ctg_len){print c"\t"ctg_len[c]}}' > ctg_lens.txt
         mkdir covs counts
         # Make a separate cov file for each window
-        split_cov_by_window_test -c ${PREFIX_COV}.cov -f ctg_lens.txt -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
+        split_cov_by_window_test -c ${PREFIX_COV}.excluded.cov -f ctg_lens.txt -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
         # Count each window-specific cov file
         for c in $(ls covs);do cov2counts -i covs/$c -o counts/${c/.cov/.counts}; echo $c" finished";done
 
