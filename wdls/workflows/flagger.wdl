@@ -32,7 +32,7 @@ workflow runFlagger{
         File fai
         Float covFloat # the coverage with the highest frequency (most of the time same as mean coverage)
         Boolean isDiploid # This is only used for pdf generation and separating the pages for each haplotype
-        cov2countsDiskSizeGB = 128
+        Int cov2countsDiskSizeGB = 128
     }
     scatter (biasedRegionData in zip(biasedRegionBedArray, zip(biasedRegionNameArray, biasedRegionFactorArray))){
         File biasedRegionBed = biasedRegionData.left
