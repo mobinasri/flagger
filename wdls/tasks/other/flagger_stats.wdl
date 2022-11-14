@@ -40,6 +40,10 @@ task flaggerStats {
 
         cat ~{fai} | awk '{print $1"\t0\t"$2}' | bedtools sort -i - > asm.bed
         cat ~{fai} | awk '$2>~{minContigSize}{print $1"\t0\t"$2}' > asm_long.bed
+
+        bedtools intersect -a asm_long.bed -b ~{difficultBed_1} > diff_long_1.bed
+        bedtools intersect -a asm_long.bed -b ~{difficultBed_2} > diff_long_2.bed
+
         bedtools subtract -a asm.bed -b ~{sexBed} > autosome.bed
         bedtools subtract -a asm.bed -b ~{difficultBed_1} > easy_1.bed
         bedtools subtract -a asm.bed -b ~{difficultBed_2} > easy_2.bed
@@ -58,7 +62,7 @@ task flaggerStats {
 
         columns_2="sample\tinfo"
         values_2="~{sample}\t~{prefix}"
-        for x in asm.bed,All asm_long.bed,Long ~{sexBed},sex autosome.bed,Autosome ~{difficultBed_1},~{difficultString_1} ~{difficultBed_2},~{difficultString_2} easy_1.bed,Non_~{difficultString_1} easy_2.bed,Non_~{difficultString_2} autosome_easy_1.bed,Autosome_Non_~{difficultString_1} autosome_easy_2.bed,Autosome_Non_~{difficultString_2} autosome_easy_all.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2} autosome_easy_all_long.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2}_Long
+        for x in asm.bed,All asm_long.bed,Long ~{sexBed},sex autosome.bed,Autosome ~{difficultBed_1},~{difficultString_1} ~{difficultBed_1}_Long,diff_long_1.bed ~{difficultBed_2},~{difficultString_2} ~{difficultBed_2}_Long,diff_long_2.bed easy_1.bed,Non_~{difficultString_1} easy_2.bed,Non_~{difficultString_2} autosome_easy_1.bed,Autosome_Non_~{difficultString_1} autosome_easy_2.bed,Autosome_Non_~{difficultString_2} autosome_easy_all.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2} autosome_easy_all_long.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2}_Long
         do
             IFS=, read bed name <<< "$x"
             err=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Err" | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}') || true
@@ -96,4 +100,3 @@ task flaggerStats {
         File flaggerStatsPercOnlyTsv = glob("*perc_only.tsv")[0]
     }
 }
-
