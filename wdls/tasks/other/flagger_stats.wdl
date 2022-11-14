@@ -73,8 +73,8 @@ task flaggerStats {
             columns_curr_2="${name}"
             values="${values}\t${values_curr}"
             columns="${columns}\t${columns_curr}"
-            values_2="${values}\t${values_curr_2}"
-            columns_2="${columns}\t${columns_curr_2}"
+            values_2="${values_2}\t${values_curr_2}"
+            columns_2="${columns_2}\t${columns_curr_2}"
         done
 
         printf ${columns}"\n" > ~{sample}.~{prefix}.flagger_stats.tsv
