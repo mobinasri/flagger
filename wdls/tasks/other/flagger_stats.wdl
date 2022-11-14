@@ -4,6 +4,7 @@ workflow runFlaggerStats{
     call flaggerStats
     output{
         File flaggerStatsTsv = flaggerStats.flaggerStatsTsv
+        File flaggerStatsPercOnlyTsv = flaggerStats.flaggerStatsPercOnlyTsv
     }
 }
 task flaggerStats {
