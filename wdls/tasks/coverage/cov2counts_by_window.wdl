@@ -19,7 +19,7 @@ task cov2countsByWindow {
         Int memSize=8
         Int threadCount=8
         Int diskSize=64
-        String dockerImage="mobinasri/flagger:dev-v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
     command <<<
@@ -57,7 +57,7 @@ task cov2countsByWindow {
         cat asm.excluded.bed | awk '{ctg_len[$1] += $3-$2}END{for (c in ctg_len){print c"\t"ctg_len[c]}}' > ctg_lens.txt
         mkdir covs counts
         # Make a separate cov file for each window
-        split_cov_by_window_test -c ${PREFIX_COV}.excluded.cov -f ctg_lens.txt -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
+        split_cov_by_window -c ${PREFIX_COV}.excluded.cov -f ctg_lens.txt -p covs/${PREFIX_COV} -s ~{windowSize} > ${PREFIX_FAI}.windows.txt
         # Count each window-specific cov file
         for c in $(ls covs);do cov2counts -i covs/$c -o counts/${c/.cov/.counts}; echo $c" finished";done
 

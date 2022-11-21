@@ -19,7 +19,7 @@ task findBlocksByWindow {
         Int memSize=8
         Int threadCount=8
         Int diskSize=64
-        String dockerImage="mobinasri/flagger:dev-v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
     command <<<

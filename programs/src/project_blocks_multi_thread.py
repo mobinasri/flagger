@@ -70,7 +70,7 @@ def main():
     parser.add_argument('--outputProjectable', type=str,
                     help='(BED format) A path for saving the query blocks that could be projected. The projection of each line is available in the same line of the projection output')
     parser.add_argument('--outputProjection', type=str,
-                    help='(BED format) A path for saving the projections of the query blocks.Note that the lines may not be sorted and may have overlaps because of its correspondence with the projected bed file. It is recommended to run bedtools sort (and merge) on this output')
+                    help='(BED format) A path for saving the projections of the query blocks.Note that the lines may not be sorted and may have overlaps because of its correspondence with the projected bed file. The 4-th column contains the disimilarity percentage = (indels + mismatches)/(projection block length) * 100. The 5-th column contains other info if present in the input bed file. It is recommended to run bedtools sort (and merge) on this output')
     parser.add_argument('--threads', type=int,
                     help='Number of threads')
     
@@ -106,13 +106,13 @@ def main():
             rBlocks = res[3]
             if mode == "asm2ref":
                 for rBlock in rBlocks:
-                    fRef.write("{}\t{}\t{}\t{}\n".format(chromName, rBlock[0] - 1, rBlock[1], rBlock[2]))
+                    fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(chromName, rBlock[0] - 1, rBlock[1], rBlock[3], rBlock[2]))
                 for qBlock in qBlocks:
-                    fQuery.write("{}\t{}\t{}\t{}\n".format(contigName, qBlock[0] - 1, qBlock[1], qBlock[2]))
+                    fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(contigName, qBlock[0] - 1, qBlock[1], qBlock[3], qBlock[2]))
             else: # mode = "ref2asm"
                 for rBlock in rBlocks:
-                    fRef.write("{}\t{}\t{}\t{}\n".format(contigName, rBlock[0] - 1, rBlock[1], rBlock[2]))
+                    fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(contigName, rBlock[0] - 1, rBlock[1], rBlock[3], rBlock[2]))
                 for qBlock in qBlocks:
-                    fQuery.write("{}\t{}\t{}\t{}\n".format(chromName, qBlock[0] - 1, qBlock[1], qBlock[2]))
+                    fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(chromName, qBlock[0] - 1, qBlock[1], rBlock[3], qBlock[2]))
 main()
 

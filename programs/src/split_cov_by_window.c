@@ -6,61 +6,27 @@
 #include "sonLib.h"
 #include "common.h"
 
-
-typedef struct{
-	char* contigName;
-	int contigLength;
-	int start; //inclusive 1-based
-	int end; //inclusive 1-based
-}Window;
-
-
-Window* Window_construct(char* contigName, int length, int start, int end){
-	Window* wnd = malloc(sizeof(Window));
-	wnd->contigName = malloc(50);
-	strcpy(wnd->contigName, contigName);
-	wnd->contigLength = length;
-	wnd->start = start;
-	wnd->end = end;
-	return wnd;
-}
-
-void Window_destruct(void* window){
-	Window* wnd = window;
-        free(wnd->contigName);
-	wnd->contigName = NULL;
-	free(wnd);
-}
-
-
-
-stList* getWindows(char* faiPath, int windowSize){
-	stList* windows = stList_construct3(0, Window_destruct);
-	char contigName[50]; int s, e, contigSize;
-	FILE* faif = fopen(faiPath, "r");
-	size_t len = 0;
-    	char* line = NULL;
-    	char* token;
-	int n;
-	while(getline(&line, &len, faif) != -1) {
-    		token = strtok(line, "\t");
-        	strcpy(contigName, token);
-        	token = strtok(NULL, "\t");
-        	contigSize = atoi(token);
-		n = contigSize / windowSize;
-		for(int i=0; i < n; i++){
-			s = i * windowSize + 1;
-			e = ( s + 2 * windowSize - 1 <= contigSize) ? (i + 1) * windowSize : contigSize;
-			stList_append(windows, Window_construct(contigName, contigSize, s, e)); //inclusive 1-based
-		}
-		if (n == 0){
-			s = 1;
-			e = contigSize;
-			stList_append(windows, Window_construct(contigName, contigSize, s, e)); //inclusive 1-based
-		}
+stHash* getEffectiveContigLens(char* contigLenPath){
+	stHash* contigLenTable = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL, free);
+	char* contigName; int contigSize;
+	FILE* f = fopen(contigLenPath, "r");
+        size_t len = 0;
+        char* line = NULL;
+        char* token;
+        int n;
+        while(getline(&line, &len, f) != -1) {
+                token = strtok(line, "\t");
+		contigName = malloc(50* sizeof(char));
+                strcpy(contigName, token);
+                token = strtok(NULL, "\t");
+                int* contigSize = malloc(sizeof(int));
+		*contigSize = atoi(token);
+		fprintf(stderr,"%s,%d\n", contigName, *contigSize);
+		stHash_insert(contigLenTable, contigName, contigSize);
 	}
-	return windows;
+	return contigLenTable;
 }
+
 
 int getBlockTypeIndex(float* probArray){
     float max = -1;
@@ -106,7 +72,7 @@ int readNextBlock(FILE* fileReader, char** contig, int*contigLength, int* blockS
     return 1;
 }
 
-void splitCov(char* covPath, char* prefix, stList* windows){
+void splitCov(char* covPath, char* prefix, stHash* contigLenTable, int windowLen){
     FILE* fp; FILE* fo = NULL;
     char outputPath[200];
     
@@ -115,49 +81,89 @@ void splitCov(char* covPath, char* prefix, stList* windows){
     if (fp == NULL)
         exit(EXIT_FAILURE);
 
-    char* contig = malloc(50);
+    char* contig = malloc(50); contig[0] = '\0';
     int contigLength = 0;
-    char* preContig = malloc(50);
+    char* preContig = malloc(50); preContig[0] = '\0';
     int blockStart=0;
     int start=0, end=0, cov=0;
-    int wnd_idx = 0;
-    Window* wnd = stList_get(windows, wnd_idx);
-    printf("%s\t%d\t%d\n", wnd->contigName, wnd->start, wnd->end);
-    sprintf(outputPath, "%s.%s_%d_%d.cov", prefix, wnd->contigName, wnd->start, wnd->end);
-    fo = fopen(outputPath, "w");
+    int remainingWindowLen = 0;
+    int remainingContigLen = 0;
+    int windowIdx = 0;
+    int nWindows;
+    int fileStart;
+    int* effContigLenPtr;
+    int effContigLen;
+    int sum=0;
+    fprintf(stderr, "iterating over cov blocks\n");
     while (readNextBlock(fp, &contig, &contigLength, &start, &end, &cov) == 1) {
-	    if ((strcmp(preContig, contig) != 0)) fprintf(fo, ">%s %d\n", contig, contigLength);
-	    fprintf(fo, "%d\t%d\t%d\n", max(start, wnd->start), min(wnd->end, end), cov);
-	    while (wnd && strcmp(wnd->contigName, contig) == 0 && wnd->end <= end) {
-			    wnd_idx++;
-			    if (wnd_idx < stList_length(windows)) {
-			    	wnd = stList_get(windows, wnd_idx);
+	    if ((strcmp(preContig, contig) != 0) || contig[0] == '\0'){
+		    fprintf(stderr, "contig changed\n");
+		    // open the first cov file for the current contig
+		    // tmp.cov will be renamed to ${ctg}_${start}_${end}.cov once finished and closed
+		    fo = fopen("tmp.cov", "w");
+		    // write the header of the current contig
+		    fprintf(fo, ">%s %d\n", contig, contigLength);
+		    // get the effective total length of the current contig
+		    effContigLenPtr = stHash_search(contigLenTable, contig);
+		    fprintf(stderr, "contig len fetched\n");
+		    if(effContigLenPtr == NULL) fprintf(stderr, "%s, NULL\n",contig);
+                    effContigLen = *effContigLenPtr;
+		    remainingContigLen = effContigLen;
+		    nWindows = (int) ((double) effContigLen / windowLen);
+		    nWindows = nWindows == 0 ? 1 : nWindows;
+		    fprintf(stderr, "contig len =%d, nwindows = %d\n", effContigLen, nWindows);
+		    windowIdx = 0;
+		    remainingWindowLen = (nWindows == 1) ? remainingContigLen : windowLen;
+		    fileStart = start;
+		    sum =0;
+	    }
+	    int blockLen = end - start + 1;
+
+	    if (blockLen < remainingWindowLen){
+		    remainingWindowLen -= blockLen;
+		    remainingContigLen -= blockLen;
+		    sum += blockLen;
+		    //fprintf(stderr, "%d\n", remainingContigLen);
+		    fprintf(fo, "%d\t%d\t%d\n", start, end, cov);
+	    }
+	    // Note that the length of the last block of contig should be equal to remainingWindowLen
+	    else if(remainingWindowLen <= blockLen){
+		    // save last block in the currect cov file and close the currect cov file
+		    fprintf(fo, "%d\t%d\t%d\n", start, start + remainingWindowLen - 1, cov);
+		    fflush(fo);
+                    fclose(fo);
+		    // rename the saved cov file since we now know the end location
+		    sprintf(outputPath, "%s.%s_%d_%d.cov", prefix, contig, fileStart, start + remainingWindowLen - 1);
+		    printf("%s\t%d\t%d\n", contig, fileStart, start + remainingWindowLen - 1);
+		    fprintf(stderr, "window finished, %s_%d_%d\n", contig, fileStart, start + remainingWindowLen - 1);
+		    fprintf(stderr, "sum=%d,remainingContigLen = %d, remainingWindowLen= %d\n", sum, remainingContigLen, remainingWindowLen);
+		    rename("tmp.cov", outputPath);
+		    // if we have more blocks for the current contig, open a new tmp cov file
+		    if (remainingWindowLen < remainingContigLen){
+			    fo = fopen("tmp.cov", "w");
+			    fileStart = start + remainingWindowLen;
+			    fprintf(fo, ">%s %d\n", contig, contigLength);
+			    fprintf(fo, "%d\t%d\t%d\n", start + remainingWindowLen, end, cov);
+			    windowIdx += 1;
+			    if (windowIdx < nWindows - 1){
+				    remainingWindowLen = windowLen;
 			    }
-			    else {
-				    wnd = NULL;
-				    break;
+			    else{ // windowIdx == nWindows - 1 (last window of the current contig)
+				    remainingWindowLen = remainingContigLen - blockLen;
 			    }
-			    printf("%s\t%d\t%d\n", wnd->contigName, wnd->start, wnd->end);
-			    fflush(fo);
-			    fclose(fo);
-			    sprintf(outputPath, "%s.%s_%d_%d.cov", prefix, wnd->contigName, wnd->start, wnd->end);
-			    fo = fopen(outputPath, "w");
-			    if (strcmp(wnd->contigName, contig) == 0) fprintf(fo, ">%s %d\n", contig, contigLength);
-			    if (strcmp(wnd->contigName, contig) == 0 && wnd->start <= end){
-				    fprintf(fo, "%d\t%d\t%d\n", max(start, wnd->start), min(wnd->end, end), cov);
-			    }
+			    remainingContigLen -= blockLen;
+		    }
 	    }
 	    strcpy(preContig, contig);
     }
-    fflush(fo);
-    fclose(fo);
+    // close the given coverage file
     fclose(fp);
 }
 
 int main(int argc, char *argv[]) {
    int c;
-   int windowSize=5e6;
-   char* faiPath;
+   int windowLen=5e6;
+   char* contigLenPath;
    char* covPath;
    char* prefix;
    char *program;
@@ -171,25 +177,28 @@ int main(int argc, char *argv[]) {
                                 prefix = optarg;
                                 break;
 			case 'f':
-                                faiPath = optarg;
+                                contigLenPath = optarg;
                                 break;
 			case 's':
-                                windowSize = atoi(optarg);
+                                windowLen = atoi(optarg);
                                 break;
 			default:
 				if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
 help:	
-				fprintf(stderr, "\nUsage: %s  -f <FAI_FILE> -c <COVERAGE> -p <PREFIX> -s <SEGMENT_SIZE> \n", program);
+				fprintf(stderr, "\nUsage: %s  -f <CTG_LEN_FILE> -c <COVERAGE> -p <PREFIX> -s <WINDOW_LENGTH> \n", program);
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -c         coverage file\n");
-				fprintf(stderr, "         -f         fai file\n");
+				fprintf(stderr, "         -f         a 2-column tab-delimited file (1st: contig name, 2st: effective contig length)\n");
 				fprintf(stderr, "         -p         prefix for the output cov files\n");
 				fprintf(stderr, "         -s         window size[default : 5Mb]\n");
 				return 1;	
 		}		
    }
-   stList* windows = getWindows(faiPath, windowSize);
-   splitCov(covPath, prefix, windows);
-   stList_destruct(windows);
+   fprintf(stderr, "reading contig lens\n");
+   stHash* contigLenTable = getEffectiveContigLens(contigLenPath);
+   fprintf(stderr, "splitting cov\n");
+   splitCov(covPath, prefix, contigLenTable, windowLen);
+   fprintf(stderr, "desctructing contig table\n");
+   stHash_destruct(contigLenTable);
    return 0;
 }

@@ -168,6 +168,8 @@ def findProjections(mode, cigarList, forwardBlocks,
     if blocks[blockIdx][0] < nextOpStartContig:
         projectionStartPos = nextOpStartRef
         projectableStartPos = nextOpStartContig
+
+    diff = 0
     #print(cigarList)
     # iterate over cigar elements and find the projections
     for cigarOp, cigarSize in cigarList:
@@ -194,24 +196,32 @@ def findProjections(mode, cigarList, forwardBlocks,
             #   operations : -----------[            *M          ][        I      ][      M   ]-----
             #   blocks :     ----------------------------------------[       Block      ]-----------
             #
+            if cigarOp == 'X' and blocks[blockIdx][0] < currOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
+                diff += cigarSize
             while (blockIdx < len(blocks)) and (blocks[blockIdx][1] < nextOpStartContig):
                 if currOpStartContig <= blocks[blockIdx][0]:
                     projectionStartPos = currOpStartRef + blocks[blockIdx][0] - currOpStartContig
                     projectableStartPos = blocks[blockIdx][0]
                 projectionEndPos = currOpStartRef + blocks[blockIdx][1] - currOpStartContig
                 projectableEndPos = blocks[blockIdx][1]
+                if cigarOp == 'X':
+                    diff += min(blocks[blockIdx][1], nextOpStartContig - 1) - max(blocks[blockIdx][0], currOpStartContig) + 1
                 info = blocks[blockIdx][2]
-                projectionBlocks.append((projectionStartPos, projectionEndPos, info))
+                r = diff/ (projectionEndPos - projectionStartPos + 1) * 100
+                projectionBlocks.append((projectionStartPos, projectionEndPos, info, r))
                 if orientation == '+':
-                    projectableBlocks.append((projectableStartPos, projectableEndPos, info))
+                    projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
                 else:
                     reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
-                    projectableBlocks.append((reversedInterval[0], reversedInterval[1], info))
+                    projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
+                diff = 0
                 blockIdx += 1
             if blockIdx >= len(blocks):
                 break
             # In case of the 2nd scenario, the projection start position should be updated
             if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig):
+                if cigarOp == 'X':
+                    diff += min(blocks[blockIdx][1], nextOpStartContig - 1) - max(blocks[blockIdx][0], currOpStartContig) + 1
                 projectionStartPos = currOpStartRef + blocks[blockIdx][0] - currOpStartContig
                 projectableStartPos = blocks[blockIdx][0]
         # Case 2: Insertion
@@ -220,6 +230,9 @@ def findProjections(mode, cigarList, forwardBlocks,
             nextOpStartContig = currOpStartContig + cigarSize
             # For insertion there is no need to shift the reference
             currOpStartRef = nextOpStartRef
+            # if cigar interval is completely within block with the last base not ending
+            if blocks[blockIdx][0] < currOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
+                diff += cigarSize
             # The beginning and endings of the blocks are excluded from the projection if they are insertions
             # So I trim the blocks to make their projections start and end in match/mismatch
             while (blockIdx < len(blocks)) and (blocks[blockIdx][1] < nextOpStartContig):
@@ -232,13 +245,16 @@ def findProjections(mode, cigarList, forwardBlocks,
                 # Note that one base before the insertion is absolutely an M
                 projectionEndPos = currOpStartRef - 1
                 projectableEndPos = currOpStartContig - 1
+                diff += min(blocks[blockIdx][1], nextOpStartContig - 1) - max(blocks[blockIdx][0], currOpStartContig) + 1
                 info = blocks[blockIdx][2]
-                projectionBlocks.append((projectionStartPos, projectionEndPos, info))
+                r = diff/ (projectionEndPos - projectionStartPos + 1) * 100
+                projectionBlocks.append((projectionStartPos, projectionEndPos, info, r))
                 if orientation == '+':
-                    projectableBlocks.append((projectableStartPos, projectableEndPos, info))
+                    projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
                 else:
                     reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
-                    projectableBlocks.append((reversedInterval[0], reversedInterval[1], info))
+                    projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
+                diff = 0
                 blockIdx += 1
             if blockIdx >= len(blocks):
                 break
@@ -246,10 +262,13 @@ def findProjections(mode, cigarList, forwardBlocks,
             # the initial inserted part is not projectable onto the reference so we start 
             # from the next operation (which should be an M)
             if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig):
+                diff += min(blocks[blockIdx][1], nextOpStartContig - 1) - max(blocks[blockIdx][0], currOpStartContig) + 1
                 projectionStartPos = currOpStartRef
                 projectableStartPos = nextOpStartContig
         # Case 3: Deletion
         elif cigarOp == 'D':
+            if blocks[blockIdx][0] <= nextOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
+                diff += cigarSize
             nextOpStartRef += cigarSize
     # Note that nextOpStart(Contig | Ref) are not pointing to any cigar operation at this moment
     # since iterating over the cigar elements has finished. Those variables are now pointing to one base
@@ -259,12 +278,13 @@ def findProjections(mode, cigarList, forwardBlocks,
         projectionEndPos = nextOpStartRef - 1
         projectableEndPos = nextOpStartContig - 1
         info = blocks[blockIdx][2]
-        projectionBlocks.append((projectionStartPos, projectionEndPos, info))
+        r = diff/ (projectionEndPos - projectionStartPos + 1) * 100
+        projectionBlocks.append((projectionStartPos, projectionEndPos, info, r))
         if orientation == '+':
-            projectableBlocks.append((projectableStartPos, projectableEndPos, info))
+            projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
         else:
             reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
-            projectableBlocks.append((reversedInterval[0], reversedInterval[1], info))
+            projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
     return projectableBlocks, projectionBlocks
                 
 
