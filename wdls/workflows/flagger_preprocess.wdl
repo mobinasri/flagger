@@ -12,11 +12,11 @@ workflow runFlaggerPreprocess{
         File assemblyFastaGz
         File? phasingLogText
         Int minReadLength = 5000
-        Int minAlignmentLength = 2000
-        Float maxDivergence = 0.12
+        Int minAlignmentLength = 5000
+        Float maxDivergence = 0.02 # For ONT guppy 6 -> 0.09
         String deepVariantModelType = "PACBIO"
         String pepperModelType = "ont_r9_guppy5_sup"
-        String variantCaller = "dv"
+        String variantCaller = "dv" # for ONT pmdv
     }
     
     ## Correct the bam file by swapping pri/sec tags for the wrongly phased reads

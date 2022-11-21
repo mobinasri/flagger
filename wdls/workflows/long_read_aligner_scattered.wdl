@@ -9,7 +9,13 @@ import "../tasks/alignment/calmd.wdl" as calmd_t
 
 workflow longReadAlignmentScattered {
     input {
+        # aligner:
+        #     Can be either minimap2, winnowmap and veritymap
         String aligner="winnowmap"
+        # preset:
+        #     For winnowmap-v2.03 -> map-pb/map-ont/asm5/asm10
+        #     For minimap2-v2.24 -> map-pb/map-hifi/map-ont/asm5/asm10
+        #     For veritymap v2.1.2-alpha -> hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete
         String preset
         String sampleName
         String sampleSuffix
@@ -17,6 +23,15 @@ workflow longReadAlignmentScattered {
         Int splitNumber = 16
         File assembly
         File? referenceFasta
+        # options:
+        #     For winnowmap/minimap2 recommended "--eqx --cs -Y -L" (if diploid assembly "-I8g")
+        #     For veritymap "--careful" can be used but not recommended for whole-genome assembly
+        #     Only winnowmap/minimap2 supports methylation tags in reads (parameter should contain "-TMl,Mm")
+        String options=""
+        # fastqOptions:
+        #     For reads with methylation "-y"
+        String fastqOptions=""
+        Int kmerSize = 15
         Int preemptible=2
         Int extractReadsDiskSize=512
         String zones="us-west2-a"
@@ -27,13 +42,15 @@ workflow longReadAlignmentScattered {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
+                fastqOptions = fastqOptions,
                 memSizeGB=4,
                 threadCount=4,
                 diskSizeGB=extractReadsDiskSize,
-                dockerImage="tpesout/hpp_base:latest"
+                dockerImage="mobinasri/bio_base:v0.2"
         }
     }
-    call arithmetic_t.sum as readSize {
+    
+   call arithmetic_t.sum as readSize {
         input:
             integers=extractReads.fileSizeGB
     }
@@ -45,7 +62,8 @@ workflow longReadAlignmentScattered {
             diskSize = floor(readSize.value * 2.5)
     }
    
-    scatter (readFastqAndSize in zip(readSetSplitter.splitReadFastqs, readSetSplitter.readSizes)) {
+    
+   scatter (readFastqAndSize in zip(readSetSplitter.splitReadFastqs, readSetSplitter.readSizes)) {
          ## align reads to the assembly
          call longReadAligner_t.alignmentBam as alignment{
              input:
@@ -53,15 +71,19 @@ workflow longReadAlignmentScattered {
                  preset = preset,
                  refAssembly=assembly,
                  readFastq_or_queryAssembly = readFastqAndSize.left,
-                 diskSize = 8 + floor(readFastqAndSize.right) * 6,
+                 diskSize = 32 + floor(readFastqAndSize.right) * 6,
                  preemptible = preemptible,
-                 zones = zones
-        }
+                 zones = zones,
+                 options = options,
+                 kmerSize = kmerSize
+         }
     }
+
     call arithmetic_t.sum as bamSize {
         input:
-            integers=alignment.fileSizeGB
+            integers = alignment.fileSizeGB
     }
+    
 
     ## merge the bam files
     call mergeBams_t.merge as mergeBams{
@@ -70,7 +92,7 @@ workflow longReadAlignmentScattered {
             sampleSuffix = sampleSuffix,
             sortedBamFiles = alignment.sortedBamFile,
             # runtime configurations
-            diskSize = floor(bamSize.value * 2.5),
+            diskSize = floor(bamSize.value * 2.5) + 32,
             preemptible = preemptible,
             zones = zones
     }
@@ -80,7 +102,7 @@ workflow longReadAlignmentScattered {
         input:
             bamFile = mergeBams.mergedBam,
             assemblyFastaGz = assembly,
-            diskSize = floor(bamSize.value * 2.5),
+            diskSize = floor(bamSize.value * 2.5) + 32,
             preemptible = preemptible,
             zones = zones
     }

@@ -93,7 +93,6 @@ task deepVariant{
         --reads=${BAM_PREFIX}.bam \
         --output_vcf=${BAM_PREFIX}.vcf \
         --make_examples_extra_args=${MAKE_EXAMPLES_EXTRA_ARGS} \
-        --call_variants_extra_args="use_openvino=true" \
         --num_shards=$(nproc) \
         --dry_run=false ${MORE_OPTIONS}
 

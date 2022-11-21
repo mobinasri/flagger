@@ -33,7 +33,7 @@ task Iris{
         IrisOut: "Name of the output directory to store output VCF file produced. If not provided, default value will be used."
     }
     
-    String vcfOut = "~{SampleName}_Iris.vcf"
+    String vcfOut = "~{SampleName}_iris.vcf"
     
     command <<<
         # exit when a command fails, fail with unset variables, print commands before execution
@@ -45,7 +45,7 @@ task Iris{
 
     >>>
     output{
-        File vcfOut = glob("*.iris.vcf")[0]
+        File vcfOut = glob("*iris.vcf")[0]
     }
     runtime{
         memory: memSizeGB + " GB"

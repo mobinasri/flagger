@@ -53,6 +53,7 @@ ENV PATH="$PATH:/home/programs/bin"
 ENV CALC_MEAN_SD_PY=/home/programs/src/calc_mean_sd.py
 ENV FIT_MODEL_PY=/home/programs/src/fit_model.py
 ENV PROJECT_BLOCKS_PY=/home/programs/src/project_blocks.py
+ENV PROJECT_BLOCKS_MULTI_THREADED_PY=/home/programs/src/project_blocks_multi_thread.py
 ENV FIT_GMM_PY=/home/programs/src/fit_gmm.py
 ENV PDF_GENERATOR_PY=/home/programs/src/pdf_generator.py
 ENV SPLIT_BED_CONTIG_WISE_PY=/home/programs/src/split_bed_contig_wise.py

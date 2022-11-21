@@ -87,7 +87,7 @@ workflow snv_indel_assembly {
         File pepperMarginDeepVariantVCFIdx  = pmdv_t.vcfIdxOut
         File pepperMarginDeepVariantHTML    = pmdv_t.visualReport
 
-        File DeepVariantVCF = filt_1.vcfOut
+        File filtDeepVarVCF = filt_1.vcfOut
         File filtPmdvVCF    = filt_2.vcfOut
 
         File hapDotPyVCF    = happy_t.vcfOut

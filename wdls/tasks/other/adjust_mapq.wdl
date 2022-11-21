@@ -95,7 +95,7 @@ task getLowMapq {
         Int memSize=4
         Int threadCount=2
         Int diskSize=512
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
     command <<<

@@ -9,49 +9,62 @@ import "../tasks/mixture_model/find_blocks_by_window.wdl" as find_blocks_by_wind
 import "../tasks/mixture_model/pdf_generator.wdl" as pdf_generator_t
 import "../tasks/other/bedtools.wdl" as bedtools_t
 import "../tasks/mixture_model/fit_model_bed.wdl" as fit_model_bed_t
+import "../tasks/coverage/bam_coverage.wdl" as bam_coverage_t
 
 workflow runFlagger{
     input {
-        File hsatBedsTsv
+        # biasedRegionBedArray:
+        #     An array of bed files pointing to regions prone to have
+        #     systematic coverage bias
+        # biasedRegionNameArray:
+        #     An array of names associated with the given array of bed 
+        #     files (e.g. ["hifi_low_bias", "hifi_high_bias"])
+        # biasedRegionFactorArray:
+        #     An array of coverage factors to adjust the expected coverage
+        #     for the given bed files (e.g. [0.75, 1.25])
+        #     Each factor will be used to be multiplied by covFloat and
+        #     obtain the expected coverage
+        Array[File] biasedRegionBedArray 
+        Array[String] biasedRegionNameArray
+        Array[Float] biasedRegionFactorArray
         File coverageGz
         File highMapqCoverageGz
         File fai
-        Float covFloat
-        Boolean isDiploid
+        Float covFloat # the coverage with the highest frequency (most of the time same as mean coverage)
+        Boolean isDiploid # This is only used for pdf generation and separating the pages for each haplotype
+        Int cov2countsDiskSizeGB = 128
     }
-    ## Each element in hsatBedsArray is an array itself;
-    ## [BED URL, Coverage Factor, Suffix Name]
-    Array[Array[String]] hsatBedsArray = read_tsv(hsatBedsTsv)
-    scatter (hsatBed in hsatBedsArray){
+    scatter (biasedRegionData in zip(biasedRegionBedArray, zip(biasedRegionNameArray, biasedRegionFactorArray))){
+        File biasedRegionBed = biasedRegionData.left
+        String biasedRegionName = biasedRegionData.right.left
+        Float biasedRegionFactor = biasedRegionData.right.right
         call bedtools_t.merge {
             input:
-                bed = hsatBed[0],
+                bed = biasedRegionBed,
                 margin = 50000,
-                outputPrefix = basename(hsatBed[0], ".bed")
+                outputPrefix = basename(biasedRegionBed, ".bed")
         }
-        call String2Float as biasFactor{
-            input:
-                str = hsatBed[1]
-        }
-        call fit_model_bed_t.runFitModelBed as hsatModels {
+        call fit_model_bed_t.runFitModelBed as biasedRegionModels {
             input:
                 bed = merge.mergedBed,
-                suffix = hsatBed[2],
+                suffix = biasedRegionName,
                 coverageGz = coverageGz,
-                covFloat = covFloat * biasFactor.number
+                covFloat = covFloat * biasedRegionFactor
          }
     }
     call mergeHsatBeds {
         input:
-            bedsTarGzArray = hsatModels.bedsTarGz
+            bedsTarGzArray = biasedRegionModels.bedsTarGz
     }
     call cov2counts_t.cov2counts {
         input:
-            coverageGz = coverageGz 
+            coverageGz = coverageGz,
+            diskSize = cov2countsDiskSizeGB
     }
     call fit_model_t.fitModel {
         input:
-            counts = cov2counts.counts
+            counts = cov2counts.counts,
+            cov = covFloat
     }
     call find_blocks_t.findBlocks {
         input:
@@ -61,12 +74,15 @@ workflow runFlagger{
     call cov2counts_by_window_t.cov2countsByWindow {
         input:
             coverageGz = coverageGz,
-            fai = fai
+            excludeBedArray = biasedRegionBedArray,
+            fai = fai,
+            diskSize = cov2countsDiskSizeGB
     }
     call fit_model_by_window_t.fitModelByWindow {
         input:
             windowsText = cov2countsByWindow.windowsText,
-            countsTarGz = cov2countsByWindow.windowCountsTarGz 
+            countsTarGz = cov2countsByWindow.windowCountsTarGz,
+            cov = covFloat 
     }
     call find_blocks_by_window_t.findBlocksByWindow {
         input:
@@ -90,7 +106,7 @@ workflow runFlagger{
     }
     call combineBeds as combineHsatBased{
        input:
-            outputPrefix = "hsat_corrected",
+            outputPrefix = "bias_corrected",
             firstPrefix = "window_corrected",
             secondPrefix = "hsat_based",
             firstBedsTarGz = combineWindowBased.combinedBedsTarGz,
@@ -101,7 +117,7 @@ workflow runFlagger{
             covGz = coverageGz,
             highMapqCovGz = highMapqCoverageGz,
             bedsTarGz = combineHsatBased.combinedBedsTarGz,
-            prefix="hsat_corrected"
+            prefix="bias_corrected"
     }
     call filterBeds {
         input:
@@ -139,7 +155,7 @@ task String2Float {
         echo ~{str} > file.txt
     >>>
     runtime {
-        docker: "mobinasri/flagger:v0.1"
+        docker: "mobinasri/flagger:v0.2"
         memory: "1 GB"
         cpu: 1
         disks: "local-disk 1 SSD"
@@ -159,7 +175,7 @@ task combineBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
     command <<<
@@ -217,7 +233,7 @@ task dupCorrectBeds {
         Int memSize=16
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
 
@@ -291,7 +307,7 @@ task filterBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
 
@@ -364,7 +380,7 @@ task mergeHsatBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
     command <<<
@@ -418,7 +434,7 @@ task getFinalBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
     command <<<
