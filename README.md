@@ -91,7 +91,7 @@ By having the biallelic snps it is possible to find the alignments with alternat
 docker run \
  -v ${INPUT_DIR}:/input \
  -v ${OUTPUT_DIR}:/output \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  filter_alt_reads \
  -i "/input/${INPUT_BAM}" \
  -o "/output/${ALT_FILTERED_BAM}"
@@ -116,13 +116,13 @@ Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using
 Recommended values for the parameters of flagger_preprocess.wdl:
 |Parameter| Value|
 |:--------|:-----|
-|runFlaggerPreprocess.maxDivergence | 0.12 for ONT-guppy4 and 0.01 for HiFi|
+|runFlaggerPreprocess.maxDivergence | 0.09 for ONT-guppy5/6 and 0.02 for HiFi|
 |runFlaggerPreprocess.variantCaller | "pmdv" for ONT and "dv" for HiFi|
 |runFlaggerPreprocess.deepVariantModelType | Should be set based on the latest version of deepvariant ("PACBIO" for v1.3.0)|
 |runFlaggerPreprocess.pepperModelType | Should be set based on the ONT guppy version  (read https://github.com/kishwarshafin/pepper) "--ont_r9_guppy5_sup" for R9-guppy5 |
 |runFlaggerPreprocess.phasingLogText | The output log of secphase.wdl (optional)|
 |filterAltReads.moreOptions | "-m 1000 -r 0.4" |
-|filterAltReads.qCutoff | ~37 for ONT-guppy4 and ~10 for HiFi|
+|filterAltReads.qCutoff | ~10 for ONT-guppy5/6 and ~10 for HiFi|
 |filterAltReads.vafCutoff | 0.3|
 
 ### Components
@@ -150,6 +150,6 @@ https://github.com/human-pangenomics/HPP_Year1_Assemblies
 
 We have used the Genbank version of the HPRC-Y1 assemblies.
 
-The results are available in 
+The v0.1 results are available in 
 https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=submissions/e9ad8022-1b30-11ec-ab04-0a13c5208311--COVERAGE_ANALYSIS_Y1_GENBANK/FLAGGER/
 
