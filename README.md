@@ -7,12 +7,14 @@ Here is a description of a read-based pipeline that can detect different types o
 This evaluation has 5 steps:
 - Align long reads to the diploid assembly
 - Phase and relocalize the reads with secondary alignments using [secphase](https://github.com/mobinasri/secphase) (Optional)
-- Call and filter variants
-- Use biallelic SNVs to remove the alignments with alternative alleles
-- Run Flagger using the alignments with no alternative alleles
+- Call and filter variants (Optional)
+- Use biallelic SNVs to remove the alignments with alternative alleles (Optional)
+- Run Flagger in two modes
+  - Using all alignments
+  - Using the alignments with no alternative alleles (recommended only when base-level accuracy is concerned)
 
 ### 1. Align long reads
-The ONT and HiFi reads can be aligned to a dual assembly (~ 6Gbases long in human) with a long read aligner like winnowmap. Since the assembly is dual the expected base-level coverage should be half of the sequencing coverage.
+The ONT and HiFi reads can be aligned to a dual/diploid assembly (~ 6Gbases long in human) with a long read aligner like winnowmap and minimap2. Since the assembly is dual/diploid the expected base-level coverage should be half of the sequencing coverage.
 Here are the commands for producing the alignments (taken from the [winnowmap docs](https://github.com/marbl/Winnowmap)):
 ```` 
   # making the k-mer table with meryl
@@ -25,21 +27,21 @@ Here are the commands for producing the alignments (taken from the [winnowmap do
 ````
 Any other appropriate long read aligner can also be employed in this step.
 
-### 2. Relocalize wrongly phased reads
+### 2. Relocalize wrongly phased reads (Optional)
 In this step we use Secphase to phase and relocalize the reads with multiple alignments. To be more precise all the secondary and primary
 alignments of the same read are scored based on marker consistency and 
 the alignment with the highest score is selected as the primary alignment. The output of this section is 
 a corrected version of the input bam file, in which the primary and secondary alignments are swapped 
-whenever neccessary. Secphase can work0 only if the secondary alignments are available with the full sequence and base quality array.
+whenever neccessary. Secphase can work only if the secondary alignments are available with the full sequence and base quality array.
 
 More information about Secphase is available [here](https://github.com/mobinasri/secphase)
 
-### 3. Call and filter variants 
+### 3. Call and filter variants (Optional)
 By calling variants it is possible to detect the regions that need polishing or the regions with alignments from the wrong haplotype. It is recommeneded to use [Deepvariant](https://github.com/google/deepvariant) for calling variants from HiFi alignments and [Pepper-Margin-Deepvariant](https://github.com/kishwarshafin/pepper) for ONT. 
 ````
 ## For HiFi
 ## Taken from deepvariant doc
-BIN_VERSION="1.3.0"
+BIN_VERSION="1.4.0"
 docker run \
   -v ${INPUT_DIR}:/input \
   -v ${OUTPUT_DIR}:/output \
@@ -50,7 +52,7 @@ docker run \
   --reads="/input/${INPUT_BAM}" \
   --output_vcf="/output/${OUTPUT_VCF}" \
   --make_examples_extra_args="keep_supplementary_alignments=true,min_mapping_quality=0" \
-  --call_variants_extra_args="use_openvino=true" \
+  --call_variants_extra_args="use_openvino=false" \
   --num_shards=$(nproc) \
   --dry_run=false 
   
@@ -83,7 +85,7 @@ The called variants are then filtered to include only the biallelic snps with hi
 bcftools view -Ov -f PASS -m2 -M2 -v snps -e 'FORMAT/VAF<~{vafCutoff} | FORMAT/GQ<~{qCutoff}' ${OUTPUT_VCF} > ${SNPS_VCF}
 ````
 
-### 4. Remove the alignments with alternative alleles
+### 4. Remove the alignments with alternative alleles (Optional)
 By having the biallelic snps it is possible to find the alignments with alternative alleles, remove them from the bam file.
 `filter_alt_reads` is a program that can be used for this aim.
 ```
@@ -105,7 +107,7 @@ docker run \
 For each alignment `filter_alt_reads` iterates over the CIGAR string and clusters the snps closer than the number given to the `-m` parameter. That alignment will be removed if it encompasses a snp cluster in which more than `-r` ratio of the snps have alternative alleles. 
 `${ALT_FILTERED_BAM}` is the cleaned bam file and `${ALT_BAM}` includes the removed alignments.
 
-### 5. Run Flagger on the alignments with no alternative allele
+### 5. Run Flagger on the alignments with no alternative allele (Optional)
 `${ALT_FILTERED_BAM}` is then used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
 erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
 
