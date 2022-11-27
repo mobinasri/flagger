@@ -51,8 +51,8 @@ workflow runPepperMarginDeepVariantScattered{
                 includeSupplementary = includeSupplementary,
                 minMAPQ = minMAPQ,
                 threadCount = nodeThreadCount,
-                memSize = 16,
-                diskSize= 2 * ceil(size(part.left, "GB")) + 64,
+                memSize = 32,
+                diskSize= 2 * ceil(size(part.left, "GB")) + 128,
                 dockerImage = dockerImage
         }
     }
