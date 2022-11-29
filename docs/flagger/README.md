@@ -77,7 +77,7 @@ The output file with `.counts` suffix is a 2-column tab-delimited file; the firs
 those coverages. Using `.counts` files we can produce distribution plots easily. For example below we are showing the coverage distribution for HG00438 diploid assembly.
 <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/HG00438_dip_hifi_cov_dist.png" width="700" height="275">
 
-The python script `model_extra.py` is able to take a file `.counts` suffix and fit a mixture model and find the best parameters through 
+The python script `fit_gmm.py` is able to take a file `.counts` suffix and fit a mixture model and find the best parameters through 
 [Expectation Maximization (EM)](https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm). This mixture model
 consists of 4 main components and each component represents a specific type of regions.
 
@@ -177,12 +177,69 @@ ${prefix}.collapsed.bed
 It has been noticed that the results of the previous steps need corrections. In the neccessary steps below 3 main issues are explained and 
 their solutions are also provided. The output of each correction step is used as an input for the next one.
 
-### 1. Window-Specific Models
+### 1. Incorporating HSATs Coverage Bias
+
+As it was mentioned in the 2nd step of the pipeline, there are some HSats in the genome where the HiFi or ONT coverage is systematically increased or decreased.
+Such platform-specific biases mislead the pipeline. For example the HiFi coverage of Hsat2 in chr1 is about 1.5 times larger than the average sequencing coverage and it is very probable to wrongly flag this region as collapsed.
+
+In the figure below the read bars are showing the coverage of the HiFi alignments to the chm13v1.0.
+
+   <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/chm13v1.1_hifi_hsat2_chr1.png" width="700" height="150">
+To incorporate such coverage biases and correct the results in the corresponding regions, the steps below are neccessary:
+
+ 1. Align the diploid assembly to an (HSat-)annotated reference like chm13v1.1
+ 2. Find the assembly blocks aligned to the HSat of interest. To do so we need a bed file pointing to the HSat in the reference then we can run the script `project_blocks_multi_thread.py` to project it back to the assembly.
+ 3. Make a separate coverage file that covers the HSat blocks
+ 4. Run the pipeline again for the HSat-specific coverage file and obtain the 4 bed files
+ 5. Correct the `combined` bed files (output of the previous correction step) using the HSat-specific bed files
+ 
+````
+## ${ASM2REF}.bam is a bam file containing the assembly-to-ref alignments
+## First convert bam to paf since project_blocks_multi_thread.py works with paf
+k8 paftools.js sam2paf <(samtools view -h -F4 -F256 ) ${ASM2REF}.bam > ${ASM2REF}.paf
+
+## Given the paf file extract the HSat regions in the assembly 
+## and save them in ${HSAT_PROJECTION}.bed
+docker run \
+ -v ${INPUT_DIR}:${INPUT_DIR} \
+ -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
+ mobinasri/flagger:v0.2 \
+ python3 /home/programs/src/project_blocks_multi_thread.py 
+ --threads 8
+ --mode 'ref2asm' \
+ --paf ${INPUT_DIR}/${ASM2REF}.paf \
+ --blocks ${HSAT}.bed \
+ --outputProjectable ${OUTPUT_DIR}/${PROJECTABLE}.bed \
+ --outputProjection ${OUTPUT_DIR}/${HSAT_PROJECTION}.bed
+
+## Sort and merge ${PROJECTION}.bed  
+bedtools sort -i  ${OUTPUT_DIR}/${HSAT_PROJECTION}.bed | bedtools merge -i - > ${OUTPUT_DIR}/${HSAT_PROJECTION}.merged.bed
+
+## Given the HSat blocks in the assembly, ${HSAT_PROJECTION}.merged.bed
+## and the whole genome coverage file, ${COVERAGE}.cov.gz
+## make a smaller coverage file covering only the HSat blocks
+zcat ${COVERAGE}.cov.gz | \
+            awk '{if(substr($1,1,1) == ">") {contig=substr($1,2,40); len_contig=$2} else {print contig"\t"$1-1"\t"$2"\t"$3"\t"len_contig}}' | \
+            bedtools intersect -a - -b ${HSAT_PROJECTION}.merged.bed | \
+            awk '{if(contig != $1){contig=$1; print ">"contig" "$5}; print $2+1"\t"$3"\t"$4}' | pigz -p4 > ${HSAT_COVERAGE}.cov.gz
+````
+`${HSAT_COVERAGE}.cov.gz` should be used as for the 2nd and 3rd steps of the pipeline. Please note that while calling `fit_model_extra.py` the parameter
+`--coverage` (The starting point of the fitting process) should be adjusted based on the expected coverage in the corresponding HSat.
+
+The process should be repeated for each HSat of interest that has a known covarage bias. For example for HiFi data it is recommended to do it for each of HSat1, HSat2 and Hsat3 and adjust `--coverage` as a function of the average sequencing coverage `${AVG_COVERAGE}`.
+
+ - HSat1 -> `--coverage  0.75 * ${AVG_COVERAGE}`
+ - HSat2 -> `--coverage  1.25 * ${AVG_COVERAGE}`
+ - HSat3 -> `--coverage  1.25 * ${AVG_COVERAGE}`
+
+The HSat corrected bed files are available in the `hsat_corrected` subdirectory.(More info in the [results section](https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/docs/coverage#results-availability))
+
+### 2. Window-Specific Models
 
 In step 3 a single model is fit for the whole diploid assembly. In step 4 that model is used to partition the assembly into 4 main components. It is noticed that the model components may change for different regions and it may affect the accuracy of the partitioning process. In order to make the coverage thresholds more sensitive to the local patterns the diploid assembly is split into windows of length (5-10Mb). For each window a separate model  should be fit. To do so first we split the whole-genome coverage file produced in step 3 into multiple coverage files one for each window.
 ```
 
-## First we make a cov file excluding the regions that have may have coverage biases (Read the following step 2)
+## First we make a cov file excluding the regions that have may have coverage biases (Read the following correction step)
 cat asm.fa.fai | awk '{print $1"\t0\t"$2}' | sort -k1,1V -k2,2n > asm.bed
 ## exclude.bed contains all regions that have may have coverage biases
 bedtools subtract -a asm.bed -b exclude.bed > asm.no_bias.bed
@@ -233,63 +290,6 @@ One important observation is that for short contigs we don't have a smooth cover
 The combined bed files are available in the `combined` subdirectory.(More info in the [results section](https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/docs/coverage#results-availability))
 
 
-### 2. Incorporating HSATs Coverage Bias
-
-As it was mentioned in the 2nd step of the pipeline, there are some HSats in the genome where the HiFi or ONT coverage is systematically increased or decreased.
-Such platform-specific biases mislead the pipeline. For example the HiFi coverage of Hsat2 in chr1 is about 1.5 times larger than the average sequencing coverage and it is very probable to wrongly flag this region as collapsed.
-
-In the figure below the read bars are showing the coverage of the HiFi alignments to the chm13v1.0.
-
-   <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/chm13v1.1_hifi_hsat2_chr1.png" width="700" height="150">
-To incorporate such coverage biases and correct the results in the corresponding regions, the steps below are neccessary:
-
- 1. Align the diploid assembly to an (HSat-)annotated reference like chm13v1.1
- 2. Find the assembly blocks aligned to the HSat of interest. To do so we need a bed file pointing to the HSat in the reference then we can run the script `project_blocks.py` to project it back to the assembly.
- 3. Make a separate coverage file that covers the HSat blocks
- 4. Run the pipeline again for the HSat-specific coverage file and obtain the 4 bed files
- 5. Correct the `combined` bed files (output of the previous correction step) using the HSat-specific bed files
- 
-````
-## ${ASM2REF}.bam is a bam file containing the assembly-to-ref alignments
-## First convert bam to paf since project_blocks.py works with paf
-k8 paftools.js sam2paf <(samtools view -h -F4 -F256 ) ${ASM2REF}.bam > ${ASM2REF}.paf
-
-## Given the paf file extract the HSat regions in the assembly 
-## and save them in ${HSAT_PROJECTION}.bed
-docker run \
- -v ${INPUT_DIR}:${INPUT_DIR} \
- -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.2 \
- python3 /home/programs/src/project_blocks_multi_thread.py 
- --threads 8
- --mode 'ref2asm' \
- --paf ${INPUT_DIR}/${ASM2REF}.paf \
- --blocks ${HSAT}.bed \
- --outputProjectable ${OUTPUT_DIR}/${PROJECTABLE}.bed \
- --outputProjection ${OUTPUT_DIR}/${HSAT_PROJECTION}.bed
-
-## Sort and merge ${PROJECTION}.bed  
-bedtools sort -i  ${OUTPUT_DIR}/${HSAT_PROJECTION}.bed | bedtools merge -i - > ${OUTPUT_DIR}/${HSAT_PROJECTION}.merged.bed
-
-## Given the HSat blocks in the assembly, ${HSAT_PROJECTION}.merged.bed
-## and the whole genome coverage file, ${COVERAGE}.cov.gz
-## make a smaller coverage file covering only the HSat blocks
-zcat ${COVERAGE}.cov.gz | \
-            awk '{if(substr($1,1,1) == ">") {contig=substr($1,2,40); len_contig=$2} else {print contig"\t"$1-1"\t"$2"\t"$3"\t"len_contig}}' | \
-            bedtools intersect -a - -b ${HSAT_PROJECTION}.merged.bed | \
-            awk '{if(contig != $1){contig=$1; print ">"contig" "$5}; print $2+1"\t"$3"\t"$4}' | pigz -p4 > ${HSAT_COVERAGE}.cov.gz
-````
-`${HSAT_COVERAGE}.cov.gz` should be used as for the 2nd and 3rd steps of the pipeline. Please note that while calling `fit_model_extra.py` the parameter
-`--coverage` (The starting point of the fitting process) should be adjusted based on the expected coverage in the corresponding HSat.
-
-The process should be repeated for each HSat of interest that has a known covarage bias. For example for HiFi data it is recommended to do it for each of HSat1, HSat2 and Hsat3 and adjust `--coverage` as a function of the average sequencing coverage `${AVG_COVERAGE}`.
-
- - HSat1 -> `--coverage  0.75 * ${AVG_COVERAGE}`
- - HSat2 -> `--coverage  1.25 * ${AVG_COVERAGE}`
- - HSat3 -> `--coverage  1.25 * ${AVG_COVERAGE}`
-
-The HSat corrected bed files are available in the `hsat_corrected` subdirectory.(More info in the [results section](https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/docs/coverage#results-availability))
-
 
 ### 3. Correcting The Bed Files Pointing To The False Duplications
 In some cases the duplicated component is mixed up with the haploid one. It usually happens when the coverage in the haploid component drops systematically and the contig has long stretches of false duplication. 
@@ -314,10 +314,10 @@ The duplication corrected bed files are available in the `dup_corrected` subdire
 
 In the final bed files there is a noticeable number of very short blocks (a few bases or a few tens of bases long). They are very prone to be falsely categorized into one of the components. To increase the specificity we have merged the blocks closer than 100 and then removed the ones shorter than 1Kb.  (Look at the results section, the filtered bed files are available in the `filtered` subdirectory).
 
-### Known issues
+### Notes
 1. Some regions are falsely flagged as collapsed. The reason is that the equivalent region in the other haplotype is not assembled correctly so the reads from two haplotypes are aligned to only one of them. This flagging can be useful since it points to a region whose counterpart in the other haplotype is not assembled correctly or not assembled at all. 
 
-    One approach is to correct the coverage in the correctly assembled region. The coverage can be corrected by detecting the marker snps and removing the reads from the wrong halpotype or segment. Here is an example of a region with ~40X coverage but after detecting the marker snps (by variant calling) and removing the wrong alignments the coverage has decreased to ~17X which is much closer to the expected coverage (~20X).
+    One approach is to correct the coverage in the correctly assembled region. The coverage can be corrected by detecting the marker snps and removing the reads from the wrong halpotype or segment. `filter_alt_reads` can be used for this aim (Read [this](https://github.com/mobinasri/flagger#4-remove-the-alignments-with-alternative-alleles-optional)). Here is an example of a region with ~40X coverage but after detecting the marker snps (by variant calling) and removing the wrong alignments the coverage has decreased to ~17X which is much closer to the expected coverage (~20X).
 
    <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/coverage_correction.png" width="700" height="275">
 
@@ -334,13 +334,13 @@ https://github.com/human-pangenomics/HPP_Year1_Assemblies
 
 We have used the Genbank version of the HPRC-Y1 assemblies.
 
-The Python scripts, C source codes and the binary files are available in
+The Python scripts, C source codes are available in
 
-https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/docker/coverage/scripts
+https://github.com/mobinasri/flagger/tree/main/programs
 
 The wdl files that have been used for this analysis are available in
 
-https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/wdl/tasks
+https://github.com/mobinasri/flagger/tree/main/wdls/workflows
 
 ### Results Availability
 
