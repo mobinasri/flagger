@@ -54,7 +54,7 @@ docker run \
 `depth2cov` is a program that converts the output of `samtools depth` to `.cov` format. Its source code is available [here](https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docker/coverage/scripts/depth2cov.c).
 
 Since the reads aligned to the homozygous regions are expected to have low mapping qualities we don't filter reads based on their mapping qualities.
-In the figure below you can see the histograms of mapping qualities and the distributions of alignment indentities for HG00438 as an example. Three sets of alignments are shown here; the alignments to the diploid assembly and to each haploid assembly (maternal and paternal) separately. The alignments to the haploid assemblies are shown here just for comparison and are not used for the current analysis.
+In the figure below you can see the histograms of mapping qualities and the distributions of alignment indentities for HG00438 as an example. The diploid assembly and HiFi data set used here are from HPRC-Year1 repositories ([assembly repo](https://github.com/human-pangenomics/HPP_Year1_Assemblies) and [read set repo](https://github.com/human-pangenomics/HPP_Year1_Data_Freeze_v1.0)).  Three sets of alignments are shown here; the alignments to the diploid assembly and to each haploid assembly (maternal and paternal) separately. The alignments to the haploid assemblies are shown here just for comparison and are not used for the current analysis.
 
 <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/HG00438_mapq_hist.png" width="700" height="275">
 
