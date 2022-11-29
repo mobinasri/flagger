@@ -182,7 +182,7 @@ their solutions are also provided. The output of each correction step is used as
 In step 3 a single model is fit for the whole diploid assembly. In step 4 that model is used to partition the assembly into 4 main components. It is noticed that the model components may change for different regions and it may affect the accuracy of the partitioning process. In order to make the coverage thresholds more sensitive to the local patterns the diploid assembly is split into windows of length (5-10Mb). For each window a separate model  should be fit. To do so first we split the whole-genome coverage file produced in step 3 into multiple coverage files one for each window.
 ```
 
-## First we make a cov file excluding the regions that have may have coverage biases (Read the following step 3)
+## First we make a cov file excluding the regions that have may have coverage biases (Read the following step 2)
 cat asm.fa.fai | awk '{print $1"\t0\t"$2}' | sort -k1,1V -k2,2n > asm.bed
 ## exclude.bed contains all regions that have may have coverage biases
 bedtools subtract -a asm.bed -b exclude.bed > asm.no_bias.bed
@@ -260,7 +260,8 @@ docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
  mobinasri/flagger:v0.2 \
- python3 /home/programs/src/project_blocks.py 
+ python3 /home/programs/src/project_blocks_multi_thread.py 
+ --threads 8
  --mode 'ref2asm' \
  --paf ${INPUT_DIR}/${ASM2REF}.paf \
  --blocks ${HSAT}.bed \
