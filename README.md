@@ -4,6 +4,7 @@
 Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is another pipeline named [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/coverage). Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
 
 
+
 This evaluation has 5 steps:
 - Align long reads to the diploid assembly
 - Phase and relocalize the reads with secondary alignments using [secphase](https://github.com/mobinasri/secphase) (Optional)
@@ -93,7 +94,7 @@ By having the biallelic snps it is possible to find the alignments with alternat
 docker run \
  -v ${INPUT_DIR}:/input \
  -v ${OUTPUT_DIR}:/output \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  filter_alt_reads \
  -i "/input/${INPUT_BAM}" \
  -o "/output/${ALT_FILTERED_BAM}"
@@ -122,13 +123,13 @@ Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using
 Recommended values for the parameters of flagger_preprocess.wdl:
 |Parameter| Value|
 |:--------|:-----|
-|runFlaggerPreprocess.maxDivergence | 0.09 for ONT-guppy5 and 0.01 for HiFi|
+|runFlaggerPreprocess.maxDivergence | 0.09 for ONT-guppy5/6 and 0.02 for HiFi|
 |runFlaggerPreprocess.variantCaller | "pmdv" for ONT and "dv" for HiFi|
 |runFlaggerPreprocess.deepVariantModelType | Should be set based on the latest version of deepvariant ("PACBIO" for v1.4.0)|
 |runFlaggerPreprocess.pepperModelType | Should be set based on the ONT guppy version  (read https://github.com/kishwarshafin/pepper) "--ont_r9_guppy5_sup" for R9-guppy5 |
 |runFlaggerPreprocess.phasingLogText | The output log of secphase.wdl (optional)|
 |filterAltReads.moreOptions | "-m 1000 -r 0.4" |
-|filterAltReads.qCutoff | ~10 for ONT-guppy5 and ~10 for HiFi|
+|filterAltReads.qCutoff | ~10 for ONT-guppy5/6 and ~10 for HiFi|
 |filterAltReads.vafCutoff | 0.3|
 
 ### Components
@@ -156,6 +157,6 @@ https://github.com/human-pangenomics/HPP_Year1_Assemblies
 
 We have used the Genbank version of the HPRC-Y1 assemblies.
 
-The results are available in 
+The v0.1 results are available in 
 https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=submissions/e9ad8022-1b30-11ec-ab04-0a13c5208311--COVERAGE_ANALYSIS_Y1_GENBANK/FLAGGER/
 
