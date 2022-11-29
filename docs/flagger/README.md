@@ -191,7 +191,7 @@ To incorporate such coverage biases and correct the results in the corresponding
  2. Find the assembly blocks aligned to the HSat of interest. To do so we need a bed file pointing to the HSat in the reference then we can run the script `project_blocks_multi_thread.py` to project it back to the assembly.
  3. Make a separate coverage file that covers the HSat blocks
  4. Run the pipeline again for the HSat-specific coverage file and obtain the 4 bed files
- 5. Correct the `combined` bed files (output of the previous correction step) using the HSat-specific bed files
+ 5. Use this partitioning instead of the one obtained by whole-genome model
  
 ````
 ## ${ASM2REF}.bam is a bam file containing the assembly-to-ref alignments
@@ -223,16 +223,17 @@ zcat ${COVERAGE}.cov.gz | \
             bedtools intersect -a - -b ${HSAT_PROJECTION}.merged.bed | \
             awk '{if(contig != $1){contig=$1; print ">"contig" "$5}; print $2+1"\t"$3"\t"$4}' | pigz -p4 > ${HSAT_COVERAGE}.cov.gz
 ````
-`${HSAT_COVERAGE}.cov.gz` should be used as for the 2nd and 3rd steps of the pipeline. Please note that while calling `fit_model_extra.py` the parameter
-`--coverage` (The starting point of the fitting process) should be adjusted based on the expected coverage in the corresponding HSat.
+`${HSAT_COVERAGE}.cov.gz` should be used as for the 2nd and 3rd steps of the pipeline. Please note that while calling `fit_gmm.py` the parameter
+`--coverage` (The starting point of the fitting process) is recommended to be adjusted based on the expected coverage in the corresponding HSat.
 
-The process should be repeated for each HSat of interest that has a known covarage bias. For example for HiFi data it is recommended to do it for each of HSat1, HSat2 and Hsat3 and adjust `--coverage` as a function of the average sequencing coverage `${AVG_COVERAGE}`.
+The process should be repeated for each HSat of interest that can be prone to covarage bias. For example for HiFi data it is recommended to do it for each of HSat1, HSat2 and Hsat3 and adjust `--coverage` as a function of the average sequencing coverage `${AVG_COVERAGE}`.
 
  - HSat1 -> `--coverage  0.75 * ${AVG_COVERAGE}`
  - HSat2 -> `--coverage  1.25 * ${AVG_COVERAGE}`
  - HSat3 -> `--coverage  1.25 * ${AVG_COVERAGE}`
 
-The HSat corrected bed files are available in the `hsat_corrected` subdirectory.(More info in the [results section](https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/docs/coverage#results-availability))
+Please note that there may exist no bias for a specific sample and fitting a separate model means adding more parameters in the big picture not assuming the HSat coverage to be always greater (or less) than the whole-genome coverage. The factors provided above are just the initial values to navigate the EM algorithm if there exist a bias. The EM algorithm should be able to find the correct parameter values regardless of having a bias or not.
+The HSat corrected bed files contain `hsat_corrected` in the their file names. (Among the outputs of flagger.wdl)
 
 ### 2. Window-Specific Models
 
@@ -285,16 +286,14 @@ After fitting the model the duplicated components can reveal such false duplicat
 
 <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/HG00438_contig_fit_model.png" width="700" height="400">
 
-One important observation is that for short contigs we don't have a smooth coverage distribution and it is not possible to fit the mixture model. To address this issue we have done the window-specific coverage analysis only for the contigs longer than 5Mb and for the shorter contigs we use the results of the whole-genome analysis described previously. So the final results for the current release is a combination of window-specific and whole-genom coverage anslysis. 
+One important observation is that for short contigs we don't have a smooth coverage distribution and it is not possible to fit the mixture model. To address this issue we have done the window-specific coverage analysis only for the contigs longer than 5Mb and for the shorter contigs we use the results of the whole-genome analysis described previously. For HSat regions we use the result of the previous correction step.
 
-The combined bed files are available in the `combined` subdirectory.(More info in the [results section](https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/docs/coverage#results-availability))
-
-
+The combined bed files contain `combined` in their file names. (Among the outputs of flagger.wdl)
 
 ### 3. Correcting The Bed Files Pointing To The False Duplications
 In some cases the duplicated component is mixed up with the haploid one. It usually happens when the coverage in the haploid component drops systematically and the contig has long stretches of false duplication. 
 
-One other indicator of a false duplication is the accumulation of alignments with very low MAPQ. We have produced another coverage file only for MAPQ > 20 alignments and intersect it with the `hsat_corrected` results to correct them. Whenever we see a region flagged as duplicated that has more than 5 high quality alignments we change the flag to haploid. One extreme case happened in `HG00438#2#JAHBCA010000050.1`. More than half of this contig is falsely duplicated but the `hsat_corrected` results (see the previous correction step) reported almost the whole contig as `duplicated`. In the figure below it is shown how this correction step could
+One other indicator of a false duplication is the accumulation of alignments with very low MAPQ. We have produced another coverage file only for MAPQ > 20 alignments and intersect it with the `combined` results to correct them. Whenever we see a region flagged as duplicated that has more than 5 high quality alignments we change the flag to haploid. One extreme case happened in `HG00438#2#JAHBCA010000050.1`. More than half of this contig is falsely duplicated but the `combined` results (see the previous correction step) reported almost the whole contig as `duplicated`. In the figure below it is shown how this correction step could
 fix this issue.
 
    <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/dup_correction.png" width="700" height="325">
@@ -310,9 +309,9 @@ bedtools subtract -a ${PREFIX}.combined.duplicated.bed -b high_mapq.bed > ${PREF
 bedtools intersect -a ${PREFIX}.combined.duplicated.bed -b high_mapq.bed > dup_to_hap.bed
 cat dup_to_hap.bed ${PREFIX}.combined.haploid.bed | bedtools sort -i - | bedtools merge -i - > ${PREFIX}.dup_corrected.haploid.bed
 ````
-The duplication corrected bed files are available in the `dup_corrected` subdirectory.(More info in the [results section](https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/docs/coverage#results-availability))
+The duplication corrected bed files contain `dup_corrected` in the file name. (Among the outputs of flagger.wdl)
 
-In the final bed files there is a noticeable number of very short blocks (a few bases or a few tens of bases long). They are very prone to be falsely categorized into one of the components. To increase the specificity we have merged the blocks closer than 100 and then removed the ones shorter than 1Kb.  (Look at the results section, the filtered bed files are available in the `filtered` subdirectory).
+In the final bed files there is a noticeable number of very short blocks (a few bases or a few tens of bases long). They are very prone to be falsely categorized into one of the components. To increase the specificity we have merged the blocks closer than 100 and then removed the ones shorter than 1Kb. The filtered bed files contain `filtered` in the file name. (Among the outputs of flagger.wdl)
 
 ### Notes
 1. Some regions are falsely flagged as collapsed. The reason is that the equivalent region in the other haplotype is not assembled correctly so the reads from two haplotypes are aligned to only one of them. This flagging can be useful since it points to a region whose counterpart in the other haplotype is not assembled correctly or not assembled at all. 
