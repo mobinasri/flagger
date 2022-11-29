@@ -1,7 +1,7 @@
 ## Evaluating dual/diploid assemblies with Flagger
 
 ### Overview
-Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is another pipeline named [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/coverage). Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
+Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is another pipeline named [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/flagger). Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
 
 
 
