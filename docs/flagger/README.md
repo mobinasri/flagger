@@ -11,7 +11,7 @@ The pipeline has 3 core steps:
 - Extract the blocks assigned to the model's 4 main components: erroneous, duplicated, haploid, and collapsed.
 
 ### Docker
-All programs used in this analysis are available in the docker image `quay.io/masri2019/hpp_coverage:latest`. It is recommended to use this image for running the programs.
+All programs used in this analysis are available in the docker image `mobinasri/flagger:v0.2`. It is recommended to use this image for running the programs.
 
 ## The Pipeline
 
@@ -45,7 +45,7 @@ samtools depth -aa -Q 0 ${INPUT_DIR}/read_alignment.bam > ${INPUT_DIR}/read_alig
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  depth2cov \
  -d ${INPUT_DIR}/read_alignment.depth \
  -f ${INPUT_DIR}/asm.fa.fai \
@@ -58,7 +58,7 @@ In the figure below you can see the histograms of mapping qualities and the dist
 
 <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/HG00438_mapq_hist.png" width="700" height="275">
 
-In this example about 20% of the diploid alignments are having MAPQs lower than 20. To correctly phase the reads with low MAPQ alignments it is recommended to run [the phasing pipeline](https://github.com/human-pangenomics/hpp_production_workflows/tree/asset/coverage/docs/phasing) before calculating the coverage.
+In this example about 20% of the diploid alignments are having MAPQs lower than 20. To correctly phase the reads with low MAPQ alignments it is recommended to run [Secphase](https://github.com/mobinasri/secphase) before calculating the coverage.
 
 ### 2. Coverage Distribution and Fitting The Mixture Model
 
@@ -68,7 +68,7 @@ The frequencies of coverages can be calculated w/ `cov2counts`. Its source code 
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  cov2counts \
  -i ${INPUT_DIR}/read_alignment.cov \
  -o ${OUTPUT_DIR}/read_alignment.counts
@@ -98,7 +98,7 @@ Here is the command that fits the model:
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  python3 /home/programs/src/fit_gmm.py \
  --counts ${INPUT_DIR}/read_alignment.counts \
  --cov ${EXPECTED_COVERAGE} \
@@ -158,7 +158,7 @@ files each of which points to the regions assinged to a single component.
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  find_blocks_from_table \
  -c ${INPUT_DIR}/read_alignment.cov \
  -t ${INPUT_DIR}/read_alignment.table \
@@ -181,18 +181,33 @@ their solutions are also provided. The output of each correction step is used as
 
 In step 3 a single model is fit for the whole diploid assembly. In step 4 that model is used to partition the assembly into 4 main components. It is noticed that the model components may change for different regions and it may affect the accuracy of the partitioning process. In order to make the coverage thresholds more sensitive to the local patterns the diploid assembly is split into windows of length (5-10Mb). For each window a separate model  should be fit. To do so first we split the whole-genome coverage file produced in step 3 into multiple coverage files one for each window.
 ```
+
+## First we make a cov file excluding the regions that have may have coverage biases (Read the following step 3)
+cat asm.fa.fai | awk '{print $1"\t0\t"$2}' | sort -k1,1V -k2,2n > asm.bed
+## exclude.bed contains all regions that have may have coverage biases
+bedtools subtract -a asm.bed -b exclude.bed > asm.no_bias.bed
+
+## Make a tab-delimited file including the contig names and their effective length (not excluded)
+cat asm.excluded.bed | awk '{ctg_len[$1] += $3-$2}END{for (c in ctg_len){print c"\t"ctg_len[c]}}' > ctg_lens.txt
+
+## Remove excluded regions from the cov file
+cat read_alignment.cov | \
+    awk '{if(substr($1,1,1) == ">") {contig=substr($1,2); len_contig=$2} else {print contig"\t"$1-1"\t"$2"\t"$3"\t"len_contig}}' | \
+    bedtools intersect -a - -b asm.no_bias.bed | \
+    awk '{if(contig != $1){contig=$1; print ">"contig" "$5}; print $2+1"\t"$3"\t"$4}' > read_alignment.no_bias.cov
+
 ## Split cov into multiple covs (each covering 5-10 Mb)
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  split_cov_by_window \
- -c ${INPUT_DIR}/read_alignment.cov \
- -f ${INPUT_DIR}/asm.fa.fai \
+ -c ${INPUT_DIR}/read_alignment.no_bias.cov \
+ -f ${INPUT_DIR}/ctg_lens.txt \
  -s 5000000 \
  -p ${OUTPUT_DIR}/${OUTPUT_PREFIX}
 ```
-`split_contigs_cov_v2` program will produce a list of coverage files like below.
+`split_cov_by_window` program will produce a list of coverage files like below.
 ```
 HG00438.diploid.hifi.HG00438#1#JAHBCB010000001.1_10000001_15000000.cov
 HG00438.diploid.hifi.HG00438#1#JAHBCB010000001.1_15000001_20000000.cov
@@ -244,7 +259,7 @@ k8 paftools.js sam2paf <(samtools view -h -F4 -F256 ) ${ASM2REF}.bam > ${ASM2REF
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  python3 /home/programs/src/project_blocks.py 
  --mode 'ref2asm' \
  --paf ${INPUT_DIR}/${ASM2REF}.paf \
