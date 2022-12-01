@@ -36,6 +36,13 @@ task project {
         String sampleName
         String suffix
         String mode
+        Int mergingMargin = 1
+        # The parameter, isAssemblySplit, is added to handle rare cases where 
+        # the assembly contigs are split. For example for HG002_T2T_v0.6 assembly
+        # the minimap2/winnowmap took forever for aligning to chm13 so splitting 
+        # contigs shorten the runtime dramatically. Each split contig name
+        # should be like "${original_contig_name}:${start}-${end}"
+        Boolean isAssemblySplit=false
         # runtime configurations
         Int memSize=4
         Int threadCount=8
@@ -44,15 +51,9 @@ task project {
         Int preemptible=2
     }
     command <<<
-        # Set the exit code of a pipeline to that of the rightmost command
-        # to exit with a non-zero status, or zero if all commands of the pipeline exit
         set -o pipefail
-        # cause a bash script to exit immediately when a command fails
         set -e
-        # cause the bash shell to treat unset variables as an error and exit immediately
         set -u
-        # echo each line of the script to stdout so we can see what is happening
-        # to turn off echo do 'set +o xtrace'
         set -o xtrace
         
         if [ -z ~{suffix} ]; then
@@ -61,9 +62,16 @@ task project {
             OUTPUT_FILENAME=~{sampleName}.~{suffix}.bed
         fi
 
-        python3 ${PROJECT_BLOCKS_MULTI_THREADED_PY} --mode ~{mode} --paf ~{asm2refPaf} --blocks ~{blocksBed} --outputProjectable projectable.bed --outputProjection ${OUTPUT_FILENAME} --threads ~{threadCount}
+        python3 ${PROJECT_BLOCKS_MULTI_THREADED_PY} --mode ~{mode} --paf ~{asm2refPaf} --blocks ~{blocksBed} --outputProjectable projectable.bed --outputProjection projection.bed --threads ~{threadCount}
         mkdir output
-        bedtools sort -i ${OUTPUT_FILENAME} | bedtools merge -i - > output/${OUTPUT_FILENAME}
+        if [[ ~{isAssemblySplit} == "false" ]]
+        then
+            bedtools sort -i projection.bed | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+        else
+            # Convert bed coordinates to the originial one if assembly was split before alignment
+            python3 /home/programs/src/convert_bed_coors.bed projection.bed > projection_orig_coors.bed
+            bedtools sort -i projection_orig_coors.bed | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+        fi
 
     >>>
     runtime {
