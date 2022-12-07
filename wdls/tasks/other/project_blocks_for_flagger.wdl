@@ -18,9 +18,6 @@ workflow runProjectBlocksForFlagger{
         Boolean isAssemblySplit = false
         String sampleName
         Int mergingMargin = 100000 # merge projected blocks closer than 100kb
-        String aligner = "winnowmap"
-        String preset = "asm5"
-        Int kmerSize = 19
         String zones = "use-west2-a"
     }
 
