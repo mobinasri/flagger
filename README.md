@@ -1,7 +1,8 @@
-## Evaluating dual assemblies with Flagger
+## Evaluating dual/diploid assemblies with Flagger
 
 ### Overview
-Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is another pipeline named [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/coverage). Flagger recieves the read alignments to a draft dual assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
+Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is another pipeline named [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/coverage). Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
+
 
 
 This evaluation has 5 steps:
@@ -11,7 +12,7 @@ This evaluation has 5 steps:
 - Use biallelic SNVs to remove the alignments with alternative alleles (Optional)
 - Run Flagger in two modes
   - Using all alignments
-  - Using the alignments with no alternative alleles (recommended only when base-level accuracy is concerned)
+  - Using the alignments with no alternative alleles (optinal but 3rd and 4th steps are required, recommended only when base-level accuracy is concerned)
 
 ### 1. Align long reads
 The ONT and HiFi reads can be aligned to a dual/diploid assembly (~ 6Gbases long in human) with a long read aligner like winnowmap and minimap2. Since the assembly is dual/diploid the expected base-level coverage should be half of the sequencing coverage.
@@ -37,7 +38,7 @@ whenever neccessary. Secphase can work only if the secondary alignments are avai
 More information about Secphase is available [here](https://github.com/mobinasri/secphase)
 
 ### 3. Call and filter variants (Optional)
-By calling variants it is possible to detect the regions that need polishing or the regions with alignments from the wrong haplotype. It is recommeneded to use [Deepvariant](https://github.com/google/deepvariant) for calling variants from HiFi alignments and [Pepper-Margin-Deepvariant](https://github.com/kishwarshafin/pepper) for ONT. 
+By calling variants it is possible to detect the regions that need polishing or the regions with alignments from the wrong haplotype. It is recommeneded to use [Deepvariant](https://github.com/google/deepvariant) for calling variants with HiFi alignments and [Pepper-Margin-Deepvariant](https://github.com/kishwarshafin/pepper) for ONT. 
 ````
 ## For HiFi
 ## Taken from deepvariant doc
@@ -93,7 +94,7 @@ By having the biallelic snps it is possible to find the alignments with alternat
 docker run \
  -v ${INPUT_DIR}:/input \
  -v ${OUTPUT_DIR}:/output \
- mobinasri/flagger:v0.1 \
+ mobinasri/flagger:v0.2 \
  filter_alt_reads \
  -i "/input/${INPUT_BAM}" \
  -o "/output/${ALT_FILTERED_BAM}"
@@ -107,9 +108,13 @@ docker run \
 For each alignment `filter_alt_reads` iterates over the CIGAR string and clusters the snps closer than the number given to the `-m` parameter. That alignment will be removed if it encompasses a snp cluster in which more than `-r` ratio of the snps have alternative alleles. 
 `${ALT_FILTERED_BAM}` is the cleaned bam file and `${ALT_BAM}` includes the removed alignments.
 
-### 5. Run Flagger on the alignments with no alternative allele (Optional)
-`${ALT_FILTERED_BAM}` is then used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
+### 5. Run Flagger (Optional)
+#### 5. mode_1 Using all alignments
+The produced alignment file (`${INPUT_BAM}` prior to step 4) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
 erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
+
+#### 5. mode_2 Using alignments with no alternative alleles
+`${ALT_FILTERED_BAM}` (after step 4) can also be used as the input to Flagger. Some of the regions flagged as collapsed in `${INPUT_BAM}` may turn out to be haploid in `${ALT_FILTERED_BAM}`, which means in the original alignment they had mismapped reads from other regions. There may be some regions flagged as haploid originally but turn out to be erroneous in `${ALT_FILTERED_BAM}`, which indicates regions that needs polishing.
 
 More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
 
@@ -118,13 +123,13 @@ Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using
 Recommended values for the parameters of flagger_preprocess.wdl:
 |Parameter| Value|
 |:--------|:-----|
-|runFlaggerPreprocess.maxDivergence | 0.12 for ONT-guppy4 and 0.01 for HiFi|
+|runFlaggerPreprocess.maxDivergence | 0.09 for ONT-guppy5/6 and 0.02 for HiFi|
 |runFlaggerPreprocess.variantCaller | "pmdv" for ONT and "dv" for HiFi|
-|runFlaggerPreprocess.deepVariantModelType | Should be set based on the latest version of deepvariant ("PACBIO" for v1.3.0)|
+|runFlaggerPreprocess.deepVariantModelType | Should be set based on the latest version of deepvariant ("PACBIO" for v1.4.0)|
 |runFlaggerPreprocess.pepperModelType | Should be set based on the ONT guppy version  (read https://github.com/kishwarshafin/pepper) "--ont_r9_guppy5_sup" for R9-guppy5 |
 |runFlaggerPreprocess.phasingLogText | The output log of secphase.wdl (optional)|
 |filterAltReads.moreOptions | "-m 1000 -r 0.4" |
-|filterAltReads.qCutoff | ~37 for ONT-guppy4 and ~10 for HiFi|
+|filterAltReads.qCutoff | ~10 for ONT-guppy5/6 and ~10 for HiFi|
 |filterAltReads.vafCutoff | 0.3|
 
 ### Components
@@ -152,6 +157,6 @@ https://github.com/human-pangenomics/HPP_Year1_Assemblies
 
 We have used the Genbank version of the HPRC-Y1 assemblies.
 
-The results are available in 
+The v0.1 results are available in 
 https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=submissions/e9ad8022-1b30-11ec-ab04-0a13c5208311--COVERAGE_ANALYSIS_Y1_GENBANK/FLAGGER/
 
