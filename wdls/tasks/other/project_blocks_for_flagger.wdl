@@ -6,19 +6,16 @@ import "project_blocks.wdl" as project_blocks_t
 
 workflow runProjectBlocksForFlagger{
     input{
-        File hap1AssemblyFastaGz
-        File hap2AssemblyFastaGz
-        File refAssemblyFastaGz
+        File hap1AssemblyBam
+        File hap2AssemblyBam
+        File refSuffix
         Array[File] refBiasedBlocksBedArray
         Array[File] biasedBlocksNameStringArray
         File refSexBed
         File refSDBed
         File refCntrBed
-        # splitAssembly is recommended to be true if the assembly is having almost 
-        # the same quality as reference (including complete centromeres) since minimap2/winnowmap tests showed
-        # that it takes forever to do the alignment of such assemblies to a reference like chm13v2.0
-        Boolean splitAssembly = false # split contigs before alignment
-        Int splitSize = 20000000 # maximum size (in bases) of split contigs
+        # isAssemblySplit should be true if assembly is split before alignment to reference
+        Boolean isAssemblySplit = false
         String sampleName
         Int mergingMargin = 100000 # merge projected blocks closer than 100kb
         String aligner = "winnowmap"
@@ -27,50 +24,11 @@ workflow runProjectBlocksForFlagger{
         String zones = "use-west2-a"
     }
 
-    if (splitAssembly){
-        call runSplitAssembly as splitHap1{
-            input:
-                assemblyFastaGz = hap1AssemblyFastaGz,
-                splitSize = splitSize
-        }
-        call runSplitAssembly as splitHap2{
-            input:
-                assemblyFastaGz = hap2AssemblyFastaGz,
-                splitSize = splitSize
-        } 
-    }
-
-    File hap1AssemblyFastaGzProcessed = select_first([splitHap1.splitAssemblyFastaGz, hap1AssemblyFastaGz])
-    File hap2AssemblyFastaGzProcessed = select_first([splitHap2.splitAssemblyFastaGz, hap2AssemblyFastaGz])
-
-    String refSuffix = sub(basename("${refAssemblyFastaGz}"), ".f(ast)?a.gz", "")
-    # Align hap1 assembly to reference
-    call aligner_t.alignmentBam as alignmentHap1{
-        input:
-            aligner =  aligner,
-            preset = preset,
-            suffix = refSuffix,
-            refAssembly = refAssemblyFastaGz,
-            readFastq_or_queryAssembly = hap1AssemblyFastaGzProcessed,
-            kmerSize = kmerSize,
-            zones = zones
-    }
-    # Align hap2 assembly to reference
-    call aligner_t.alignmentBam as alignmentHap2{
-        input:
-            aligner =  aligner,
-            preset = preset,
-            suffix = refSuffix,
-            refAssembly = refAssemblyFastaGz,
-            readFastq_or_queryAssembly = hap2AssemblyFastaGzProcessed,
-            kmerSize = kmerSize,
-            zones = zones
-    }
 
     # Convert hap1 bam file to paf file
     call bam2paf_t.bam2paf as bam2pafHap1{
        input:
-           bamFile = alignmentHap1.sortedBamFile,
+           bamFile = hap1AssemblyBam,
            minMAPQ = 0,
            primaryOnly = "yes"
     }
@@ -78,7 +36,7 @@ workflow runProjectBlocksForFlagger{
     # Convert hap2 bam file to paf file
     call bam2paf_t.bam2paf as bam2pafHap2{
        input:
-           bamFile = alignmentHap2.sortedBamFile,
+           bamFile = hap2AssemblyBam,
            minMAPQ = 0,
            primaryOnly = "yes"
     }
@@ -93,7 +51,7 @@ workflow runProjectBlocksForFlagger{
                 suffix = "${blocksBed_suffix.right}.hap1",
                 mode = "ref2asm",
                 mergingMargin = mergingMargin,
-                isAssemblySplit = splitAssembly
+                isAssemblySplit = isAssemblySplit
         }
         call project_blocks_t.project as projectHap2{
             input:
@@ -103,7 +61,7 @@ workflow runProjectBlocksForFlagger{
                 suffix = "${blocksBed_suffix.right}.hap2",
                 mode = "ref2asm",
                 mergingMargin = mergingMargin,
-                isAssemblySplit = splitAssembly
+                isAssemblySplit = isAssemblySplit
         }
     }
 
@@ -124,7 +82,7 @@ workflow runProjectBlocksForFlagger{
             suffix = "SD_Projected",
             mode = "ref2asm",
             mergingMargin = 1,
-            isAssemblySplit = splitAssembly
+            isAssemblySplit = isAssemblySplit
     }
     
     # Project Sex blocks
@@ -136,7 +94,7 @@ workflow runProjectBlocksForFlagger{
             suffix = "Sex_Projected",
             mode = "ref2asm",
             mergingMargin = 1,
-            isAssemblySplit = splitAssembly
+            isAssemblySplit = isAssemblySplit
     }
     
     # Project Cntr blocks
@@ -148,7 +106,7 @@ workflow runProjectBlocksForFlagger{
             suffix = "Cntr_Projected",
             mode = "ref2asm",
             mergingMargin = 1,
-            isAssemblySplit = splitAssembly
+            isAssemblySplit = isAssemblySplit
     }
     
 
@@ -157,8 +115,6 @@ workflow runProjectBlocksForFlagger{
         File projectionSDBed = projectSD.projectionBed
         File projectionSexBed = projectSex.projectionBed
         File projectionCntrBed = projectCntr.projectionBed
-        File hap1ToRefAlignmentBam = alignmentHap1.sortedBamFile
-        File hap2ToRefAlignmentBam = alignmentHap2.sortedBamFile
     }    
 }
 
@@ -194,42 +150,4 @@ task concatFiles {
     }
 }
 
-
-task runSplitAssembly {
-    input {
-        File assemblyFastaGz
-        Int splitSize
-        # runtime configurations
-        Int memSize=8
-        Int threadCount=8
-        Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.2"
-        Int preemptible=2
-    }
-    command <<<
-        set -o pipefail
-        set -e
-        set -u
-        set -o xtrace
-
-        FILENAME=$(basename ~{assemblyFastaGz})
-        PREFIX=${FILENAME%%.f(ast)?a.gz} 
-
-        gunzip -c ~{assemblyFastaGz} > ${PREFIX}.fa
-        samtools faidx ${PREFIX}.fa
-        python3 /home/programs/src/split_fai_by_length.py --fai asm.fa.fai --splitSize ~{splitSize} > ${PREFIX}.bed
-        bedtools getfasta -fi ${PREFIX}.fa -bed ${PREFIX}.bed -fo ${PREFIX}.split.fa
-        pigz -p8 ${PREFIX}.split.fa
-    >>>
-    runtime {
-        docker: dockerImage
-        memory: memSize + " GB"
-        cpu: threadCount
-        disks: "local-disk " + diskSize + " SSD"
-        preemptible : preemptible
-    }
-    output {
-        File splitAssemblyFastaGz = glob("*.split.fa.gz")
-    }
-}
 
