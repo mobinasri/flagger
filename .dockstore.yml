@@ -96,4 +96,6 @@ workflows:
    -  name: FlaggerStats
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/other/flagger_stats.wdl
-
+   -  name: ProjectBlocksForFlagger
+      subclass: WDL
+      primaryDescriptorPath: /wdls/tasks/other/project_blocks_for_flagger.wdl
