@@ -99,3 +99,6 @@ workflows:
    -  name: ProjectBlocksForFlagger
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/other/project_blocks_for_flagger.wdl
+   -  name: FlaggerEndToEnd
+      subclass: WDL
+      primaryDescriptorPath: /wdls/workflows/flagger_end_to_end.wdl

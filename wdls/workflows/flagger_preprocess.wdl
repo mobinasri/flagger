@@ -13,10 +13,15 @@ workflow runFlaggerPreprocess{
         File? phasingLogText
         Int minReadLength = 5000
         Int minAlignmentLength = 5000
-        Float maxDivergence = 0.02 # For ONT guppy 6 -> 0.09
+        Float maxDivergence # For HiFi 0.02, For ONT guppy 6 -> 0.09
         String deepVariantModelType = "PACBIO"
         String pepperModelType = "ont_r9_guppy5_sup"
-        String variantCaller = "dv" # for ONT pmdv
+        String variantCaller  # For HiFi dv, for ONT pmdv
+        String pmdvDockerImage = "kishwars/pepper_deepvariant:r0.8"
+        String dvDockerImage = "google/deepvariant:1.4.0"
+        Float vafCutoff = 0.3 # for filterAltReads
+        Int qCutoff = 10 # for filterAltReads
+        String moreOptions = "-m1000 -r0.4" # for filterAltReads
     }
     
     ## Correct the bam file by swapping pri/sec tags for the wrongly phased reads
@@ -42,7 +47,8 @@ workflow runFlaggerPreprocess{
                 bamIndex = correctBam.correctedBamIndex,
                 minMAPQ = 0,
                 includeSecondary="False",
-                includeSupplementary="False"
+                includeSupplementary="False",
+                dockerImage = dvDockerImage
         }
     }
 
@@ -57,7 +63,8 @@ workflow runFlaggerPreprocess{
                 bamIndex = correctBam.correctedBamIndex,
                 minMAPQ = 0,
                 includeSupplementary="False",
-                flagRemoveMultiplePrimary = false
+                flagRemoveMultiplePrimary = false,
+                dockerImage = pmdvDockerImage
         }
     }
    
@@ -68,6 +75,9 @@ workflow runFlaggerPreprocess{
         input:
             vcf = vcfGz,
             bam = correctBam.correctedBam,
+            moreOptions = moreOptions,
+            vafCutoff = vafCutoff,
+            qCutoff = qCutoff,
             diskSize = ceil(size(correctBam.correctedBam, "GB")) * 2 + 64
     }
     
