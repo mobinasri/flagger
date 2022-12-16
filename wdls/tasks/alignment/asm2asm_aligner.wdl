@@ -74,6 +74,6 @@ task runSplitAssembly {
         preemptible : preemptible
     }
     output {
-        File splitAssemblyFastaGz = glob("*.split.fa.gz")
+        File splitAssemblyFastaGz = glob("*.split.fa.gz")[0]
     }
 }
