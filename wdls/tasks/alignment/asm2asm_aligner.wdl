@@ -62,7 +62,7 @@ task runSplitAssembly {
 
         gunzip -c ~{assemblyFastaGz} > ${PREFIX}.fa
         samtools faidx ${PREFIX}.fa
-        python3 /home/programs/src/split_fai_by_length.py --fai asm.fa.fai --splitSize ~{splitSize} > ${PREFIX}.bed
+        python3 /home/programs/src/split_fai_by_length.py --fai ${PREFIX}.fa.fai --splitSize ~{splitSize} > ${PREFIX}.bed
         bedtools getfasta -fi ${PREFIX}.fa -bed ${PREFIX}.bed -fo ${PREFIX}.split.fa
         pigz -p8 ${PREFIX}.split.fa
     >>>
