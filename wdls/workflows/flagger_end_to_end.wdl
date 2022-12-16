@@ -44,6 +44,7 @@ workflow FlaggerEndToEnd{
     }
     call project_t.runProjectBlocksForFlagger as project{
         input:
+            sampleName = sampleName,
             hap1AssemblyBam = hap1ToRefBam,
             hap2AssemblyBam = hap2ToRefBam,
             refSuffix = refName, 
@@ -62,7 +63,8 @@ workflow FlaggerEndToEnd{
             highMapqCoverageGz = preprocess.correctedHighMapqCovGz,
             fai = fai,
             sampleName = sampleName,
-            suffix = suffix
+            suffix = suffix,
+            covFloat = preprocess.meanCorrectedCoverageFloat
     }
     call flagger_t.runFlagger as flagger_alt_removed{
         input:
@@ -73,7 +75,8 @@ workflow FlaggerEndToEnd{
             highMapqCoverageGz = preprocess.altRemovedHighMapqCovGz,
             fai = fai,
             sampleName = sampleName,
-            suffix = suffix + ".alt_removed"
+            suffix = suffix + ".alt_removed",
+            covFloat = preprocess.meanCorrectedCoverageFloat
     }
     call stats_t.flaggerStats as stats{
         input:
