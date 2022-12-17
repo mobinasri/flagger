@@ -11,7 +11,7 @@ workflow runSecPhase{
     call sortByName{
          input:
              bamFile = inputBam,
-             diskSize = 4 * ceil(size(inputBam, "GB")) + 64
+             diskSize = 6 * ceil(size(inputBam, "GB")) + 64
     }
     call splitByName{
          input:
