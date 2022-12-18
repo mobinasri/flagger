@@ -22,6 +22,7 @@ workflow runFlaggerPreprocess{
         Float vafCutoff = 0.3 # for filterAltReads
         Int qCutoff = 10 # for filterAltReads
         String moreOptions = "-m1000 -r0.4" # for filterAltReads
+        Int variantCallingMemory = 48
     }
     
     ## Correct the bam file by swapping pri/sec tags for the wrongly phased reads
@@ -48,7 +49,8 @@ workflow runFlaggerPreprocess{
                 minMAPQ = 0,
                 includeSecondary="False",
                 includeSupplementary="False",
-                dockerImage = dvDockerImage
+                dockerImage = dvDockerImage,
+                variantCallingMemory = variantCallingMemory
         }
     }
 
@@ -64,7 +66,8 @@ workflow runFlaggerPreprocess{
                 minMAPQ = 0,
                 includeSupplementary="False",
                 flagRemoveMultiplePrimary = false,
-                dockerImage = pmdvDockerImage
+                dockerImage = pmdvDockerImage,
+                variantCallingMemory = variantCallingMemory
         }
     }
    
