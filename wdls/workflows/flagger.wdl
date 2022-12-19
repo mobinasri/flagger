@@ -169,7 +169,7 @@ task gatherFiles {
         mkdir ~{outputName}
         cp ~{sep=" " files} ~{outputName}
         tar -cf ~{outputName}.tar ~{outputName}
-        pigz -p~{threadCount} ~{outputName}.tar.gz
+        pigz -p~{threadCount} ~{outputName}.tar
     >>>
     runtime {
         docker: dockerImage
