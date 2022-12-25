@@ -4,12 +4,14 @@ workflow runSecPhase{
     input {
         File inputBam
         File diploidAssemblyFastaGz
+        String secphaseOptions = "--hifi"
+        String secphaseDockerImage = "mobinasri/secphase:dev-v0.1"
         Boolean debugMode = false
     }
     call sortByName{
          input:
              bamFile = inputBam,
-             diskSize = 4 * ceil(size(inputBam, "GB")) + 64
+             diskSize = 6 * ceil(size(inputBam, "GB")) + 64
     }
     call splitByName{
          input:
@@ -22,6 +24,8 @@ workflow runSecPhase{
                 bamFile = splitBam,
                 diploidAssemblyFastaGz = diploidAssemblyFastaGz,
                 debugMode = debugMode,
+                options = secphaseOptions,
+                dockerImage = secphaseDockerImage,
                 diskSize = ceil(size(splitBam, "GB")) + 64
         }
     }
@@ -47,7 +51,7 @@ task secphase {
     input {
         File bamFile
         File diploidAssemblyFastaGz
-        String options = "-q -c -t10 -d1e-4 -e0.1 -b20 -m20 -s40"
+        String options = "--hifi"
         Boolean debugMode
         # runtime configurations
         Int memSize=4

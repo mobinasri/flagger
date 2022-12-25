@@ -15,6 +15,7 @@ workflow runDeepVariantScattered{
         String includeSecondary="False"
         String includeSupplementary="False"
         String dockerImage = "google/deepvariant:1.4.0"
+        Int variantCallingMemory = 48
     }
     call splitBamContigWise {
         input:
@@ -36,7 +37,8 @@ workflow runDeepVariantScattered{
                 includeSupplementary = includeSupplementary,
                 minMAPQ = minMAPQ,
                 diskSize = 2 * ceil(size(part.left, "GB")) + 64,
-                dockerImage = dockerImage
+                dockerImage = dockerImage,
+                memSize = variantCallingMemory
         }
     }
     call var_t.mergeVcf{

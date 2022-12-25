@@ -31,8 +31,11 @@ workflow runFlagger{
         File highMapqCoverageGz
         File fai
         Float covFloat # the coverage with the highest frequency (most of the time same as mean coverage)
-        Boolean isDiploid # This is only used for pdf generation and separating the pages for each haplotype
-        Int cov2countsDiskSizeGB = 128
+        Boolean isDiploid=false # This is only used for pdf generation and separating the pages for each haplotype
+        Int windowSize = 5000000 # Size of windows for spliting assembly and calculating coverage dist
+        String sampleName
+        String suffix = "flagger"
+        Int cov2countsDiskSizeGB = 512
     }
     scatter (biasedRegionData in zip(biasedRegionBedArray, zip(biasedRegionNameArray, biasedRegionFactorArray))){
         File biasedRegionBed = biasedRegionData.left
@@ -76,6 +79,7 @@ workflow runFlagger{
             coverageGz = coverageGz,
             excludeBedArray = biasedRegionBedArray,
             fai = fai,
+            windowSize = windowSize,
             diskSize = cov2countsDiskSizeGB
     }
     call fit_model_by_window_t.fitModelByWindow {
@@ -127,23 +131,55 @@ workflow runFlagger{
 
     call getFinalBed {
         input:
-            bedsTarGz = filterBeds.filteredBedsTarGz
+            bedsTarGz = filterBeds.filteredBedsTarGz,
+            sampleName = sampleName,
+            suffix = suffix
+    }
+
+    call gatherFiles {
+        input:
+            files = [cov2counts.counts, fitModel.probabilityTable, findBlocks.bedsTarGz, cov2countsByWindow.windowCountsTarGz, cov2countsByWindow.windowCovsTarGz, fitModelByWindow.windowProbTablesTarGz, findBlocksByWindow.windowBedsTarGz, combineWindowBased.combinedBedsTarGz, dupCorrectBeds.dupCorrectedBedsTarGz, filterBeds.filteredBedsTarGz, combineHsatBased.combinedBedsTarGz],
+            outputName = "${sampleName}.${suffix}.miscellaneous"
     }
 
     output {
-        File genomeCounts = cov2counts.counts
-        File genomeProbTable = fitModel.probabilityTable
-        File genomeBedsTarGz = findBlocks.bedsTarGz
-        File windowCountsTarGz = cov2countsByWindow.windowCountsTarGz
-        File windowCovsTarGz = cov2countsByWindow.windowCovsTarGz
-        File windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz
-        File windowBedsTarGz = findBlocksByWindow.windowBedsTarGz
+        File miscFilesTarGz = gatherFiles.outputTarGz
         File pdf = pdfGenerator.pdf
-        File combinedBedsTarGz = combineWindowBased.combinedBedsTarGz
-        File dupCorrectedBedsTarGz = dupCorrectBeds.dupCorrectedBedsTarGz
-        File filteredBedsTarGz = filterBeds.filteredBedsTarGz
-        File hsatCorrectedBedsTarGz =  combineHsatBased.combinedBedsTarGz
         File finalBed = getFinalBed.finalBed 
+    }
+}
+
+task gatherFiles {
+    input {
+        Array[File] files
+        String outputName
+        # runtime configurations
+        Int memSize=8
+        Int threadCount=4
+        Int diskSize=128
+        String dockerImage="mobinasri/flagger:v0.2"
+        Int preemptible=2
+    }
+    command <<<
+        set -o pipefail
+        set -e
+        set -u
+        set -o xtrace
+
+        mkdir ~{outputName}
+        cp ~{sep=" " files} ~{outputName}
+        tar -cf ~{outputName}.tar ~{outputName}
+        pigz -p~{threadCount} ~{outputName}.tar
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+    }
+    output {
+        File outputTarGz = glob("*.tar.gz")[0]
     }
 }
 

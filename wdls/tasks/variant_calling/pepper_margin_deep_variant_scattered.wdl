@@ -20,7 +20,8 @@ workflow runPepperMarginDeepVariantScattered{
         String includeSupplementary="False"
         Boolean flagRemoveMultiplePrimary = true
         Int numberOfCallerNodes=16
-        Int nodeThreadCount=8 
+        Int nodeThreadCount=8
+        Int variantCallingMemory = 48 
     }
     if (flagRemoveMultiplePrimary) {
         call pmdv_t.removeMultiplePrimary{
@@ -53,7 +54,8 @@ workflow runPepperMarginDeepVariantScattered{
                 threadCount = nodeThreadCount,
                 memSize = 32,
                 diskSize= 2 * ceil(size(part.left, "GB")) + 128,
-                dockerImage = dockerImage
+                dockerImage = dockerImage,
+                memSize = variantCallingMemory
         }
     }
     call var_t.mergeVcf{
