@@ -78,7 +78,7 @@ task extractReads {
         mkdir output_final
         OUTPUT_NAME=$(ls output)
 
-        if [ "~{excludeString}" != ""]; then
+        if [ "~{excludeString}" != "" ]; then
             cat output/${OUTPUT_NAME} | grep -v "~{excludeString}" > output_final/${OUTPUT_NAME}
         else
             ln output/${OUTPUT_NAME} output_final/${OUTPUT_NAME}
