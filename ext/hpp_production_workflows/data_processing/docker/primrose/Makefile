@@ -1,7 +1,7 @@
 # Definitions
-repository = juklucas
-identifier = hpp_merqury
-version = 0.0.2
+repository = humanpangenomics
+identifier = primrose
+version = 0.0.1
 git_commit ?= $(shell git log --pretty=oneline -n 1 | cut -f1 -d " ")
 name = ${repository}/${identifier}
 tag = ${version}--${git_commit}

@@ -9,8 +9,13 @@ workflow trioHifiasmAssembly {
         String paternalID
         String maternalID
         Array[File] childReadsHiFi
+        Array[File] childReadsONT=[]
+        Int? minOntReadLength
+        Int? minHiFiReadLength
+        Int? homCov
         File paternalYak
         File maternalYak
+        Boolean filterAdapters=true
         String? hifiasmExtraOptions
         File? inputBinFilesTarGz
         File? referenceFasta
@@ -20,6 +25,7 @@ workflow trioHifiasmAssembly {
         Int preemptible=1
     }
 
+    
 
     ### Trio Hifiasm ###
     call hifiasm_t.runTrioHifiasm as trioHifiasm{
@@ -27,7 +33,12 @@ workflow trioHifiasmAssembly {
             paternalYak = paternalYak,
             maternalYak = maternalYak,
             childReadsHiFi = childReadsHiFi,
+            childReadsONT = childReadsONT,
+            minOntReadLength = minOntReadLength,
+            minHiFiReadLength = minHiFiReadLength,
+            homCov = homCov,
             childID = childID,
+            filterAdapters = filterAdapters,
             hifiasmExtraOptions = hifiasmExtraOptions,
             inputBinFilesTarGz = inputBinFilesTarGz,
             memSizeGB = memSizeGB,

@@ -27,11 +27,11 @@ task extractReads {
     input {
         File readFile
         File? referenceFasta
+        String excludeString="" # exclude lines with this string from fastq
         Int memSizeGB = 4
         Int threadCount = 8
         Int diskSizeGB = 128
-        String fastqOptions = ""
-        String dockerImage = "mobinasri/bio_base:dev-v0.1"
+        String dockerImage = "tpesout/hpp_base:latest"
     }
 
 
@@ -47,7 +47,7 @@ task extractReads {
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
         # load samtools
-        #export PATH=$PATH:/root/bin/samtools_1.9/
+        export PATH=$PATH:/root/bin/samtools_1.9/
 
         FILENAME=$(basename -- "~{readFile}")
         PREFIX="${FILENAME%.*}"
@@ -56,24 +56,35 @@ task extractReads {
         mkdir output
 
         if [[ "$SUFFIX" == "bam" ]] ; then
-            samtools fastq ~{fastqOptions} -@~{threadCount} ~{readFile} > output/${PREFIX}.fq
+            samtools fastq -@~{threadCount} ~{readFile} > output/${PREFIX}.fq
         elif [[ "$SUFFIX" == "cram" ]] ; then
             if [[ ! -f "~{referenceFasta}" ]] ; then
                 echo "Could not extract $FILENAME, reference file not supplied"
                 exit 1
             fi
             ln -s ~{referenceFasta}
-            samtools fastq ~{fastqOptions} -@~{threadCount} --reference `basename ~{referenceFasta}` ~{readFile} > output/${PREFIX}.fq
+            samtools fastq -@~{threadCount} --reference `basename ~{referenceFasta}` ~{readFile} > output/${PREFIX}.fq
         elif [[ "$SUFFIX" == "gz" ]] ; then
             gunzip -k -c ~{readFile} > output/${PREFIX}
         elif [[ "$SUFFIX" == "fastq" ]] || [[ "$SUFFIX" == "fq" ]] ; then
-            ln ~{readFile} output/${PREFIX}
+            ln ~{readFile} output/${PREFIX}.fq
         elif [[ "$SUFFIX" != "fastq" ]] && [[ "$SUFFIX" != "fq" ]] && [[ "$SUFFIX" != "fasta" ]] && [[ "$SUFFIX" != "fa" ]] ; then
             echo "Unsupported file type: ${SUFFIX}"
             exit 1
         fi
 
-        OUTPUTSIZE=`du -s -BG output/ | sed 's/G.*//'`
+
+        mkdir output_final
+        OUTPUT_NAME=$(ls output)
+
+        if [ "~{excludeString}" != ""]; then
+            cat output/${OUTPUT_NAME} | grep -v "~{excludeString}" > output_final/${OUTPUT_NAME}
+        else
+            ln output/${OUTPUT_NAME} output_final/${OUTPUT_NAME}
+        fi
+        
+
+        OUTPUTSIZE=`du -s -BG output_final/ | sed 's/G.*//'`
         if [[ "0" == $OUTPUTSIZE ]] ; then
             OUTPUTSIZE=`du -s -BG ~{readFile} | sed 's/G.*//'`
         fi
@@ -81,7 +92,7 @@ task extractReads {
     >>>
 
     output {
-        File extractedRead = flatten([glob("output/*"), [readFile]])[0]
+        File extractedRead = flatten([glob("output_final/*"), [readFile]])[0]
         Int fileSizeGB = read_int("outputsize")
     }
 

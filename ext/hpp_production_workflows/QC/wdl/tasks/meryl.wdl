@@ -12,6 +12,7 @@ workflow runMeryl {
         Array[File] paternalReadsILM
         File? referenceFasta
         Int kmerSize = 21
+        Boolean compress = false
         Int merylCountMemSizeGB = 42
         Int merylCountThreadCount = 64
         Int merylUnionSumMemSizeGB = 32
@@ -19,7 +20,7 @@ workflow runMeryl {
         Int merylHapmerMemSizeGB = 24
         Int merylHapmerThreadCount = 32
         Int fileExtractionDiskSizeGB = 256
-        String dockerImage = "juklucas/hpp_merqury:latest"
+        String dockerImage = "juklucas/hpp_merqury@sha256:ce62531539733eb3f81c8434b70473c18096ed7e2eae605cfcb333ede2437e1c"
     }
 
     # extract reads
@@ -96,6 +97,7 @@ workflow runMeryl {
             input:
                 readFile=readFile,
                 kmerSize=kmerSize,
+                compress=compress,
                 threadCount=merylCountThreadCount,
                 memSizeGB=merylCountMemSizeGB,
                 diskSizeGB=sampleReadSizeMax.value * 4,
@@ -107,6 +109,7 @@ workflow runMeryl {
             input:
                 readFile=readFile,
                 kmerSize=kmerSize,
+                compress=compress,
                 threadCount=merylCountThreadCount,
                 memSizeGB=merylCountMemSizeGB,
                 diskSizeGB=maternalReadSizeMax.value * 4,
@@ -118,6 +121,7 @@ workflow runMeryl {
             input:
                 readFile=readFile,
                 kmerSize=kmerSize,
+                compress=compress,
                 threadCount=merylCountThreadCount,
                 memSizeGB=merylCountMemSizeGB,
                 diskSizeGB=paternalReadSizeMax.value * 4,
@@ -178,11 +182,14 @@ task merylCount {
     input {
         File readFile
         Int kmerSize=21
+        Boolean compress = false
         Int memSizeGB = 42
         Int threadCount = 64
         Int diskSizeGB = 64
         String dockerImage = "juklucas/hpp_merqury:latest"
     }
+
+    String compress_arg = if compress then "compress" else ""
 
 	command <<<
         # Set the exit code of a pipeline to that of the rightmost command
@@ -199,7 +206,7 @@ task merylCount {
 
         # generate meryl db for each read
         ID=`basename ~{readFile} | sed 's/.gz$//' | sed 's/.f[aq]\(st[aq]\)*$//'`
-        meryl k=~{kmerSize} threads=~{threadCount} memory=$((~{memSizeGB}-10)) count output $ID.meryl ~{readFile}
+        meryl ~{compress_arg} k=~{kmerSize} threads=~{threadCount} memory=$((~{memSizeGB}-10)) count output $ID.meryl ~{readFile}
 
         # package
         tar cvf $ID.meryl.tar $ID.meryl

@@ -25,7 +25,7 @@ ENV PATH=/opt/IGV_2.8.2/:$PATH
 WORKDIR /opt
 RUN git clone https://github.com/marbl/meryl.git && \
     cd meryl && \
-    git reset --hard 1926400fcb098ab3e4745ea0872d23f91d730340 && \
+    git reset --hard d88ea50402d37da153d603a537e122bb72eda7d1 && \
     cd src && \
     make -j 12
 ENV PATH=/opt/meryl/build/bin:$PATH
