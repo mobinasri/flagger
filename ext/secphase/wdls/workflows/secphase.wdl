@@ -185,7 +185,7 @@ task splitByName {
 task sortByName {
     input {
         File bamFile
-        String excludeSingleAlignment="yes"
+        String excludeSingleAlignment="no"
         # runtime configurations
         Int memSize=16
         Int threadCount=8
