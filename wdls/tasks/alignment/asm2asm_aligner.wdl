@@ -58,7 +58,7 @@ task runSplitAssembly {
         set -o xtrace
 
         FILENAME=$(basename ~{assemblyFastaGz})
-        PREFIX=${FILENAME%%.f(ast)?a.gz}
+        PREFIX=$(sed -E 's/.f(ast)?a.gz//' <<< "$FILENAME")
 
         gunzip -c ~{assemblyFastaGz} > ${PREFIX}.fa
         samtools faidx ${PREFIX}.fa
