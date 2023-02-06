@@ -40,7 +40,7 @@ task subsetAlignment {
 
         mkdir output
         samtools view -hb ${BAM_PREFIX}.bam ~{region} > output/${BAM_PREFIX}.~{suffix}.bam 
-        java -jar /home/apps/jvarkit/dist/jvarkit.jar biostar84452 -o output/${BAM_PREFIX}.~{suffix}.no_clip_seq.bam --samoutputformat BAM
+        java -jar /home/apps/jvarkit/dist/jvarkit.jar biostar84452 -o output/${BAM_PREFIX}.~{suffix}.no_clip_seq.bam --samoutputformat BAM output/${BAM_PREFIX}.~{suffix}.bam
         samtools index output/${BAM_PREFIX}.~{suffix}.no_clip_seq.bam
     >>> 
     runtime {
