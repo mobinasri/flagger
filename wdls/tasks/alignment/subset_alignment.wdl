@@ -16,7 +16,7 @@ task subsetAlignment {
         Int memSize=16
         Int threadCount=4
         Int diskSize=500
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.2"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -40,7 +40,8 @@ task subsetAlignment {
 
         mkdir output
         samtools view -hb ${BAM_PREFIX}.bam ~{region} > output/${BAM_PREFIX}.~{suffix}.bam 
-        samtools index output/${BAM_PREFIX}.~{suffix}.bam
+        java -jar /home/apps/jvarkit/dist/jvarkit.jar biostar84452 -o output/${BAM_PREFIX}.~{suffix}.no_clip_seq.bam --samoutputformat BAM
+        samtools index output/${BAM_PREFIX}.~{suffix}.no_clip_seq.bam
     >>> 
     runtime {
         docker: dockerImage
@@ -52,7 +53,7 @@ task subsetAlignment {
         cpuPlatform: "Intel Cascade Lake"
     }
     output {
-        File outputBam = glob("output/*.bam")[0]
+        File outputBam = glob("output/*.no_clip_seq.bam")[0]
         File outputBai = glob("output/*.bai")[0]
     }
 }
