@@ -146,6 +146,7 @@ task alignmentBam{
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
         zones: zones
+        cpuPlatform: "Intel Cascade Lake"
     }
     output {
         File sortedBamFile = glob("*.sorted.bam")[0]
