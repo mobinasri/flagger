@@ -23,7 +23,7 @@ task flaggerStats {
         Int memSize=4
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="quay.io/masri2019/hpp_hifiasm:0.18.5"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
     command <<<
