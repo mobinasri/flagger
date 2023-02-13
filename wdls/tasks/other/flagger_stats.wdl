@@ -39,7 +39,7 @@ task flaggerStats {
         set -o xtrace
 
         ln ~{fastaGz} asm.fa.gz
-        gunzip asm.fa.gz
+        gunzip -c asm.fa.gz > asm.fa
         # ignore Ns
         python3 /home/scripts/get_contig_coords.py --inputFasta asm.fa | bedtools sort -i - > asm.bed
         cat asm.bed | awk '($3-$2)>~{minContigSize}{print $0}' > asm_long.bed
