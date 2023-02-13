@@ -9,7 +9,7 @@ workflow runFlaggerStats{
 }
 task flaggerStats {
     input {
-        File fai
+        File fastaGz
         File flaggerBed
         File difficultBed_1
         String difficultString_1
@@ -23,7 +23,7 @@ task flaggerStats {
         Int memSize=4
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="quay.io/masri2019/hpp_hifiasm:0.18.5"
         Int preemptible=2
     }
     command <<<
@@ -38,8 +38,11 @@ task flaggerStats {
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
 
-        cat ~{fai} | awk '{print $1"\t0\t"$2}' | bedtools sort -i - > asm.bed
-        cat ~{fai} | awk '$2>~{minContigSize}{print $1"\t0\t"$2}' > asm_long.bed
+        ln ~{fastaGz} asm.fa.gz
+        gunzip asm.fa.gz
+        # ignore Ns
+        python3 /home/scripts/get_contig_coords.py --inputFasta asm.fa | bedtools sort -i - > asm.bed
+        cat asm.bed | awk '($3-$2)>~{minContigSize}{print $0}' > asm_long.bed
 
         bedtools intersect -a asm_long.bed -b ~{difficultBed_1} > diff_long_1.bed
         bedtools intersect -a asm_long.bed -b ~{difficultBed_2} > diff_long_2.bed
