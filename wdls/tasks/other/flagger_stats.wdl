@@ -5,6 +5,7 @@ workflow runFlaggerStats{
     output{
         File flaggerStatsTsv = flaggerStats.flaggerStatsTsv
         File flaggerStatsPercOnlyTsv = flaggerStats.flaggerStatsPercOnlyTsv
+        File flaggerHapNgxText = flaggerStats.flaggerHapNgxText
     }
 }
 task flaggerStats {
@@ -83,6 +84,10 @@ task flaggerStats {
             columns="${columns}\t${columns_curr}"
             values_2="${values_2}\t${values_curr_2}"
             columns_2="${columns_2}\t${columns_curr_2}"
+            # store sorted sizes of the Hap blocks
+            printf ${name}"\t" >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
+            bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Hap" | awk '{print $3-$2}' | sort -nk1,1 -r | tr '\n' ',' >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
+            printf "\n" >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
         done
 
         printf ${columns}"\n" > ~{sample}.~{prefix}.flagger_stats.tsv
@@ -102,5 +107,6 @@ task flaggerStats {
     output {
         File flaggerStatsTsv = glob("*flagger_stats.tsv")[0]
         File flaggerStatsPercOnlyTsv = glob("*perc_only.tsv")[0]
+        File flaggerHapNgxText = glob("*flagger.hap_ngx.txt")[0]
     }
 }
