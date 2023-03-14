@@ -3,6 +3,7 @@ version 1.0
 import "../alignment/long_read_aligner.wdl" as aligner_t
 import "../alignment/bam2paf.wdl" as bam2paf_t
 import "project_blocks.wdl" as project_blocks_t
+import "bedtools.wdl" as bedtools_t
 
 workflow runProjectBlocksForFlagger{
     input{
@@ -14,6 +15,7 @@ workflow runProjectBlocksForFlagger{
         File refSexBed
         File refSDBed
         File refCntrBed
+        File refCntrCtBed
         # isAssemblySplit should be true if assembly is split before alignment to reference
         Boolean isAssemblySplit = false
         String sampleName
@@ -102,16 +104,35 @@ workflow runProjectBlocksForFlagger{
             sampleName = sampleName,
             suffix = "Cntr_Projected",
             mode = "ref2asm",
-            mergingMargin = 1,
+            mergingMargin = 100000,
+            isAssemblySplit = isAssemblySplit
+    }
+
+    # Project Cntr transition (Ct) blocks
+    call project_blocks_t.project as projectCntrCt{
+        input:
+            blocksBed = refCntrCtBed,
+            asm2refPaf = concatPaf.outputFile,
+            sampleName = sampleName,
+            suffix = "Cntr_Trans_Projected",
+            mode = "ref2asm",
+            mergingMargin = 10000,
             isAssemblySplit = isAssemblySplit
     }
     
+    # Subtract centric transition regions from centromeres
+    call bedtools_t.subtract as subtractCntr{
+        input:
+            firstBed = projectCntr.projectionBed,
+            secondBed = projectCntrCt.projectionBed,
+            outputPrefix = "${sampleName}" + "censat_no_ct"
+    }
 
     output {
         Array[File] projectionBiasedBedArray = flatten([projectHap1.projectionBed, projectHap2.projectionBed])
         File projectionSDBed = projectSD.projectionBed
         File projectionSexBed = projectSex.projectionBed
-        File projectionCntrBed = projectCntr.projectionBed
+        File projectionCntrBed = subtractCntr.subtractBed
     }    
 }
 
