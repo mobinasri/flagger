@@ -25,6 +25,7 @@ workflow FlaggerEndToEndNoVariantCalling{
         File refSexBed
         File refSDBed
         File refCntrBed
+        File refCntrCtBed
     }
     call secphase_t.runSecPhase as secphase{
         input:
@@ -50,7 +51,8 @@ workflow FlaggerEndToEndNoVariantCalling{
             biasedBlocksNameStringArray = refBiasedRegionNameArray,
             refSexBed = refSexBed,
             refSDBed = refSDBed,
-            refCntrBed = refCntrBed
+            refCntrBed = refCntrBed,
+            refCntrCtBed = refCntrCtBed
     }
     call flagger_t.runFlagger as flagger{
         input:

@@ -26,6 +26,7 @@ workflow FlaggerEndToEnd{
         File refSexBed
         File refSDBed
         File refCntrBed
+        File refCntrCtBed
     }
     call secphase_t.runSecPhase as secphase{
         input:
@@ -52,7 +53,8 @@ workflow FlaggerEndToEnd{
             biasedBlocksNameStringArray = refBiasedRegionNameArray,
             refSexBed = refSexBed,
             refSDBed = refSDBed,
-            refCntrBed = refCntrBed
+            refCntrBed = refCntrBed,
+            refCntrCtBed = refCntrCtBed
     }
     call flagger_t.runFlagger as flagger{
         input:
