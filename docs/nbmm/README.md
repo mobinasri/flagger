@@ -10,18 +10,18 @@ It has four main components;
 - Haploid
 - Collapsed
 
-Each of the first three components are modeled by a single NB component. The collapsed components is modeled by a series of NB distributions (subcomponents).
+Each of the first three components is modeled by a single NB distribution. The collapsed components is modeled by a series of NB distributions (subcomponents).
 The means and variances of the falsely duplicated and haploid components and also the collapsed subcomponents are tied together.
 Mean and variance of the falsely duplicated component is half of the haploid component. The mean and variance of the collapsed subcomponents are also tied 
 to the haploid component by integer factors greater than 1.
-The Erroneous component is modeded by a NB component whose parameters are independent from all the other components.
+The Erroneous component is modeled by a NB distribution whose parameters are independent from all the other components.
 
 ### Docker
 The script is available in the docker image `mobinasri/flagger:v0.2`. It is recommended to use this image for running the program.
 
 
 ## Run program on real data
-If we have a coverage counts data it should be saved in a tab delimited file with this format to be readable by the program:
+If we have a coverage counts data it should be saved in a tab-delimited file with this format to be readable by the program:
 ```
 0	40
 1	37
@@ -41,17 +41,17 @@ If we have a coverage counts data it should be saved in a tab delimited file wit
 15	720
 ```
 The first column has the coverage value and the second column has the related frequency.
-You can fit the model with this command:
+We can fit the model with this command:
 ```
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
  mobinasri/flagger:v0.2 \
- python3 fit_mixture_nb.py \
+ python3 /home/programs/src/fit_nbmm.py \
  --include-dup-comp \
  --counts ${INPUT_DIR}/coverage.counts \
- --info "Some title text" \
- --out-prefix "${OUTPUT_DIR}/${ANALYSIS_NAME}"
+ --info "${ANALYSIS_NAME}" \
+ --out-dir "${OUTPUT_DIR}/${ANALYSIS_NAME}"
 ```
 `${INPUT_DIR}/coverage.counts` is the tab-delimited file shown above. The program has an option to include falsely duplicated component `--include-dup-comp` otherwise it does not consider this component.
 It will create the output directory `${OUTPUT_DIR}/${ANALYSIS_NAME}` and put all the output tables and figures in this directory.
@@ -63,8 +63,7 @@ Here is the list of output files:
 
 ## Run program on simulated data
 
-It is also possible to simulate data and fit model to the simulated data. To do this the option `--simulate` should be enabled. To specify the generator model
-all the parameters that start with `--simulate-` can be used:
+It is also possible to simulate data and fit model to the simulated data. To do this the option `--simulate` should be enabled. To specify the generator model the parameters that start with `--simulate-` can be used:
 ```
   --simulate-max-ploidy SIMULATE_MAX_PLOIDY
                         Maximum ploidy in simulated data (should be greater
@@ -91,13 +90,13 @@ all the parameters that start with `--simulate-` can be used:
                         Number of simulated observations [Default = 10000]
 ```
 
-You can run the program in the simulation mode by an example command like below:
+We can run the program in the simulation mode by an example command like below:
 ```
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
  mobinasri/flagger:v0.2 \
- python3 fit_mixture_nb.py \
+ python3 /home/programs/src/fit_nbmm.py \
  --include-dup-comp \
  --simulate \
  --simulate-include-dup-comp \
