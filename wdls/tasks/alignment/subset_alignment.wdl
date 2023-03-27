@@ -10,6 +10,7 @@ workflow runSubsetAlignment{
 task subsetAlignment {
     input {
         File inputBam
+        File inputBai
         String region
         String suffix
         # runtime configurations
@@ -36,7 +37,8 @@ task subsetAlignment {
         BAM_PREFIX=${BAM_FILENAME%.bam}
        
         ln ~{inputBam} ${BAM_PREFIX}.bam
-        samtools index ${BAM_PREFIX}.bam
+        ln ~{inputBai} ${BAM_PREFIX}.bam.bai
+        #samtools index ${BAM_PREFIX}.bam
 
         mkdir output
         samtools view -hb ${BAM_PREFIX}.bam ~{region} > output/${BAM_PREFIX}.~{suffix}.bam 
