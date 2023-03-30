@@ -37,6 +37,7 @@ task project {
         String suffix
         String mode
         Int mergingMargin = 1
+        Boolean mergeOutput=true
         # The parameter, isAssemblySplit, is added to handle rare cases where 
         # the assembly contigs are split. For example for HG002_T2T_v0.6 assembly
         # the minimap2/winnowmap took forever for aligning to chm13 so splitting 
@@ -66,11 +67,23 @@ task project {
         mkdir output
         if [[ ~{isAssemblySplit} == "false" ]]
         then
-            bedtools sort -i projection.bed | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+            bedtools sort -i projection.bed > output/output.tmp.bed
+            if [[ ~{mergeOutput} == "false" ]]
+            then
+                mv output/output.tmp.bed output/${OUTPUT_FILENAME}
+            else
+                bedtools merge -d ~{mergingMargin} -i output/output.tmp.bed > output/${OUTPUT_FILENAME}
+            fi
         else
             # Convert bed coordinates to the originial one if assembly was split before alignment
             python3 /home/programs/src/convert_bed_coors.py projection.bed > projection_orig_coors.bed
-            bedtools sort -i projection_orig_coors.bed | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+            bedtools sort -i projection_orig_coors.bed > output/output.tmp.bed 
+            if [[ ~{mergeOutput} == "false" ]]
+            then
+                mv output/output.tmp.bed output/${OUTPUT_FILENAME}
+            else
+                bedtools merge -d ~{mergingMargin} -i output/output.tmp.bed > output/${OUTPUT_FILENAME}
+            fi
         fi
 
     >>>
