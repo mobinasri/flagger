@@ -124,9 +124,9 @@ def main():
                         fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(contigName, qBlock[0] - 1, qBlock[1], qBlock[3], qBlock[2]))
                 else:  # skip divergence ratio
                     for rBlock in rBlocks:
-                        fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(chromName, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
+                        fRef.write("{}\t{}\t{}\t{}\n".format(chromName, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
                     for qBlock in qBlocks:
-                        fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(contigName, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
+                        fQuery.write("{}\t{}\t{}\t{}\n".format(contigName, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
             else: # mode = "ref2asm"
                 if printDiv == True: # print divergence percentage in the 4th column
                     for rBlock in rBlocks:
@@ -135,8 +135,8 @@ def main():
                         fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(chromName, qBlock[0] - 1, qBlock[1], rBlock[3], qBlock[2]))
                 else: # skip divergence ratio
                     for rBlock in rBlocks:
-                        fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(contigName, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
+                        fRef.write("{}\t{}\t{}\t{}\n".format(contigName, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
                     for qBlock in qBlocks:
-                        fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(chromName, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
+                        fQuery.write("{}\t{}\t{}\t{}\n".format(chromName, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
 main()
 
