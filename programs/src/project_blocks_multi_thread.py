@@ -127,16 +127,16 @@ def main():
                 ctgQuery = chromName
             for rBlock in rBlocks:
                 if flagger:
-                    rBlock[2][3] = rBlock[0] - 1
-                    rBlock[2][4] = rBlock[1]
+                    rBlock[2][3] = str(rBlock[0] - 1)
+                    rBlock[2][4] = str(rBlock[1])
                 if printDiv == True:
                     fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], rBlock[3], "\t".join(rBlock[2])))
                 else:
                     fRef.write("{}\t{}\t{}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
             for qBlock in qBlocks:
                 if flagger: 
-                    qBlock[2][3] = qBlock[0] - 1
-                    qBlock[2][4] = qBlock[1]
+                    qBlock[2][3] = str(qBlock[0] - 1)
+                    qBlock[2][4] = str(qBlock[1])
                 if printDiv == True:
                     fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgQuery, qBlock[0] - 1, qBlock[1], qBlock[3], "\t".join(qBlock[2])))
                 else:
