@@ -37,7 +37,6 @@ def runProjection(line, mode, blocks):
                                             alignment.contigLength,
                                             alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
                                             alignment.orientation)
-
     return [chromName, contigName, qBlocks, rBlocks]
 
 def runProjectionParallel(pafPath, mode, blocks, threads):
@@ -73,8 +72,10 @@ def main():
                     help='(BED format) A path for saving the projections of the query blocks.Note that the lines may not be sorted and may have overlaps because of its correspondence with the projected bed file. The 4-th column contains the disimilarity percentage = (indels + mismatches)/(projection block length) * 100. The 5-th column contains other info if present in the input bed file. It is recommended to run bedtools sort (and merge) on this output')
     parser.add_argument('--threads', type=int,
                     help='Number of threads')
-    parser.add_argument('--divergence',
+    parser.add_argument('--divergence', action='store_true',
                     help='Print divergence percentage (between asm and ref block) as the 4th column in the output bed file')
+    parser.add_argument('--flagger', action='store_true',
+                    help='Only use when the input bed file in the output of flagger. It will add similar fields to the output bed file.')
     
     # Fetch the arguments
     args = parser.parse_args()
@@ -85,6 +86,7 @@ def main():
     outputProjection = args.outputProjection
     threads = args.threads
     printDiv = args.divergence
+    flagger = args.flagger
 
     # Save the track line if there is one
     trackLine = None
@@ -112,31 +114,32 @@ def main():
             contigName = res[1]
             qBlocks = res[2]
             rBlocks = res[3]
+
             if trackLine != None: # write track line if there was any
                 fRef.write(f"{trackLine}\n")
                 fQuery.write(f"{trackLine}\n")
 
             if mode == "asm2ref":
-                if printDiv == True: # print divergence percentage in the 4th column
-                    for rBlock in rBlocks:
-                        fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(chromName, rBlock[0] - 1, rBlock[1], rBlock[3], rBlock[2]))
-                    for qBlock in qBlocks:
-                        fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(contigName, qBlock[0] - 1, qBlock[1], qBlock[3], qBlock[2]))
-                else:  # skip divergence ratio
-                    for rBlock in rBlocks:
-                        fRef.write("{}\t{}\t{}\t{}\n".format(chromName, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
-                    for qBlock in qBlocks:
-                        fQuery.write("{}\t{}\t{}\t{}\n".format(contigName, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
-            else: # mode = "ref2asm"
-                if printDiv == True: # print divergence percentage in the 4th column
-                    for rBlock in rBlocks:
-                        fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(contigName, rBlock[0] - 1, rBlock[1], rBlock[3], rBlock[2]))
-                    for qBlock in qBlocks:
-                        fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(chromName, qBlock[0] - 1, qBlock[1], rBlock[3], qBlock[2]))
-                else: # skip divergence ratio
-                    for rBlock in rBlocks:
-                        fRef.write("{}\t{}\t{}\t{}\n".format(contigName, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
-                    for qBlock in qBlocks:
-                        fQuery.write("{}\t{}\t{}\t{}\n".format(chromName, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
+                ctgRef = chromName
+                ctgQuery = contigName
+            else:
+                ctgRef = contigName
+                ctgQuery = chromName
+            for rBlock in rBlocks:
+                if flagger:
+                    rBlock[2][3] = rBlock[0] - 1
+                    rBlock[2][4] = rBlock[1]
+                if printDiv == True:
+                    fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], rBlock[3], "\t".join(rBlock[2])))
+                else:
+                    fRef.write("{}\t{}\t{}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
+            for qBlock in qBlocks:
+                if flagger: 
+                    qBlock[2][3] = qBlock[0] - 1
+                    qBlock[2][4] = qBlock[1]
+                if printDiv == True:
+                    fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgQuery, qBlock[0] - 1, qBlock[1], qBlock[3], "\t".join(qBlock[2])))
+                else:
+                    fQuery.write("{}\t{}\t{}\t{}\n".format(ctgQuery, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
 main()
 
