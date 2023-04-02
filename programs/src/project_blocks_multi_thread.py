@@ -95,7 +95,7 @@ def main():
     with open(blocksPath,"r") as f:
         for line in f:
             if line.startswith("track name"):
-                trackLine = line
+                trackLine = line.strip()
                 continue
             attrbs = line.strip().split()
             contigName = attrbs[0]
@@ -109,15 +109,16 @@ def main():
 
     # Read the alignments one by one and for each of them find the projections by calling findProjections
     with open(outputProjection, "w") as fRef, open(outputProjectable, "w") as fQuery:
+        if trackLine != None: # write track line if there was any
+                fRef.write(f"{trackLine}\n")
+                fQuery.write(f"{trackLine}\n")
+
         for res in results:
             chromName = res[0]
             contigName = res[1]
             qBlocks = res[2]
             rBlocks = res[3]
 
-            if trackLine != None: # write track line if there was any
-                fRef.write(f"{trackLine}\n")
-                fQuery.write(f"{trackLine}\n")
 
             if mode == "asm2ref":
                 ctgRef = chromName
