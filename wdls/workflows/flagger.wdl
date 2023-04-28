@@ -24,9 +24,9 @@ workflow runFlagger{
         #     for the given bed files (e.g. [0.75, 1.25])
         #     Each factor will be used to be multiplied by covFloat and
         #     obtain the expected coverage
-        Array[File] biasedRegionBedArray 
-        Array[String] biasedRegionNameArray
-        Array[Float] biasedRegionFactorArray
+        Array[File] biasedRegionBedArray = [] 
+        Array[String] biasedRegionNameArray = []
+        Array[Float] biasedRegionFactorArray = []
         File coverageGz
         File highMapqCoverageGz
         File fai
