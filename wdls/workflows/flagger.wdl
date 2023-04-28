@@ -449,8 +449,9 @@ task mergeHsatBeds {
             done
         else
             mkdir hsat_based
+            PREFIX="empty"
             for comp in error haploid duplicated collapsed; do
-                touch hsat_based/$PREFIX.hsat_based.${comp}.bed
+                touch hsat_based/${PREFIX}.hsat_based.${comp}.bed
             done
         fi
         tar -cf ${PREFIX}.beds.hsat_based.tar hsat_based
