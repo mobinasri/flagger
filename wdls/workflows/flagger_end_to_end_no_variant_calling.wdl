@@ -14,6 +14,7 @@ workflow FlaggerEndToEndNoVariantCalling{
         File hap2ToRefBam
         String secphaseDockerImage
         String secphaseOptions
+        String secphaseVersion
         Float maxReadDivergence
         String sampleName
         String suffix
@@ -32,7 +33,8 @@ workflow FlaggerEndToEndNoVariantCalling{
             inputBam = readAlignmentBam,
             diploidAssemblyFastaGz = assemblyFastaGz,
             secphaseOptions = secphaseOptions,
-            secphaseDockerImage = secphaseDockerImage
+            secphaseDockerImage = secphaseDockerImage,
+            version = secphaseVersion
     }
     call preprocess_t.runFlaggerPreprocess as preprocess{
         input:
