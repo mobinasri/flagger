@@ -2,8 +2,6 @@ version 1.0
 
 import "flagger.wdl" as flagger_t
 import "flagger_preprocess_no_variant_calling.wdl" as preprocess_t
-import "../tasks/other/project_blocks_for_flagger.wdl" as project_t
-import "../tasks/other/flagger_stats.wdl" as stats_t
 import "../../ext/secphase/wdls/workflows/secphase.wdl" as secphase_t
 
 workflow FlaggerEndToEndNoVariantCallingNoRef{
@@ -12,10 +10,10 @@ workflow FlaggerEndToEndNoVariantCallingNoRef{
         File readAlignmentBam
         String secphaseDockerImage
         String secphaseOptions
+        String secphaseVersion
         Float maxReadDivergence
         String sampleName
         String suffix
-        String refName
         File fai
     }
     call secphase_t.runSecPhase as secphase{
@@ -23,7 +21,8 @@ workflow FlaggerEndToEndNoVariantCallingNoRef{
             inputBam = readAlignmentBam,
             diploidAssemblyFastaGz = assemblyFastaGz,
             secphaseOptions = secphaseOptions,
-            secphaseDockerImage = secphaseDockerImage
+            secphaseDockerImage = secphaseDockerImage,
+            version = secphaseVersion
     }
     call preprocess_t.runFlaggerPreprocess as preprocess{
         input:
