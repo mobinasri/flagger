@@ -16,7 +16,7 @@ task getPhasedReadIds{
         Int memSize=16
         Int threadCount=4
         Int diskSize=256
-        String dockerImage="mobinasri/secphase:v0.1"
+        String dockerImage="mobinasri/secphase:v0.2.0"
         Int preemptible=2
     }
     command <<<
