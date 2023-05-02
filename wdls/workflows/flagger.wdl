@@ -24,9 +24,9 @@ workflow runFlagger{
         #     for the given bed files (e.g. [0.75, 1.25])
         #     Each factor will be used to be multiplied by covFloat and
         #     obtain the expected coverage
-        Array[File] biasedRegionBedArray 
-        Array[String] biasedRegionNameArray
-        Array[Float] biasedRegionFactorArray
+        Array[File] biasedRegionBedArray = [] 
+        Array[String] biasedRegionNameArray = []
+        Array[Float] biasedRegionFactorArray = []
         File coverageGz
         File highMapqCoverageGz
         File fai
@@ -37,23 +37,26 @@ workflow runFlagger{
         String suffix = "flagger"
         Int cov2countsDiskSizeGB = 512
     }
-    scatter (biasedRegionData in zip(biasedRegionBedArray, zip(biasedRegionNameArray, biasedRegionFactorArray))){
-        File biasedRegionBed = biasedRegionData.left
-        String biasedRegionName = biasedRegionData.right.left
-        Float biasedRegionFactor = biasedRegionData.right.right
-        call bedtools_t.merge {
-            input:
-                bed = biasedRegionBed,
-                margin = 50000,
-                outputPrefix = basename(biasedRegionBed, ".bed")
+
+    if (length(biasedRegionBedArray) != 0){
+        scatter (biasedRegionData in zip(biasedRegionBedArray, zip(biasedRegionNameArray, biasedRegionFactorArray))){
+            File biasedRegionBed = biasedRegionData.left
+            String biasedRegionName = biasedRegionData.right.left
+            Float biasedRegionFactor = biasedRegionData.right.right
+            call bedtools_t.merge {
+                input:
+                    bed = biasedRegionBed,
+                    margin = 50000,
+                    outputPrefix = basename(biasedRegionBed, ".bed")
+            }
+            call fit_model_bed_t.runFitModelBed as biasedRegionModels {
+                input:
+                    bed = merge.mergedBed,
+                    suffix = biasedRegionName,
+                    coverageGz = coverageGz,
+                    covFloat = covFloat * biasedRegionFactor
+            }
         }
-        call fit_model_bed_t.runFitModelBed as biasedRegionModels {
-            input:
-                bed = merge.mergedBed,
-                suffix = biasedRegionName,
-                coverageGz = coverageGz,
-                covFloat = covFloat * biasedRegionFactor
-         }
     }
     call mergeHsatBeds {
         input:
@@ -411,7 +414,7 @@ task filterBeds {
 
 task mergeHsatBeds {
     input {
-        Array[File] bedsTarGzArray
+        Array[File]? bedsTarGzArray
         # runtime configurations
         Int memSize=4
         Int threadCount=2
@@ -431,20 +434,26 @@ task mergeHsatBeds {
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
 
-         
-        FILENAMES=(~{sep=" " bedsTarGzArray})
-        FILENAME=${FILENAMES[0]}
-        PREFIX=$(basename ${FILENAME%.*.*.tar.gz})
+        if [[ -n "~{sep="" bedsTarGzArray}" ]]; then 
+            FILENAMES=(~{sep=" " bedsTarGzArray})
+            FILENAME=${FILENAMES[0]}
+            PREFIX=$(basename ${FILENAME%.*.*.tar.gz})
 
-        mkdir hsat_unmerged hsat_based
-        for s in ~{sep=" " bedsTarGzArray}; do
-            tar --strip-components 1 -xvzf $s --directory hsat_unmerged
-        done
+            mkdir hsat_unmerged hsat_based
+            for s in ~{sep=" " bedsTarGzArray}; do
+                tar --strip-components 1 -xvzf $s --directory hsat_unmerged
+            done
  
-        for comp in error haploid duplicated collapsed; do
-            cat hsat_unmerged/*.${comp}.bed | sort -k1,1 -k2,2n | bedtools merge -i - > hsat_based/$PREFIX.hsat_based.${comp}.bed
-        done
-         
+            for comp in error haploid duplicated collapsed; do
+                cat hsat_unmerged/*.${comp}.bed | sort -k1,1 -k2,2n | bedtools merge -i - > hsat_based/$PREFIX.hsat_based.${comp}.bed
+            done
+        else
+            mkdir hsat_based
+            PREFIX="empty"
+            for comp in error haploid duplicated collapsed; do
+                touch hsat_based/${PREFIX}.hsat_based.${comp}.bed
+            done
+        fi
         tar -cf ${PREFIX}.beds.hsat_based.tar hsat_based
         gzip ${PREFIX}.beds.hsat_based.tar
     >>>

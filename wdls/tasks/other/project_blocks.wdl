@@ -37,6 +37,8 @@ task project {
         String suffix
         String mode
         Int mergingMargin = 1
+        String projectOptions = "--divergence"
+        Boolean mergeOutput=true
         # The parameter, isAssemblySplit, is added to handle rare cases where 
         # the assembly contigs are split. For example for HG002_T2T_v0.6 assembly
         # the minimap2/winnowmap took forever for aligning to chm13 so splitting 
@@ -47,7 +49,7 @@ task project {
         Int memSize=4
         Int threadCount=8
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.2"
+        String dockerImage="mobinasri/flagger:dev-v0.1"
         Int preemptible=2
     }
     command <<<
@@ -62,15 +64,27 @@ task project {
             OUTPUT_FILENAME=~{sampleName}.~{suffix}.bed
         fi
 
-        python3 ${PROJECT_BLOCKS_MULTI_THREADED_PY} --mode ~{mode} --paf ~{asm2refPaf} --blocks ~{blocksBed} --outputProjectable projectable.bed --outputProjection projection.bed --threads ~{threadCount}
+        python3 ${PROJECT_BLOCKS_MULTI_THREADED_PY} ~{projectOptions} --mode ~{mode} --paf ~{asm2refPaf} --blocks ~{blocksBed} --outputProjectable projectable.bed --outputProjection projection.bed --threads ~{threadCount}
         mkdir output
         if [[ ~{isAssemblySplit} == "false" ]]
         then
-            bedtools sort -i projection.bed | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+            bedtools sort -i projection.bed > output/output.tmp.bed
+            if [[ ~{mergeOutput} == "false" ]]
+            then
+                mv output/output.tmp.bed output/${OUTPUT_FILENAME}
+            else
+                bedtools merge -d ~{mergingMargin} -i output/output.tmp.bed > output/${OUTPUT_FILENAME}
+            fi
         else
             # Convert bed coordinates to the originial one if assembly was split before alignment
             python3 /home/programs/src/convert_bed_coors.py projection.bed > projection_orig_coors.bed
-            bedtools sort -i projection_orig_coors.bed | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+            bedtools sort -i projection_orig_coors.bed > output/output.tmp.bed 
+            if [[ ~{mergeOutput} == "false" ]]
+            then
+                mv output/output.tmp.bed output/${OUTPUT_FILENAME}
+            else
+                bedtools merge -d ~{mergingMargin} -i output/output.tmp.bed > output/${OUTPUT_FILENAME}
+            fi
         fi
 
     >>>

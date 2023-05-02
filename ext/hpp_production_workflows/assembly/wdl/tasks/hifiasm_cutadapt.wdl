@@ -3,17 +3,23 @@ version 1.0
 import "../../../QC/wdl/tasks/extract_reads.wdl" as extractReads_t
 import "../../../QC/wdl/tasks/arithmetic.wdl" as arithmetic_t
 import "filter_hifi_adapter.wdl" as adapter_t
-import "tar.wdl" as tar_t
+import "filter_short_reads.wdl" as filter_short_reads_t
 
 workflow runTrioHifiasm{
     input {
         File paternalYak
         File maternalYak
         Array[File] childReadsHiFi
+        Array[File] childReadsONT=[]
+        Int? homCov
+        Int minOntReadLength=100000
+        Int minHiFiReadLength=1
         String childID
         String? hifiasmExtraOptions
         File? inputBinFilesTarGz
         File? referenceFasta
+        Boolean filterAdapters
+        Int removeLastFastqLines
         Int memSizeGB
         Int threadCount
         Int preemptible
@@ -23,7 +29,7 @@ workflow runTrioHifiasm{
     }
 
     scatter (readFile in childReadsHiFi) {
-        call extractReads_t.extractReads as childReadsExtracted {
+        call extractReads_t.extractReads as childReadsHiFiExtracted {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
@@ -32,29 +38,71 @@ workflow runTrioHifiasm{
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
         }
-        call adapter_t.cutadapt as filterAdapter {
+        # filter short HiFi reads
+        call filter_short_reads_t.filterShortReads as extractLongHiFiReads{
             input:
-                readFastq = childReadsExtracted.extractedRead,
-                diskSizeGB = fileExtractionDiskSizeGB
-        } 
+                readFastq = childReadsHiFiExtracted.extractedRead,
+                diskSizeGB = fileExtractionDiskSizeGB,
+                minReadLength = minHiFiReadLength
+        }
+        if (filterAdapters){
+            call adapter_t.cutadapt as filterAdapterHiFi {
+                input:
+                    readFastq = extractLongHiFiReads.longReadFastq,
+                    removeLastLines = removeLastFastqLines,
+                    diskSizeGB = fileExtractionDiskSizeGB
+            } 
+        }
+        File hifiProcessed = select_first([filterAdapterHiFi.filteredReadFastq, extractLongHiFiReads.longReadFastq])
     }
 
-    call arithmetic_t.sum as childReadSize {
-        input:
-            integers=filterAdapter.fileSizeGB
+    # if ONT reads are provided
+    if ("${sep="" childReadsONT}" != ""){
+        scatter (readFile in childReadsONT) {
+            call extractReads_t.extractReads as childReadsOntExtracted {
+                input:
+                    readFile=readFile,
+                    referenceFasta=referenceFasta,
+                    memSizeGB=4,
+                    threadCount=4,
+                    diskSizeGB=fileExtractionDiskSizeGB,
+                    dockerImage=dockerImage
+            }
+            # filter ONT reads to get UL reads
+            call filter_short_reads_t.filterShortReads as extractUltraLongReads{
+                input:
+                    readFastq = childReadsOntExtracted.extractedRead,
+                    diskSizeGB = fileExtractionDiskSizeGB,
+                    minReadLength = minOntReadLength
+            }
+         }
+         call arithmetic_t.sum as childReadULSize {
+             input:
+                 integers=extractUltraLongReads.fileSizeGB
+         }
     }
+
+    call arithmetic_t.sum as childReadHiFiSize {
+        input:
+            integers=extractLongHiFiReads.fileSizeGB
+    }
+
+    # if no ONT data is provided then it would be zero
+    Int readULSize = select_first([childReadULSize.value, 0])
 
     call trioHifiasm {
         input:
             paternalYak=paternalYak,
             maternalYak=maternalYak,
-            childReadsHiFi=filterAdapter.filteredReadFastq,
+            childReadsHiFi=hifiProcessed,
+            childReadsUL=extractUltraLongReads.longReadFastq, # optional argument
+            homCov = homCov,
             childID=childID,
             extraOptions=hifiasmExtraOptions,
             inputBinFilesTarGz=inputBinFilesTarGz,
             memSizeGB=memSizeGB,
             threadCount=threadCount,
-            diskSizeGB= floor(childReadSize.value * 2.5),
+            diskSizeGB= floor((childReadHiFiSize.value + readULSize) * 2.5) + 64,
             preemptible=preemptible,
             dockerImage=dockerImage,
             zones = zones
@@ -74,6 +122,8 @@ task trioHifiasm {
         File paternalYak
         File maternalYak
         Array[File] childReadsHiFi
+        Array[File]? childReadsUL
+        Int? homCov
         String childID
 	String? extraOptions
         File? inputBinFilesTarGz
@@ -110,8 +160,14 @@ task trioHifiasm {
         rm -rf ~{sep=" " childReadsHiFi}
 
         ## run trio hifiasm https://github.com/chhylp123/hifiasm
-        hifiasm ~{extraOptions} -o ~{childID} -t~{threadCount} -1 ~{paternalYak} -2 ~{maternalYak} ~{childID}.fastq
-        
+        # If ONT ultra long reads are provided
+        if [[ -n "~{sep="" childReadsUL}" ]];
+        then
+            hifiasm ~{extraOptions} -o ~{childID} --ul ~{sep="," childReadsUL} --hom-cov ~{homCov} -t~{threadCount} -1 ~{paternalYak} -2 ~{maternalYak} ~{childID}.fastq 
+        else 
+            hifiasm ~{extraOptions} -o ~{childID} -t~{threadCount} -1 ~{paternalYak} -2 ~{maternalYak} ~{childID}.fastq
+        fi
+
         #Move bin and gfa files to saparate folders and compress them 
         mkdir ~{childID}.raw_unitig_gfa
         mkdir ~{childID}.pat.contig_gfa
@@ -147,11 +203,12 @@ task trioHifiasm {
     }
 
     output {
-        File outputPaternalGfa = "~{childID}.dip.hap1.p_ctg.gfa"
-        File outputMaternalGfa = "~{childID}.dip.hap2.p_ctg.gfa"
+        File outputPaternalGfa = glob("*.hap1.p_ctg.gfa")[0]
+        File outputMaternalGfa = glob("*.hap2.p_ctg.gfa")[0]
         File outputPaternalContigGfa = "~{childID}.pat.contig_gfa.tar.gz"
         File outputMaternalContigGfa = "~{childID}.mat.contig_gfa.tar.gz"
         File outputRawUnitigGfa = "~{childID}.raw_unitig_gfa.tar.gz"
         File outputBinFiles = "~{childID}.binFiles.tar.gz"
     }
 }
+

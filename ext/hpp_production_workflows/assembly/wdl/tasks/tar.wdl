@@ -11,7 +11,7 @@ task tarGz {
         Int memSize=16
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="tpesout/hpp_base:latest"
+        String dockerImage="mobinasri/bio_base:v0.1"
         Int preemptible=2
     }
     command <<<

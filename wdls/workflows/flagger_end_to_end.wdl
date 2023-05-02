@@ -26,6 +26,7 @@ workflow FlaggerEndToEnd{
         File refSexBed
         File refSDBed
         File refCntrBed
+        File refCntrCtBed
     }
     call secphase_t.runSecPhase as secphase{
         input:
@@ -52,7 +53,8 @@ workflow FlaggerEndToEnd{
             biasedBlocksNameStringArray = refBiasedRegionNameArray,
             refSexBed = refSexBed,
             refSDBed = refSDBed,
-            refCntrBed = refCntrBed
+            refCntrBed = refCntrBed,
+            refCntrCtBed = refCntrCtBed
     }
     call flagger_t.runFlagger as flagger{
         input:
@@ -80,7 +82,7 @@ workflow FlaggerEndToEnd{
     }
     call stats_t.flaggerStats as stats{
         input:
-            fai = fai,
+            fastaGz = assemblyFastaGz,
             flaggerBed = flagger.finalBed,
             difficultBed_1 = project.projectionCntrBed,
             difficultString_1 = "Cntr",
@@ -92,7 +94,7 @@ workflow FlaggerEndToEnd{
     }
     call stats_t.flaggerStats as stats_alt_removed{
         input:
-            fai = fai,
+            fastaGz = assemblyFastaGz,
             flaggerBed = flagger_alt_removed.finalBed,
             difficultBed_1 = project.projectionCntrBed,
             difficultString_1 = "Cntr",

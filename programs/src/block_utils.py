@@ -245,7 +245,6 @@ def findProjections(mode, cigarList, forwardBlocks,
                 # Note that one base before the insertion is absolutely an M
                 projectionEndPos = currOpStartRef - 1
                 projectableEndPos = currOpStartContig - 1
-                diff += min(blocks[blockIdx][1], nextOpStartContig - 1) - max(blocks[blockIdx][0], currOpStartContig) + 1
                 info = blocks[blockIdx][2]
                 r = diff/ (projectionEndPos - projectionStartPos + 1) * 100
                 projectionBlocks.append((projectionStartPos, projectionEndPos, info, r))
@@ -262,12 +261,12 @@ def findProjections(mode, cigarList, forwardBlocks,
             # the initial inserted part is not projectable onto the reference so we start 
             # from the next operation (which should be an M)
             if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig):
-                diff += min(blocks[blockIdx][1], nextOpStartContig - 1) - max(blocks[blockIdx][0], currOpStartContig) + 1
                 projectionStartPos = currOpStartRef
                 projectableStartPos = nextOpStartContig
         # Case 3: Deletion
         elif cigarOp == 'D':
-            if blocks[blockIdx][0] <= nextOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
+            # if deletion is completely within the block
+            if blocks[blockIdx][0] < nextOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
                 diff += cigarSize
             nextOpStartRef += cigarSize
     # Note that nextOpStart(Contig | Ref) are not pointing to any cigar operation at this moment

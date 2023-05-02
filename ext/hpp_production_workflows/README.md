@@ -3,6 +3,8 @@
 This repository holds WDL workflows and Docker build scripts for 
 production workflows used by the [Human Pangenome Project](https://humanpangenome.org/).
 
+All WDLs and containers created in this repository are licensed under the MIT license. The underlying tools (that the WDLs and containers run) are likely covered under one or more Free and Open Source Software licenses, but we cannot make any guarantees to that fact.
+
 ### Organization
 The repo is split into assembly and QC workflows with the following organization:
 

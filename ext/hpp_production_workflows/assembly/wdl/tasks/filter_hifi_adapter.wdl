@@ -111,10 +111,11 @@ task filterHiFiAdapter {
 task cutadapt {
     input{
         File readFastq
+        Int removeLastLines # added since deepconsensus fastq files had some redundant lines (3 lines)
         # runtime configurations
         Int memSizeGB=32
         Int threadCount=16
-        Int diskSizeGB=128
+        Int diskSizeGB=512
         Int preemptible=1
         String dockerImage="quay.io/masri2019/hpp_hifi_adapter_filt:latest"
     }
@@ -134,7 +135,7 @@ task cutadapt {
         cd data
         FILENAME=$(basename -- "~{readFastq}")
         PREFIX="${FILENAME%.*}"
-        ln ~{readFastq} ${PREFIX}.fastq
+        head -n -~{removeLastLines} ~{readFastq} > ${PREFIX}.fastq
         cutadapt -b "AAAAAAAAAAAAAAAAAATTAACGGAGGAGGAGGA;min_overlap=35" \
          -b "ATCTCTCTCTTTTCCTCCTCCTCCGTTGTTGTTGTTGAGAGAGAT;min_overlap=45" \
          --discard-trimmed -o ${PREFIX}.filt.fastq ${PREFIX}.fastq -j ~{threadCount} --revcomp -e 0.05

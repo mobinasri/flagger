@@ -27,10 +27,11 @@ task extractReads {
     input {
         File readFile
         File? referenceFasta
+        String excludeString="" # exclude lines with this string from fastq
+        String fastqOptions = ""
         Int memSizeGB = 4
         Int threadCount = 8
         Int diskSizeGB = 128
-        String fastqOptions = ""
         String dockerImage = "mobinasri/bio_base:dev-v0.1"
     }
 
@@ -67,13 +68,24 @@ task extractReads {
         elif [[ "$SUFFIX" == "gz" ]] ; then
             gunzip -k -c ~{readFile} > output/${PREFIX}
         elif [[ "$SUFFIX" == "fastq" ]] || [[ "$SUFFIX" == "fq" ]] ; then
-            ln ~{readFile} output/${PREFIX}
+            ln ~{readFile} output/${PREFIX}.fq
         elif [[ "$SUFFIX" != "fastq" ]] && [[ "$SUFFIX" != "fq" ]] && [[ "$SUFFIX" != "fasta" ]] && [[ "$SUFFIX" != "fa" ]] ; then
             echo "Unsupported file type: ${SUFFIX}"
             exit 1
         fi
 
-        OUTPUTSIZE=`du -s -BG output/ | sed 's/G.*//'`
+
+        mkdir output_final
+        OUTPUT_NAME=$(ls output)
+
+        if [ "~{excludeString}" != "" ]; then
+            cat output/${OUTPUT_NAME} | grep -v "~{excludeString}" > output_final/${OUTPUT_NAME}
+        else
+            ln output/${OUTPUT_NAME} output_final/${OUTPUT_NAME}
+        fi
+        
+
+        OUTPUTSIZE=`du -s -BG output_final/ | sed 's/G.*//'`
         if [[ "0" == $OUTPUTSIZE ]] ; then
             OUTPUTSIZE=`du -s -BG ~{readFile} | sed 's/G.*//'`
         fi
@@ -81,7 +93,7 @@ task extractReads {
     >>>
 
     output {
-        File extractedRead = flatten([glob("output/*"), [readFile]])[0]
+        File extractedRead = flatten([glob("output_final/*"), [readFile]])[0]
         Int fileSizeGB = read_int("outputsize")
     }
 

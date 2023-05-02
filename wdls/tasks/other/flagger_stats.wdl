@@ -5,11 +5,12 @@ workflow runFlaggerStats{
     output{
         File flaggerStatsTsv = flaggerStats.flaggerStatsTsv
         File flaggerStatsPercOnlyTsv = flaggerStats.flaggerStatsPercOnlyTsv
+        File flaggerHapNgxText = flaggerStats.flaggerHapNgxText
     }
 }
 task flaggerStats {
     input {
-        File fai
+        File fastaGz
         File flaggerBed
         File difficultBed_1
         String difficultString_1
@@ -23,7 +24,7 @@ task flaggerStats {
         Int memSize=4
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/flagger:v0.2"
         Int preemptible=2
     }
     command <<<
@@ -38,8 +39,11 @@ task flaggerStats {
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
 
-        cat ~{fai} | awk '{print $1"\t0\t"$2}' | bedtools sort -i - > asm.bed
-        cat ~{fai} | awk '$2>~{minContigSize}{print $1"\t0\t"$2}' > asm_long.bed
+        ln ~{fastaGz} asm.fa.gz
+        gunzip -c asm.fa.gz > asm.fa
+        # ignore Ns
+        python3 /home/scripts/get_contig_coords.py --inputFasta asm.fa | bedtools sort -i - > asm.bed
+        cat asm.bed | awk '($3-$2)>~{minContigSize}{print $0}' > asm_long.bed
 
         bedtools intersect -a asm_long.bed -b ~{difficultBed_1} > diff_long_1.bed
         bedtools intersect -a asm_long.bed -b ~{difficultBed_2} > diff_long_2.bed
@@ -80,6 +84,10 @@ task flaggerStats {
             columns="${columns}\t${columns_curr}"
             values_2="${values_2}\t${values_curr_2}"
             columns_2="${columns_2}\t${columns_curr_2}"
+            # store sorted sizes of the Hap blocks
+            printf ${name}"\t" >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
+            bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Hap" | awk '{print $3-$2}' | sort -nk1,1 -r | tr '\n' ',' >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
+            printf "\n" >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
         done
 
         printf ${columns}"\n" > ~{sample}.~{prefix}.flagger_stats.tsv
@@ -99,5 +107,6 @@ task flaggerStats {
     output {
         File flaggerStatsTsv = glob("*flagger_stats.tsv")[0]
         File flaggerStatsPercOnlyTsv = glob("*perc_only.tsv")[0]
+        File flaggerHapNgxText = glob("*flagger.hap_ngx.txt")[0]
     }
 }

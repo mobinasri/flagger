@@ -23,6 +23,7 @@ stHash* get_read_name_table(char* read_names_path){
 		strcpy(key, read_name);
 		stHash_insert(read_name_table, key, key);
 	}
+    fclose(fp);
 	return read_name_table;
 }
 

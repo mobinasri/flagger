@@ -26,6 +26,9 @@ workflows:
    -  name: YakAsmStatsnoQV
       subclass: WDL
       primaryDescriptorPath: /QC/wdl/tasks/yak_no_qv.wdl
+   -  name: asmChrCompleteness
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/asm_chr_completeness.wdl
    -  name: Mash
       subclass: WDL
       primaryDescriptorPath: /QC/wdl/tasks/mash.wdl
@@ -58,6 +61,9 @@ workflows:
    -  name: StandardQCnoQV
       subclass: WDL
       primaryDescriptorPath: /QC/wdl/workflows/standard_qc_no_qv.wdl
+   -  name: StandardQCnonTrio
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/standard_qc_nontrio.wdl    
    -  name: FilterHiFiAdapter
       subclass: WDL
       primaryDescriptorPath: /assembly/wdl/tasks/filter_hifi_adapter.wdl
@@ -87,6 +93,12 @@ workflows:
    -  name: TrioHifiasmAssemblyYakInputCutadapt
       subclass: WDL
       primaryDescriptorPath: /assembly/wdl/workflows/trio_hifiasm_assembly_yak_input_cutadapt.wdl
+   -  name: TrioVerkkoAssembly
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/workflows/trio_verkko_assembly.wdl
+   -  name: TrioVerkkoAssemblyScatter
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/workflows/trio_verkko_assembly_scatter.wdl
    -  name: YakNoStats
       subclass: WDL
       primaryDescriptorPath: /assembly/wdl/tasks/yak_no_stats.wdl
@@ -99,6 +111,9 @@ workflows:
    -  name: StandardQCHaploid
       subclass: WDL
       primaryDescriptorPath: /QC/wdl/workflows/standard_qc_haploid.wdl
+   -  name: Primrose
+      subclass: WDL
+      primaryDescriptorPath: /data_processing/wdl/primrose.wdl
    -  name: Contamination
       subclass: WDL
       primaryDescriptorPath: /QC/wdl/tasks/contamination.wdl
@@ -117,3 +132,16 @@ workflows:
    -  name: Guppy
       subclass: WDL
       primaryDescriptorPath: /data_processing/wdl/scatterGuppy.wdl
+   -  name: BreakIntoContigs
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/break_into_contigs.wdl
+   -  name: LengthFilterFasta
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/len_filter_fasta.wdl
+   -  name: DownSampling
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/down_sampling.wdl
+   -  name: FilterShortReads
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/filter_short_reads.wdl
+
