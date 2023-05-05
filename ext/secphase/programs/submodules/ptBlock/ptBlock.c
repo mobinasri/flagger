@@ -339,6 +339,9 @@ void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path){
         // iterate over blocks in this contig
         for(int j = 0; j < stList_length(blocks); j++) {
             ptBlock* block = stList_get(blocks, j);
+            // it may happen when the whole projected variant block is within an insertion in another haplotype
+            // TODO: experiment if it can help to output these coordinates
+            if(block->rfe < block->rfs) continue;
             fprintf(fp, "%s\t%d\t%d\n", contig, block->rfs, block->rfe + 1); // end should be 1-based in BED
         }
 

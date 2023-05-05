@@ -69,6 +69,7 @@ stList *ptMarker_get_initial_markers(ptAlignment **alignments, int alignments_le
                 }
             }
         }
+        ptCigarIt_destruct(cigar_it);
     }
     return markers;
 }
@@ -200,6 +201,8 @@ void filter_ins_markers(stList **markers_p, ptAlignment **alignments, int alignm
     }
     stList_destruct(markers);
     *markers_p = keep_markers;
+    // free memory
+    free(markers_keep_flags);
 }
 
 
@@ -240,6 +243,8 @@ void remove_all_mismatch_markers(stList **markers_p, int alignments_len) {
     stList_destruct(markers);
     // update the list
     *markers_p = keep_markers;
+    // free
+    free(markers_keep_flags);
 }
 
 

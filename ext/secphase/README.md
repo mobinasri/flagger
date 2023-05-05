@@ -62,7 +62,7 @@ Two heuristics are applied for increasing specificity:
 
 ### How To Run The Phasing Program
 
-To run the phasing program it is recommended to use the docker image `mobinasri/secphase:v0.2.0`.
+To run the phasing program it is recommended to use the docker image `mobinasri/secphase:v0.3.0`.
 
 Here are the parameters `secphase` can accept:
 ```
@@ -96,7 +96,7 @@ samtools sort -n -@8 ${INPUT_DIR}/${BAM_PREFIX}.bam > ${INPUT_DIR}/${BAM_PREFIX}
 ## Phase reads for HiFi
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
-	mobinasri/secphase:v0.2.0 \
+	mobinasri/secphase:v0.3.0 \
 	secphase --hifi \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
 	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa > ${PHASING_OUT}.log
@@ -104,7 +104,7 @@ docker run \
 ## Phase reads for ONT
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
-	mobinasri/secphase:v0.2.0 \
+	mobinasri/secphase:v0.3.0 \
 	secphase --ont \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
 	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa > ${OUTPUT_DIR}/${PHASING_OUT}.log
@@ -129,7 +129,7 @@ Based on the initial letter of each line we can indentify the correct phasing of
 ### How To Run The Correction Program
 
 To swap the pri/sec tags of the reads reported in `${PHASING_OUT}.log` and produce a modified bam file you can run the program  `correct_bam`.
-Again it is recommended to run it using the docker image `mobinasri/secphase:v0.2.0`.
+Again it is recommended to run it using the docker image `mobinasri/secphase:v0.3.0`.
 
 Here are the parameters `correct_bam` can accept:
 ```
@@ -164,7 +164,7 @@ To produce the modified bam file: (Here the input bam file can be sorted by refe
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
 	-v ${OUTPUT_DIR}:${OUTPUT_DIR} \
-	mobinasri/secphase:v0.2.0 \
+	mobinasri/secphase:v0.3.0 \
 	correct_bam \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.bam \
 	-P ${INPUT_DIR}/${PHASING_OUT}.log \

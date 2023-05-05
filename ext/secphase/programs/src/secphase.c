@@ -100,8 +100,8 @@ int main(int argc, char *argv[]) {
     bool baq_flag = false;
     bool consensus = false;
     int indel_threshold = 10;
-    int min_q = 20;
-    int min_score = -50;
+    int min_q = 10;
+    int min_score = -10;
     double prim_margin_score = 40;
     double prim_margin_random = 0;
     int set_q = 40;
@@ -169,9 +169,9 @@ int main(int argc, char *argv[]) {
                 conf_b = 20;
                 min_q = 10;
                 set_q = 20;
-                prim_margin_score = 10;
+                prim_margin_score = 20;
                 prim_margin_random = 0;
-                min_score = -50;
+                min_score = -10;
                 break;
             case 'q':
                 baq_flag = true;
@@ -232,9 +232,9 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         --disableMarkerMode, -M         If alignments do not overlap with variants Secphase will not switch to marker mode\n");
                 fprintf(stderr,
-                        "         --hifi, -x         hifi preset params (only for marker mode) [-q -c -t10 -d 1e-4 -e 0.1 -b20 -m10 -s40 -p50 -r50 -n -50] (Only one of --hifi or --ont should be enabled)\n");
+                        "         --hifi, -x         hifi preset params (only for marker mode) [-q -c -t10 -d 1e-4 -e 0.1 -b20 -m10 -s40 -p40 -r0 -n -10] (Only one of --hifi or --ont should be enabled)\n");
                 fprintf(stderr,
-                        "         --ont, -y        ont present params (only for marker mode) [-q -c -t20 -d 1e-3 -e 0.1 -b20 -m10 -s20 -p10 -r10 -n -50] (Only one of --hifi or --ont should be enabled) \n");
+                        "         --ont, -y        ont preset params (only for marker mode) [-q -c -t20 -d 1e-3 -e 0.1 -b20 -m10 -s20 -p20 -r0 -n -10] (Only one of --hifi or --ont should be enabled) \n");
                 fprintf(stderr, "         --baq, -q         Calculate BAQ [Disabled by default]\n");
                 fprintf(stderr, "         --gapOpen, -d         Gap prob [Default: 1e-4, (for ONT use 1e-2)]\n");
                 fprintf(stderr, "         --gapExt, -e         Gap extension [Default: 0.1]\n");
@@ -248,12 +248,12 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         --minQ, -m         Minimum base quality (or BAQ if -q is set) to be considered as a marker  [Default: 20 (for ONT use 10)]\n");
                 fprintf(stderr,
-                        "         --primMarginScore, -p         Minimum margin between the consistency score of primary and secondary alignment to select the secondary alignment [Default: 50]\n");
+                        "         --primMarginScore, -p         Minimum margin between the consistency score of primary and secondary alignment to select the secondary alignment [Default: 40]\n");
                 fprintf(stderr,
-                        "         --primMarginRandom, -r         Maximum margin between the consistency score of primary and secondary alignment to select one randomly [Default: 50]\n");
+                        "         --primMarginRandom, -r         Maximum margin between the consistency score of primary and secondary alignment to select one randomly [Default: 0]\n");
 
                 fprintf(stderr,
-                        "         --minScore, -n         Minimum marker score of the selected secondary alignment [Default: -50]\n");
+                        "         --minScore, -n         Minimum marker score of the selected secondary alignment [Default: -10]\n");
                 fprintf(stderr,
                         "         --minVariantMargin, -g         Minimum margin for creating blocks around phased variants [Default: 50]\n");
                 fprintf(stderr,
@@ -277,19 +277,20 @@ int main(int argc, char *argv[]) {
     faidx_t *fai = fai_load(fastaPath);
 
     stHash *variant_ref_blocks_per_contig;
+    char bed_path_ref_blocks[200];
+    snprintf(bed_path_ref_blocks, 200, "%s/%s.initial_variant_blocks.bed", dirPath, prefix);
     if (vcfPath != NULL && vcfPath[0] != NULL) {
         variant_ref_blocks_per_contig = ptVariant_parse_variants_and_extract_blocks(vcfPath, variantBedPath,
                                                                                     fai,
                                                                                     min_var_margin,
                                                                                     min_gq);
-        char bed_path_ref_blocks[200];
-        snprintf(bed_path_ref_blocks, 200, "%s/%s.initial_variant_blocks.bed", dirPath, prefix);
-        ptVariant_save_variant_ref_blocks(variant_ref_blocks_per_contig, bed_path_ref_blocks);
     } else {
         // if no vcf is given just make an empty table
         variant_ref_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                           (void (*)(void *)) stList_destruct);
     }
+    ptVariant_save_variant_ref_blocks(variant_ref_blocks_per_contig, bed_path_ref_blocks);
+
 
     if (preset_ont && preset_hifi) {
         fprintf(stderr, "[%s] Presets --hifi and --ont cannot be enabled at the same time. Select only one of them!\n",
@@ -317,9 +318,12 @@ int main(int argc, char *argv[]) {
     stHash *modified_blocks_by_marker_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                                      (void (*)(void *)) stList_destruct);
 
-    stHash *variant_and_marker_blocks_all_haps_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey,
-                                                                              NULL,
-                                                                              (void (*)(void *)) stList_destruct);
+    stHash *variant_blocks_all_haps_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey,
+                                                                   NULL,
+                                                                   (void (*)(void *)) stList_destruct);
+    stHash *marker_blocks_all_haps_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey,
+                                                                  NULL,
+                                                                  (void (*)(void *)) stList_destruct);
     int bytes_read;
     int conf_blocks_length;
     int reads_modified_by_vars = 0;
@@ -370,10 +374,10 @@ int main(int argc, char *argv[]) {
                         ptBlock_add_alignment(modified_blocks_by_vars_per_contig, alignments[primary_idx]);
                         ptBlock_add_alignment(modified_blocks_by_vars_per_contig, alignments[best_idx]);
                         // add variant blocks
-                        ptBlock_add_blocks_by_contig(variant_and_marker_blocks_all_haps_per_contig,
+                        ptBlock_add_blocks_by_contig(variant_blocks_all_haps_per_contig,
                                                      alignments[primary_idx]->contig,
                                                      variant_blocks_all_haps[primary_idx]);
-                        ptBlock_add_blocks_by_contig(variant_and_marker_blocks_all_haps_per_contig,
+                        ptBlock_add_blocks_by_contig(variant_blocks_all_haps_per_contig,
                                                      alignments[best_idx]->contig,
                                                      variant_blocks_all_haps[best_idx]);
                         reads_modified_by_vars += 1;
@@ -424,11 +428,11 @@ int main(int argc, char *argv[]) {
                         ptBlock_add_alignment(modified_blocks_by_marker_per_contig, alignments[primary_idx]);
                         ptBlock_add_alignment(modified_blocks_by_marker_per_contig, alignments[best_idx]);
                         // add marker blocks
-                        ptMarker_add_marker_blocks_by_contig(variant_and_marker_blocks_all_haps_per_contig,
+                        ptMarker_add_marker_blocks_by_contig(marker_blocks_all_haps_per_contig,
                                                              alignments[primary_idx]->contig,
                                                              primary_idx,
                                                              markers);
-                        ptMarker_add_marker_blocks_by_contig(variant_and_marker_blocks_all_haps_per_contig,
+                        ptMarker_add_marker_blocks_by_contig(marker_blocks_all_haps_per_contig,
                                                              alignments[best_idx]->contig,
                                                              best_idx,
                                                              markers);
@@ -461,21 +465,27 @@ int main(int argc, char *argv[]) {
             reads_modified_by_marker);
 
 
-    // merge blocks and save in a bed file
-    char bed_path_modified_blocks[200];
+    // save the read blocks modified by markers and variants
+    char bed_path[200];
 
-    snprintf(bed_path_modified_blocks, 200, "%s/%s.modified_read_blocks.variants.bed", dirPath, prefix);
+    snprintf(bed_path, 200, "%s/%s.modified_read_blocks.variants.bed", dirPath, prefix);
     merge_and_save_blocks(modified_blocks_by_vars_per_contig, "read blocks modified by phased variants",
-                          bed_path_modified_blocks);
+                          bed_path);
 
-    snprintf(bed_path_modified_blocks, 200, "%s/%s.modified_read_blocks.markers.bed", dirPath, prefix);
+    snprintf(bed_path, 200, "%s/%s.modified_read_blocks.markers.bed", dirPath, prefix);
     merge_and_save_blocks(modified_blocks_by_marker_per_contig, "read blocks modified by markers",
-                          bed_path_modified_blocks);
+                          bed_path);
 
-    snprintf(bed_path_modified_blocks, 200, "%s/%s.variant_and_marker_blocks.bed", dirPath, prefix);
-    merge_and_save_blocks(variant_and_marker_blocks_all_haps_per_contig,
-                          "projected variant/marker blocks on all haplotypes",
-                          bed_path_modified_blocks);
+    // save the variant and marker blocks
+    snprintf(bed_path, 200, "%s/%s.variant_blocks.bed", dirPath, prefix);
+    merge_and_save_blocks(variant_blocks_all_haps_per_contig,
+                          "projected variant blocks on all haplotypes",
+                          bed_path);
+
+    snprintf(bed_path, 200, "%s/%s.marker_blocks.bed", dirPath, prefix);
+    merge_and_save_blocks(marker_blocks_all_haps_per_contig,
+                          "projected marker blocks on all haplotypes",
+                          bed_path);
 
 
     // free memory
@@ -487,5 +497,7 @@ int main(int argc, char *argv[]) {
     stHash_destruct(variant_ref_blocks_per_contig);
     stHash_destruct(modified_blocks_by_marker_per_contig);
     stHash_destruct(modified_blocks_by_vars_per_contig);
+    stHash_destruct(marker_blocks_all_haps_per_contig);
+    stHash_destruct(variant_blocks_all_haps_per_contig);
 }
 //main();
