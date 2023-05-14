@@ -741,6 +741,7 @@ int get_total_edit_distance(ptAlignment *alignment, const faidx_t *fai, char *co
             }
         }
     }
+    ptCigarIt_destruct(cigar_it);
     return edit_distance;
 }
 
@@ -952,9 +953,13 @@ stList *ptVariant_subset_stList(stList *variants, stHash *blocks_per_contig) {
         if (strcmp(contig, variant->contig) != 0) {
             strcpy(contig, variant->contig);
             blocks = stHash_search(blocks_per_contig, contig);
-            j = 0;
-            block = stList_get(blocks, j);
+            // handle the case when the whole contig is not in the bed file
+            if (blocks != NULL) {
+                j = 0;
+                block = stList_get(blocks, j);
+            }
         }
+        if (blocks == NULL) continue;
         while (block->rfe < variant->pos && j < stList_length(blocks) - 1) {
             j += 1;
             block = stList_get(blocks, j);

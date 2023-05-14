@@ -22,7 +22,7 @@ task correctBam {
         Int memSize=8
         Int threadCount=8
         Int diskSize=512
-        String dockerImage="mobinasri/secphase:v0.2.0"
+        String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
     }
     command <<<

@@ -11,7 +11,7 @@
  * @field data		Pointer to some data attached to the block
  * @field free_data	Function for freeing the memory allocated to data
  */
-struct ptBlock_{
+struct ptBlock_ {
     int rfs; // ref start
     int rfe; // ref end
     int sqs; // seq start
@@ -91,6 +91,7 @@ void ptAlignment_init_coordinates(ptAlignment *alignment) {
             alignment->rde_f = cigar_it->rde_f;
         }
     }
+    ptCigarIt_destruct(cigar_it);
 }
 
 void ptAlignment_destruct(ptAlignment *alignment) {
@@ -150,6 +151,23 @@ int get_best_record_index(ptAlignment **alignments, int alignments_len, double p
             max_score = alignments[i]->score;
         }
     }
+    // make a list of all secondary alignments with max score
+    stList *sec_alignment_indices_with_max_score = stList_construct3(0, free);
+    for (int i = 0; i < alignments_len; i++) {
+        if (((alignments[i]->record->core.flag & BAM_FSECONDARY) != 0) && (max_score <= alignments[i]->score)) {
+            int *index = malloc(sizeof(int));
+            *index = i;
+            stList_append(sec_alignment_indices_with_max_score, index);
+        }
+    }
+    // if there are multiple secondary alignments with the maximum score,
+    // select one of them randomly
+    if (stList_length(sec_alignment_indices_with_max_score) > 1) {
+        int *max_idx_ptr = stList_get(sec_alignment_indices_with_max_score,
+                                      rand() % stList_length(sec_alignment_indices_with_max_score));
+        max_idx = *max_idx_ptr;
+    }
+    stList_destruct(sec_alignment_indices_with_max_score);
     int rnd = rand() % 2; // 50% chance for rnd=0 (same for rnd=1)
     if (abs(max_score - prim_score) < prim_margin_random) {
         return rnd == 0 ? prim_idx : max_idx; // if the scores were closer than prim_margin_random return one randomly

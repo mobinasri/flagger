@@ -7,8 +7,8 @@ workflow runSecPhase{
         File? phasedVcf
         File? variantBed
         String secphaseOptions = "--hifi"
-        String secphaseDockerImage = "mobinasri/secphase:v0.2.0"
-        String version = "v0.2.0"
+        String secphaseDockerImage = "mobinasri/secphase:v0.3.0"
+        String version = "v0.3.0"
         Boolean debugMode = false
     }
     call sortByName{
@@ -41,10 +41,16 @@ workflow runSecPhase{
             filename = basename("${inputBam}", ".bam") + "secphase_${version}.phasing_out"
     }
     
-    call mergeBeds as mergeVariantAndMarkerBlocks{
+    call mergeBeds as mergeVariantBlocks{
         input:
-            beds = secphase.variantAndMarkerBlocksBed,
-            filename = basename("${inputBam}", ".bam") + "secphase_${version}.variant_and_marker_blocks.bed"
+            beds = secphase.variantBlocksBed,
+            filename = basename("${inputBam}", ".bam") + "secphase_${version}.variant_blocks.bed"
+    }
+
+    call mergeBeds as mergeMarkerBlocks{
+        input:
+            beds = secphase.markerBlocksBed,
+            filename = basename("${inputBam}", ".bam") + "secphase_${version}.marker_blocks.bed"
     }
 
     call mergeBeds as mergeModifiedReadBlocksVariants{
@@ -67,7 +73,8 @@ workflow runSecPhase{
 
     output{
         File outLog = concatOutLogs.log
-        File variantAndMarkerBlocksBed = mergeVariantAndMarkerBlocks.mergedBed
+        File variantBlocksBed = mergeVariantBlocks.mergedBed
+        File markerBlocksBed = mergeMarkerBlocks.mergedBed
         File modifiedReadBlocksVariantsBed = mergeModifiedReadBlocksVariants.mergedBed
         File modifiedReadBlocksMarkersBed = mergeModifiedReadBlocksMarkers.mergedBed
         File initalVariantBlocksBed = mergeInitialVariantBlocks.mergedBed
@@ -85,10 +92,10 @@ task secphase {
         String prefix = "secphase"
         Boolean debugMode = false
         # runtime configurations
-        Int memSize=32
+        Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/secphase:v0.2.0"
+        String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -132,7 +139,8 @@ task secphase {
         File initalVariantBlocksBed = "output/~{prefix}.initial_variant_blocks.bed"
         File modifiedReadBlocksVariantsBed = "output/~{prefix}.modified_read_blocks.variants.bed"
         File modifiedReadBlocksMarkersBed = "output/~{prefix}.modified_read_blocks.markers.bed"
-        File variantAndMarkerBlocksBed = "output/~{prefix}.variant_and_marker_blocks.bed"
+        File markerBlocksBed = "output/~{prefix}.marker_blocks.bed"
+        File variantBlocksBed = "output/~{prefix}.variant_blocks.bed"
     }
 }
 
@@ -144,7 +152,7 @@ task concatLogs {
         Int memSize=2
         Int threadCount=1
         Int diskSize=32
-        String dockerImage="mobinasri/secphase:v0.2.0"
+        String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -185,7 +193,7 @@ task mergeBeds {
         Int memSize=2
         Int threadCount=1
         Int diskSize=32
-        String dockerImage="mobinasri/secphase:v0.2.0"
+        String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -202,7 +210,7 @@ task mergeBeds {
         set -o xtrace
 
         mkdir output
-        cat ~{sep=" " beds} | bedtools sort -i - | bedtools merge -i - > output/~{filename}.bed
+        cat ~{sep=" " beds} | bedtools sort -i - | bedtools merge -i - > output/~{filename}
     >>>
     runtime {
         docker: dockerImage
@@ -226,7 +234,7 @@ task splitByName {
         Int memSize=16
         Int threadCount=8
         Int diskSize=512
-        String dockerImage="mobinasri/secphase:v0.2.0"
+        String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -270,7 +278,7 @@ task sortByName {
         Int memSize=16
         Int threadCount=8
         Int diskSize=1024
-        String dockerImage="mobinasri/secphase:v0.2.0"
+        String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -319,7 +327,7 @@ task sortByContig {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/secphase:v0.2.0"
+        String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
     }
