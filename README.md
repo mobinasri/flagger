@@ -121,23 +121,27 @@ More information about Flagger is available [here](https://github.com/mobinasri/
 It is recommended to use Flagger using the workflow [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end.wdl). It requires 
 Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using the workflow [flagger_preprocess.wdl](https://dockstore.org/my-workflows/github.com/mobinasri/flagger/FlaggerPreprocess) and the second part of step 5 (fitting the mixture model and flagging the assembly) can be run using the workflow [flagger.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/Flagger:main?tab=info).
 
-Recommended values for the parameters of flagger_preprocess.wdl:
+Recommended values for the parameters of flagger_end_to_end.wdl:
 |Parameter| Value|
 |:--------|:-----|
-|runFlaggerPreprocess.maxDivergence | 0.09 for ONT-guppy5/6 and 0.02 for HiFi|
-|runFlaggerPreprocess.variantCaller | "pmdv" for ONT and "dv" for HiFi|
-|runFlaggerPreprocess.deepVariantModelType | Should be set based on the latest version of deepvariant ("PACBIO" for v1.4.0)|
-|runFlaggerPreprocess.pepperModelType | Should be set based on the ONT guppy version  (read https://github.com/kishwarshafin/pepper) "--ont_r9_guppy5_sup" for R9-guppy5 |
-|runFlaggerPreprocess.phasingLogText | The output log of secphase.wdl (optional)|
-|filterAltReads.moreOptions | "-m 1000 -r 0.4" |
-|filterAltReads.qCutoff | ~10 for ONT-guppy5/6 and ~10 for HiFi|
-|filterAltReads.vafCutoff | 0.3|
-|FlaggerEndToEnd.refBiasedBlocksBedArray | [ "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r1_high_biased.bed", "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r2_low_biased.bed" ] for HiFi or  [ "gs://masri/flagger/v0.3.0/chm13v1.1_ont_r2_low_biased.bed"] for ONT|
-|FlaggerEndToEnd.refBiasedRegionFactorArray | [ 1.25, 0.75 ] for HiFi or [0.75] for ONT |
-|FlaggerEndToEnd.refBiasedRegionNameArray | [ "hifi_biased_high", "hifi_biased_low" ] for HiFi or  ["ont_biased_low" ] for ONT |
+|FlaggerEndToEnd.maxReadDivergence | 0.02 for HiFi and 0.09 for ONT|
+|FlaggerEndToEnd.variantCaller | "dv" for HiFi and "pmdv" for ONT|
+|preprocess.deepVariantModelType | Should be set based on the latest version of deepvariant ("PACBIO" for v1.4.0)|
+|preprocess.pepperModelType | Should be set based on the ONT guppy version  (read https://github.com/kishwarshafin/pepper) "--ont_r9_guppy5_sup" for R9-guppy5 |
+|preprocess.moreOptions | "-m 1000 -r 0.4" |
+|preprocess.qCutoff | 10 |
+|preprocess.vafCutoff | 0.3|
+|FlaggerEndToEnd.refBiasedBlocksBedArray | [ "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r1_high_biased.bed", "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r2_low_biased.bed" ] for HiFi and  [ "gs://masri/flagger/v0.3.0/chm13v1.1_ont_r2_low_biased.bed"] for ONT|
+|FlaggerEndToEnd.refBiasedRegionFactorArray | [ 1.25, 0.75 ] for HiFi and [0.75] for ONT |
+|FlaggerEndToEnd.refBiasedRegionNameArray | [ "hifi_biased_high", "hifi_biased_low" ] for HiFi and  ["ont_biased_low" ] for ONT |
+|FlaggerEndToEnd.refCntrBed | "gs://masri/flagger/v0.3.0/chm13v2.0.censat.bed" |
+|FlaggerEndToEnd.refCntrCtBed | "gs://masri/flagger/v0.3.0/chm13v2.0.ct.bed" |
+|FlaggerEndToEnd.refSDBed| "gs://masri/flagger/v0.3.0/chm13v2.0.sd.bed" |
+|FlaggerEndToEnd.refSexBed| "gs://masri/flagger/v0.3.0/chm13v2.0.sex.bed" |
+|FlaggerEndToEnd.refName | "chm13v2.0"|
+|FlaggerEndToEnd.secphaseOptions | "--hifi" for HiFi and "--ont" for ONT |
 
-
-
+All the files with gs urls are publicly accessible. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository.
 
 ### Components
 
