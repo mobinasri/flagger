@@ -108,7 +108,7 @@ docker run \
 For each alignment `filter_alt_reads` iterates over the CIGAR string and clusters the snps closer than the number given to the `-m` parameter. That alignment will be removed if it encompasses a snp cluster in which more than `-r` ratio of the snps have alternative alleles. 
 `${ALT_FILTERED_BAM}` is the cleaned bam file and `${ALT_BAM}` includes the removed alignments.
 
-### 5. Run Flagger (Optional)
+### 5. Run Flagger
 #### 5. mode_1 Using all alignments
 The produced alignment file (`${INPUT_BAM}` prior to step 4) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
 erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
