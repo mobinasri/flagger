@@ -399,11 +399,6 @@ stHash *extract_variant_ref_blocks(stList *variants, const faidx_t *fai, int min
 
 
 char *fetch_read_seq(ptAlignment *alignment, ptBlock *block) {
-    if(block->sqe < block->sqs){
-        char* empty_seq = malloc(sizeof(char));
-        empty_seq[0] = '\0';
-        return empty_seq;
-    }
     uint8_t *seq = bam_get_seq(alignment->record);
     //printf("block->sqs - block->sqe= %d-%d\t len=%d\n", block->sqs , block->sqe, block->sqe - block->sqs + 1);
     assert(block->sqe < alignment->record->core.l_qseq);
@@ -419,11 +414,6 @@ char *fetch_read_seq(ptAlignment *alignment, ptBlock *block) {
 
 
 char *fetch_corrected_ref_seq(const faidx_t *fai, ptBlock *block, char *contig_name) {
-    if(block->rfe < block->rfs){
-        char* empty_seq = malloc(sizeof(char));
-        empty_seq[0] = '\0';
-        return empty_seq;
-    }
     int offset_orig = 0;
     int offset_corrected = 0;
     stList *vars = (stList *) block->data;
@@ -628,21 +618,15 @@ int get_edit_distance(ptAlignment *alignment, faidx_t *fai, ptBlock *block) {
     char *corrected_ref_seq = fetch_corrected_ref_seq(fai, block, alignment->contig);
     //printf("read\t%s\nref\t%s\n", read_seq, corrected_ref_seq);
     int edit_distance = 0;
-    if ((0 < strlen(read_seq)) && (0 < strlen(corrected_ref_seq))) {
-        EdlibAlignResult result = edlibAlign(read_seq, strlen(read_seq), corrected_ref_seq, strlen(corrected_ref_seq),
-                                             edlibDefaultAlignConfig());
-        if (!(result.status == EDLIB_STATUS_OK)) {
-            fprintf(stderr, "Edlib didn't work!\n");
-            exit(EXIT_FAILURE);
-        }
-        edit_distance = result.editDistance;
-        //printf("edit=%d\n\n", edit_distance);
-        edlibFreeAlignResult(result);
+    EdlibAlignResult result = edlibAlign(read_seq, strlen(read_seq), corrected_ref_seq, strlen(corrected_ref_seq),
+                                         edlibDefaultAlignConfig());
+    if (!(result.status == EDLIB_STATUS_OK)) {
+        fprintf(stderr, "Edlib didn't work!\n");
+        exit(EXIT_FAILURE);
     }
-    else{
-        // at least one of read_seq and corrected_ref_seq is '\0'
-        edit_distance = max(strlen(read_seq), strlen(corrected_ref_seq));
-    }
+    edit_distance = result.editDistance;
+    //printf("edit=%d\n\n", edit_distance);
+    edlibFreeAlignResult(result);
     free(corrected_ref_seq);
     free(read_seq);
     return edit_distance;
