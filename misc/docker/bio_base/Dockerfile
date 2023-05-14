@@ -7,6 +7,29 @@ RUN mkdir /home/apps
 
 RUN cd /home/apps && wget https://bootstrap.pypa.io/pip/3.6/get-pip.py && python3 get-pip.py
 
+
+# Install OpenJDK-8
+RUN apt-get update && \
+    apt-get install -y openjdk-8-jdk && \
+    apt-get install -y ant && \
+    apt-get clean;
+    
+# Fix certificate issues
+RUN apt-get update && \
+    apt-get install ca-certificates-java && \
+    apt-get clean && \
+    update-ca-certificates -f;
+
+# Setup JAVA_HOME -- useful for docker commandline
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
+RUN export JAVA_HOME
+
+
+RUN cd /home/apps && \
+    git clone "https://github.com/lindenb/jvarkit.git" && \
+    cd jvarkit &&\
+    ./gradlew jvarkit
+
 #install cmake
 RUN cd /home/apps && \
     wget https://github.com/Kitware/CMake/releases/download/v3.23.2/cmake-3.23.2.tar.gz && \
@@ -18,12 +41,12 @@ RUN cd /home/apps && \
 
 # install samtools
 RUN cd /home/apps && \
-	wget https://github.com/samtools/samtools/releases/download/1.15.1/samtools-1.15.1.tar.bz2 && \
-	tar -vxjf samtools-1.15.1.tar.bz2 && \
-	rm -rf samtools-1.15.1.tar.bz2 && \
-	cd samtools-1.15.1 && \
+	wget https://github.com/samtools/samtools/releases/download/1.17/samtools-1.17.tar.bz2 && \
+	tar -vxjf samtools-1.17.tar.bz2 && \
+	rm -rf samtools-1.17.tar.bz2 && \
+	cd samtools-1.17 && \
 	make
-ENV PATH="/home/apps/samtools-1.15.1:$PATH"
+ENV PATH="/home/apps/samtools-1.17:$PATH"
 
 #install seqkit
 RUN cd /home/apps && \
@@ -56,12 +79,12 @@ RUN cd /home/apps && \
 
 #install bcftools
 RUN cd /home/apps && \
-        wget https://github.com/samtools/bcftools/releases/download/1.12/bcftools-1.12.tar.bz2 && \
-        tar -vxjf bcftools-1.12.tar.bz2 && \
-        rm -rf bcftools-1.12.tar.bz2 && \
-        cd bcftools-1.12 && \
+        wget https://github.com/samtools/bcftools/releases/download/1.17/bcftools-1.17.tar.bz2 && \
+        tar -vxjf bcftools-1.17.tar.bz2 && \
+        rm -rf bcftools-1.17.tar.bz2 && \
+        cd bcftools-1.17 && \
         make
-ENV PATH=/home/apps/bcftools-1.12:$PATH
+ENV PATH=/home/apps/bcftools-1.17:$PATH
 
 ## UCSC convention is to work in /data
 RUN mkdir -p /data

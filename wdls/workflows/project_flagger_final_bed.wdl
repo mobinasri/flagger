@@ -222,7 +222,7 @@ task mergeBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.2"
+        String dockerImage="mobinasri/flagger:v0.3.0"
         Int preemptible=2
     }
 

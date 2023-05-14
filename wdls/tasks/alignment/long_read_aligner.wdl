@@ -80,7 +80,7 @@ task alignmentBam{
         Int memSize=64
         Int threadCount=32
         Int diskSize
-        String dockerImage="mobinasri/long_read_aligner:v0.2"
+        String dockerImage="mobinasri/long_read_aligner:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
     }

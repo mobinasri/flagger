@@ -46,7 +46,7 @@ workflow longReadAlignmentScattered {
                 memSizeGB=4,
                 threadCount=4,
                 diskSizeGB=extractReadsDiskSize,
-                dockerImage="mobinasri/bio_base:v0.2"
+                dockerImage="mobinasri/bio_base:v0.3.0"
         }
     }
     
