@@ -19,7 +19,7 @@ task bamCoverage{
         Int memSize=16
         Int threadCount=4
         Int diskSize=256
-        String dockerImage="mobinasri/flagger:v0.2"
+        String dockerImage="mobinasri/flagger:v0.3.0"
         Int preemptible=2
     }
     command <<<

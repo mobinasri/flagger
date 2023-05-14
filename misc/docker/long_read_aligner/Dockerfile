@@ -1,4 +1,4 @@
-FROM mobinasri/bio_base:v0.2
+FROM mobinasri/bio_base:v0.3.0
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
 RUN pip3 install scipy pandas matplotlib
@@ -37,8 +37,8 @@ ENV PATH="/home/apps/k8-0.2.4:$PATH"
 
 
 #install veritymap
-RUN apt install -y software-properties-common && \
-    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+RUN apt install -y software-properties-common
+RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
     apt install -y gcc-9 g++-9
 ENV CC=/usr/bin/gcc-9
 ENV CXX=/usr/bin/g++-9
