@@ -171,7 +171,7 @@ HMM* makeAndInitModel(int* coverages, int nClasses, int nComps, int nEmit, int* 
 
 	MatrixDouble*** covFactors = MatrixDouble_constructArray2D(nComps, 10, nEmit, nEmit);
 
-	MatrixDouble_setValue(covFactors[0][0], -1);
+	MatrixDouble_setValue(covFactors[0][0], 0.25);
 	MatrixDouble_setValue(covFactors[1][0], 0.5);
 
         MatrixDouble_setValue(covFactors[2][0], 1);

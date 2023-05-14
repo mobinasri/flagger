@@ -667,6 +667,9 @@ void estimateParameters(HMM* model){
 					fprintf(stdout,"r=%d, 2->%d: %.2e/%.2e\n", r, c2, transCounts[r]->data[c1][c2], norm);
 				}
 				trans[r]->data[c1][c2] = (transCounts[r]->data[c1][c2] + transNum[r]->data[c1][c2]) / (norm + transDenom[r]->data[c1][c2]) * (1.0 - terminateProb);
+				if(c1 == 0 || c2 == 0){ // skip using pseudo counts for erroneous state
+					trans[r]->data[c1][c2] = transCounts[r]->data[c1][c2] / norm * (1 - terminateProb);
+				}
 			}
 			trans[r]->data[c1][nComps] = terminateProb;
 		}
