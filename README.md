@@ -94,7 +94,7 @@ By having the biallelic snps it is possible to find the alignments with alternat
 docker run \
  -v ${INPUT_DIR}:/input \
  -v ${OUTPUT_DIR}:/output \
- mobinasri/flagger:v0.2 \
+ mobinasri/flagger:v0.3.0 \
  filter_alt_reads \
  -i "/input/${INPUT_BAM}" \
  -o "/output/${ALT_FILTERED_BAM}"
@@ -109,15 +109,16 @@ For each alignment `filter_alt_reads` iterates over the CIGAR string and cluster
 `${ALT_FILTERED_BAM}` is the cleaned bam file and `${ALT_BAM}` includes the removed alignments.
 
 ### 5. Run Flagger
-#### 5. mode_1 Using all alignments
+#### 5.1 (Mode 1) Using all alignments
 The produced alignment file (`${INPUT_BAM}` prior to step 4) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
 erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
 
-#### 5. mode_2 Using alignments with no alternative alleles
+#### 5.2 (Mode 2) Using alignments with no alternative alleles
 `${ALT_FILTERED_BAM}` (after step 4) can also be used as the input to Flagger. Some of the regions flagged as collapsed in `${INPUT_BAM}` may turn out to be haploid in `${ALT_FILTERED_BAM}`, which means in the original alignment they had mismapped reads from other regions. There may be some regions flagged as haploid originally but turn out to be erroneous in `${ALT_FILTERED_BAM}`, which indicates regions that needs polishing.
 
 More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
 
+It is recommended to use Flagger using the workflow [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end.wdl). It requires 
 Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using the workflow [flagger_preprocess.wdl](https://dockstore.org/my-workflows/github.com/mobinasri/flagger/FlaggerPreprocess) and the second part of step 5 (fitting the mixture model and flagging the assembly) can be run using the workflow [flagger.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/Flagger:main?tab=info).
 
 Recommended values for the parameters of flagger_preprocess.wdl:
@@ -131,6 +132,12 @@ Recommended values for the parameters of flagger_preprocess.wdl:
 |filterAltReads.moreOptions | "-m 1000 -r 0.4" |
 |filterAltReads.qCutoff | ~10 for ONT-guppy5/6 and ~10 for HiFi|
 |filterAltReads.vafCutoff | 0.3|
+|FlaggerEndToEnd.refBiasedBlocksBedArray | [ "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r1_high_biased.bed", "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r2_low_biased.bed" ] for HiFi or  [ "gs://masri/flagger/v0.3.0/chm13v1.1_ont_r2_low_biased.bed"] for ONT|
+|FlaggerEndToEnd.refBiasedRegionFactorArray | [ 1.25, 0.75 ] for HiFi or [0.75] for ONT |
+|FlaggerEndToEnd.refBiasedRegionNameArray | [ "hifi_biased_high", "hifi_biased_low" ] for HiFi or  ["ont_biased_low" ] for ONT |
+
+
+
 
 ### Components
 
