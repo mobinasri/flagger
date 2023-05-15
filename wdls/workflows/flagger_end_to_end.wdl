@@ -9,17 +9,18 @@ import "../../ext/secphase/wdls/workflows/secphase.wdl" as secphase_t
 workflow FlaggerEndToEnd{
     input{
         File assemblyFastaGz
+        File fai
         File readAlignmentBam
         File hap1ToRefBam
         File hap2ToRefBam
-        String secphaseDockerImage
+        String secphaseDockerImage = "mobinasri/secphase:v0.3.0"
+        String secphaseVersion = "v0.3.0"
         String secphaseOptions
         Float maxReadDivergence
         String variantCaller 
         String sampleName
         String suffix
         String refName
-        File fai
         Array[File] refBiasedBlocksBedArray
         Array[String] refBiasedRegionNameArray
         Array[Float] refBiasedRegionFactorArray
@@ -33,7 +34,8 @@ workflow FlaggerEndToEnd{
             inputBam = readAlignmentBam,
             diploidAssemblyFastaGz = assemblyFastaGz,
             secphaseOptions = secphaseOptions,
-            secphaseDockerImage = secphaseDockerImage
+            secphaseDockerImage = secphaseDockerImage,
+            version = secphaseVersion
     }
     call preprocess_t.runFlaggerPreprocess as preprocess{
         input:
