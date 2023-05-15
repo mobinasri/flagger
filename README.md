@@ -118,10 +118,15 @@ erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Un
 
 More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
 
-It is recommended to use Flagger using the workflow [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end.wdl). It requires 
-Steps 3, 4 and the first part of step 5 (calculating coverages) can be run using the workflow [flagger_preprocess.wdl](https://dockstore.org/my-workflows/github.com/mobinasri/flagger/FlaggerPreprocess) and the second part of step 5 (fitting the mixture model and flagging the assembly) can be run using the workflow [flagger.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/Flagger:main?tab=info).
+#### Running pipeline with WDL
+
+It is easier to run the pipeline using the WDLs described below. A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
+
+It is recommended to run the whole pipeline using [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end.wdl). It will run Flagger in both modes mentioned above. `flagger_end_to_end.wdl` requires the alignment of each haplotype assembly to a reference like [chm13v2.0](https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz). It will use these alignments for extracting the potentially coverage-biased regions and also stratifying the final results based on CenSat, SD and sex annotations.
 
 Recommended values for the parameters of flagger_end_to_end.wdl:
+
+
 |Parameter| Value|
 |:--------|:-----|
 |FlaggerEndToEnd.maxReadDivergence | 0.02 for HiFi and 0.09 for ONT|
@@ -131,7 +136,7 @@ Recommended values for the parameters of flagger_end_to_end.wdl:
 |preprocess.moreOptions | "-m 1000 -r 0.4" |
 |preprocess.qCutoff | 10 |
 |preprocess.vafCutoff | 0.3|
-|FlaggerEndToEnd.refBiasedBlocksBedArray | [ "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r1_high_biased.bed", "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r2_low_biased.bed" ] for HiFi and  [ "gs://masri/flagger/v0.3.0/chm13v1.1_ont_r2_low_biased.bed"] for ONT|
+|FlaggerEndToEnd.refBiasedBlocksBedArray | [ "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r1_high_biased.bed", "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r2_low_biased.bed" ] for HiFi and  [ "gs://masri/flagger/v0.3.0/chm13v1.1_ont_r2_low_biased.bed"] for ONT |
 |FlaggerEndToEnd.refBiasedRegionFactorArray | [ 1.25, 0.75 ] for HiFi and [0.75] for ONT |
 |FlaggerEndToEnd.refBiasedRegionNameArray | [ "hifi_biased_high", "hifi_biased_low" ] for HiFi and  ["ont_biased_low" ] for ONT |
 |FlaggerEndToEnd.refCntrBed | "gs://masri/flagger/v0.3.0/chm13v2.0.censat.bed" |
@@ -141,7 +146,12 @@ Recommended values for the parameters of flagger_end_to_end.wdl:
 |FlaggerEndToEnd.refName | "chm13v2.0"|
 |FlaggerEndToEnd.secphaseOptions | "--hifi" for HiFi and "--ont" for ONT |
 
-All the files with gs urls are publicly accessible. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository.
+
+All files with gs urls are publicly accessible. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository.
+
+It is also possible to run the pipeline in only the first mode using [flagger_end_to_end_no_variant_calling.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling.wdl), which ignores variant calling and filtering alignments.
+
+If the assembly is related to a species without any reliable annotated reference [flagger_end_to_end_no_variant_calling_no_ref.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref.wdl) can be used. This WDL does not need reference annotation files and the alignments to the reference assembly. It operates in the first mode which ignores variant calling and filtering alignments.
 
 ### Components
 
