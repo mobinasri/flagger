@@ -147,11 +147,31 @@ Recommended values for the parameters of flagger_end_to_end.wdl:
 |FlaggerEndToEnd.secphaseOptions | "--hifi" for HiFi and "--ont" for ONT |
 
 
-All files with gs urls are publicly accessible. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository.
+All files with gs urls are publicly accessible so if you are running the WDL on Terra you can use the same urls. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository for those who want to run locally. This WDL also needs the alignment of each haplotype to the reference (like chm13v2.0). Those alignments can be produced using [asm2asm_aligner.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/tasks/alignment/asm2asm_aligner.wdl). Here is the list of recommended parametes for this workflow:
+|Parameter| Value|
+|:--------|:-----|
+|asm2asmAlignment.aligner|"minimap2" |
+|asm2asmAlignment.alignmentBam.options |"-L --eqx --cs"|
+|asm2asmAlignment.refAssemblyFastaGz | "gs://masri/flagger/v0.3.0/chm13v2.0.fa.gz" |
+|asm2asmAlignment.alignmentBam.threadCount |32|
+|asm2asmAlignment.preset | asm5|
+|asm2asmAlignment.suffix | "chm13_v2.0" |
+|asm2asmAlignment.alignmentBam.memSize | 48|
 
 It is also possible to run the pipeline in only the first mode using [flagger_end_to_end_no_variant_calling.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling.wdl), which ignores variant calling and filtering alignments.
 
 If the assembly is related to a species without any reliable annotated reference [flagger_end_to_end_no_variant_calling_no_ref.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref.wdl) can be used. This WDL does not need reference annotation files and the alignments to the reference assembly. It operates in the first mode which ignores variant calling and filtering alignments.
+
+#### Dockstore links
+
+All WDLs are uploaded to Dockstore for easier import into platforms like Terra or AnVIL.
+- [Dockstore link for flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEnd:v0.3.0?tab=info)
+
+- [Dockstore link for flagger_end_to_end_no_variant_calling.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndNoVariantCalling:v0.3.0?tab=info)
+
+- [Dockstore link for flagger_end_to_end_no_variant_calling_no_ref.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndNoVariantCallingNoRef:v0.3.0?tab=info)
+
+
 
 ### Components
 
