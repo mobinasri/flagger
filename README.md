@@ -176,7 +176,7 @@ cd workdir
 java -jar ../womtool-58.jar inputs ../flagger-0.3.0/wdls/workflows/flagger_end_to_end.wdl > inputs.json
 ```
 
-After modifying `inputs.json` based on the recommended parameters and the paths to input files; `assemblyFastaGz`, `fai`, `hap1ToRefBam`, `hap2ToRefBam`. Any other parameter should be removed from the json file. Then you can run the command below:
+After modifying `inputs.json` based on the recommended parameters and the paths to input files; `assemblyFastaGz`, `fai`, `hap1ToRefBam`, `hap2ToRefBam`. and removing any other parameter from the json file you can run the command below:
 
 ```
 # run flagger workflow
