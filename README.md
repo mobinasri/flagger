@@ -158,6 +158,32 @@ All files with gs urls are publicly accessible so if you are running the WDL on 
 |asm2asmAlignment.suffix | "chm13_v2.0" |
 |asm2asmAlignment.alignmentBam.memSize | 48|
 
+Below are the main commands for running Flagger locally using Cromwell.
+```
+wget https://github.com/broadinstitute/cromwell/releases/download/85/cromwell-85.jar
+wget https://github.com/broadinstitute/cromwell/releases/download/85/womtool-85.jar
+
+# Get version 0.3.0 of Flagger
+wget https://github.com/mobinasri/flagger/archive/refs/tags/v0.3.0.zip
+
+unzip v0.3.0.zip
+
+# make a directory for saving outputs and json files
+mkdir workdir 
+
+cd workdir
+
+java -jar ../womtool-58.jar inputs ../flagger-0.3.0/wdls/workflows/flagger_end_to_end.wdl > inputs.json
+```
+
+After modifying `inputs.json` based on the recommended parameters and the paths to input files; `assemblyFastaGz`, `fai`, `hap1ToRefBam`, `hap2ToRefBam`. Any other parameter should be removed from the json file. Then you can run the command below:
+
+```
+# run flagger workflow
+java -jar ../cromwell-58.jar run ../flagger-0.3.0/wdls/workflows/flagger_end_to_end.wdl -i inputs.json -m outputs.json
+```
+The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
+
 It is also possible to run the pipeline in only the first mode using [flagger_end_to_end_no_variant_calling.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling.wdl), which ignores variant calling and filtering alignments.
 
 If the assembly is related to a species without any reliable annotated reference [flagger_end_to_end_no_variant_calling_no_ref.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref.wdl) can be used. This WDL does not need reference annotation files and the alignments to the reference assembly. It operates in the first mode which ignores variant calling and filtering alignments.
