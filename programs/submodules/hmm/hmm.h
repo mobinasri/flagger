@@ -14,7 +14,7 @@ typedef enum ModelType {
 
 typedef struct NegativeBinomial {
     VectorDouble **mu; // Mean vector
-    MaxrixDouble **cov; // Covariance matrix
+    MatrixDouble **cov; // Covariance matrix
     VectorDouble **theta; // Mean vector
     VectorDouble **r; // Covariance matrix
     double *weights; // weights of components
