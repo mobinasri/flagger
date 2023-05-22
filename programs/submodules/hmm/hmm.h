@@ -2,9 +2,29 @@
 #include "data_types.h"
 #include <stdio.h>
 #include "sonLib.h"
+#include "math.h"
+#include "digamma.h"
 
 #ifndef HMM_H
 #define HMM_H
+
+typedef enum ModelType {
+    GAUSSIAN, NEGATIVE_BINOMIAL
+} ModelType;
+
+typedef struct NegativeBinomial {
+    VectorDouble **mu; // Mean vector
+    MaxrixDouble **cov; // Covariance matrix
+    VectorDouble **theta; // Mean vector
+    VectorDouble **r; // Covariance matrix
+    double *weights; // weights of components
+    int n; // number of mixture components
+    VectorDouble **thetaNum; // numerator for estimating theta
+    VectorDouble **thetaDenom; // denomerator for estimating theta
+    VectorDouble **lambdaNum; // numerator for estimating lambda
+    VectorDouble **lambdaDenom; // denomerator for estimating lambda
+    double *weightNum; // numerator for estimating mixture weights
+} NegativeBinomial;
 
 typedef struct Gaussian {
     VectorDouble **mu; // Mean vector
@@ -20,8 +40,11 @@ typedef struct Gaussian {
 
 
 typedef struct HMM {
-    // For each class and each component we have a distinct Gaussian modeling the emission
-    Gaussian ***emit;
+    // For each class and each component we have a distinct Gaussian/NegativeBinomial modeling the emission
+    void ***emit;
+    // type of the emission model
+    // could be either GAUSSIAN or NEGATIVE_BINOMIAL
+    ModelType modelType;
     // The last row of the transition matrix (trans[nComps][]) holds the starting probs
     // The last column of the transition matrix (trans[][nComps]) holds the terminating probs
     // An array of transition matrices. Each transition matrix has the dimension (#nComps + 1) x (#nComps + 1)
@@ -52,7 +75,8 @@ typedef struct HMM {
 typedef struct EM {
     VectorChar **seqEmit; // the sequence of emissions; each emission is a vector of length nEmit
     uint8_t *seqClass; // the sequnce of classes
-    Gaussian ***emit; // for saving sufficient stats
+    void ***emit; // for saving sufficient stats
+    ModelType modelType; // either GAUSSIAN or NEGATIVE_BINOMIAL
     int seqLength;
     int nClasses; // Number of classes like non-HSAT, HSAT1, ...
     int nComps; // Number of components like erroneous, haploid, ...
@@ -112,7 +136,7 @@ double *getGaussianMixtureProbs(VectorChar *vec, Gaussian *gaussian, int c);
 
 HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDouble ****mu, VectorDouble ***muFactors,
                    MatrixDouble ***covFactors, double maxHighMapqRatio, MatrixDouble **transNum,
-                   MatrixDouble **transDenom);
+                   MatrixDouble **transDenom, ModelType modelType);
 
 void HMM_destruct(HMM *model);
 
@@ -155,5 +179,30 @@ void Batch_destruct(Batch *batch);
 int Batch_readThreadChunks(Batch *batch);
 
 int Batch_readNextChunk(void *batch_);
+
+
+NegativeBinomial *NegativeBinomial_construct(VectorDouble **mu, MatrixDouble **cov, int n);
+
+NegativeBinomial * NegativeBinomial_constructSufficientStats(int nEmit, int nMixtures);
+
+void NegativeBinomial_destruct(NegativeBinomial *nb);
+
+NegativeBinomial *NegativeBinomial_constructSpecial(VectorDouble **mu, int n);
+
+
+double NegativeBinomial_getTheta(double mean, double var);
+
+double NegativeBinomial_getR(double mean, double var);
+
+
+double NegativeBinomial_getMean(double theta, double r);
+
+double NegativeBinomial_getVar(double theta, double r);
+
+double NegativeBinomial_getProb(VectorChar *vec, NegativeBinomial *nb, int comp);
+
+double *NegativeBinomial_getMixtureProbs(VectorChar *vec, NegativeBinomial *nb, int comp);
+
+
 
 #endif

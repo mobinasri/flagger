@@ -61,14 +61,28 @@ void saveHMMStats(StatType statType, char *path, HMM *model) {
         } else if (statType == EMISSION) {
             for (int c = 0; c < model->nComps; c++) {
                 fprintf(fp, "##c=%d\n", c);
-                Gaussian *gaussian = model->emit[r][c];
-                for (int m = 0; m < gaussian->n; m++) {
-                    fprintf(fp, "##m=%d\n", m);
-                    char *vecStr = VectorDouble_toString(gaussian->mu[m]);
-                    fprintf(fp, "mu = \n%s\n\n", vecStr);
-                    char *matrixStr = MatrixDouble_toString(gaussian->cov[m]);
-                    fprintf(fp, "cov = \n%s\n\n", matrixStr);
-                    fprintf(fp, "w = %.2e\n\n", model->emit[r][c]->weights[m]);
+
+                if(model->modelType == GAUSSIAN) {
+                    Gaussian *gaussian = model->emit[r][c];
+                    for (int m = 0; m < gaussian->n; m++) {
+                        fprintf(fp, "##m=%d\n", m);
+                        char *vecStr = VectorDouble_toString(gaussian->mu[m]);
+                        fprintf(fp, "mu = \n%s\n\n", vecStr);
+                        char *matrixStr = MatrixDouble_toString(gaussian->cov[m]);
+                        fprintf(fp, "cov = \n%s\n\n", matrixStr);
+                        fprintf(fp, "w = %.2e\n\n", model->emit[r][c]->weights[m]);
+                    }
+                }
+                if(model->modelType == NEGATIVE_BINOMIAL) {
+                    NegativeBinomial *nb = model->emit[r][c];
+                    for (int m = 0; m < nb->n; m++) {
+                        fprintf(fp, "##m=%d\n", m);
+                        char *vecStr = VectorDouble_toString(nb->mu[m]);
+                        fprintf(fp, "mu = \n%s\n\n", vecStr);
+                        char *matrixStr = MatrixDouble_toString(nb->cov[m]);
+                        fprintf(fp, "cov = \n%s\n\n", matrixStr);
+                        fprintf(fp, "w = %.2e\n\n", model->emit[r][c]->weights[m]);
+                    }
                 }
             }
         }
@@ -211,7 +225,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     // MatrixDouble** transDenom = MatrixDouble_constructArray1D(nClasses, nComps, nComps);
 
     HMM *model = HMM_construct(nClasses, nComps, nEmit, nMixtures, mu, muFactors, covFactors, maxHighMapqRatio,
-                               transNum, transDenom);
+                               transNum, transDenom, NEGATIVE_BINOMIAL);
     //model->emit[1][1]->cov->data[1][1] = model->emit[1][2]->mu->data[0] / 8.0;
     //model->emit[1][2]->cov->data[1][1] = 4.0 * model->emit[1][2]->mu->data[0];
     //model->emit[1][3]->cov->data[1][1] = 8.0 * model->emit[1][2]->mu->data[0];
@@ -642,8 +656,7 @@ int main(int argc, char *argv[]) {
         char *transStr = MatrixDouble_toString(model->trans[r]);
         fprintf(stderr, "r=%d, trans=\n%s\n", r, transStr);
         for (int c = 0; c < nComps; c++) {
-            Gaussian *gaussian = model->emit[r][c];
-            for (int m = 0; m < gaussian->n; m++) {
+            for (int m = 0; m < model->emit[r][c]->n; m++) {
                 char *muStr = VectorDouble_toString(model->emit[r][c]->mu[m]);
                 char *covStr = MatrixDouble_toString(model->emit[r][c]->cov[m]);
                 fprintf(stderr, "r=%d, c=%d, m=%d\n%s\n%s\n\n", r, c, m, muStr, covStr);
@@ -667,8 +680,14 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ROUND FINISHED\n");
 
         fprintf(stderr, "Estimating parameters\n");
-        estimateParameters(model);
-        resetSufficientStats(model);
+        if(model->modelType == GAUSSIAN) {
+            estimateParameters(model);
+            resetSufficientStats(model);
+        }
+        else if(model->modelType == NEGATIVE_BINOMIAL){
+            NegativeBinomial_estimateParameters(model);
+            NegativeBinomial_resetSufficientStats(model);
+        }
 
         fprintf(stderr, "Saving HMM stats\n");
         sprintf(outputPath, "%s/transition_%d.txt", outputDir, itr);

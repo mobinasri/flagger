@@ -11,6 +11,185 @@
 
 static pthread_mutex_t chunkMutex;
 
+
+/**
+ * Constructs a Negative Binomial object containing the mean vectors, covariance
+ * matrices and the weights for all of its mixture components
+ *
+ * @param mu	An array of double vectors containing the initial mean vectors
+ * @param cov	An array of double matrices containing the initial covariance matrices
+ * @param n	The number of mixture components
+ * @return gaussian
+ */
+NegativeBinomial *NegativeBinomial_construct(VectorDouble **mu, MatrixDouble **cov, int n) {
+    NegativeBinomial *nb = malloc(1 * sizeof(NegativeBinomial));
+    // Mixture Gaussian Parameters:
+    //
+    // Allocating arrays for NB parameters
+    nb->mu = VectorDouble_constructArray1D(n, mu[0]->dim);
+    nb->cov = MatrixDouble_constructArray1D(n, mu[0]->dim, mu[0]->dim);
+    // Allocating and initializing mixture weights
+    nb->weights = malloc(n * sizeof(double));
+    nb->n = n;
+    for (int m = 0; m < n; m++) {
+        // init mean vector
+        VectorDouble_copyInPlace(nb->mu[m], mu[m]);
+        // init covariance matrix
+        MatrixDouble_copyInPlace(nb->cov[m], cov[m]);
+        // init weights uniformly
+        nb->weights[m] = 1.0 / n;
+    }
+    // Estimation Statistics:
+    //
+    // Allocating and initializing arrays for estimating parameters
+    nb->thetaNum = VectorDouble_constructArray1D(n, mu[0]->dim);
+    nb->thetaDenom = VectorDouble_constructArray1D(n, mu[0]->dim);
+    nb->lambdaNum = VectorDouble_constructArray1D(n, mu[0]->dim);
+    nb->lambdaDenom = VectorDouble_constructArray1D(n, mu[0]->dim);
+    nb->weightNum = (double *) malloc(n * sizeof(double));
+    memset(nb->weightNum, 0, n * sizeof(double));
+    return nb;
+}
+
+NegativeBinomial * NegativeBinomial_constructSufficientStats(int nEmit, int nMixtures) {
+    NegativeBinomial *nb = malloc(1 * sizeof(NegativeBinomial));
+    // Allocating arrays for gaussian parameters
+    nb->mu = VectorDouble_constructArray1D(nMixtures, nEmit);
+    nb->cov = MatrixDouble_constructArray1D(nMixtures, nEmit, nEmit);
+    // Allocating and initializing mixture weights
+    nb->weights = malloc(nMixtures * sizeof(double));
+    nb->n = nMixtures;
+    // Estimation Statistics:
+    //
+    // Allocating and initializing arrays for estimating parameters
+    nb->thetaNum = VectorDouble_constructArray1D(nMixtures, nEmit);
+    nb->thetaDenom = VectorDouble_constructArray1D(nMixtures, nEmit);
+    nb->lambdaNum = VectorDouble_constructArray1D(nMixtures, nEmit);
+    nb->lambdaDenom = VectorDouble_constructArray1D(nMixtures, nEmit);
+    nb->weightNum = (double *) malloc(nMixtures * sizeof(double));
+    memset(nb->weightNum, 0, nMixtures * sizeof(double));
+    return nb;
+}
+
+/**
+ * Destructs a Gaussian object
+ *
+ * @param gaussian
+ */
+void NegativeBinomial_destruct(NegativeBinomial *nb) {
+    VectorDouble_destructArray1D(nb->mu, nb->n);
+    VectorDouble_destructArray1D(nb->thetaNum, nb->n);
+    VectorDouble_destructArray1D(nb->thetaDenom, nb->n);
+    MatrixDouble_destructArray1D(nb->cov, nb->n);
+    VectorDouble_destructArray1D(nb->lambdaNum, nb->n);
+    VectorDouble_destructArray1D(nb->lambdaDenom, nb->n);
+    free(nb->weights);
+    free(nb->weightNum);
+    free(nb);
+}
+
+/**
+ * Constructs a NB object for which the diagonal covariance entries
+ * are initialized to the initial mean values
+ *
+ * @param mu	An array of double vectors containing the initial mean vectors
+ * @param n	The number of mixture components
+ * @return gaussian
+ */
+NegativeBinomial *NegativeBinomial_constructSpecial(VectorDouble **mu, int n) {
+    // Allocate and initialize a special covariance matrix
+    // It would be a diagonal matrix with autovariances same as means
+    MatrixDouble **cov = MatrixDouble_constructArray1D(n, mu[0]->dim, mu[0]->dim);
+    for (int m = 0; m < n; m++) {
+        for (int j = 0; j < mu[m]->dim; j++) {
+            cov[m]->data[j][j] = mu[m]->data[j];
+        }
+    }
+    return NegativeBinomial_construct(mu, cov, n);
+}
+
+
+double NegativeBinomial_getTheta(double mean, double var){
+    double theta = mean / var
+    return theta;
+}
+
+double NegativeBinomial_getR(double mean, double var){
+    double r = mean ** 2 / (var - mean);
+    return r;
+}
+
+
+double NegativeBinomial_getMean(double theta, double r){
+    double mean = r * (1 - theta) / theta;
+    return mean;
+}
+
+double NegativeBinomial_getVar(double theta, double r){
+    double var = r * (1 - theta) / theta ** 2;
+    return var;
+}
+
+/**
+ * Returns the total probability of emitting a vector from the given Negative Binomial
+ *
+ * @param vec	The emitted vector
+ * @param nb	The NegativeBinomial object
+ * @return prob	The emission probability
+ */
+
+double NegativeBinomial_getProb(VectorChar *vec, NegativeBinomial *nb, int comp) {
+    double *probs = NegativeBinomial_getMixtureProbs(vec, nb, comp);
+    double totProb = 0.0;
+    for (int m = 0; m < nb->n; m++) {
+        totProb += probs[m];
+    }
+    free(probs);
+    return totProb;
+}
+
+
+/**
+ * Returns the probabilities of emitting a vector from the mixture components of Negative Binomial
+ *
+ * @param vec   The emitted vector
+ * @param nb      The Negative Binomial object
+ * @return prob An array of probabilities for all Gaussian components
+ */
+
+// TODO: Support higher dimension if needed. This function only supports dimensions of 1
+double *NegativeBinomial_getMixtureProbs(VectorChar *vec, NegativeBinomial *nb, int comp) {
+    uint8_t *x = vec->data;
+    int dim = 1;//vec->dim;
+    double w;
+    double *mu;
+    double **c;
+    double *probs = malloc(nb->n * sizeof(double));
+    memset(probs, 0.0, nb->n * sizeof(double));
+    // iterate over mixture components
+    for (int m = 0; m < nb->n; m++) {
+        mu = nb->mu[m]->data;
+        c = nb->cov[m]->data
+        w = nb->weights[m];
+        if (dim == 1) {
+            double theta = NegativeBinomial_getTheta(mu[0], c[0][0]);
+            double r = NegativeBinomial_getR(mu[0],c[0][0]);
+            probs[m] = w * tgamma(r + x[0]) / (tgamma(r) * tgamma(x[0] + 1)) * pow(theta, r) * pow(1-theta, x[0]);
+        }
+        if (probs[m] != probs[m]) {
+            fprintf(stderr, "prob is NAN\n");
+            fprintf(stderr, "%s\n", MatrixDouble_toString(nb->cov[m]));
+            fprintf(stderr, "%s\n", VectorDouble_toString(nb->mu[m]));
+            exit(EXIT_FAILURE);
+        }
+        if (probs[m] < 1e-40) {
+            //fprintf(stderr, "COMP=%d, prob is lower than 1e-40\n", comp);
+            probs[m] = 1e-40;
+        }
+    }
+    return probs;
+}
+
 /**
  * Constructs a Gaussian object containing the mean vectors, covariance
  * matrices and the weights for all of its mixture components
@@ -152,7 +331,7 @@ MatrixDouble *makeBiasedTransition(int dim) {
 
 
 /**
- * Returns the total probabilty of emitting a vector from the given Gaussian
+ * Returns the total probability of emitting a vector from the given Gaussian
  *
  * @param vec	The emitted vector
  * @param gaussian	The gaussian object
@@ -254,13 +433,14 @@ double getExpProb(double x, double lambda) {
  * 			nMixrures[HMM components]
  * @param mu		mu[classes][HMM components][mixture components][emission dim]
  * 			mu[r][c] ---> [mixture components][emission dim]
- * @param hmm		The HMM object
+ * @return hmm		The HMM object
  */
 
 HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDouble ****mu, VectorDouble ***muFactors,
                    MatrixDouble ***covFactors, double maxHighMapqRatio, MatrixDouble **transNum,
-                   MatrixDouble **transDenom) {
+                   MatrixDouble **transDenom, ModelType modelType) {
     HMM *model = malloc(sizeof(HMM));
+    model->modelType = modelType;
     model->nClasses = nClasses;
     model->nComps = nComps;
     model->nEmit = nEmit;
@@ -269,14 +449,26 @@ HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDo
     model->covFactors = covFactors;
     model->maxHighMapqRatio = maxHighMapqRatio;
     model->terminateProb = 1e-2;
-    // Constructing the emission Gaussians and set their parameters
-    // emit[r][c] is pointing to the Gaussian of the c-th component of the r-th class
-    model->emit = (Gaussian ***) malloc(nClasses * sizeof(Gaussian **));
-    for (int r = 0; r < nClasses; r++) {
-        model->emit[r] = (Gaussian **) malloc(nComps * sizeof(Gaussian *));
-        // Initialize the emission parameters of each state with the given vector
-        for (int c = 0; c < nComps; c++) {
-            model->emit[r][c] = Gaussian_constructSpecial(mu[r][c], nMixtures[c]);
+    if (modelType == GAUSSIAN) {
+        // Constructing the emission Gaussians and set their parameters
+        // emit[r][c] is pointing to the Gaussian of the c-th component of the r-th class
+        model->emit = (Gaussian ***) malloc(nClasses * sizeof(Gaussian **));
+        for (int r = 0; r < nClasses; r++) {
+            model->emit[r] = (Gaussian **) malloc(nComps * sizeof(Gaussian *));
+            // Initialize the emission parameters of each state with the given vector
+            for (int c = 0; c < nComps; c++) {
+                model->emit[r][c] = Gaussian_constructSpecial(mu[r][c], nMixtures[c]);
+            }
+        }
+    }
+    else if (modelType == NEGATIVE_BINOMIAL){
+        model->emit = (NegativeBinomial ***) malloc(nClasses * sizeof(NegativeBinomial **));
+        for (int r = 0; r < nClasses; r++) {
+            model->emit[r] = (NegativeBinomial **) malloc(nComps * sizeof(NegativeBinomial *));
+            // Initialize the emission parameters of each state with the given vector
+            for (int c = 0; c < nComps; c++) {
+                model->emit[r][c] = NegativeBinomial_constructSpecial(mu[r][c], nMixtures[c]);
+            }
         }
     }
 
@@ -330,10 +522,15 @@ void HMM_destruct(HMM *model) {
     int nComps = model->nComps;
     int nEmit = model->nEmit;
 
-    //free emit gaussians
+    //free emit
     for (int r = 0; r < nClasses; r++) {
         for (int c = 0; c < nComps; c++) {
-            Gaussian_destruct(model->emit[r][c]);
+            if(model->modelType == GAUSSIAN) {
+                Gaussian_destruct(model->emit[r][c]);
+            }
+            else if(model->modelType == NEGATIVE_BINOMIAL){
+                NegativeBinomial_destruct(model->emit[r][c]);
+            }
         }
         free(model->emit[r]);
     }
@@ -372,13 +569,25 @@ EM *EM_construct(VectorChar **seqEmit, uint8_t *seqClass, int seqLength, HMM *mo
     // Copy the classes sequence
     em->seqClass = (uint8_t *) malloc(seqLength * sizeof(uint8_t));
     memcpy(em->seqClass, seqClass, seqLength);
-    // Construct Gaussian objects for saving sufficient stats
-    em->emit = (Gaussian ***) malloc(model->nClasses * sizeof(Gaussian **));
-    for (int r = 0; r < model->nClasses; r++) {
-        em->emit[r] = (Gaussian **) malloc(model->nComps * sizeof(Gaussian *));
-        // Initialize the emission parameters of each state with the given vector
-        for (int c = 0; c < model->nComps; c++) {
-            em->emit[r][c] = Gaussian_constructSufficientStats(model->nEmit, model->emit[r][c]->n);
+    if(model->modelType == GAUSSIAN) {
+        // Construct Gaussian objects for saving sufficient stats
+        em->emit = (Gaussian ***) malloc(model->nClasses * sizeof(Gaussian **));
+        for (int r = 0; r < model->nClasses; r++) {
+            em->emit[r] = (Gaussian **) malloc(model->nComps * sizeof(Gaussian *));
+            // Initialize the emission parameters of each state with the given vector
+            for (int c = 0; c < model->nComps; c++) {
+                em->emit[r][c] = Gaussian_constructSufficientStats(model->nEmit, model->emit[r][c]->n);
+            }
+        }
+    }
+    else if(model->modelType == NEGATIVE_BINOMIAL){
+        em->emit = (NegativeBinomial ***) malloc(model->nClasses * sizeof(NegativeBinomial **));
+        for (int r = 0; r < model->nClasses; r++) {
+            em->emit[r] = (NegativeBinomial **) malloc(model->nComps * sizeof(NegativeBinomial *));
+            // Initialize the emission parameters of each state with the given vector
+            for (int c = 0; c < model->nComps; c++) {
+                em->emit[r][c] = NegativeBinomial_constructSufficientStats(model->nEmit, model->emit[r][c]->n);
+            }
         }
     }
     // Allocate and initialize forward and backward matrices
@@ -399,6 +608,7 @@ EM *EM_construct(VectorChar **seqEmit, uint8_t *seqClass, int seqLength, HMM *mo
         em->scales[i] = 1.0;
     }
     em->px = -1.0;
+    em->modelType = model->modelType;
     //fprintf(stderr, "Constructed\n");
     return em;
 }
@@ -418,7 +628,12 @@ void EM_destruct(EM *em) {
 
     for (int r = 0; r < nClasses; r++) {
         for (int c = 0; c < nComps; c++) {
-            Gaussian_destruct(em->emit[r][c]);
+            if(em->modelType == GAUSSIAN) {
+                Gaussian_destruct(em->emit[r][c]);
+            }
+            else if(em->modelType == NEGATIVE_BINOMIAL){
+                NegativeBinomial_destruct(em->emit[r][c]);
+            }
         }
         free(em->emit[r]);
     }
@@ -445,7 +660,7 @@ void runForward(HMM *model, EM *em) {
     int nClasses = model->nClasses; // Number of region classes
     int nEmit = 1;//model->nEmit; // The emission dimension
     MatrixDouble **trans = model->trans; // Transition matrices. For each class we have a separate matrix
-    Gaussian ***emit = model->emit; // A 2D array [nClasses x nComps] of Gaussian objects
+    //Gaussian ***emit = model->emit; // A 2D array [nClasses x nComps] of Gaussian objects
     double scale = 0.0; // For scaling the forward probabilities at each location to avoid underflow
     // Initialize to zero
     for (int i = 0; i < seqLength; i++) {
@@ -459,7 +674,12 @@ void runForward(HMM *model, EM *em) {
     scale = 0.0;
     for (int c = 0; c < nComps; c++) {
         // Emission probability
-        eProb = getGaussianProb(seqEmit[0], emit[seqClass[0]][c], c);
+        if(model->modelType == GAUSSIAN) {
+            eProb = getGaussianProb(seqEmit[0], model->emit[seqClass[0]][c], c);
+        }
+        else if(model->modelType == NEGATIVE_BINOMIAL){
+            eProb = NegativeBinomial_getProb(seqEmit[0], model->emit[seqClass[0]][c], c);
+        }
         // Transition probability
         //
         // trans[]->data[nComps][c] holds the prob of starting with c
@@ -502,16 +722,21 @@ void runForward(HMM *model, EM *em) {
                 }
                 em->f[i][c2] += (em->f[i - 1][c1] * tProb);
             }
-            eProb = getGaussianProb(seqEmit[i], emit[seqClass[i]][c2], c2);
+            if(model->modelType == GAUSSIAN) {
+                eProb = getGaussianProb(seqEmit[i], model->emit[seqClass[i]][c2], c2);
+            }
+            if(model->modelType == NEGATIVE_BINOMIAL) {
+                eProb = NegativeBinomial_getProb(seqEmit[i], model->emit[seqClass[i]][c2], c2);
+            }
             em->f[i][c2] *= eProb;
             scale += em->f[i][c2];
         }
         if (scale < 1e-100) {
             fprintf(stderr, "scale is very low! %.2e\n", scale);
-            for (int c2 = 0; c2 < nComps; c2++) {
+            /*for (int c2 = 0; c2 < nComps; c2++) {
                 eProb = getGaussianProb(seqEmit[i], emit[seqClass[i]][c2], c2);
                 //fprintf(stderr, "vec=%s,\n mu=%s\nc2=%d, eprob=%.2e\n", VectorChar_toString(seqEmit[i]), VectorDouble_toString(emit[seqClass[i]][c2]), c2, eProb);
-            }
+            }*/
             exit(EXIT_FAILURE);
         }
         // Scale f
@@ -545,7 +770,7 @@ void runBackward(HMM *model, EM *em) {
     int nClasses = model->nClasses;
     int nEmit = 1;//model->nEmit;
     MatrixDouble **trans = model->trans;
-    Gaussian ***emit = model->emit;
+    //Gaussian ***emit = model->emit;
     // Initialize to zero
     for (int i = 0; i < seqLength; i++) {
         for (int c = 0; c < nComps; c++) {
@@ -584,7 +809,12 @@ void runBackward(HMM *model, EM *em) {
                         tProb = trans[seqClass[i]]->data[c1][c2];
                     }
                 }
-                eProb = getGaussianProb(seqEmit[i + 1], emit[seqClass[i + 1]][c2], c2);
+                if(model->modelType == GAUSSIAN) {
+                    eProb = getGaussianProb(seqEmit[i + 1], model->emit[seqClass[i + 1]][c2], c2);
+                }
+                else if(model->modelType == NEGATIVE_BINOMIAL) {
+                    eProb = NegativeBinomial_getProb(seqEmit[i + 1], model->emit[seqClass[i + 1]][c2], c2);
+                }
                 em->b[i][c1] += tProb * eProb * em->b[i + 1][c2];
             }
             // Scale b
@@ -604,7 +834,12 @@ void runBackward(HMM *model, EM *em) {
     for (int c = 0; c < nComps; c++) {
         // starting with c
         tProb = trans[seqClass[0]]->data[nComps][c];
-        eProb = getGaussianProb(seqEmit[0], emit[seqClass[0]][c], c);
+        if(model->modelType == GAUSSIAN) {
+            eProb = getGaussianProb(seqEmit[0], model->emit[seqClass[0]][c], c);
+        }
+        else if(model->modelType == NEGATIVE_BINOMIAL) {
+            eProb = NegativeBinomial_getProb(seqEmit[0], model->emit[seqClass[0]][c], c);
+        }
         em->px += em->b[0][c] * eProb * tProb;
         if (em->px != em->px) {
             fprintf(stderr, "px is NAN!\n");
@@ -635,6 +870,149 @@ double *getPosterior(EM *em, int pos) {
         posterior[c] = em->f[pos][c] * em->b[pos][c] / em->px * em->scales[pos];
     }
     return posterior;
+}
+
+void NegativeBinomial_resetSufficientStats(HMM *model) {
+
+    for (int r = 0; r < model->nClasses; r++) {
+        MatrixDouble_setValue(model->transCounts[r], 0);
+    }
+
+    for (int r = 0; r < model->nClasses; r++) {
+        for (int c = 0; c < model->nComps; c++) {
+            NegativeBinomial *nb = nb->emit[r][c];
+            for (int m = 0; m < nb->n; m++) {
+                VectorDouble_setValue(nb->thetaNum[m], 0.0);
+                VectorDouble_setValue(nb->thetaDenom[m], 0.0);
+                MatrixDouble_setValue(nb->lambdaNum[m], 0.0);
+                MatrixDouble_setValue(nb->lambdaDenom[m], 0.0);
+                nb->weightNum[m] = 0.0;
+            }
+        }
+    }
+}
+
+void NegativeBinomial_estimateParameters(HMM *model) {
+    // Get model attributes
+    int nComps = model->nComps;
+    int nClasses = model->nClasses;
+    int nEmit = 1;//model->nEmit;
+    MatrixDouble **trans = model->trans;
+    // A 1D array of count matrices [nClasses]
+    MatrixDouble **transCounts = model->transCounts;
+    // A 1D array of pseudo-count matrices for denominator
+    MatrixDouble **transDenom = model->transDenom;
+    // A 1D array of pseudo-count matrices for numarator
+    MatrixDouble **transNum = model->transNum;
+
+    // Update transition probs
+    double terminateProb = model->terminateProb;
+    for (int r = 0; r < nClasses; r++) {
+        fprintf(stderr, "transition counts\nr=%d\n", r);
+        fprintf(stderr, "%s\n", MatrixDouble_toString(transCounts[r]));
+        for (int c1 = 0; c1 < nComps; c1++) {
+            double norm = 0;
+            for (int c2 = 0; c2 < nComps; c2++) {
+                // transition counts for region class of r
+                // transition from state c1 to state c2
+                norm += transCounts[r]->data[c1][c2];
+            }
+            if (norm < 10) continue;
+            for (int c2 = 0; c2 < nComps; c2++) {
+                if (c1 == 2) {
+                    fprintf(stdout, "r=%d, 2->%d: %.2e/%.2e\n", r, c2, transCounts[r]->data[c1][c2], norm);
+                }
+                trans[r]->data[c1][c2] = (transCounts[r]->data[c1][c2] + transNum[r]->data[c1][c2]) /
+                                         (norm + transDenom[r]->data[c1][c2]) * (1.0 - terminateProb);
+            }
+            trans[r]->data[c1][nComps] = terminateProb;
+        }
+        for (int c2 = 0; c2 < nComps; c2++) {
+            trans[r]->data[nComps][c2] = 1.0 / nComps * (1.0 - terminateProb);
+        }
+        trans[r]->data[nComps][nComps] = terminateProb;
+    }
+
+
+    // Update mu
+    for (int r = 0; r < nClasses; r++) {
+        VectorDouble *thetaPosFactor = VectorDouble_construct0(nEmit);
+        VectorDouble *thetaPosFactorWeight = VectorDouble_construct0(nEmit);
+        VectorDouble *lambdaPosFactor = VectorDouble_construct0(nEmit);
+        VectorDouble *lambdaPosFactorWeight = VectorDouble_construct0(nEmit);
+        // Sum all numerator and denomerator for estimating
+        // the theta_0 with positive factors
+        for (int c = 0; c < nComps; c++) {
+            NegativeBinomial *nb = model->emit[r][c];
+            for (int m = 0; m < nb->n; m++) {
+                VectorDouble *muFactor = model->muFactors[c][m];
+                for (int j = 0; j < nEmit; j++) {
+                    if (0 < muFactor->data[j]) {
+                        // for theta
+                        thetaPosFactor->data[j] += nb->thetaNum[m]->data[j];
+                        thetaPosFactorWeight->data[j] += nb->thetaDenom[m]->data[j];
+                        // for lambda
+                        lambdaPosFactor->data[j] += nb->lambdaNum[m]->data[j];
+                        lambdaPosFactorWeight->data[j] += nb->lambdaDenom[m]->data[j];
+                    }
+                }
+            }
+        }
+        // Update the theta vectors
+        for (int c = 0; c < nComps; c++) {
+            NegativeBinomial *nb = model->emit[r][c];
+            for (int m = 0; m < nb->n; m++) {
+                VectorDouble *muFactor = model->muFactors[c][m];
+                for (int j = 0; j < nEmit; j++) {
+                    //if (muFactor->data[j] < 0) continue;
+                    // for theta
+                    double theta_0;
+                    if (0 < muFactor->data[j] && 1e2 < thetaPosFactorWeight->data[j]) {
+                        theta_0 = thetaPosFactor->data[j] / thetaPosFactorWeight->data[j] * muFactor->data[j];
+                    } else if (1e2 < nb->thetaDenom[m]->data[j]) {
+                        theta_0 = nb->thetaNum[m]->data[j] / nb->thetaDenom[m]->data[j];
+                    }
+                    // for lambda
+                    double lambda_0;
+                    if (0 < muFactor->data[j] && 1e2 < lambdaPosFactorWeight->data[j]) {
+                        lambda_0 = lambdaPosFactor->data[j] / lambdaPosFactorWeight->data[j];
+                    } else if (1e2 < nb->lambdaDenom[m]->data[j]) {
+                        lambda_0 = nb->lambdaNum[m]->data[j] / nb->lambdaDenom[m]->data[j];
+                    }
+                    // get update theta and r
+                    double theta_m = theta_0;
+                    double lambda_m = lambda_0 * muFactor->data[j];
+                    double r_m = -1 * lambda_m / log(theta_m);
+                    assert(j == 0);
+                    // update mu and cov
+                    nb->mu[m]->data[j] = NegativeBinomial_getMean(theta_m, r_m);
+                    nb->cov[m]->data[j][j] = NegativeBinomial_getVar(theta_m, r_m);
+                }
+            }
+        }
+        VectorDouble_destruct(thetaPosFactor);
+        VectorDouble_destruct(thetaPosFactorWeight);
+        VectorDouble_destruct(lambdaPosFactor);
+        VectorDouble_destruct(lambdaPosFactorWeight);
+    }
+
+
+    // Update mixture weights
+    double weightDenom;
+    for (int r = 0; r < nClasses; r++) {
+        for (int c = 0; c < nComps; c++) {
+            NegativeBinomial *nb = model->emit[r][c];
+            weightDenom = 0.0;
+            for (int m = 0; m < nb->n; m++) {
+                weightDenom += nb->weightNum[m];
+            }
+            if (1.0 < weightDenom) {
+                for (int m = 0; m < nb->n; m++) {
+                    nb->weights[m] = nb->weightNum[m] / weightDenom;
+                }
+            }
+        }
+    }
 }
 
 
@@ -704,7 +1082,7 @@ void estimateParameters(HMM *model) {
             for (int m = 0; m < gaussian->n; m++) {
                 VectorDouble *muFactor = model->muFactors[c][m];
                 for (int j = 0; j < nEmit; j++) {
-                    if (muFactor->data[j] < 0) continue;
+                    //if (muFactor->data[j] < 0) continue;
                     if (0 < muFactor->data[j] && 1e2 < muPosFactorWeight->data[j]) {
                         gaussian->mu[m]->data[j] =
                                 muPosFactor->data[j] / muPosFactorWeight->data[j] * muFactor->data[j];
@@ -744,7 +1122,7 @@ void estimateParameters(HMM *model) {
                 for (int j1 = 0; j1 < nEmit; j1++) {
                     for (int j2 = 0; j2 < nEmit; j2++) {
                         double factor = covFactor->data[j1][j2];
-                        if (factor < 0) continue;
+                        //if (factor < 0) continue;
                         if (0 < factor && 1e2 < covPosFactorWeight->data[j1][j2]) {
                             gaussian->cov[m]->data[j1][j2] =
                                     covPosFactor->data[j1][j2] / covPosFactorWeight->data[j1][j2] * factor;
@@ -798,6 +1176,169 @@ void resetSufficientStats(HMM *model) {
             }
         }
     }
+}
+
+void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
+    // Get em attributes
+    VectorChar **seqEmit = em->seqEmit;
+    uint8_t *seqClass = em->seqClass;
+    int seqLength = em->seqLength;
+    // Get model attributes
+    int nComps = model->nComps;
+    int nClasses = model->nClasses;
+    int nEmit = 1;//model->nEmit;
+    MatrixDouble **trans = model->trans;
+    // A 1D array of count matrices [nClasses]
+    MatrixDouble **transCounts = model->transCounts;
+    MatrixDouble **transCountsTemp = MatrixDouble_constructArray1D(nClasses, nComps + 1, nComps + 1);
+
+    double tProb;
+    double eProb;
+    uint8_t r1;
+    uint8_t r2;
+    uint8_t r;
+    double terminateProb = model->terminateProb;
+
+
+
+    // Update transCounts
+    for (int i = 0; i < seqLength - 1; i++) {
+        r1 = seqClass[i];
+        r2 = seqClass[i + 1];
+        for (int c1 = 0; c1 < nComps; c1++) {
+            for (int c2 = 0; c2 < nComps; c2++) {
+                if (r1 == r2) {
+                    double highMapqRatio = (double) seqEmit[i + 1]->data[1] / seqEmit[i + 1]->data[0];
+                    if (model->maxHighMapqRatio < highMapqRatio) {
+                        tProb = c2 == 1 ? 0 : trans[r1]->data[c1][c2] / (1 - trans[r1]->data[c1][1]);
+                    } else {
+                        tProb = trans[r1]->data[c1][c2];
+                    }
+                    eProb = NegativeBinomial_getProb(seqEmit[i + 1], model->emit[r2][c2], c2);
+                    // division by terminateProb is just for making the total count
+                    // equal to the number of windows, which is ~ genome_size / window_size
+                    double u = em->f[i][c1] * tProb * eProb * em->b[i + 1][c2] / terminateProb;
+                    if (u > 1) {
+                        fprintf(stderr, "Error!\n");
+                        fprintf(stderr, "i=%d,c1=%d,c2=%d,r1=%d,r2=%d\n", i, c1, c2, r1, r2);
+                        fprintf(stderr, "u= %.3e\n", u);
+                        fprintf(stderr, "f= %.3e\n", em->f[i][c1]);
+                        fprintf(stderr, "b= %.3e\n", em->b[i + 1][c2]);
+                        fprintf(stderr, "t= %.3e\n", tProb);
+                        fprintf(stderr, "e= %.3e\n", eProb);
+                    }
+                    transCountsTemp[r1]->data[c1][c2] += u;
+                    if (u != u) {
+                        fprintf(stderr, "Updating transcounts NAN observed\n");
+                        fprintf(stderr, "f= %2.e\n", em->f[i][c1]);
+                        fprintf(stderr, "b= %.2e\n", em->b[i + 1][c2]);
+                        fprintf(stderr, "px= %.2e\n", em->px);
+                        fprintf(stderr, "tprob=%.2e\n", tProb);
+                        fprintf(stderr, "eprob=%.2e\n", eProb);
+                        exit(EXIT_FAILURE);
+                    }
+                    if (transCountsTemp[r1]->data[c1][c2] != transCountsTemp[r1]->data[c1][c2]) {
+                        fprintf(stderr, "Updating transcounts NAN observed\n");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+            }
+        }
+    }
+
+    pthread_mutex_lock(model->mutexPtr);
+    for (int r = 0; r < nClasses; r++) {
+        for (int c1 = 0; c1 < nComps; c1++) {
+            for (int c2 = 0; c2 < nComps; c2++) {
+                transCounts[r]->data[c1][c2] += transCountsTemp[r]->data[c1][c2];
+            }
+        }
+    }
+    pthread_mutex_unlock(model->mutexPtr);
+    MatrixDouble_destructArray1D(transCountsTemp, nClasses);
+
+
+    //fprintf(stderr, "Copy gaussian\n");
+    // Copy Gaussian params from model to em
+    for (int r = 0; r < nClasses; r++) {
+        for (int c = 0; c < nComps; c++) {
+            NegativeBinomial *nbEm = em->emit[r][c];
+            NegativeBinomial *nbModel = model->emit[r][c];
+            for (int m = 0; m < gaussianEm->n; m++) {
+                VectorDouble_copyInPlace(nbEm->mu[m], nbModel->mu[m]);
+                MatrixDouble_copyInPlace(nbEm->cov[m], nbModel->cov[m]);
+                nbEm->weights[m] = nbModel->weights[m];
+            }
+        }
+    }
+
+    //fprintf(stderr, "Update means\n");
+    // TODO: Add weightComps[] to make means dependent on each other
+    double w = 0.0;
+    double w1 = 0.0;
+    double w2 = 0.0;
+    // Update the numerators and denomerators for estimating mu
+    // Update the numerator for estimating mixture weights
+    for (int i = 0; i < seqLength - 1; i++) {
+        r = seqClass[i];
+        for (int c = 0; c < nComps; c++) { // skip erroneous component
+            //fprintf(stderr, "c=%d\n",c);
+            NegativeBinomial *nb = em->emit[r][c];
+            double *mixtureProbs = NegativeBinomial_getMixtureProbs(seqEmit[i], nb, c);
+            double totProb = 0;
+            for (int m = 0; m < gaussian->n; m++) {
+                totProb += mixtureProbs[m];
+            }
+            for (int m = 0; m < gaussian->n; m++) {
+                double theta = NegativeBinomial_getTheta(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
+                double r = NegativeBinomial_getR(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
+                double beta = -1 * theta / (1 - theta) - 1 /log(theta);
+                //fprintf(stderr, "get factors\n");
+                VectorDouble *muFactor = model->muFactors[c][m];
+                MatrixDouble *covFactor = model->covFactors[c][m];
+                w1 = mixtureProbs[m] / totProb;
+                w2 = em->f[i][c] * em->b[i][c] * em->scales[i] / terminateProb;
+                w = w1 * w2;
+                //fprintf(stderr, "means\n");
+                // Update sufficient stats for estimating mean vectors
+                for (int j = 0; j < nEmit; j++) {
+                    double factor = muFactor->data[j] <= 0 ? 1 : muFactor->data[j];
+                    double delta = digammal(r + seqEmit[i]->data[j]) - digammal(r));
+                    nb->lambdaNum[m]->data[j] += w * delta;
+                    nb->lambdaDenom[m]->data[j] += w * factor;
+                    nb->thetaNum[m]->data[j] += w * delta * beta;
+                    nb->thetaDenom[m]->data[j] += w * delta * beta + w * (seqEmit[i]->data[j] - delta);
+                }
+                // Update sufficient stats for estimating mixture weights
+                gaussian->weightNum[m] += w;
+            }
+            free(mixtureProbs);
+        }
+    }
+
+
+    //fprintf(stderr, "Update means 2\n");
+    pthread_mutex_lock(model->mutexPtr);
+    for (int r = 0; r < nClasses; r++) {
+        for (int c = 0; c < nComps; c++) {
+            NegativeBinomial *nbEm = em->emit[r][c];
+            NegativeBinomial *nbModel = model->emit[r][c];
+            for (int m = 0; m < nbEm->n; m++) {
+                // Update model gaussian sufficient stats
+                //
+                // For means
+                for (int j = 0; j < nEmit; j++) {
+                    nbModel->thetaNum[m]->data[j] += nbEm->muNum[m]->data[j];
+                    nbModel->thetaDenom[m]->data[j] += nbEm->muDenom[m]->data[j];
+                    nbModel->lambdaNum[m]->data[j] += nbEm->lambdaNum[m]->data[j];
+                    nbModel->lambdaDenom[m]->data[j] += nbEm->lambdaDenom[m]->data[j];
+                }
+                // For weights
+                nbModel->weightNum[m] += nbEm->weightNum[m];
+            }
+        }
+    }
+    pthread_mutex_unlock(model->mutexPtr);
 }
 
 
