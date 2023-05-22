@@ -576,7 +576,8 @@ EM *EM_construct(VectorChar **seqEmit, uint8_t *seqClass, int seqLength, HMM *mo
             em->emit[r] = (Gaussian **) malloc(model->nComps * sizeof(Gaussian *));
             // Initialize the emission parameters of each state with the given vector
             for (int c = 0; c < model->nComps; c++) {
-                em->emit[r][c] = Gaussian_constructSufficientStats(model->nEmit, model->emit[r][c]->n);
+                Gaussian *gaussian = model->emit[r][c];
+                em->emit[r][c] = Gaussian_constructSufficientStats(model->nEmit, gaussian->n);
             }
         }
     }
@@ -586,7 +587,8 @@ EM *EM_construct(VectorChar **seqEmit, uint8_t *seqClass, int seqLength, HMM *mo
             em->emit[r] = (NegativeBinomial **) malloc(model->nComps * sizeof(NegativeBinomial *));
             // Initialize the emission parameters of each state with the given vector
             for (int c = 0; c < model->nComps; c++) {
-                em->emit[r][c] = NegativeBinomial_constructSufficientStats(model->nEmit, model->emit[r][c]->n);
+                NegativeBinomial *nb = model->emit[r][c];
+                em->emit[r][c] = NegativeBinomial_constructSufficientStats(model->nEmit, nb->n);
             }
         }
     }
@@ -880,7 +882,7 @@ void NegativeBinomial_resetSufficientStats(HMM *model) {
 
     for (int r = 0; r < model->nClasses; r++) {
         for (int c = 0; c < model->nComps; c++) {
-            NegativeBinomial *nb = nb->emit[r][c];
+            NegativeBinomial *nb = model->emit[r][c];
             for (int m = 0; m < nb->n; m++) {
                 VectorDouble_setValue(nb->thetaNum[m], 0.0);
                 VectorDouble_setValue(nb->thetaDenom[m], 0.0);
