@@ -1264,7 +1264,7 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
         for (int c = 0; c < nComps; c++) {
             NegativeBinomial *nbEm = em->emit[r][c];
             NegativeBinomial *nbModel = model->emit[r][c];
-            for (int m = 0; m < gaussianEm->n; m++) {
+            for (int m = 0; m < nbEm->n; m++) {
                 VectorDouble_copyInPlace(nbEm->mu[m], nbModel->mu[m]);
                 MatrixDouble_copyInPlace(nbEm->cov[m], nbModel->cov[m]);
                 nbEm->weights[m] = nbModel->weights[m];
@@ -1310,7 +1310,7 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
                     nb->thetaDenom[m]->data[j] += w * delta * beta + w * (seqEmit[i]->data[j] - delta);
                 }
                 // Update sufficient stats for estimating mixture weights
-                gaussian->weightNum[m] += w;
+                nb->weightNum[m] += w;
             }
             free(mixtureProbs);
         }
