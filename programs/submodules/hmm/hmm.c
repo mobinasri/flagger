@@ -110,12 +110,12 @@ NegativeBinomial *NegativeBinomial_constructSpecial(VectorDouble **mu, int n) {
 
 
 double NegativeBinomial_getTheta(double mean, double var){
-    double theta = mean / var
+    double theta = mean / var;
     return theta;
 }
 
 double NegativeBinomial_getR(double mean, double var){
-    double r = mean ** 2 / (var - mean);
+    double r = pow(mean, 2) / (var - mean);
     return r;
 }
 
@@ -126,7 +126,7 @@ double NegativeBinomial_getMean(double theta, double r){
 }
 
 double NegativeBinomial_getVar(double theta, double r){
-    double var = r * (1 - theta) / theta ** 2;
+    double var = r * (1 - theta) / pow(theta, 2);
     return var;
 }
 
@@ -168,8 +168,8 @@ double *NegativeBinomial_getMixtureProbs(VectorChar *vec, NegativeBinomial *nb, 
     memset(probs, 0.0, nb->n * sizeof(double));
     // iterate over mixture components
     for (int m = 0; m < nb->n; m++) {
-        mu = nb->mu[m]->data;
-        c = nb->cov[m]->data
+        mu = nb->mu[m];
+        c = nb->cov[m];
         w = nb->weights[m];
         if (dim == 1) {
             double theta = NegativeBinomial_getTheta(mu[0], c[0][0]);
@@ -1286,10 +1286,10 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
             NegativeBinomial *nb = em->emit[r][c];
             double *mixtureProbs = NegativeBinomial_getMixtureProbs(seqEmit[i], nb, c);
             double totProb = 0;
-            for (int m = 0; m < gaussian->n; m++) {
+            for (int m = 0; m < nb->n; m++) {
                 totProb += mixtureProbs[m];
             }
-            for (int m = 0; m < gaussian->n; m++) {
+            for (int m = 0; m < nb->n; m++) {
                 double theta = NegativeBinomial_getTheta(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
                 double r = NegativeBinomial_getR(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
                 double beta = -1 * theta / (1 - theta) - 1 /log(theta);
@@ -1303,7 +1303,7 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
                 // Update sufficient stats for estimating mean vectors
                 for (int j = 0; j < nEmit; j++) {
                     double factor = muFactor->data[j] <= 0 ? 1 : muFactor->data[j];
-                    double delta = digammal(r + seqEmit[i]->data[j]) - digammal(r));
+                    double delta = digammal(r + seqEmit[i]->data[j]) - digammal(r);
                     nb->lambdaNum[m]->data[j] += w * delta;
                     nb->lambdaDenom[m]->data[j] += w * factor;
                     nb->thetaNum[m]->data[j] += w * delta * beta;
@@ -1328,8 +1328,8 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
                 //
                 // For means
                 for (int j = 0; j < nEmit; j++) {
-                    nbModel->thetaNum[m]->data[j] += nbEm->muNum[m]->data[j];
-                    nbModel->thetaDenom[m]->data[j] += nbEm->muDenom[m]->data[j];
+                    nbModel->thetaNum[m]->data[j] += nbEm->thetaNum[m]->data[j];
+                    nbModel->thetaDenom[m]->data[j] += nbEm->thetaDenom[m]->data[j];
                     nbModel->lambdaNum[m]->data[j] += nbEm->lambdaNum[m]->data[j];
                     nbModel->lambdaDenom[m]->data[j] += nbEm->lambdaDenom[m]->data[j];
                 }
