@@ -70,7 +70,7 @@ void saveHMMStats(StatType statType, char *path, HMM *model) {
                         fprintf(fp, "mu = \n%s\n\n", vecStr);
                         char *matrixStr = MatrixDouble_toString(gaussian->cov[m]);
                         fprintf(fp, "cov = \n%s\n\n", matrixStr);
-                        fprintf(fp, "w = %.2e\n\n", model->emit[r][c]->weights[m]);
+                        fprintf(fp, "w = %.2e\n\n", gaussian->weights[m]);
                     }
                 }
                 if(model->modelType == NEGATIVE_BINOMIAL) {
@@ -81,7 +81,7 @@ void saveHMMStats(StatType statType, char *path, HMM *model) {
                         fprintf(fp, "mu = \n%s\n\n", vecStr);
                         char *matrixStr = MatrixDouble_toString(nb->cov[m]);
                         fprintf(fp, "cov = \n%s\n\n", matrixStr);
-                        fprintf(fp, "w = %.2e\n\n", model->emit[r][c]->weights[m]);
+                        fprintf(fp, "w = %.2e\n\n", nb->weights[m]);
                     }
                 }
             }
@@ -387,7 +387,14 @@ void Batch_inferSaveOutput(Batch *batch, int batchIdx, HMM *model, FILE *outputF
         for (int i = 0; i < chunk->seqLen; i++) {
             compIdx = getCompIdx(emArray[t], i);
             cov = (double) chunk->seqEmit[i]->data[0];
-            hapMu = (double) model->emit[chunk->seqClass[i]][2]->mu[0]->data[0]; // assuming index 2 is always haploid
+            if (model->modelType == GAUSSIAN) {
+                Gaussian* gaussian = model->emit[chunk->seqClass[i]][2];
+                hapMu = (double) gaussian->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
+
+            }else if (model->modelType == NEGATIVE_BINOMIAL){
+                NegativeBinomial *nb = model->emit[chunk->seqClass[i]][2];
+                hapMu = (double) nb->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
+            }
             score = cov / hapMu;
             sumScore += score * chunk->windowLen;
             // if component changed write the block
@@ -656,10 +663,20 @@ int main(int argc, char *argv[]) {
         char *transStr = MatrixDouble_toString(model->trans[r]);
         fprintf(stderr, "r=%d, trans=\n%s\n", r, transStr);
         for (int c = 0; c < nComps; c++) {
-            for (int m = 0; m < model->emit[r][c]->n; m++) {
-                char *muStr = VectorDouble_toString(model->emit[r][c]->mu[m]);
-                char *covStr = MatrixDouble_toString(model->emit[r][c]->cov[m]);
-                fprintf(stderr, "r=%d, c=%d, m=%d\n%s\n%s\n\n", r, c, m, muStr, covStr);
+            if(model->modelType == GAUSSIAN) {
+                Gaussian* gaussian =  model->emit[r][c];
+                for (int m = 0; m < gaussian->n; m++) {
+                    char *muStr = VectorDouble_toString(gaussian->mu[m]);
+                    char *covStr = MatrixDouble_toString(gaussian->cov[m]);
+                    fprintf(stderr, "r=%d, c=%d, m=%d\n%s\n%s\n\n", r, c, m, muStr, covStr);
+                }
+            }else if(model->modelType == NEGATIVE_BINOMIAL){
+                NegativeBinomial *nb =  model->emit[r][c];
+                for (int m = 0; m < nb->n; m++) {
+                    char *muStr = VectorDouble_toString(nb->mu[m]);
+                    char *covStr = MatrixDouble_toString(nb->cov[m]);
+                    fprintf(stderr, "r=%d, c=%d, m=%d\n%s\n%s\n\n", r, c, m, muStr, covStr);
+                }
             }
         }
     }
