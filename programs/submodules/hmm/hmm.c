@@ -102,7 +102,7 @@ NegativeBinomial *NegativeBinomial_constructSpecial(VectorDouble **mu, int n) {
     MatrixDouble **cov = MatrixDouble_constructArray1D(n, mu[0]->dim, mu[0]->dim);
     for (int m = 0; m < n; m++) {
         for (int j = 0; j < mu[m]->dim; j++) {
-            cov[m]->data[j][j] = mu[m]->data[j];
+            cov[m]->data[j][j] = mu[m]->data[j] * 1.1;
         }
     }
     return NegativeBinomial_construct(mu, cov, n);
