@@ -1813,6 +1813,9 @@ int Batch_readNextChunk(void *batch_) {
     chunk->e = templateChunk->e;
     strcpy(chunk->ctg, templateChunk->ctg);
     chunk->ctgLen = templateChunk->ctgLen;
+    if( chunk->ctgLen < (5 * chunk->windowLen)){ // make smaller windows for short contigs
+        chunk->windowLen = max(1, chunk->windowLen / 5);
+    }
     // iterate over the blocks in the cov file
     while (Block_next(filePtr, block) == 1) {
         block->s -= 1;
