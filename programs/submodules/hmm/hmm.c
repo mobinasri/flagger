@@ -174,7 +174,7 @@ double *NegativeBinomial_getMixtureProbs(VectorChar *vec, NegativeBinomial *nb, 
         if (dim == 1) {
             double theta = NegativeBinomial_getTheta(mu[0], c[0][0]);
             double r = NegativeBinomial_getR(mu[0],c[0][0]);
-            probs[m] = w * tgamma(r + x[0]) / (tgamma(r) * tgamma(x[0] + 1)) * pow(theta, r) * pow(1-theta, x[0]);
+            probs[m] = w * exp(lgamma(r + x[0]) - lgamma(r) - lgamma(x[0] + 1) + r * log(theta) + (double) x[0] * log(1-theta));
         }
         if (probs[m] != probs[m]) {
             fprintf(stderr, "prob is NAN\n");
