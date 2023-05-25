@@ -98,7 +98,8 @@ typedef struct Chunk {
     int s; // start location of the chunk on the contig 0-based
     int e; // end location of the chunk on the contig 0-based
     int seqLen; // the length of the sequence that has been added to this chunk so far
-    int chunkLen; // size of array is 2 * chunkLen
+    int chunkLen; // size of actual bases
+    int maxSeqSize; // maximum size of array int(chunkLen * 2 / windowLen) + 1
     int windowLen;
     int windowItr;
     VectorDouble *windowSumEmit;
