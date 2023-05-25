@@ -62,7 +62,7 @@ void saveHMMStats(StatType statType, char *path, HMM *model) {
             for (int c = 0; c < model->nComps; c++) {
                 fprintf(fp, "##c=%d\n", c);
 
-                if(model->modelType == GAUSSIAN) {
+                if (model->modelType == GAUSSIAN) {
                     Gaussian *gaussian = model->emit[r][c];
                     for (int m = 0; m < gaussian->n; m++) {
                         fprintf(fp, "##m=%d\n", m);
@@ -73,7 +73,7 @@ void saveHMMStats(StatType statType, char *path, HMM *model) {
                         fprintf(fp, "w = %.2e\n\n", gaussian->weights[m]);
                     }
                 }
-                if(model->modelType == NEGATIVE_BINOMIAL) {
+                if (model->modelType == NEGATIVE_BINOMIAL) {
                     NegativeBinomial *nb = model->emit[r][c];
                     for (int m = 0; m < nb->n; m++) {
                         fprintf(fp, "##m=%d\n", m);
@@ -154,7 +154,7 @@ void initMuFourComps(VectorDouble ***mu, int coverage, int *nMixtures) {
 }
 
 HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *nMixtures, double maxHighMapqRatio,
-                      double *regionFreqRatios, char *numMatrixFile) {
+                      double *regionFreqRatios, char *numMatrixFile, ModelType modelType) {
 
     VectorDouble ****mu = malloc(nClasses * sizeof(VectorDouble * **));
     for (int r = 0; r < nClasses; r++) {
@@ -225,7 +225,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     // MatrixDouble** transDenom = MatrixDouble_constructArray1D(nClasses, nComps, nComps);
 
     HMM *model = HMM_construct(nClasses, nComps, nEmit, nMixtures, mu, muFactors, covFactors, maxHighMapqRatio,
-                               transNum, transDenom, NEGATIVE_BINOMIAL);
+                               transNum, transDenom, modelType);
 
     //model->emit[1][1]->cov->data[1][1] = model->emit[1][2]->mu->data[0] / 8.0;
     //model->emit[1][2]->cov->data[1][1] = 4.0 * model->emit[1][2]->mu->data[0];
@@ -371,7 +371,7 @@ void Batch_inferSaveOutput(Batch *batch, int batchIdx, HMM *model, FILE *outputF
     int e = -1;
     int compIdx = -1;
     int preCompIdx = -1;
-    int windowLen = batch->windowLen;
+    int windowLen; // windowLen may be different for small contigs; look at chunk->windowLen instead of batch->windowLen
     double cov;
     double hapMu;
     double score;
@@ -382,6 +382,7 @@ void Batch_inferSaveOutput(Batch *batch, int batchIdx, HMM *model, FILE *outputF
         fprintf(stderr, "Thread %d is finished\n", t);
         fprintf(stderr, "Writing the output...\n");
         Chunk *chunk = batch->threadChunks[t];
+        windowLen = chunk->windowLen;
         s = chunk->s;
         e = chunk->s;
         preCompIdx = -1;
@@ -389,10 +390,10 @@ void Batch_inferSaveOutput(Batch *batch, int batchIdx, HMM *model, FILE *outputF
             compIdx = getCompIdx(emArray[t], i);
             cov = (double) chunk->seqEmit[i]->data[0];
             if (model->modelType == GAUSSIAN) {
-                Gaussian* gaussian = model->emit[chunk->seqClass[i]][2];
+                Gaussian *gaussian = model->emit[chunk->seqClass[i]][2];
                 hapMu = (double) gaussian->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
 
-            }else if (model->modelType == NEGATIVE_BINOMIAL){
+            } else if (model->modelType == NEGATIVE_BINOMIAL) {
                 NegativeBinomial *nb = model->emit[chunk->seqClass[i]][2];
                 hapMu = (double) nb->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
             }
@@ -445,9 +446,9 @@ void *readChunkAndUpdateStats(void *arg_) {
             chunk->seqEmit[0]->data[0],
             chunk->seqEmit[1]->data[0],
             chunk->seqEmit[2]->data[0],
-            chunk->seqEmit[chunk->seqLen-3]->data[0],
-            chunk->seqEmit[chunk->seqLen-2]->data[0],
-            chunk->seqEmit[chunk->seqLen-1]->data[0]);
+            chunk->seqEmit[chunk->seqLen - 3]->data[0],
+            chunk->seqEmit[chunk->seqLen - 2]->data[0],
+            chunk->seqEmit[chunk->seqLen - 1]->data[0]);
     // Make an EM object
     EM *em = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
     // Run forward and backward
@@ -465,7 +466,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     //pthread_mutex_lock(model->mutexPtr);
     if (model->modelType == NEGATIVE_BINOMIAL) {
         NegativeBinomial_updateSufficientStats(model, em);
-    }else if(model->modelType == GAUSSIAN){
+    } else if (model->modelType == GAUSSIAN) {
         updateSufficientStats(model, em);
     }
     //pthread_mutex_unlock(model->mutexPtr);
@@ -528,6 +529,7 @@ static struct option long_options[] =
                 {"maxHighMapqRatio", required_argument, NULL, 'p'},
                 {"regionRatios",     required_argument, NULL, 'g'},
                 {"transPseudoPath",  required_argument, NULL, 'u'},
+                {"model",            required_argument, NULL, 'M'},
                 {NULL,               0,                 NULL, 0}
         };
 
@@ -553,10 +555,9 @@ int main(int argc, char *argv[]) {
     char regionFreqRatios[200];
     char transPseudoPath[200];
     char *program;
-    fprintf(stderr, "CONSTRUCTED MODEL\n");
-
+    ModelType modelType;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:M:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 strcpy(covPath, optarg);
@@ -609,12 +610,24 @@ int main(int argc, char *argv[]) {
             case 'u':
                 strcpy(transPseudoPath, optarg);
                 break;
+            case 'M':
+                if (strcmp(optarg, "gaussian") == 0) {
+                    modelType = GAUSSIAN;
+                } else if (strcmp(optarg, "nb") == 0) {
+                    modelType = NEGATIVE_BINOMIAL;
+                } else {
+                    fprintf(stderr, "Error: --model should be either 'gaussian' or 'nb'!");
+                    exit();
+                }
+                break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
                 fprintf(stderr, "\nUsage: %s\n", program);
                 fprintf(stderr, "Options:\n");
                 fprintf(stderr, "         --inputCov, -i         path to .cov file\n");
+                fprintf(stderr,
+                        "         --model, -M         use gaussian or negative binomial emission model (values can be either 'gaussian' or 'nb' [default:'nb'])\n");
                 fprintf(stderr, "         --threads, -t         number of threads\n");
                 fprintf(stderr, "         --chunkLen, -l         chunk length\n");
                 fprintf(stderr, "         --iterations, -n         number of iterations\n");
@@ -670,22 +683,22 @@ int main(int argc, char *argv[]) {
     Splitter_destruct(splitter);
 
     HMM *model = makeAndInitModel(coverages, nClasses, nComps, nEmit, nMixtures, maxHighMapqRatio,
-                                  regionFreqRatiosDouble, transPseudoPath);
+                                  regionFreqRatiosDouble, transPseudoPath, modelType);
 
     fprintf(stderr, "CONSTRUCTED MODEL\n");
     for (int r = 0; r < nClasses; r++) {
         char *transStr = MatrixDouble_toString(model->trans[r]);
         fprintf(stderr, "r=%d, trans=\n%s\n", r, transStr);
         for (int c = 0; c < nComps; c++) {
-            if(model->modelType == GAUSSIAN) {
-                Gaussian* gaussian =  model->emit[r][c];
+            if (model->modelType == GAUSSIAN) {
+                Gaussian *gaussian = model->emit[r][c];
                 for (int m = 0; m < gaussian->n; m++) {
                     char *muStr = VectorDouble_toString(gaussian->mu[m]);
                     char *covStr = MatrixDouble_toString(gaussian->cov[m]);
                     fprintf(stderr, "r=%d, c=%d, m=%d\n%s\n%s\n\n", r, c, m, muStr, covStr);
                 }
-            }else if(model->modelType == NEGATIVE_BINOMIAL){
-                NegativeBinomial *nb =  model->emit[r][c];
+            } else if (model->modelType == NEGATIVE_BINOMIAL) {
+                NegativeBinomial *nb = model->emit[r][c];
                 for (int m = 0; m < nb->n; m++) {
                     char *muStr = VectorDouble_toString(nb->mu[m]);
                     char *covStr = MatrixDouble_toString(nb->cov[m]);
@@ -710,12 +723,11 @@ int main(int argc, char *argv[]) {
         runOneRound(model, covPath, chunkLen, nThreads, nEmit, windowLen, outputDir, itr);
         fprintf(stderr, "ROUND FINISHED\n");
 
-        fprintf(stderr, "Estimating parameters\n");
-        if(model->modelType == GAUSSIAN) {
+        if (model->modelType == GAUSSIAN) {
+            fprintf(stderr, "Estimating parameters\n");
             estimateParameters(model);
             resetSufficientStats(model);
-        }
-        else if(model->modelType == NEGATIVE_BINOMIAL){
+        } else if (model->modelType == NEGATIVE_BINOMIAL) {
             NegativeBinomial_estimateParameters(model);
             NegativeBinomial_resetSufficientStats(model);
         }
