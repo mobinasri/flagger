@@ -1539,7 +1539,7 @@ Chunk *Chunk_construct1(int chunkLen) {
 Chunk *Chunk_construct3(int chunkLen, int emissionDim, int windowLen) {
     Chunk *chunk = malloc(sizeof(Chunk));
     chunk->chunkLen = chunkLen;
-    chunk->maxSeqSize = int(chunkLen * 2 / windowLen) + 1;
+    chunk->maxSeqSize = chunkLen * 2 / windowLen + 1;
     chunk->seqEmit = VectorChar_constructArray1D(chunk->maxSeqSize, emissionDim);
     chunk->seqClass = malloc(chunk->maxSeqSize * sizeof(uint8_t));
     chunk->seqLen = 0;
