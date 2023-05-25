@@ -225,7 +225,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     // MatrixDouble** transDenom = MatrixDouble_constructArray1D(nClasses, nComps, nComps);
 
     HMM *model = HMM_construct(nClasses, nComps, nEmit, nMixtures, mu, muFactors, covFactors, maxHighMapqRatio,
-                               transNum, transDenom, NEGATIVE_BINOMIAL);:wq
+                               transNum, transDenom, NEGATIVE_BINOMIAL);
 
     //model->emit[1][1]->cov->data[1][1] = model->emit[1][2]->mu->data[0] / 8.0;
     //model->emit[1][2]->cov->data[1][1] = 4.0 * model->emit[1][2]->mu->data[0];
