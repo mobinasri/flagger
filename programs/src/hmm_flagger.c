@@ -448,7 +448,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     Batch_readNextChunk(batch);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("Batch_readNextChunk() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr, "Batch_readNextChunk() took %f seconds to execute \n", cpu_time_used);
     Chunk *chunk = batch->threadChunks[0];
     fprintf(stderr, "Chunk %d: %d, %d, %d, ..., %d, %d, %d\n", batch->templateChunkIdx,
             chunk->seqEmit[0]->data[0],
@@ -462,7 +462,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     EM *em = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("EM_construct() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr,"EM_construct() took %f seconds to execute \n", cpu_time_used);
 
 
     // Run forward and backward
@@ -471,7 +471,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     runForward(model, em);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("runForward() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr,"runForward() took %f seconds to execute \n", cpu_time_used);
 
 
     fprintf(stderr, "Run backward\n");
@@ -479,7 +479,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     runBackward(model, em);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("runBackward() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr,"runBackward() took %f seconds to execute \n", cpu_time_used);
     fprintf(stderr, "Update sufficient stats\n");
     /*char path[200];
     sprintf(path, "%s/forward.%s.txt", arg->dir, arg->name);
@@ -496,7 +496,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     }
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("updateSufficientStats() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr,"updateSufficientStats() took %f seconds to execute \n", cpu_time_used);
 
     //pthread_mutex_unlock(model->mutexPtr);
     fprintf(stderr, "Update sufficient stats finished\n");
