@@ -168,8 +168,8 @@ double *NegativeBinomial_getMixtureProbs(VectorChar *vec, NegativeBinomial *nb, 
     memset(probs, 0.0, nb->n * sizeof(double));
     // iterate over mixture components
     for (int m = 0; m < nb->n; m++) {
-        mu = nb->mu[m];
-        c = nb->cov[m];
+        mu = nb->mu[m]->data;
+        c = nb->cov[m]->data;
         w = nb->weights[m];
         if (dim == 1) {
             double theta = NegativeBinomial_getTheta(mu[0], c[0][0]);

@@ -212,8 +212,8 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
         for (int i = 0; i < nComps; i++) {
             rowSum = 0;
             for (int j = 0; j < nComps; j++) {
-                rowSum += pseudoCountMatrix->data[i][j] * regionFreqRatios[r];
-                transNum[r]->data[i][j] = pseudoCountMatrix->data[i][j] * regionFreqRatios[r];
+                rowSum += pseudoCountMatrix->data[i][j]; //* regionFreqRatios[r];
+                transNum[r]->data[i][j] = pseudoCountMatrix->data[i][j]; // * regionFreqRatios[r];
             }
             for (int j = 0; j < nComps; j++) {
                 transDenom[r]->data[i][j] = rowSum;
@@ -225,7 +225,8 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     // MatrixDouble** transDenom = MatrixDouble_constructArray1D(nClasses, nComps, nComps);
 
     HMM *model = HMM_construct(nClasses, nComps, nEmit, nMixtures, mu, muFactors, covFactors, maxHighMapqRatio,
-                               transNum, transDenom, NEGATIVE_BINOMIAL);
+                               transNum, transDenom, NEGATIVE_BINOMIAL);:wq
+
     //model->emit[1][1]->cov->data[1][1] = model->emit[1][2]->mu->data[0] / 8.0;
     //model->emit[1][2]->cov->data[1][1] = 4.0 * model->emit[1][2]->mu->data[0];
     //model->emit[1][3]->cov->data[1][1] = 8.0 * model->emit[1][2]->mu->data[0];
@@ -440,6 +441,13 @@ void *readChunkAndUpdateStats(void *arg_) {
     // Read the chunk
     Batch_readNextChunk(batch);
     Chunk *chunk = batch->threadChunks[0];
+    fprintf(stderr, "Chunk %d: %d, %d, %d, ..., %d, %d, %d\n", batch->templateChunkIdx,
+            chunk->seqEmit[0]->data[0],
+            chunk->seqEmit[1]->data[0],
+            chunk->seqEmit[2]->data[0],
+            chunk->seqEmit[chunk->seqLen-3]->data[0],
+            chunk->seqEmit[chunk->seqLen-2]->data[0],
+            chunk->seqEmit[chunk->seqLen-1]->data[0]);
     // Make an EM object
     EM *em = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
     // Run forward and backward
@@ -455,7 +463,11 @@ void *readChunkAndUpdateStats(void *arg_) {
         saveEMStats(BACKWARD, path, em);*/
     // Update statistics for estimating parameters
     //pthread_mutex_lock(model->mutexPtr);
-    updateSufficientStats(model, em);
+    if (model->modelType == NEGATIVE_BINOMIAL) {
+        NegativeBinomial_updateSufficientStats(model, em);
+    }else if(model->modelType == GAUSSIAN){
+        updateSufficientStats(model, em);
+    }
     //pthread_mutex_unlock(model->mutexPtr);
     fprintf(stderr, "Update sufficient stats finished\n");
     // Free the EM object
@@ -486,6 +498,8 @@ runOneRound(HMM *model, char *covPath, int chunkLen, int nThreads, int emissionD
 
     tpool_wait(tm);
     tpool_destroy(tm);
+
+
 
     // Free all batches
     for (int t = 0; t < nThreads; t++) {
