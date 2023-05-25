@@ -1557,7 +1557,7 @@ Chunk *Chunk_construct3(int chunkLen, int emissionDim, int windowLen) {
 
 void Chunk_destruct(Chunk *chunk) {
     if (chunk->seqEmit) {
-        VectorChar_destructArray1D(chunk->seqEmit, 2 * chunk->chunkLen);
+        VectorChar_destructArray1D(chunk->seqEmit, chunk->maxSeqSize);
     }
     free(chunk->seqClass);
     if (chunk->windowSumEmit) {
