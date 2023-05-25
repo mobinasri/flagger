@@ -2,6 +2,10 @@
 #define COMMON_H
 #include <stdint.h>
 #include <string.h>
+#include <sys/stat.h>   // stat
+#include <stdbool.h>    // bool type
+
+bool file_exists (char *filename);
 
 typedef struct Splitter{
 	char* str;

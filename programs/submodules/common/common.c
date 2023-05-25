@@ -1,5 +1,11 @@
 #include "common.h"
 
+
+bool file_exists (char *filename) {
+    struct stat   buffer;
+    return (stat (filename, &buffer) == 0);
+}
+
 int min(int a, int b){
 	return a < b ? a : b;
 }
