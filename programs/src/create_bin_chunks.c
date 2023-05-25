@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) {
                 return 1;
         }
     }
+    char outputPath[1000];
     sprintf(outputPath, "%s.chunks.l_%d.w_%d.bin", covPath, chunkLen, windowLen);
     FILE *fp = fopen(outputPath, "wb+");
     Batch *batch = Batch_construct(covPath, chunkLen, nThreads, 0, windowLen);
