@@ -59,7 +59,14 @@ int main(int argc, char *argv[]) {
     char outputPath[1000];
     sprintf(outputPath, "%s.chunks.l_%d.w_%d.bin", covPath, chunkLen, windowLen);
     FILE *fp = fopen(outputPath, "wb+");
+    clock_t start, end;
+    double cpu_time_used;
+    start = clock();
     Batch *batch = Batch_construct(covPath, chunkLen, nThreads, 0, windowLen);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    fprintf(stderr,"Batch_construct() took %f seconds to execute \n", cpu_time_used);
+
     batch->templateChunkIdx = 0;
     batch->nThreadChunks = 0;
     fwrite(&(batch->chunkLen), sizeof(int32_t), 1, fp); // first 4 bytes
