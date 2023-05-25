@@ -886,8 +886,8 @@ void NegativeBinomial_resetSufficientStats(HMM *model) {
             for (int m = 0; m < nb->n; m++) {
                 VectorDouble_setValue(nb->thetaNum[m], 0.0);
                 VectorDouble_setValue(nb->thetaDenom[m], 0.0);
-                MatrixDouble_setValue(nb->lambdaNum[m], 0.0);
-                MatrixDouble_setValue(nb->lambdaDenom[m], 0.0);
+                VectorDouble_setValue(nb->lambdaNum[m], 0.0);
+                VectorDouble_setValue(nb->lambdaDenom[m], 0.0);
                 nb->weightNum[m] = 0.0;
             }
         }
