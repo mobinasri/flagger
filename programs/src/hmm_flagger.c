@@ -724,11 +724,14 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ROUND FINISHED\n");
 
         if (model->modelType == GAUSSIAN) {
-            fprintf(stderr, "Estimating parameters\n");
+            fprintf(stderr, "Estimating parameters for Gaussian model\n");
             estimateParameters(model);
+            fprintf(stderr, "Reseting sufficient stats\n");
             resetSufficientStats(model);
         } else if (model->modelType == NEGATIVE_BINOMIAL) {
+            fprintf(stderr, "Estimating parameters for Negative Binomial model\n");
             NegativeBinomial_estimateParameters(model);
+            fprintf(stderr, "Reseting sufficient stats\n");
             NegativeBinomial_resetSufficientStats(model);
         }
 
