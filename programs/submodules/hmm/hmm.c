@@ -968,27 +968,29 @@ void NegativeBinomial_estimateParameters(HMM *model) {
                 for (int j = 0; j < nEmit; j++) {
                     //if (muFactor->data[j] < 0) continue;
                     // for theta
-                    double theta_0;
+                    double theta_0=0.0;
                     if (0 < muFactor->data[j] && 1e2 < thetaPosFactorWeight->data[j]) {
-                        theta_0 = thetaPosFactor->data[j] / thetaPosFactorWeight->data[j] * muFactor->data[j];
+                        theta_0 = thetaPosFactor->data[j] / thetaPosFactorWeight->data[j];
                     } else if (1e2 < nb->thetaDenom[m]->data[j]) {
                         theta_0 = nb->thetaNum[m]->data[j] / nb->thetaDenom[m]->data[j];
                     }
                     // for lambda
-                    double lambda_0;
+                    double lambda_0 =0.0;
                     if (0 < muFactor->data[j] && 1e2 < lambdaPosFactorWeight->data[j]) {
                         lambda_0 = lambdaPosFactor->data[j] / lambdaPosFactorWeight->data[j];
                     } else if (1e2 < nb->lambdaDenom[m]->data[j]) {
                         lambda_0 = nb->lambdaNum[m]->data[j] / nb->lambdaDenom[m]->data[j];
                     }
-                    // get update theta and r
-                    double theta_m = theta_0;
-                    double lambda_m = lambda_0 * muFactor->data[j];
-                    double r_m = -1 * lambda_m / log(theta_m);
-                    assert(j == 0);
-                    // update mu and cov
-                    nb->mu[m]->data[j] = NegativeBinomial_getMean(theta_m, r_m);
-                    nb->cov[m]->data[j][j] = NegativeBinomial_getVar(theta_m, r_m);
+                    if((theta_0 > 0.0) && (lambda_0>0.0)) {
+                        // get update theta and r
+                        double theta_m = theta_0;
+                        double lambda_m = lambda_0 * muFactor->data[j];
+                        double r_m = -1 * lambda_m / log(theta_m);
+                        assert(j == 0);
+                        // update mu and cov
+                        nb->mu[m]->data[j] = NegativeBinomial_getMean(theta_m, r_m);
+                        nb->cov[m]->data[j][j] = NegativeBinomial_getVar(theta_m, r_m);
+                    }
                 }
             }
         }
@@ -1305,7 +1307,7 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
                 // Update sufficient stats for estimating mean vectors
                 for (int j = 0; j < nEmit; j++) {
                     double factor = muFactor->data[j] <= 0 ? 1 : muFactor->data[j];
-                    double delta = digammal(r + seqEmit[i]->data[j]) - digammal(r);
+                    double delta = r*(digammal(r + seqEmit[i]->data[j]) - digammal(r));
                     nb->lambdaNum[m]->data[j] += w * delta;
                     nb->lambdaDenom[m]->data[j] += w * factor;
                     nb->thetaNum[m]->data[j] += w * delta * beta;

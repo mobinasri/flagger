@@ -10,6 +10,7 @@
 #include "hmm.h"
 #include "tpool.h"
 #include <pthread.h>
+#include <time.h>
 
 typedef enum StatType {
     FORWARD, BACKWARD, POSTERIOR, EMISSION, TRANSITION
@@ -433,6 +434,9 @@ void Batch_inferSaveOutput(Batch *batch, int batchIdx, HMM *model, FILE *outputF
 }
 
 void *readChunkAndUpdateStats(void *arg_) {
+    clock_t start, end;
+    double cpu_time_used;
+
     work_arg_t *arg = arg_;
     Batch *batch = arg->batch;
     HMM *model = arg->model;
@@ -440,7 +444,11 @@ void *readChunkAndUpdateStats(void *arg_) {
     batch->templateChunkIdx = arg->templateChunkIdx;
     batch->nThreadChunks = 0;
     // Read the chunk
+    start = clock();
     Batch_readNextChunk(batch);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("Batch_readNextChunk() took %f seconds to execute \n", cpu_time_used);
     Chunk *chunk = batch->threadChunks[0];
     fprintf(stderr, "Chunk %d: %d, %d, %d, ..., %d, %d, %d\n", batch->templateChunkIdx,
             chunk->seqEmit[0]->data[0],
@@ -450,12 +458,28 @@ void *readChunkAndUpdateStats(void *arg_) {
             chunk->seqEmit[chunk->seqLen - 2]->data[0],
             chunk->seqEmit[chunk->seqLen - 1]->data[0]);
     // Make an EM object
+    start = clock();
     EM *em = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("EM_construct() took %f seconds to execute \n", cpu_time_used);
+
+
     // Run forward and backward
     fprintf(stderr, "Run forward\n");
+    start = clock();
     runForward(model, em);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("runForward() took %f seconds to execute \n", cpu_time_used);
+
+
     fprintf(stderr, "Run backward\n");
+    start = clock();
     runBackward(model, em);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("runBackward() took %f seconds to execute \n", cpu_time_used);
     fprintf(stderr, "Update sufficient stats\n");
     /*char path[200];
     sprintf(path, "%s/forward.%s.txt", arg->dir, arg->name);
@@ -464,11 +488,16 @@ void *readChunkAndUpdateStats(void *arg_) {
         saveEMStats(BACKWARD, path, em);*/
     // Update statistics for estimating parameters
     //pthread_mutex_lock(model->mutexPtr);
+    start = clock();
     if (model->modelType == NEGATIVE_BINOMIAL) {
         NegativeBinomial_updateSufficientStats(model, em);
     } else if (model->modelType == GAUSSIAN) {
         updateSufficientStats(model, em);
     }
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("updateSufficientStats() took %f seconds to execute \n", cpu_time_used);
+
     //pthread_mutex_unlock(model->mutexPtr);
     fprintf(stderr, "Update sufficient stats finished\n");
     // Free the EM object
