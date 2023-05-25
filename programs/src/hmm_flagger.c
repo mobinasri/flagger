@@ -617,7 +617,7 @@ int main(int argc, char *argv[]) {
                     modelType = NEGATIVE_BINOMIAL;
                 } else {
                     fprintf(stderr, "Error: --model should be either 'gaussian' or 'nb'!");
-                    exit();
+                    exit(EXIT_FAILURE);
                 }
                 break;
             default:
