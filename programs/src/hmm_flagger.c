@@ -711,7 +711,7 @@ int main(int argc, char *argv[]) {
     FILE *fp = fopen(outputPath, "w+");
     fprintf(fp, "track name=%s visibility=1 itemRgb=\"On\"\n", trackName);
     fprintf(stderr, "[Inference] Running EM for final inference\n");
-    Batch_inferSaveOutput(chunks, model, fp, minColScore, minColLen, maxDupScore, minDupLen);
+    Batch_inferSaveOutput(chunks, model, nThreads, fp, minColScore, minColLen, maxDupScore, minDupLen);
     fflush(fp);
     fclose(fp);
     HMM_destruct(model);
