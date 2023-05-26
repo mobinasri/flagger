@@ -1864,7 +1864,7 @@ stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen){
     }
     stList* allChunks = stList_construct3(0, Chunk_destruct);
     while(!feof(fp)) {
-        Chunk* chunk = Chunk_construct3(chunkLen, batch->nEmit, windowLen);
+        Chunk* chunk = Chunk_construct3(chunkLen, nEmit, windowLen);
         // read the length of contig name + null character
         int32_t ctgNameLen;
         fread(&ctgNameLen, sizeof(int32_t), 1, fp);
