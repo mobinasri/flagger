@@ -1850,15 +1850,15 @@ stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen){
         exit(EXIT_FAILURE);
     }
     FILE *fp = fopen(binPath, "rb");
-    int32_t chunkLen;
-    int32_t windowLen;
-    fread(&(chunkLen), sizeof(int32_t), 1, fp); // first 4 bytes
-    fread(&(windowLen), sizeof(int32_t), 1, fp); // second 4 bytes
-    if(chunkLen != batch->chunkLen){
+    int32_t chunkLenInBin;
+    int32_t windowLenInBin;
+    fread(&(chunkLenInBin), sizeof(int32_t), 1, fp); // first 4 bytes
+    fread(&(windowLenInBin), sizeof(int32_t), 1, fp); // second 4 bytes
+    if(chunkLenInBin != batch->chunkLen){
         fprintf(stderr, "Error: chunkLen = %d in bin file but it is set to %d by the -l parameter, please use -l %d or fix the bin file", chunkLen, batch->chunkLen, chunkLen);
         exit(EXIT_FAILURE);
     }
-    if(windowLen != batch->windowLen){
+    if(windowLenInBin != batch->windowLen){
         fprintf(stderr, "Error: windowLen = %d in bin file but it in set to %d by the -w parameter, please use -w %d or fix the bin file", windowLen, batch->windowLen, windowLen);
         exit(EXIT_FAILURE);
     }
