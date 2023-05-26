@@ -19,11 +19,9 @@ struct tpool_work {
 typedef struct tpool_work tpool_work_t;
 
 typedef struct work_arg_t {
-	Chunk* templateChunkIdx;
 	HMM* model;
-	Batch* batch;
-	char dir[200];
-	char name[200];
+	Chunk* chunk;
+    int chunkIndex;
 }work_arg_t;
 
 struct tpool {
