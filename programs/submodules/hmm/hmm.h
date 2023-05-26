@@ -124,6 +124,7 @@ typedef struct Batch {
     pthread_mutex_t *mutex;
 } Batch;
 
+stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen);
 
 Gaussian *Gaussian_construct(VectorDouble **mu, MatrixDouble **cov, int nMixtures);
 
