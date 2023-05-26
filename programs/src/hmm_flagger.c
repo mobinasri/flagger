@@ -333,7 +333,7 @@ Batch_inferSaveOutput(stList *chunks, HMM *model, int nThreads, FILE *outputFile
             fprintf(stderr, "Chunk %d, %s: [%d-%d] \n", chunkIndex, chunk->ctg, chunk->s, chunk->e);
             Arguments *args = Arguments_construct(model, emArray[threadIndex], "infer", NULL, NULL);
             pthread_create(&tids[threadIndex], NULL, infer, (void *) args);
-            fprintf(stderr, "Thread %d is running\n", t);
+            fprintf(stderr, "Thread %d is running\n", threadIndex);
         }
         int s = -1;
         int e = -1;
@@ -348,7 +348,7 @@ Batch_inferSaveOutput(stList *chunks, HMM *model, int nThreads, FILE *outputFile
         for (int chunkIndex = chunkStartIndex; chunkIndex <= chunkEndIndex; chunkIndex++) {
             int threadIndex = chunkIndex - chunkStartIndex;
             assert(pthread_join(tids[threadIndex], NULL) == 0);
-            fprintf(stderr, "Thread %d is finished\n", t);
+            fprintf(stderr, "Thread %d is finished\n", threadIndex);
             fprintf(stderr, "Writing the output...\n");
             Chunk *chunk = stList_get(chunks, chunkIndex);
             windowLen = chunk->windowLen;
