@@ -1887,5 +1887,6 @@ stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen, i
         fread(chunk->seqClass, sizeof(int8_t), chunk->seqLen, fp);
         stList_append(allChunks, chunk);
     }
+    fclose(fp);
     return allChunks;
 }

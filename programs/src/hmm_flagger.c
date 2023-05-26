@@ -715,4 +715,5 @@ int main(int argc, char *argv[]) {
     fflush(fp);
     fclose(fp);
     HMM_destruct(model);
+    stList_destruct(chunks);
 }
