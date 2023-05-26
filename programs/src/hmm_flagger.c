@@ -679,7 +679,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    stList *chunks = Chunk_readAllChunksFromBin(covPath, chunkLen, windowLen);
+    stList *chunks = Chunk_readAllChunksFromBin(covPath, chunkLen, windowLen, nEmit);
     char outputPath[1000];
     for (int itr = 0; itr < nIteration; itr++) {
         fprintf(stderr, "ROUND STARTED\n");

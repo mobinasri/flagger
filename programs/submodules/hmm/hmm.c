@@ -1842,7 +1842,7 @@ int Batch_readNextChunk(void *batch_) {
     return 0; // The code should reach here when there is no more block left in the cov file
 }
 
-stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen){
+stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen, int nEmit){
     char binPath[1000];
     sprintf(binPath, "%s.chunks.l_%d.w_%d.bin", covPath, chunkLen, windowLen);
     if(! file_exists(binPath)){
