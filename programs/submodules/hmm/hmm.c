@@ -616,7 +616,6 @@ EM *EM_construct(VectorChar **seqEmit, uint8_t *seqClass, int seqLength, HMM *mo
 }
 
 void EM_destruct(EM *em) {
-
     int nClasses = em->nClasses;
     int nComps = em->nComps;
     int nEmit = em->nEmit;
@@ -1843,3 +1842,50 @@ int Batch_readNextChunk(void *batch_) {
     return 0; // The code should reach here when there is no more block left in the cov file
 }
 
+stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen){
+    char binPath[1000];
+    sprintf(binPath, "%s.chunks.l_%d.w_%d.bin", covPath, chunkLen, windowLen);
+    if(! file_exists(binPath)){
+        fprintf(stderr, "Error: The bin file %s does not exist. Please use create_bin_chunks for creating the bin file", binPath);
+        exit(EXIT_FAILURE);
+    }
+    FILE *fp = fopen(binPath, "rb");
+    int32_t chunkLen;
+    int32_t windowLen;
+    fread(&(chunkLen), sizeof(int32_t), 1, fp); // first 4 bytes
+    fread(&(windowLen), sizeof(int32_t), 1, fp); // second 4 bytes
+    if(chunkLen != batch->chunkLen){
+        fprintf(stderr, "Error: chunkLen = %d in bin file but it is set to %d by the -l parameter, please use -l %d or fix the bin file", chunkLen, batch->chunkLen, chunkLen);
+        exit(EXIT_FAILURE);
+    }
+    if(windowLen != batch->windowLen){
+        fprintf(stderr, "Error: windowLen = %d in bin file but it in set to %d by the -w parameter, please use -w %d or fix the bin file", windowLen, batch->windowLen, windowLen);
+        exit(EXIT_FAILURE);
+    }
+    stList* allChunks = stList_construct3(0, Chunk_destruct);
+    while(!feof(fp)) {
+        Chunk* chunk = Chunk_construct3(chunkLen, batch->nEmit, windowLen);
+        // read the length of contig name + null character
+        int32_t ctgNameLen;
+        fread(&ctgNameLen, sizeof(int32_t), 1, fp);
+        // read the contig name
+        fread(chunk->ctg, sizeof(char), ctgNameLen, fp);
+        // read start and end
+        fread(&(chunk->s), sizeof(int32_t), 1, fp);
+        fread(&(chunk->e), sizeof(int32_t), 1, fp);
+        // read actual size of chunk
+        fread(&(chunk->seqLen), sizeof(int32_t), 1, fp);
+        int32_t* cov1Array = malloc(sizeof(int32_t) * chunk->seqLen);
+        int32_t* cov2Array = malloc(sizeof(int32_t) * chunk->seqLen);
+        // read cov1 and then cov2 array
+        fread(cov1Array, sizeof(int32_t), chunk->seqLen, fp);
+        fread(cov2Array, sizeof(int32_t), chunk->seqLen, fp);
+        for(int i=0; i < chunk->seqLen; i++){
+            chunk->seqEmit[i]->data[0] = cov1Array[i];
+            chunk->seqEmit[i]->data[1] = cov2Array[i];
+        }
+        fread(chunk->seqClass, sizeof(int8_t), chunk->seqLen, fp);
+        stList_append(allChunks, chunk);
+    }
+    return allChunks;
+}

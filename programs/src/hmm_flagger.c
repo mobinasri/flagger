@@ -241,7 +241,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     return model;
 }
 
-EM **Batch_buildEmArray(Batch *batch, HMM *model) {
+EM **Chunks_buildEmArray(Batch *batch, HMM *model) {
     EM **emArray = (EM **) malloc(batch->nThreadChunks * sizeof(EM * ));
     Chunk *chunk;
     for (int t = 0; t < batch->nThreadChunks; t++) {
@@ -305,44 +305,6 @@ void *infer(void *args_) {
     //}
 }
 
-
-void Batch_trainModelSaveStats(Batch *batch, int batchIdx, HMM *model, char *dir) {
-    EM **emArray = Batch_buildEmArray(batch, model);
-    char dir1[100];
-    char dir2[100];
-    char name[200];
-    EM *em;
-    pthread_t *tids = malloc(batch->nThreadChunks * sizeof(pthread_t));
-    Arguments **args = malloc(batch->nThreadChunks * sizeof(Arguments *));
-    for (int t = 0; t < batch->nThreadChunks; t++) {
-        em = emArray[t];
-        /*sprintf(dir1, "%s/batch_%d", dir, batchIdx);
-        sprintf(dir2, "%s/batch_%d/chunk_%d", dir, batchIdx, t);
-        if (stat(dir1, &st) == -1) {
-            mkdir(dir1, 0700);
-        }
-        if (stat(dir2, &st) == -1) {
-                        mkdir(dir2, 0700);
-                }*/
-        Chunk *chunk = batch->threadChunks[t];
-        fprintf(stderr, "Batch %d, Chunk %d, %s: [%d-%d] \n", batchIdx, t, chunk->ctg, chunk->s, chunk->e);
-        sprintf(name, "ba%d_ch%d", batchIdx, t);
-        args[t] = Arguments_construct(model, em, name, dir, &mutex);
-        fprintf(stderr, "Args is created\n");
-        pthread_create(&tids[t], NULL, trainModelSaveStats, (void *) args[t]);
-        fprintf(stderr, "Thread %d is running\n", t);
-    }
-    for (int t = 0; t < batch->nThreadChunks; t++) {
-        assert(pthread_join(tids[t], NULL) == 0);
-        fprintf(stderr, "Thread %d is finished\n", t);
-        free(args[t]);
-        EM_destruct(emArray[t]);
-    }
-    free(args);
-    free(emArray);
-    free(tids);
-}
-
 uint8_t getCompIdx(EM *em, int loc) {
     double *p = getPosterior(em, loc);
     uint8_t idx = 0;
@@ -353,81 +315,88 @@ uint8_t getCompIdx(EM *em, int loc) {
     return idx;
 }
 
-void Batch_inferSaveOutput(Batch *batch, int batchIdx, HMM *model, FILE *outputFile, double minColScore, int minColLen,
-                           double maxDupScore, int minDupLen) {
-    EM **emArray = Batch_buildEmArray(batch, model);
-    char dir1[100];
-    char dir2[100];
-    EM *em;
-    pthread_t *tids = malloc(batch->nThreadChunks * sizeof(pthread_t));
-    for (int t = 0; t < batch->nThreadChunks; t++) {
-        em = emArray[t];
-        Chunk *chunk = batch->threadChunks[t];
-        fprintf(stderr, "Batch %d, Chunk %d, %s: [%d-%d] \n", batchIdx, t, chunk->ctg, chunk->s, chunk->e);
-        Arguments *args = Arguments_construct(model, em, "infer", NULL, NULL);
-        pthread_create(&tids[t], NULL, infer, (void *) args);
-        fprintf(stderr, "Thread %d is running\n", t);
-    }
-    int s = -1;
-    int e = -1;
-    int compIdx = -1;
-    int preCompIdx = -1;
-    int windowLen; // windowLen may be different for small contigs; look at chunk->windowLen instead of batch->windowLen
-    double cov;
-    double hapMu;
-    double score;
-    double sumScore = 0.0;
-    double avgScore = 0.0;
-    for (int t = 0; t < batch->nThreadChunks; t++) {
-        assert(pthread_join(tids[t], NULL) == 0);
-        fprintf(stderr, "Thread %d is finished\n", t);
-        fprintf(stderr, "Writing the output...\n");
-        Chunk *chunk = batch->threadChunks[t];
-        windowLen = chunk->windowLen;
-        s = chunk->s;
-        e = chunk->s;
-        preCompIdx = -1;
-        for (int i = 0; i < chunk->seqLen; i++) {
-            compIdx = getCompIdx(emArray[t], i);
-            cov = (double) chunk->seqEmit[i]->data[0];
-            if (model->modelType == GAUSSIAN) {
-                Gaussian *gaussian = model->emit[chunk->seqClass[i]][2];
-                hapMu = (double) gaussian->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
+void
+Batch_inferSaveOutput(stList *chunks, HMM *model, int nThreads, FILE *outputFile, double minColScore, int minColLen,
+                      double maxDupScore, int minDupLen) {
+    int chunkStartIndex = 0;
+    int chunkEndIndex = 0;
+    pthread_t *tids = malloc(nThreads * sizeof(pthread_t));
+    EM **emArray = (EM **) malloc(nThreads * sizeof(EM * ));
+    // Run every nThreads chunks in parallel except for the last chunks if the number of
+    // chunks is not a multiple of nThreads
+    while (chunkEndIndex < stList_length(chunks)) {
+        chunkEndIndex = chunkStartIndex + min(stList_length(chunks) - chunkEndIndex, nThreads) - 1;
+        for (int chunkIndex = chunkStartIndex; chunkIndex <= chunkEndIndex; chunkIndex++) {
+            int threadIndex = chunkIndex - chunkStartIndex;
+            Chunk *chunk = stList_get(chunks, chunkIndex);
+            emArray[threadIndex] = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
+            fprintf(stderr, "Chunk %d, %s: [%d-%d] \n", chunkIndex, chunk->ctg, chunk->s, chunk->e);
+            Arguments *args = Arguments_construct(model, emArray[threadIndex], "infer", NULL, NULL);
+            pthread_create(&tids[threadIndex], NULL, infer, (void *) args);
+            fprintf(stderr, "Thread %d is running\n", t);
+        }
+        int s = -1;
+        int e = -1;
+        int compIdx = -1;
+        int preCompIdx = -1;
+        int windowLen; // windowLen may be different for small contigs; look at chunk->windowLen instead of batch->windowLen
+        double cov;
+        double hapMu;
+        double score;
+        double sumScore = 0.0;
+        double avgScore = 0.0;
+        for (int chunkIndex = chunkStartIndex; chunkIndex <= chunkEndIndex; chunkIndex++) {
+            int threadIndex = chunkIndex - chunkStartIndex;
+            assert(pthread_join(tids[threadIndex], NULL) == 0);
+            fprintf(stderr, "Thread %d is finished\n", t);
+            fprintf(stderr, "Writing the output...\n");
+            Chunk *chunk = stList_get(chunks, chunkIndex);
+            windowLen = chunk->windowLen;
+            s = chunk->s;
+            e = chunk->s;
+            preCompIdx = -1;
+            for (int i = 0; i < chunk->seqLen; i++) {
+                compIdx = getCompIdx(emArray[threadIndex], i);
+                cov = (double) chunk->seqEmit[i]->data[0];
+                if (model->modelType == GAUSSIAN) {
+                    Gaussian *gaussian = model->emit[chunk->seqClass[i]][2];
+                    hapMu = (double) gaussian->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
 
-            } else if (model->modelType == NEGATIVE_BINOMIAL) {
-                NegativeBinomial *nb = model->emit[chunk->seqClass[i]][2];
-                hapMu = (double) nb->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
-            }
-            score = cov / hapMu;
-            sumScore += score * chunk->windowLen;
-            // if component changed write the block
-            if (preCompIdx != -1 && preCompIdx != compIdx) {
-                avgScore = sumScore / (e - s);
-                if (preCompIdx == 1 && avgScore > maxDupScore && e - s < minDupLen) {
-                    preCompIdx = 2;
-                } else if (preCompIdx == 3 && avgScore < minColScore && e - s < minColLen) {
-                    preCompIdx = 2;
+                } else if (model->modelType == NEGATIVE_BINOMIAL) {
+                    NegativeBinomial *nb = model->emit[chunk->seqClass[i]][2];
+                    hapMu = (double) nb->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
                 }
-                fprintf(outputFile, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\t%.2f\n",
-                        chunk->ctg, s, e, COMP_NAMES[preCompIdx],
-                        s, e, COMP_COLORS[preCompIdx], avgScore);
-                s = e;
-                sumScore = 0;
+                score = cov / hapMu;
+                sumScore += score * chunk->windowLen;
+                // if component changed write the block
+                if (preCompIdx != -1 && preCompIdx != compIdx) {
+                    avgScore = sumScore / (e - s);
+                    if (preCompIdx == 1 && avgScore > maxDupScore && e - s < minDupLen) {
+                        preCompIdx = 2;
+                    } else if (preCompIdx == 3 && avgScore < minColScore && e - s < minColLen) {
+                        preCompIdx = 2;
+                    }
+                    fprintf(outputFile, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\t%.2f\n",
+                            chunk->ctg, s, e, COMP_NAMES[preCompIdx],
+                            s, e, COMP_COLORS[preCompIdx], avgScore);
+                    s = e;
+                    sumScore = 0;
+                }
+                e = i == chunk->seqLen - 1 ? chunk->e + 1 : e + windowLen; // maybe the last window is not complete
+                preCompIdx = compIdx;
             }
-            e = i == chunk->seqLen - 1 ? chunk->e + 1 : e + windowLen; // maybe the last window is not complete
-            preCompIdx = compIdx;
+            avgScore = sumScore / (e - s);
+            if (preCompIdx == 1 && avgScore > maxDupScore && e - s < minDupLen) {
+                preCompIdx = 2;
+            } else if (preCompIdx == 3 && avgScore < minColScore && e - s < minColLen) {
+                preCompIdx = 2;
+            }
+            fprintf(outputFile, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\t%0.2f\n",
+                    chunk->ctg, s, e, COMP_NAMES[preCompIdx],
+                    s, e, COMP_COLORS[preCompIdx], avgScore); // there will be an unwritten component finally
+            fprintf(stderr, "Done writing!\n");
+            EM_destruct(emArray[threadIndex]);
         }
-        avgScore = sumScore / (e - s);
-        if (preCompIdx == 1 && avgScore > maxDupScore && e - s < minDupLen) {
-            preCompIdx = 2;
-        } else if (preCompIdx == 3 && avgScore < minColScore && e - s < minColLen) {
-            preCompIdx = 2;
-        }
-        fprintf(outputFile, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\t%0.2f\n",
-                chunk->ctg, s, e, COMP_NAMES[preCompIdx],
-                s, e, COMP_COLORS[preCompIdx], avgScore); // there will be an unwritten component finally
-        fprintf(stderr, "Done writing!\n");
-        EM_destruct(emArray[t]);
     }
     free(emArray);
     free(tids);
@@ -438,19 +407,10 @@ void *readChunkAndUpdateStats(void *arg_) {
     double cpu_time_used;
 
     work_arg_t *arg = arg_;
-    Batch *batch = arg->batch;
+    Chunk *chunk = arg->chunk;
     HMM *model = arg->model;
-    // Prepare the batch for reading the chunk
-    batch->templateChunkIdx = arg->templateChunkIdx;
-    batch->nThreadChunks = 0;
-    // Read the chunk
-    start = clock();
-    Batch_readNextChunk(batch);
-    end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    fprintf(stderr, "Batch_readNextChunk() took %f seconds to execute \n", cpu_time_used);
-    Chunk *chunk = batch->threadChunks[0];
-    fprintf(stderr, "Chunk %d: %d, %d, %d, ..., %d, %d, %d\n", batch->templateChunkIdx,
+    int chunkIndex = arg->chunkIndex;
+    fprintf(stderr, "Chunk %d: %d, %d, %d, ..., %d, %d, %d\n", chunkIndex,
             chunk->seqEmit[0]->data[0],
             chunk->seqEmit[1]->data[0],
             chunk->seqEmit[2]->data[0],
@@ -462,7 +422,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     EM *em = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    fprintf(stderr,"EM_construct() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr, "EM_construct() took %f seconds to execute \n", cpu_time_used);
 
 
     // Run forward and backward
@@ -471,7 +431,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     runForward(model, em);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    fprintf(stderr,"runForward() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr, "runForward() took %f seconds to execute \n", cpu_time_used);
 
 
     fprintf(stderr, "Run backward\n");
@@ -479,7 +439,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     runBackward(model, em);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    fprintf(stderr,"runBackward() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr, "runBackward() took %f seconds to execute \n", cpu_time_used);
     fprintf(stderr, "Update sufficient stats\n");
     /*char path[200];
     sprintf(path, "%s/forward.%s.txt", arg->dir, arg->name);
@@ -496,7 +456,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     }
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    fprintf(stderr,"updateSufficientStats() took %f seconds to execute \n", cpu_time_used);
+    fprintf(stderr, "updateSufficientStats() took %f seconds to execute \n", cpu_time_used);
 
     //pthread_mutex_unlock(model->mutexPtr);
     fprintf(stderr, "Update sufficient stats finished\n");
@@ -505,38 +465,20 @@ void *readChunkAndUpdateStats(void *arg_) {
 }
 
 void *
-runOneRound(HMM *model, char *covPath, int chunkLen, int nThreads, int emissionDim, int windowLen, char *dir, int itr) {
-    // Prepare all batches for reading chunks
-    // Each batch here contain only one chunk
-    Batch *batch = Batch_construct(covPath, 0, 0, 0, 0);
-    Batch **batches = malloc(nThreads * sizeof(Batch * ));
-    for (int t = 0; t < nThreads; t++) {
-        batches[t] = Batch_construct(covPath, chunkLen, 1, emissionDim, windowLen);
-    }
+runOneRound(HMM *model, stList *chunks, int nThreads) {
 
     // Create a thread pool
     // Each thread recieves only one batch
-    tpool_t *tm = tpool_create(nThreads, batches);
-    for (int i = 0; i < stList_length(batch->templateChunks); i++) {
+    tpool_t *tm = tpool_create(nThreads);
+    for (int i = 0; i < stList_length(chunks); i++) {
         work_arg_t *work_arg = malloc(sizeof(work_arg_t));
-        work_arg->templateChunkIdx = i;
+        work_arg->chunk = stList_get(chunks, i);
         work_arg->model = model;
-        strcpy(work_arg->dir, dir);
-        sprintf(work_arg->name, "itr_%d.chunk_%d", itr, i);
+        work_arg->chunkIndex = i;
         tpool_add_work(tm, readChunkAndUpdateStats, work_arg);
     }
-
     tpool_wait(tm);
     tpool_destroy(tm);
-
-
-
-    // Free all batches
-    for (int t = 0; t < nThreads; t++) {
-        Batch_destruct(batches[t]);
-    }
-    free(batches);
-    Batch_destruct(batch);
 }
 
 static struct option long_options[] =
@@ -737,19 +679,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    char outputPath[200];
+    stList *chunks = Chunk_readAllChunksFromBin(covPath, chunkLen, windowLen);
+    char outputPath[1000];
     for (int itr = 0; itr < nIteration; itr++) {
-        /*batch->templateChunkIdx = 0;
-     batch->nThreadChunks = 0;
-        fprintf(stderr, "Batch is built\n");
-        batchIdx = 0;
-     while(Batch_readThreadChunks(batch)){
-         fprintf(stderr, "Run EM for batch %d\n", batchIdx);
-                 Batch_trainModelSaveStats(batch, batchIdx, model, outputDir);
-         batchIdx += 1;
-        }*/
         fprintf(stderr, "ROUND STARTED\n");
-        runOneRound(model, covPath, chunkLen, nThreads, nEmit, windowLen, outputDir, itr);
+        runOneRound(model, chunks, nThreads);
         fprintf(stderr, "ROUND FINISHED\n");
 
         if (model->modelType == GAUSSIAN) {
@@ -776,18 +710,9 @@ int main(int argc, char *argv[]) {
     sprintf(outputPath, "%s/%s.flagger.bed", outputDir, trackName);
     FILE *fp = fopen(outputPath, "w+");
     fprintf(fp, "track name=%s visibility=1 itemRgb=\"On\"\n", trackName);
-
-    Batch *batch = Batch_construct(covPath, chunkLen, nThreads, nEmit, windowLen);
-    int batchIdx = 0;
-    batch->templateChunkIdx = 0;
-    batch->nThreadChunks = 0;
-    while (Batch_readThreadChunks(batch)) {
-        fprintf(stderr, "[Inference] Running EM for batch %d\n", batchIdx);
-        Batch_inferSaveOutput(batch, batchIdx, model, fp, minColScore, minColLen, maxDupScore, minDupLen);
-        batchIdx += 1;
-    }
+    fprintf(stderr, "[Inference] Running EM for final inference\n");
+    Batch_inferSaveOutput(chunks, model, fp, minColScore, minColLen, maxDupScore, minDupLen);
     fflush(fp);
     fclose(fp);
-    Batch_destruct(batch);
     HMM_destruct(model);
 }

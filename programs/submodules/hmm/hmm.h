@@ -1,4 +1,5 @@
 #include "block_it.h"
+#include "common.h"
 #include "data_types.h"
 #include <stdio.h>
 #include "sonLib.h"
@@ -122,6 +123,7 @@ typedef struct Batch {
     int nThreadChunks; // The number of chunks added to this batch so far
     pthread_mutex_t *mutex;
 } Batch;
+
 
 Gaussian *Gaussian_construct(VectorDouble **mu, MatrixDouble **cov, int nMixtures);
 
