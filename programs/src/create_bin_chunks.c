@@ -94,6 +94,8 @@ int main(int argc, char *argv[]) {
             // write cov1 and then cov2 array
             fwrite(cov1Array, sizeof(int32_t), chunk->seqLen, fp);
             fwrite(cov2Array, sizeof(int32_t), chunk->seqLen, fp);
+            // write seqClass
+            fwrite(chunk->seqClass, sizeof(int8_t), chunk->seqLen, fp);
         }
     }
     fflush(fp);
