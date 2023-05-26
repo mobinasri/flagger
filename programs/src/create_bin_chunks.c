@@ -25,8 +25,8 @@ static struct option long_options[] =
 int main(int argc, char *argv[]) {
     int c;
     char covPath[200];
-    int nThreads;
-    int chunkLen;
+    int nThreads = 8;
+    int chunkLen = 20000000;
     int windowLen = 1000;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
@@ -50,9 +50,9 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "\nUsage: %s\n", program);
                 fprintf(stderr, "Options:\n");
                 fprintf(stderr, "         --inputCov, -i         path to .cov file\n");
-                fprintf(stderr, "         --threads, -t         number of threads\n");
-                fprintf(stderr, "         --chunkLen, -l         chunk length\n");
-                fprintf(stderr, "         --windowLen, -w         window length (default = 100)\n");
+                fprintf(stderr, "         --threads, -t         number of threads [Default=8]\n");
+                fprintf(stderr, "         --chunkLen, -l         chunk length [Default = 20000000 (20Mb)]\n");
+                fprintf(stderr, "         --windowLen, -w         window length (default = 1000)\n");
                 return 1;
         }
     }
