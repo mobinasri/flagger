@@ -63,6 +63,8 @@ VectorDouble** VectorDouble_constructArray1D(int len, int dim);
 
 VectorDouble*** VectorDouble_constructArray2D(int len1, int len2, int dim);
 
+VectorDouble**** VectorDouble_constructArray3D(int len1, int len2, int len3, int dim);
+
 void VectorDouble_setValue(VectorDouble* vec, double value);
 
 void VectorDouble_divideByValue(VectorDouble* vec, double value);
@@ -78,6 +80,9 @@ void VectorDouble_destruct(VectorDouble* vec);
 void VectorDouble_destructArray1D(VectorDouble** vecArray, int len);
 
 void VectorDouble_destructArray2D(VectorDouble*** vecArray, int len1, int len2);
+
+void VectorDouble_destructArray3D(VectorDouble**** vecArray, int len1, int len2, int len3);
+
 
 //MatrixChar functions
 
