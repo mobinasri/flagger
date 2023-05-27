@@ -6,6 +6,7 @@
 #include <stdbool.h>    // bool type
 #include <assert.h>
 
+char* get_timestamp();
 
 bool file_exists (char *filename);
 

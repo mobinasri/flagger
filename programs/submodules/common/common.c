@@ -1,5 +1,14 @@
 #include "common.h"
 
+char* get_timestamp() {
+    static char timestamp[TIMESTAMP_SIZE + 1];  // static variable to hold the timestamp string
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    snprintf(timestamp, TIMESTAMP_SIZE + 1, "%04d-%02d-%02d %02d:%02d:%02d",
+             tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+             tm->tm_hour, tm->tm_min, tm->tm_sec);
+    return timestamp;
+}
 
 bool file_exists(char *filename) {
     struct stat buffer;

@@ -21,6 +21,8 @@ typedef struct work_arg_t {
 	HMM* model;
 	Chunk* chunk;
     int chunkIndex;
+    int nChunks;
+    int iter;
 }work_arg_t;
 
 struct tpool {
