@@ -5,6 +5,7 @@
 #include <sys/stat.h>   // stat
 #include <stdbool.h>    // bool type
 #include <assert.h>
+#include <time.h>
 
 char* get_timestamp();
 
