@@ -1010,10 +1010,11 @@ void NegativeBinomial_estimateParameters(HMM *model) {
                     } else if (1e2 < nb->lambdaDenom[m]->data[j]) {
                         lambda_0 = nb->lambdaNum[m]->data[j] / nb->lambdaDenom[m]->data[j];
                     }
+                    double factor = muFactor->data[j] <= 0 ? 1 : muFactor->data[j];
                     if((theta_0 > 0.0) && (lambda_0>0.0)) {
                         // get update theta and r
                         double theta_m = theta_0;
-                        double lambda_m = lambda_0 * muFactor->data[j];
+                        double lambda_m = lambda_0 * factor;
                         double r_m = -1 * lambda_m / log(theta_m);
                         assert(j == 0);
                         // update mu and cov
