@@ -527,12 +527,12 @@ void HMM_fillDigammaTable(HMM *model){
             NegativeBinomial *nb = (NegativeBinomial*) model->emit[r][c];
             for(int m=0; m < nb->n; m ++) {
                 double r_m = NegativeBinomial_getR(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
-                double digammal_0 = digammal(r_model); // digamma(r + x) for x = 0
+                double digammal_0 = digammal(r_m); // digamma(r + x) for x = 0
                 model->digammaTable[r][c][m]->data[0] =  digammal_0;
-                for(int x=1; x <= maxEmission; x++){
+                for(int x=1; x <= model->maxEmission; x++){
                     // digamma(1 + z) = digamma(z) + 1 / z
                     // or digamma(r + x) = digamma(r + x - 1) + 1 / (r + x - 1)
-                    model->digammaTable[r][c][m]->data[x] = model->digammaTable[r][c][m]->data[x-1] + 1 / (r_m + x - 1);
+                    model->digammaTable[r][c][m]->data[x] = model->digammaTable[r][c][m]->data[x-1] + 1.0 / (r_m + x - 1);
                 }
             }
         }
