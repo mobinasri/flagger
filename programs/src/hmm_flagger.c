@@ -157,7 +157,7 @@ void initMuFourComps(VectorDouble ***mu, int coverage, int *nMixtures) {
 HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *nMixtures, double maxHighMapqRatio,
                       double *regionFreqRatios, char *numMatrixFile, ModelType modelType) {
 
-    int maxMixtures = maxIntArray(nMixtures);
+    int maxMixtures = maxIntArray(nMixtures, nComps);
     VectorDouble ****mu = malloc(nClasses * sizeof(VectorDouble * **));
     for (int r = 0; r < nClasses; r++) {
         mu[r] = malloc(nComps * sizeof(VectorDouble * *));
