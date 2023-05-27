@@ -62,13 +62,13 @@ int main(int argc, char *argv[]) {
     clock_t start, end;
     double cpu_time_used;
     start = clock();
-    Batch *batch = Batch_construct(covPath, chunkLen, nThreads, 0, windowLen);
+    Batch *batch = Batch_construct(covPath, chunkLen, nThreads, 2, windowLen);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     fprintf(stderr,"Batch_construct() took %f seconds to execute \n", cpu_time_used);
 
     batch->templateChunkIdx = 0;
-    batch->nThreadChunks = 0;
+    batch->nThreadChunks = nThreads;
     fwrite(&(batch->chunkLen), sizeof(int32_t), 1, fp); // first 4 bytes
     fwrite(&(batch->windowLen), sizeof(int32_t), 1, fp); // second 4 bytes
     while (Batch_readThreadChunks(batch)) {
