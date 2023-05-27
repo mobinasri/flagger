@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <time.h>
 
+#define TIMESTAMP_SIZE 40
+
 char* get_timestamp();
 
 bool file_exists (char *filename);
