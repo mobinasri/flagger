@@ -579,8 +579,9 @@ void HMM_destruct(HMM *model) {
     VectorDouble_destructArray2D(model->muFactors, model->nComps, model->maxMixtures);
     MatrixDouble_destructArray2D(model->covFactors, model->nComps, model->maxMixtures);
 
-    VectorDouble_destructArray3D(model->digammaTable, model->nClasses, model->nComps, model->maxMixtures);
-
+    if(model->modelType == NEGATIVE_BINOMIAL) {
+        VectorDouble_destructArray3D(model->digammaTable, model->nClasses, model->nComps, model->maxMixtures);
+    }
     free(model);
 }
 
