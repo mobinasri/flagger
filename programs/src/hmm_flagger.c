@@ -663,7 +663,7 @@ int main(int argc, char *argv[]) {
     char outputPath[1000];
     for (int itr = 0; itr < nIteration; itr++) {
         fprintf(stderr, "ROUND STARTED\n");
-        runOneRound(model, chunks, nThreads);
+        runOneRound(model, chunks, nThreads, itr);
         fprintf(stderr, "ROUND FINISHED\n");
 
         if (model->modelType == GAUSSIAN) {
