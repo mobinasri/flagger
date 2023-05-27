@@ -143,7 +143,7 @@ double *getGaussianMixtureProbs(VectorChar *vec, Gaussian *gaussian, int c);
 
 HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDouble ****mu, VectorDouble ***muFactors,
                    MatrixDouble ***covFactors, double maxHighMapqRatio, MatrixDouble **transNum,
-                   MatrixDouble **transDenom, ModelType modelType);
+                   MatrixDouble **transDenom, ModelType modelType, int maxEmission);
 
 void HMM_destruct(HMM *model);
 
