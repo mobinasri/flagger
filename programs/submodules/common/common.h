@@ -4,6 +4,8 @@
 #include <string.h>
 #include <sys/stat.h>   // stat
 #include <stdbool.h>    // bool type
+#include <assert.h>
+
 
 bool file_exists (char *filename);
 
