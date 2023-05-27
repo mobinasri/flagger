@@ -445,7 +445,7 @@ HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDo
     model->nComps = nComps;
     model->nEmit = nEmit;
     model->maxEmission = maxEmission;
-    model->maxMixtures = maxIntArray(nMixtures);
+    model->maxMixtures = maxIntArray(nMixtures, nComps);
     model->nMixtures = nMixtures;
     model->muFactors = muFactors;
     model->covFactors = covFactors;
@@ -576,10 +576,10 @@ void HMM_destruct(HMM *model) {
     free(model->transCounts);
     free(model->mutexPtr);
 
-    VectorDouble_destructArray2D(model->muFactors, model->nComps, maxIntArray(nMixtures));
-    MatrixDouble_destructArray2D(model->covFactors, model->nComps, maxIntArray(nMixtures));
+    VectorDouble_destructArray2D(model->muFactors, model->nComps, model->maxMixtures);
+    MatrixDouble_destructArray2D(model->covFactors, model->nComps, model->maxMixtures);
 
-    VectorDouble_destructArray3D(model->digammaTable, model->nClasses, model->nComps, maxIntArray(nMixtures));
+    VectorDouble_destructArray3D(model->digammaTable, model->nClasses, model->nComps, model->maxMixtures);
 
     free(model);
 }
