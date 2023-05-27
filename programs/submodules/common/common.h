@@ -28,6 +28,10 @@ uint8_t maxCharArray(uint8_t* a, int len);
 
 uint8_t minCharArray(uint8_t* a, int len);
 
+int maxIntArray(int* a, int len);
+
+int minIntArray(int* a, int len);
+
 #endif
 
 
