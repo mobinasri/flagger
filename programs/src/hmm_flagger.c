@@ -171,7 +171,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     VectorDouble ***muFactors = VectorDouble_constructArray2D(nComps, maxMixtures, nEmit);
 
     //Erroneous
-    muFactors[0][0]->data[0] = -1;
+    muFactors[0][0]->data[0] = 0.1;
     // Duplicated
     muFactors[1][0]->data[0] = 0.5;
 
@@ -188,7 +188,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
 
     MatrixDouble ***covFactors = MatrixDouble_constructArray2D(nComps, maxMixtures, nEmit, nEmit);
 
-    MatrixDouble_setValue(covFactors[0][0], -1);
+    MatrixDouble_setValue(covFactors[0][0], 0.1);
     MatrixDouble_setValue(covFactors[1][0], 0.5);
 
     MatrixDouble_setValue(covFactors[2][0], 1);
@@ -413,7 +413,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     int iter = arg->iter;
     int nChunks = arg->nChunks;
     int chunkIndex = arg->chunkIndex;
-    fprintf(stderr, "[%s] (iter=%d) Chunk (%d/%d) [len=%d]: %d, %d, %d, ..., %d, %d, %d\n", get_timestamp(), iter, chunkIndex + 1, nChunks ,chunk->seqLen,
+    fprintf(stderr, "[%s] (iter=%d) Chunk (%d/%d) [len=%d]: %d, %d, %d, ..., %d, %d, %d\n", get_timestamp(), iter + 1, chunkIndex + 1, nChunks ,chunk->seqLen,
             chunk->seqEmit[0]->data[0],
             chunk->seqEmit[1]->data[0],
             chunk->seqEmit[2]->data[0],
