@@ -326,8 +326,9 @@ Batch_inferSaveOutput(stList *chunks, HMM *model, int nThreads, FILE *outputFile
     EM **emArray = (EM **) malloc(nThreads * sizeof(EM * ));
     // Run every nThreads chunks in parallel except for the last chunks if the number of
     // chunks is not a multiple of nThreads
-    while (chunkEndIndex < stList_length(chunks)) {
-        chunkEndIndex = chunkStartIndex + min(stList_length(chunks) - chunkEndIndex, nThreads) - 1;
+    while (chunkEndIndex < stList_length(chunks) - 1) {
+        chunkStartIndex = chunkEndIndex + 1;
+        chunkEndIndex = chunkStartIndex + min(stList_length(chunks) - chunkStartIndex, nThreads) - 1;
         for (int chunkIndex = chunkStartIndex; chunkIndex <= chunkEndIndex; chunkIndex++) {
             int threadIndex = chunkIndex - chunkStartIndex;
             Chunk *chunk = stList_get(chunks, chunkIndex);
@@ -412,7 +413,7 @@ void *readChunkAndUpdateStats(void *arg_) {
     Chunk *chunk = arg->chunk;
     HMM *model = arg->model;
     int chunkIndex = arg->chunkIndex;
-    fprintf(stderr, "Chunk %d: %d, %d, %d, ..., %d, %d, %d\n", chunkIndex,
+    fprintf(stderr, "Chunk %d [%d]: %d, %d, %d, ..., %d, %d, %d\n", chunkIndex, chunk->seqLen,
             chunk->seqEmit[0]->data[0],
             chunk->seqEmit[1]->data[0],
             chunk->seqEmit[2]->data[0],

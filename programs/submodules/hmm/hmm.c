@@ -1892,11 +1892,9 @@ stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen, i
         exit(EXIT_FAILURE);
     }
     stList* allChunks = stList_construct3(0, Chunk_destruct);
-    while(!feof(fp)) {
+    int32_t ctgNameLen;
+    while(fread(&ctgNameLen, sizeof(int32_t), 1, fp) > 0) {
         Chunk* chunk = Chunk_construct3(chunkLen, nEmit, windowLen);
-        // read the length of contig name + null character
-        int32_t ctgNameLen;
-        fread(&ctgNameLen, sizeof(int32_t), 1, fp);
         // read the contig name
         fread(chunk->ctg, sizeof(char), ctgNameLen, fp);
         // read start and end
