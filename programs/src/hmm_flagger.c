@@ -157,6 +157,7 @@ void initMuFourComps(VectorDouble ***mu, int coverage, int *nMixtures) {
 HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *nMixtures, double maxHighMapqRatio,
                       double *regionFreqRatios, char *numMatrixFile, ModelType modelType) {
 
+    int maxMixtures = maxIntArray(nMixtures);
     VectorDouble ****mu = malloc(nClasses * sizeof(VectorDouble * **));
     for (int r = 0; r < nClasses; r++) {
         mu[r] = malloc(nComps * sizeof(VectorDouble * *));
@@ -167,7 +168,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     for (int r = 0; r < nClasses; r++) {
         initMuFourComps(mu[r], coverages[r], nMixtures);
     }
-    VectorDouble ***muFactors = VectorDouble_constructArray2D(nComps, 10, nEmit);
+    VectorDouble ***muFactors = VectorDouble_constructArray2D(nComps, maxMixtures, nEmit);
 
     //Erroneous
     muFactors[0][0]->data[0] = -1;
@@ -185,7 +186,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     }
     fprintf(stderr, "Set mu factors\n");
 
-    MatrixDouble ***covFactors = MatrixDouble_constructArray2D(nComps, 10, nEmit, nEmit);
+    MatrixDouble ***covFactors = MatrixDouble_constructArray2D(nComps, maxMixtures, nEmit, nEmit);
 
     MatrixDouble_setValue(covFactors[0][0], -1);
     MatrixDouble_setValue(covFactors[1][0], 0.5);
@@ -225,8 +226,9 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
     // Numerator pseudo-counts for updating transition probs
     // MatrixDouble** transDenom = MatrixDouble_constructArray1D(nClasses, nComps, nComps);
 
+    int maxEmission = 255;
     HMM *model = HMM_construct(nClasses, nComps, nEmit, nMixtures, mu, muFactors, covFactors, maxHighMapqRatio,
-                               transNum, transDenom, modelType);
+                               transNum, transDenom, modelType, maxEmission);
 
     //model->emit[1][1]->cov->data[1][1] = model->emit[1][2]->mu->data[0] / 8.0;
     //model->emit[1][2]->cov->data[1][1] = 4.0 * model->emit[1][2]->mu->data[0];

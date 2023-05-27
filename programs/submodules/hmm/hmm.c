@@ -438,12 +438,14 @@ double getExpProb(double x, double lambda) {
 
 HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDouble ****mu, VectorDouble ***muFactors,
                    MatrixDouble ***covFactors, double maxHighMapqRatio, MatrixDouble **transNum,
-                   MatrixDouble **transDenom, ModelType modelType) {
+                   MatrixDouble **transDenom, ModelType modelType, int maxEmission) {
     HMM *model = malloc(sizeof(HMM));
     model->modelType = modelType;
     model->nClasses = nClasses;
     model->nComps = nComps;
     model->nEmit = nEmit;
+    model->maxEmission = maxEmission;
+    model->maxMixtures = maxIntArray(nMixtures);
     model->nMixtures = nMixtures;
     model->muFactors = muFactors;
     model->covFactors = covFactors;
@@ -506,11 +508,36 @@ HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDo
         model->transCounts[r] = MatrixDouble_construct0(nComps + 1, nComps + 1);
     }
 
+    // fill digamma table based on the current r values
+    if (modelType == NEGATIVE_BINOMIAL){
+        HMM_fillDigammaTable(model);
+    }
     model->mutexPtr = malloc(sizeof(pthread_mutex_t));
     pthread_mutex_init(model->mutexPtr, NULL);
     return model;
 }
 
+void HMM_fillDigammaTable(HMM *model){
+    assert(model->modelType == NEGATIVE_BINOMIAL);
+    if(model->digammaTable == NULL){
+        model->digammaTable = VectorDouble_constructArray3D(model->nClasses, model->nComps, model->maxMixtures, model->maxEmission + 1);
+    }
+    for(int r=0; r < model->nClasses; r ++){
+        for(int c=0; c < model->nComps; c ++) {
+            NegativeBinomial *nb = (NegativeBinomial*) model->emit[r][c];
+            for(int m=0; m < nb->n; m ++) {
+                double r_m = NegativeBinomial_getR(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
+                double digammal_0 = digammal(r_model); // digamma(r + x) for x = 0
+                model->digammaTable[r][c][m]->data[0] =  digammal_0;
+                for(int x=1; x <= maxEmission; x++){
+                    // digamma(1 + z) = digamma(z) + 1 / z
+                    // or digamma(r + x) = digamma(r + x - 1) + 1 / (r + x - 1)
+                    model->digammaTable[r][c][m]->data[x] = model->digammaTable[r][c][m]->data[x-1] + 1 / (r_m + x - 1);
+                }
+            }
+        }
+    }
+}
 /**
  * Destructs an HMM object
  *
@@ -549,8 +576,11 @@ void HMM_destruct(HMM *model) {
     free(model->transCounts);
     free(model->mutexPtr);
 
-    VectorDouble_destructArray2D(model->muFactors, model->nComps, 4);
-    MatrixDouble_destructArray2D(model->covFactors, model->nComps, 4);
+    VectorDouble_destructArray2D(model->muFactors, model->nComps, maxIntArray(nMixtures));
+    MatrixDouble_destructArray2D(model->covFactors, model->nComps, maxIntArray(nMixtures));
+
+    VectorDouble_destructArray3D(model->digammaTable, model->nClasses, model->nComps, maxIntArray(nMixtures));
+
     free(model);
 }
 
@@ -1016,6 +1046,8 @@ void NegativeBinomial_estimateParameters(HMM *model) {
             }
         }
     }
+    // fill digamma table based on new r values
+    HMM_fillDigammaTable(model);
 }
 
 
@@ -1248,7 +1280,6 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
             }
         }
     }
-
     pthread_mutex_lock(model->mutexPtr);
     for (int r = 0; r < nClasses; r++) {
         for (int c1 = 0; c1 < nComps; c1++) {
@@ -1284,7 +1315,7 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
     // Update the numerator for estimating mixture weights
     for (int i = 0; i < seqLength - 1; i++) {
         r = seqClass[i];
-        for (int c = 0; c < nComps; c++) { // skip erroneous component
+        for (int c = 0; c < nComps; c++) {
             //fprintf(stderr, "c=%d\n",c);
             NegativeBinomial *nb = em->emit[r][c];
             double *mixtureProbs = NegativeBinomial_getMixtureProbs(seqEmit[i], nb, c);
@@ -1293,9 +1324,9 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
                 totProb += mixtureProbs[m];
             }
             for (int m = 0; m < nb->n; m++) {
-                double theta = NegativeBinomial_getTheta(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
-                double r = NegativeBinomial_getR(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
-                double beta = -1 * theta / (1 - theta) - 1 /log(theta);
+                double theta_m = NegativeBinomial_getTheta(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
+                double r_m = NegativeBinomial_getR(nb->mu[m]->data[0], nb->cov[m]->data[0][0]);
+                double beta_m = -1 * theta_m / (1 - theta_m) - 1 /log(theta_m);
                 //fprintf(stderr, "get factors\n");
                 VectorDouble *muFactor = model->muFactors[c][m];
                 MatrixDouble *covFactor = model->covFactors[c][m];
@@ -1306,11 +1337,12 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
                 // Update sufficient stats for estimating mean vectors
                 for (int j = 0; j < nEmit; j++) {
                     double factor = muFactor->data[j] <= 0 ? 1 : muFactor->data[j];
-                    double delta = r*(digammal(r + seqEmit[i]->data[j]) - digammal(r));
-                    nb->lambdaNum[m]->data[j] += w * delta;
+                    //double delta = r*(digammal(r + seqEmit[i]->data[j]) - digammal(r));
+                    double delta_m = r_m * (model->digammaTable[r][c][m]->data[seqEmit[i]->data[j]] - model->digammaTable[r][c][m]->data[0]);
+                    nb->lambdaNum[m]->data[j] += w * delta_m;
                     nb->lambdaDenom[m]->data[j] += w * factor;
-                    nb->thetaNum[m]->data[j] += w * delta * beta;
-                    nb->thetaDenom[m]->data[j] += w * delta * beta + w * (seqEmit[i]->data[j] - delta);
+                    nb->thetaNum[m]->data[j] += w * delta_m * beta_m;
+                    nb->thetaDenom[m]->data[j] += w * delta_m * beta_m + w * (seqEmit[i]->data[j] - delta_m);
                 }
                 // Update sufficient stats for estimating mixture weights
                 nb->weightNum[m] += w;

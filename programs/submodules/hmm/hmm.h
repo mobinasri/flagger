@@ -64,12 +64,15 @@ typedef struct HMM {
     int nClasses; // Number of classes like non-HSAT, HSAT1, ...
     int nComps; // Number of components like erroneous, haploid, ...
     int nEmit; // Dimension of each emission
+    int maxEmission; // maximum possible integer value for emission
+    int maxMixtures; // max(nMixtures)
     int *nMixtures; // number of mixture components for each HMM states
     VectorDouble ***muFactors;
     MatrixDouble ***covFactors;
     pthread_mutex_t *mutexPtr;
     double maxHighMapqRatio;
     double terminateProb;
+    VectorDouble**** digammaTable; // [nClasses] x [nComps] x [maxMixtures] x data[maxEmission + 1]
 } HMM;
 
 
@@ -143,6 +146,8 @@ HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDo
                    MatrixDouble **transDenom, ModelType modelType);
 
 void HMM_destruct(HMM *model);
+
+void HMM_fillDigammaTable(HMM *model);
 
 EM *EM_construct(VectorChar **seqEmit, uint8_t *seqClass, int seqLength, HMM *model);
 
