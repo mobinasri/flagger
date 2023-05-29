@@ -72,6 +72,9 @@ workflows:
    -  name: FlaggerPreprocess
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/flagger_preprocess.wdl
+   -  name: FlaggerPreprocessNoVariantCalling
+      subclass: WDL
+      primaryDescriptorPath: /wdls/workflows/flagger_preprocess_no_variant_calling.wdl
    -  name: DeepVariant
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/variant_calling/deep_variant.wdl
