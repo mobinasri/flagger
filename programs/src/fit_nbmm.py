@@ -892,7 +892,7 @@ def main():
         cov_counts = parse_data(counts_path)
     n_obs = sum(cov_counts)
 
-    if em_mode not in ["regular", "accerelated", "combined"]:
+    if em_mode not in ["regular", "accelerated", "combined"]:
         print("--em_mode can only be one of these three modes: regular, accelerated, combined")
         exit()
 
