@@ -46,6 +46,11 @@ typedef struct HMM {
     // type of the emission model
     // could be either GAUSSIAN or NEGATIVE_BINOMIAL
     ModelType modelType;
+    // alpha is the dependency factor of the emission density on
+    // the previous emission and state
+    // the mean of the emission density for each state is adjusted by mu * (1 - alpha) + x_{t-1} * alpha
+    // if the previous state was same as the current one
+    double alpha;
     // The last row of the transition matrix (trans[nComps][]) holds the starting probs
     // The last column of the transition matrix (trans[][nComps]) holds the terminating probs
     // An array of transition matrices. Each transition matrix has the dimension (#nComps + 1) x (#nComps + 1)
@@ -85,6 +90,7 @@ typedef struct EM {
     int nClasses; // Number of classes like non-HSAT, HSAT1, ...
     int nComps; // Number of components like erroneous, haploid, ...
     int nEmit; // Dimension of each emission
+    double alpha;
     double **f; // Forward matrix: #SEQ_LEN x #nComps
     double **b; // Backward matrix: #SEQ_LEN x #nComps
     double px; // P(x)
@@ -143,7 +149,7 @@ double *getGaussianMixtureProbs(VectorChar *vec, Gaussian *gaussian, int c);
 
 HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDouble ****mu, VectorDouble ***muFactors,
                    MatrixDouble ***covFactors, double maxHighMapqRatio, MatrixDouble **transNum,
-                   MatrixDouble **transDenom, ModelType modelType, int maxEmission);
+                   MatrixDouble **transDenom, ModelType modelType, int maxEmission, double alpha);
 
 void HMM_destruct(HMM *model);
 

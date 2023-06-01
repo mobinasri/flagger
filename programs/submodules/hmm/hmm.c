@@ -438,9 +438,10 @@ double getExpProb(double x, double lambda) {
 
 HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDouble ****mu, VectorDouble ***muFactors,
                    MatrixDouble ***covFactors, double maxHighMapqRatio, MatrixDouble **transNum,
-                   MatrixDouble **transDenom, ModelType modelType, int maxEmission) {
+                   MatrixDouble **transDenom, ModelType modelType, int maxEmission, double alpha) {
     HMM *model = malloc(sizeof(HMM));
     model->modelType = modelType;
+    model->alpha = alpha;
     model->nClasses = nClasses;
     model->nComps = nComps;
     model->nEmit = nEmit;

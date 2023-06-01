@@ -155,7 +155,7 @@ void initMuFourComps(VectorDouble ***mu, int coverage, int *nMixtures) {
 }
 
 HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *nMixtures, double maxHighMapqRatio,
-                      double *regionFreqRatios, char *numMatrixFile, ModelType modelType) {
+                      double *regionFreqRatios, char *numMatrixFile, ModelType modelType, double alpha) {
 
     int maxMixtures = maxIntArray(nMixtures, nComps);
     VectorDouble ****mu = malloc(nClasses * sizeof(VectorDouble * **));
@@ -228,7 +228,7 @@ HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *
 
     int maxEmission = 255;
     HMM *model = HMM_construct(nClasses, nComps, nEmit, nMixtures, mu, muFactors, covFactors, maxHighMapqRatio,
-                               transNum, transDenom, modelType, maxEmission);
+                               transNum, transDenom, modelType, maxEmission, alpha);
 
     //model->emit[1][1]->cov->data[1][1] = model->emit[1][2]->mu->data[0] / 8.0;
     //model->emit[1][2]->cov->data[1][1] = 4.0 * model->emit[1][2]->mu->data[0];
@@ -320,8 +320,8 @@ uint8_t getCompIdx(EM *em, int loc) {
 void
 Batch_inferSaveOutput(stList *chunks, HMM *model, int nThreads, FILE *outputFile, double minColScore, int minColLen,
                       double maxDupScore, int minDupLen) {
-    int chunkStartIndex = 0;
-    int chunkEndIndex = 0;
+    int chunkStartIndex = -1;
+    int chunkEndIndex = -1;
     pthread_t *tids = malloc(nThreads * sizeof(pthread_t));
     EM **emArray = (EM **) malloc(nThreads * sizeof(EM * ));
     // Run every nThreads chunks in parallel except for the last chunks if the number of
@@ -413,7 +413,8 @@ void *readChunkAndUpdateStats(void *arg_) {
     int iter = arg->iter;
     int nChunks = arg->nChunks;
     int chunkIndex = arg->chunkIndex;
-    fprintf(stderr, "[%s] (iter=%d) Chunk (%d/%d) [len=%d]: %d, %d, %d, ..., %d, %d, %d\n", get_timestamp(), iter + 1, chunkIndex + 1, nChunks ,chunk->seqLen,
+    fprintf(stderr, "[%s] (iter=%d) Chunk (%d/%d) [len=%d]: %d, %d, %d, ..., %d, %d, %d\n", get_timestamp(), iter + 1,
+            chunkIndex + 1, nChunks, chunk->seqLen,
             chunk->seqEmit[0]->data[0],
             chunk->seqEmit[1]->data[0],
             chunk->seqEmit[2]->data[0],
@@ -481,6 +482,7 @@ static struct option long_options[] =
                 {"regionRatios",     required_argument, NULL, 'g'},
                 {"transPseudoPath",  required_argument, NULL, 'u'},
                 {"model",            required_argument, NULL, 'M'},
+                {"alpha",            required_argument, NULL, 'A'},
                 {NULL,               0,                 NULL, 0}
         };
 
@@ -505,10 +507,11 @@ int main(int argc, char *argv[]) {
     double maxHighMapqRatio = 0.25;
     char regionFreqRatios[200];
     char transPseudoPath[200];
+    double alpha = 0.3;
     char *program;
     ModelType modelType;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:M:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:M:A:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 strcpy(covPath, optarg);
@@ -571,6 +574,9 @@ int main(int argc, char *argv[]) {
                     exit(EXIT_FAILURE);
                 }
                 break;
+            case 'A':
+                alpha = atof(optarg);
+                break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
@@ -579,6 +585,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "         --inputCov, -i         path to .cov file\n");
                 fprintf(stderr,
                         "         --model, -M         use gaussian or negative binomial emission model (values can be either 'gaussian' or 'nb' [default:'nb'])\n");
+                fprintf(stderr, "         --alpha, -A         alpha is the dependency factor of the current emission density to the previous emission of the same state\n");
                 fprintf(stderr, "         --threads, -t         number of threads\n");
                 fprintf(stderr, "         --chunkLen, -l         chunk length\n");
                 fprintf(stderr, "         --iterations, -n         number of iterations\n");
@@ -634,7 +641,7 @@ int main(int argc, char *argv[]) {
     Splitter_destruct(splitter);
 
     HMM *model = makeAndInitModel(coverages, nClasses, nComps, nEmit, nMixtures, maxHighMapqRatio,
-                                  regionFreqRatiosDouble, transPseudoPath, modelType);
+                                  regionFreqRatiosDouble, transPseudoPath, modelType, alpha);
 
     fprintf(stderr, "CONSTRUCTED MODEL\n");
     for (int r = 0; r < nClasses; r++) {
