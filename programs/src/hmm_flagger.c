@@ -519,7 +519,7 @@ int main(int argc, char *argv[]) {
     char *program;
     ModelType modelType;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:M:A:0:1:2:3:4:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:M:0:1:2:3:4:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 strcpy(covPath, optarg);
