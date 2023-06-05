@@ -457,6 +457,7 @@ HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDo
     model->alpha = MatrixDouble_construct0(nComps, nComps);
     //for (int c = 0; c < nComps; c++) {
     model->alpha->data[2][2] = alpha;
+    model->alpha->data[3][3] = alpha;
     //}
     if (modelType == GAUSSIAN) {
         // Constructing the emission Gaussians and set their parameters
