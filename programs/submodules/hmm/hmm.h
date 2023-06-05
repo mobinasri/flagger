@@ -50,7 +50,7 @@ typedef struct HMM {
     // the previous emission and state
     // the mean of the emission density for each state is adjusted by mu * (1 - alpha) + x_{t-1} * alpha
     // if the previous state was same as the current one
-    double alpha;
+    MatrixDouble **alpha; // (#nComps) x (#nComps)
     // The last row of the transition matrix (trans[nComps][]) holds the starting probs
     // The last column of the transition matrix (trans[][nComps]) holds the terminating probs
     // An array of transition matrices. Each transition matrix has the dimension (#nComps + 1) x (#nComps + 1)
@@ -143,9 +143,9 @@ Gaussian *Gaussian_constructSpecial(VectorDouble **mu, int nMixtures);
 
 MatrixDouble *makeUniformTransition(int dim);
 
-double getGaussianProb(VectorChar *vec, Gaussian *gaussian, int c);
+double getGaussianProb(VectorChar *vec, Gaussian *gaussian, int c, double alpha, VectorChar* preVec);
 
-double *getGaussianMixtureProbs(VectorChar *vec, Gaussian *gaussian, int c);
+double *getGaussianMixtureProbs(VectorChar *vec, Gaussian *gaussian, int c, double alpha, VectorChar* preVec);
 
 HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDouble ****mu, VectorDouble ***muFactors,
                    MatrixDouble ***covFactors, double maxHighMapqRatio, MatrixDouble **transNum,
