@@ -375,8 +375,7 @@ double *getGaussianMixtureProbs(VectorChar *vec, Gaussian *gaussian, int comp, d
     // iterate over mixture components
     for (int m = 0; m < gaussian->n; m++) {
         mu = gaussian->mu[m]->data;
-        muAdjusted = gaussian->mu[m]->data * (1 - alpha) +
-                     covCopy = MatrixDouble_copy(gaussian->cov[m]);
+        covCopy = MatrixDouble_copy(gaussian->cov[m]);
         c = covCopy->data;
         w = gaussian->weights[m];
         if (dim == 1) {
@@ -760,7 +759,8 @@ void runForward(HMM *model, EM *em) {
                     }
                 }
                 if (model->modelType == GAUSSIAN) {
-                    eProb = getGaussianProb(seqEmit[i], model->emit[seqClass[i]][c2], c2, alpha[c1][c2], seqEmit[i - 1]);
+                    eProb = getGaussianProb(seqEmit[i], model->emit[seqClass[i]][c2], c2, alpha[c1][c2],
+                                            seqEmit[i - 1]);
                 }
                 if (model->modelType == NEGATIVE_BINOMIAL) {
                     eProb = NegativeBinomial_getProb(seqEmit[i], model->emit[seqClass[i]][c2], c2);
@@ -849,7 +849,8 @@ void runBackward(HMM *model, EM *em) {
                     }
                 }
                 if (model->modelType == GAUSSIAN) {
-                    eProb = getGaussianProb(seqEmit[i + 1], model->emit[seqClass[i + 1]][c2], c2, alpha[c1][c2], seqEmit[i]);
+                    eProb = getGaussianProb(seqEmit[i + 1], model->emit[seqClass[i + 1]][c2], c2, alpha[c1][c2],
+                                            seqEmit[i]);
                 } else if (model->modelType == NEGATIVE_BINOMIAL) {
                     eProb = NegativeBinomial_getProb(seqEmit[i + 1], model->emit[seqClass[i + 1]][c2], c2);
                 }
