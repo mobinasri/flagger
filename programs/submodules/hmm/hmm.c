@@ -1090,8 +1090,10 @@ void estimateParameters(HMM *model) {
                 if (c1 == 2) {
                     fprintf(stdout, "r=%d, 2->%d: %.2e/%.2e\n", r, c2, transCounts[r]->data[c1][c2], norm);
                 }
-                trans[r]->data[c1][c2] = (transCounts[r]->data[c1][c2] + transNum[r]->data[c1][c2]) /
-                                         (norm + transDenom[r]->data[c1][c2]) * (1.0 - terminateProb);
+                double factor = norm / transDenom[r]->data[c1][c2];
+                factor = factor < 1 ? factor : 1;
+                trans[r]->data[c1][c2] = (transCounts[r]->data[c1][c2] + factor * transNum[r]->data[c1][c2]) /
+                                         (norm + factor * transDenom[r]->data[c1][c2]) * (1.0 - terminateProb);
             }
             trans[r]->data[c1][nComps] = terminateProb;
         }
