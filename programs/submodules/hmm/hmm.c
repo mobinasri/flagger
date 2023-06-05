@@ -441,7 +441,7 @@ double getExpProb(double x, double lambda) {
 
 HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDouble ****mu, VectorDouble ***muFactors,
                    MatrixDouble ***covFactors, double maxHighMapqRatio, MatrixDouble **transNum,
-                   MatrixDouble **transDenom, ModelType modelType, int maxEmission, double alpha) {
+                   MatrixDouble **transDenom, ModelType modelType, int maxEmission, double* alpha) {
     HMM *model = malloc(sizeof(HMM));
     model->modelType = modelType;
     model->nClasses = nClasses;
@@ -455,10 +455,10 @@ HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDo
     model->maxHighMapqRatio = maxHighMapqRatio;
     model->terminateProb = 1e-2;
     model->alpha = MatrixDouble_construct0(nComps, nComps);
-    //for (int c = 0; c < nComps; c++) {
-    model->alpha->data[2][2] = alpha;
-    model->alpha->data[3][3] = alpha;
-    //}
+    MatrixDouble_setValue(model->alpha, alpha[4]);
+    for (int c = 0; c < nComps; c++) {
+        model->alpha->data[c][c] = alpha[c];
+    }
     if (modelType == GAUSSIAN) {
         // Constructing the emission Gaussians and set their parameters
         // emit[r][c] is pointing to the Gaussian of the c-th component of the r-th class

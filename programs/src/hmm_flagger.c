@@ -155,7 +155,7 @@ void initMuFourComps(VectorDouble ***mu, int coverage, int *nMixtures) {
 }
 
 HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *nMixtures, double maxHighMapqRatio,
-                      double *regionFreqRatios, char *numMatrixFile, ModelType modelType, double alpha) {
+                      double *regionFreqRatios, char *numMatrixFile, ModelType modelType, double* alpha) {
 
     int maxMixtures = maxIntArray(nMixtures, nComps);
     VectorDouble ****mu = malloc(nClasses * sizeof(VectorDouble * **));
@@ -482,7 +482,11 @@ static struct option long_options[] =
                 {"regionRatios",     required_argument, NULL, 'g'},
                 {"transPseudoPath",  required_argument, NULL, 'u'},
                 {"model",            required_argument, NULL, 'M'},
-                {"alpha",            required_argument, NULL, 'A'},
+                {"alphaErr",            required_argument, NULL, '0'},
+                {"alphaDup",            required_argument, NULL, '1'},
+                {"alphaHap",            required_argument, NULL, '2'},
+                {"alphaCol",            required_argument, NULL, '3'},
+                {"alphaTrans",            required_argument, NULL, '4'},
                 {NULL,               0,                 NULL, 0}
         };
 
@@ -507,11 +511,15 @@ int main(int argc, char *argv[]) {
     double maxHighMapqRatio = 0.25;
     char regionFreqRatios[200];
     char transPseudoPath[200];
-    double alpha = 0.3;
+    double alphaErr = 0.0;
+    double alphaDup = 0.4;
+    double alphaHap = 0.4;
+    double alphaCol = 0.4;
+    double alphaTrans = 0.0;
     char *program;
     ModelType modelType;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:M:A:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:M:A:0:1:2:3:4:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 strcpy(covPath, optarg);
@@ -574,8 +582,20 @@ int main(int argc, char *argv[]) {
                     exit(EXIT_FAILURE);
                 }
                 break;
-            case 'A':
-                alpha = atof(optarg);
+            case '0':
+                alphaErr = atof(optarg);
+                break;
+            case '1':
+                alphaDup = atof(optarg);
+                break;
+            case '2':
+                alphaHap = atof(optarg);
+                break;
+            case '3':
+                alphaCol = atof(optarg);
+                break;
+            case '4':
+                alphaTrans = atof(optarg);
                 break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
@@ -640,6 +660,12 @@ int main(int argc, char *argv[]) {
     }
     Splitter_destruct(splitter);
 
+    double alpha[5];
+    alpha[0] = alphaErr;
+    alpha[1] = alphaDup;
+    alpha[2] = alphaHap;
+    alpha[3] = alphaCol;
+    alpha[4] = alphaTrans;
     HMM *model = makeAndInitModel(coverages, nClasses, nComps, nEmit, nMixtures, maxHighMapqRatio,
                                   regionFreqRatiosDouble, transPseudoPath, modelType, alpha);
 
