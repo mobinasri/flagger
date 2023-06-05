@@ -380,7 +380,7 @@ double *getGaussianMixtureProbs(VectorChar *vec, Gaussian *gaussian, int comp, d
         c = covCopy->data;
         w = gaussian->weights[m];
         if (dim == 1) {
-            double muAdjusted = mu[0] * (1 - alpha) + preX[0] * alpha
+            double muAdjusted = mu[0] * (1 - alpha) + preX[0] * alpha;
             probs[m] = w / (sqrt(c[0][0] * 2 * PI)) * exp(-0.5 * pow((x[0] - muAdjusted), 2) / c[0][0]);
         } else if (dim == 2) {
             det = c[1][1] * c[0][0] - c[1][0] * c[0][1];
@@ -1402,6 +1402,9 @@ void updateSufficientStats(HMM *model, EM *em) {
 
     double tProb;
     double eProb;
+    double w;
+    double w1;
+    double w2;
     uint8_t r1;
     uint8_t r2;
     uint8_t r;
