@@ -1502,6 +1502,7 @@ void updateSufficientStats(HMM *model, EM *em) {
                             }
                         }
                     }
+                    free(mixtureProbs);
                 }
             }
 
