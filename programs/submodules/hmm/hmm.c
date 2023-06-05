@@ -455,9 +455,9 @@ HMM *HMM_construct(int nClasses, int nComps, int nEmit, int *nMixtures, VectorDo
     model->maxHighMapqRatio = maxHighMapqRatio;
     model->terminateProb = 1e-2;
     model->alpha = MatrixDouble_construct0(nComps, nComps);
-    for (int c = 0; c < nComps; c++) {
-        model->alpha->data[c][c] = alpha;
-    }
+    //for (int c = 0; c < nComps; c++) {
+    model->alpha->data[2][2] = alpha;
+    //}
     if (modelType == GAUSSIAN) {
         // Constructing the emission Gaussians and set their parameters
         // emit[r][c] is pointing to the Gaussian of the c-th component of the r-th class
@@ -1261,7 +1261,7 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
                     // division by terminateProb is just for making the total count
                     // equal to the number of windows, which is ~ genome_size / window_size
                     double u = em->f[i][c1] * tProb * eProb * em->b[i + 1][c2] / terminateProb;
-                    if (u > 1) {
+                    /*if (u > 1) {
                         fprintf(stderr, "Error!\n");
                         fprintf(stderr, "i=%d,c1=%d,c2=%d,r1=%d,r2=%d\n", i, c1, c2, r1, r2);
                         fprintf(stderr, "u= %.3e\n", u);
@@ -1269,7 +1269,7 @@ void NegativeBinomial_updateSufficientStats(HMM *model, EM *em) {
                         fprintf(stderr, "b= %.3e\n", em->b[i + 1][c2]);
                         fprintf(stderr, "t= %.3e\n", tProb);
                         fprintf(stderr, "e= %.3e\n", eProb);
-                    }
+                    }*/
                     transCountsTemp[r1]->data[c1][c2] += u;
                     if (u != u) {
                         fprintf(stderr, "Updating transcounts NAN observed\n");
@@ -1444,7 +1444,7 @@ void updateSufficientStats(HMM *model, EM *em) {
                     // division by terminateProb is just for making the total count
                     // equal to the number of windows, which is ~ genome_size / window_size
                     double u = em->f[i][c1] * tProb * eProb * em->b[i + 1][c2] / terminateProb;
-                    if (u > 1) {
+                    /*if (u > 1) {
                         fprintf(stderr, "Error!\n");
                         fprintf(stderr, "i=%d,c1=%d,c2=%d,r1=%d,r2=%d\n", i, c1, c2, r1, r2);
                         fprintf(stderr, "u= %.3e\n", u);
@@ -1452,7 +1452,7 @@ void updateSufficientStats(HMM *model, EM *em) {
                         fprintf(stderr, "b= %.3e\n", em->b[i + 1][c2]);
                         fprintf(stderr, "t= %.3e\n", tProb);
                         fprintf(stderr, "e= %.3e\n", eProb);
-                    }
+                    }*/
                     transCountsTemp[r1]->data[c1][c2] += u;
                     if (u != u) {
                         fprintf(stderr, "Updating transcounts NAN observed\n");
