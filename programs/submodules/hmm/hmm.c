@@ -1479,7 +1479,7 @@ void updateSufficientStats(HMM *model, EM *em) {
                         // Update sufficient stats for estimating mean vectors
                         for (int j = 0; j < nEmit; j++) {
                             double factor = muFactor->data[j] <= 0 ? 1 : muFactor->data[j];
-                            double x = (seqEmit[i]->data[j] + alpha[c1][c2] * seqEmit[i - 1]->data[j]) /
+                            double x = (seqEmit[i+1]->data[j] + alpha[c1][c2] * seqEmit[i]->data[j]) /
                                        (1 - alpha[c1][c2]);
                             gaussian->muNum[m]->data[j] += w * x / factor;
                             gaussian->muDenom[m]->data[j] += w;
@@ -1492,9 +1492,9 @@ void updateSufficientStats(HMM *model, EM *em) {
                             for (int j2 = 0; j2 < nEmit; j2++) {
                                 double factor = covFactor->data[j1][j2] <= 0 ? 1 : covFactor->data[j1][j2];
                                 double z1 =
-                                        (seqEmit[i]->data[j1] + alpha[c1][c2] * seqEmit[i - 1]->data[j1]) /
+                                        (seqEmit[i+1]->data[j1] + alpha[c1][c2] * seqEmit[i]->data[j1]) /
                                         (1 - alpha[c1][c2]) - gaussian->mu[m]->data[j1];
-                                double z2 = (seqEmit[i]->data[j2] + alpha[c1][c2] * seqEmit[i - 1]->data[j2]) /
+                                double z2 = (seqEmit[i+1]->data[j2] + alpha[c1][c2] * seqEmit[i]->data[j2]) /
                                             (1 - alpha[c1][c2]) - gaussian->mu[m]->data[j2];
                                 gaussian->covNum[m]->data[j1][j2] += w * z1 * z2 / factor;
                                 //fprintf(stderr, "cov denom\n");
