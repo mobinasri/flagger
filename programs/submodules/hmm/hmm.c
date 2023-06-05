@@ -759,15 +759,14 @@ void runForward(HMM *model, EM *em) {
                         tProb = trans[seqClass[i]]->data[c1][c2];
                     }
                 }
-                em->f[i][c2] += (em->f[i - 1][c1] * tProb);
+                if (model->modelType == GAUSSIAN) {
+                    eProb = getGaussianProb(seqEmit[i], model->emit[seqClass[i]][c2], c2, alpha[c1][c2], seqEmit[i - 1]);
+                }
+                if (model->modelType == NEGATIVE_BINOMIAL) {
+                    eProb = NegativeBinomial_getProb(seqEmit[i], model->emit[seqClass[i]][c2], c2);
+                }
+                em->f[i][c2] += (em->f[i - 1][c1] * tProb * eProb);
             }
-            if (model->modelType == GAUSSIAN) {
-                eProb = getGaussianProb(seqEmit[i], model->emit[seqClass[i]][c2], c2, alpha[c1][c2], seqEmit[i - 1]);
-            }
-            if (model->modelType == NEGATIVE_BINOMIAL) {
-                eProb = NegativeBinomial_getProb(seqEmit[i], model->emit[seqClass[i]][c2], c2);
-            }
-            em->f[i][c2] *= eProb;
             scale += em->f[i][c2];
         }
         if (scale < 1e-100) {
