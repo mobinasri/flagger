@@ -11,7 +11,7 @@ The pipeline has 3 core steps:
 - Extract the blocks assigned to the model's 4 main components: erroneous, duplicated, haploid, and collapsed.
 
 ### Docker
-All programs used in this analysis are available in the docker image `mobinasri/flagger:v0.3.0`. It is recommended to use this image for running the programs.
+All programs used in this analysis are available in the docker image `mobinasri/flagger:v0.3.1`. It is recommended to use this image for running the programs.
 
 ## The Pipeline
 
@@ -45,7 +45,7 @@ samtools depth -aa -Q 0 ${INPUT_DIR}/read_alignment.bam > ${INPUT_DIR}/read_alig
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.0 \
+ mobinasri/flagger:v0.3.1 \
  depth2cov \
  -d ${INPUT_DIR}/read_alignment.depth \
  -f ${INPUT_DIR}/asm.fa.fai \
@@ -68,7 +68,7 @@ The frequencies of coverages can be calculated w/ `cov2counts`. Its source code 
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.0 \
+ mobinasri/flagger:v0.3.1 \
  cov2counts \
  -i ${INPUT_DIR}/read_alignment.cov \
  -o ${OUTPUT_DIR}/read_alignment.counts
@@ -98,7 +98,7 @@ Here is the command that fits the model:
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.0 \
+ mobinasri/flagger:v0.3.1 \
  python3 /home/programs/src/fit_gmm.py \
  --counts ${INPUT_DIR}/read_alignment.counts \
  --cov ${EXPECTED_COVERAGE} \
@@ -158,7 +158,7 @@ files each of which points to the regions assinged to a single component.
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.0 \
+ mobinasri/flagger:v0.3.1 \
  find_blocks_from_table \
  -c ${INPUT_DIR}/read_alignment.cov \
  -t ${INPUT_DIR}/read_alignment.table \
@@ -203,7 +203,7 @@ k8 paftools.js sam2paf <(samtools view -h -F4 -F256 ) ${ASM2REF}.bam > ${ASM2REF
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.0 \
+ mobinasri/flagger:v0.3.1 \
  python3 /home/programs/src/project_blocks_multi_thread.py 
  --threads 8
  --mode 'ref2asm' \
@@ -258,7 +258,7 @@ cat read_alignment.cov | \
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.0 \
+ mobinasri/flagger:v0.3.1 \
  split_cov_by_window \
  -c ${INPUT_DIR}/read_alignment.no_bias.cov \
  -f ${INPUT_DIR}/ctg_lens.txt \

@@ -48,7 +48,7 @@ task removeMultiplePrimary{
         Int memSize=8
         Int threadCount=8
         Int diskSize=512
-        String dockerImage="mobinasri/flagger:v0.3.0"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=3
         String zones="us-west2-a"
     }

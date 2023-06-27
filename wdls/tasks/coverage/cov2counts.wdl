@@ -13,7 +13,7 @@ task cov2counts {
         Int memSize=8
         Int threadCount=4
         Int diskSize=64
-        String dockerImage="mobinasri/flagger:v0.3.0"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
