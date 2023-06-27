@@ -8,7 +8,7 @@ workflow RunDownSampling{
         Float downsampledCoverage
         Float refLength = 3100000000.0
         File? referenceFasta
-        Int fileExtractionDiskSizeGB = 256
+        Int fileExtractionDiskSizeGB = 512
     }
 
     scatter (readFile in readFiles){
@@ -18,14 +18,14 @@ workflow RunDownSampling{
                 referenceFasta=referenceFasta,
                 memSizeGB=4,
                 threadCount=4,
-                diskSizeGB=ceil(3 * size(readFile, "GB")) + 64,
+                diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage="tpesout/hpp_base:latest"
         }
         call getCoverage {
             input:
                 readFastq = extractReads.extractedRead,
                 refLength = refLength,
-                diskSize = ceil(2 * size(extractReads.extractedRead,"GB")) + 64
+                diskSize = fileExtractionDiskSizeGB
         }
     }
 
@@ -43,7 +43,7 @@ workflow RunDownSampling{
                 refLength = refLength,
                 memSizeGB=8,
                 threadCount=8,
-                diskSizeGB= ceil(3 * size(readFastq, "GB")) + 64
+                diskSizeGB= fileExtractionDiskSizeGB
         }
     }
 

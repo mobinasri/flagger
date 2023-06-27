@@ -13,13 +13,11 @@ workflow runSecPhase{
     }
     call sortByName{
          input:
-             bamFile = inputBam,
-             diskSize = 7 * ceil(size(inputBam, "GB")) + 64
+             bamFile = inputBam
     }
     call splitByName{
          input:
-             bamFile = sortByName.outputBam,
-             diskSize = 2 * ceil(size(sortByName.outputBam, "GB")) + 64
+             bamFile = sortByName.outputBam
     }
     scatter (splitBam in splitByName.splitBams) { 
         call secphase{
@@ -30,8 +28,7 @@ workflow runSecPhase{
                 variantBed = variantBed,
                 debugMode = debugMode,
                 options = secphaseOptions,
-                dockerImage = secphaseDockerImage,
-                diskSize = ceil(size(splitBam, "GB")) + 64
+                dockerImage = secphaseDockerImage
         }
     }
 
@@ -94,7 +91,7 @@ task secphase {
         # runtime configurations
         Int memSize=8
         Int threadCount=4
-        Int diskSize=128
+        Int diskSize= ceil(size(bamFile, "GB")) + 64
         String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
@@ -233,7 +230,7 @@ task splitByName {
         # runtime configurations
         Int memSize=16
         Int threadCount=8
-        Int diskSize=512
+        Int diskSize= 2 * ceil(size(bamFile, "GB")) + 64
         String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"
@@ -277,7 +274,7 @@ task sortByName {
         # runtime configurations
         Int memSize=16
         Int threadCount=8
-        Int diskSize=1024
+        Int diskSize= 7 * ceil(size(bamFile, "GB")) + 64
         String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
         String zones="us-west2-a"

@@ -18,7 +18,7 @@ task bamCoverage{
         # runtime configurations
         Int memSize=16
         Int threadCount=4
-        Int diskSize=256
+        Int diskSize=ceil(size(bam, "GB"))  + 512
         String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }

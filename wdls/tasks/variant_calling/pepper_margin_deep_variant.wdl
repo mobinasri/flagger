@@ -17,8 +17,7 @@ workflow runPepperMarginDeepVariant{
     if (flagRemoveMultiplePrimary) { 
         call removeMultiplePrimary{
             input:
-                bam = bam,
-                diskSize= 2 * ceil(size(bam, "GB")) + 64
+                bam = bam
         }
     }
 
@@ -32,8 +31,7 @@ workflow runPepperMarginDeepVariant{
             bam = bamForCalling,
             bamIndex = baiForCalling,
             includeSupplementary = includeSupplementary,
-            minMAPQ = minMAPQ,
-            diskSize= 4 * ceil(size(bam, "GB")) + 256
+            minMAPQ = minMAPQ
     }
     output{
         File vcfGz = pmdv.vcfGz
@@ -47,7 +45,7 @@ task removeMultiplePrimary{
         # runtime configurations
         Int memSize=8
         Int threadCount=8
-        Int diskSize=512
+        Int diskSize=2 * ceil(size(bam, "GB")) + 64
         String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=3
         String zones="us-west2-a"
@@ -100,7 +98,7 @@ task pmdv{
         # runtime configurations
         Int memSize=256
         Int threadCount=64
-        Int diskSize=512
+        Int diskSize=2 * ceil(size(bam, "GB")) + 128
         String dockerImage="kishwars/pepper_deepvariant:r0.7"
         Int preemptible=3
         String zones="us-west2-a"

@@ -33,8 +33,7 @@ workflow runFlaggerPreprocess{
             suffix = "corrected",
             options = "--primaryOnly --minReadLen ${minReadLength} --minAlignment ${minAlignmentLength} --maxDiv ${maxDivergence}",
             flagRemoveSupplementary = true,
-            flagRemoveMultiplePrimary = true,
-            diskSize = ceil(size(bam, "GB")) * 2 + 64
+            flagRemoveMultiplePrimary = true
     }
     
     ## If the user selected deepvariant as the variant caller
@@ -80,8 +79,7 @@ workflow runFlaggerPreprocess{
             bam = correctBam.correctedBam,
             moreOptions = moreOptions,
             vafCutoff = vafCutoff,
-            qCutoff = qCutoff,
-            diskSize = ceil(size(correctBam.correctedBam, "GB")) * 2 + 64
+            qCutoff = qCutoff
     }
     
     ## Calculate coverage for the corrected bam file (without filtering)
@@ -89,8 +87,7 @@ workflow runFlaggerPreprocess{
         input:
             bam = correctBam.correctedBam,
             minMAPQ = 0,
-            assemblyFastaGz = assemblyFastaGz,
-            diskSize = ceil(size(correctBam.correctedBam, "GB"))  + 512
+            assemblyFastaGz = assemblyFastaGz
     }
     
     ## Calculate coverage for the corrected bam file in which the 
@@ -99,8 +96,7 @@ workflow runFlaggerPreprocess{
         input:
             bam = filterAltReads.filteredBam,
             minMAPQ = 0,
-            assemblyFastaGz = assemblyFastaGz,
-            diskSize = ceil(size(filterAltReads.filteredBam, "GB"))  + 512
+            assemblyFastaGz = assemblyFastaGz
     }
 
     ## Calculate coverage of reads with high mapqs (20<) for the 
@@ -112,8 +108,7 @@ workflow runFlaggerPreprocess{
         input:
             bam = correctBam.correctedBam,
             minMAPQ = 20,
-            assemblyFastaGz = assemblyFastaGz,
-            diskSize = ceil(size(correctBam.correctedBam, "GB"))  + 512
+            assemblyFastaGz = assemblyFastaGz
     }
 
     ## Calculate coverage of reads with high mapqs (20<) for the 
@@ -126,8 +121,7 @@ workflow runFlaggerPreprocess{
         input:
             bam = filterAltReads.filteredBam,
             minMAPQ = 20,
-            assemblyFastaGz = assemblyFastaGz,
-            diskSize = ceil(size(filterAltReads.filteredBam, "GB")) + 512
+            assemblyFastaGz = assemblyFastaGz
     }
     output {
         File outputVcfGz = vcfGz

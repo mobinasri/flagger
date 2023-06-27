@@ -21,7 +21,7 @@ task correctBam {
         # runtime configurations
         Int memSize=8
         Int threadCount=8
-        Int diskSize=512
+        Int diskSize=ceil(2 * size(bam, "GB")) + 64
         String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
     }
