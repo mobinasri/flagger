@@ -111,6 +111,9 @@ workflows:
    -  name: FlaggerEndToEndNoVariantCallingNoRef
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref.wdl
+   -  name: FlaggerEndToEndNoVariantCallingNoRefNoSecphase
+      subclass: WDL
+      primaryDescriptorPath: /wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl
    -  name: SubsetAlignment
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/alignment/subset_alignment.wdl 
