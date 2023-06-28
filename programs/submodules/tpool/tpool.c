@@ -1,8 +1,7 @@
 #include "tpool.h"
 #include <pthread.h>
 
-static tpool_work_t *tpool_work_create(thread_func_t func, void *arg)
-{
+static tpool_work_t *tpool_work_create(thread_func_t func, void *arg) {
     tpool_work_t *work;
 
     if (func == NULL)
@@ -43,13 +42,9 @@ static tpool_work_t *tpool_work_get(tpool_t *tm)
     return work;
 }
 
-static void *tpool_worker(void *arg)
-{
-    tpool_batch_t *tm_batch = arg;
-    tpool_t      *tm = tm_batch->tm;
+static void *tpool_worker(void *arg) {
+    tpool_t *tm = arg;
     tpool_work_t *work;
-    Batch* batch = tm_batch->batch;
-
     while (1) {
         pthread_mutex_lock(&(tm->work_mutex));
 
@@ -64,8 +59,7 @@ static void *tpool_worker(void *arg)
         pthread_mutex_unlock(&(tm->work_mutex));
 
         if (work != NULL) {
-	    work_arg_t* work_arg = work->arg;
-	    work_arg->batch = batch;
+            work_arg_t *work_arg = work->arg;
             work->func(work_arg);
             tpool_work_destroy(work);
         }
@@ -84,11 +78,10 @@ static void *tpool_worker(void *arg)
 }
 
 
-tpool_t *tpool_create(size_t num, Batch** batches)
-{
-    tpool_t   *tm;
-    pthread_t  thread;
-    size_t     i;
+tpool_t *tpool_create(size_t num) {
+    tpool_t *tm;
+    pthread_t thread;
+    size_t i;
 
     if (num == 0)
         num = 2;
@@ -103,20 +96,15 @@ tpool_t *tpool_create(size_t num, Batch** batches)
     tm->work_first = NULL;
     tm->work_last  = NULL;
 
-    for (i=0; i<num; i++) {
-	tpool_batch_t* tm_batch = malloc(sizeof(tpool_batch_t));
-        tm_batch->tm = tm;
-        tm_batch->batch = batches[i];
-
-        pthread_create(&thread, NULL, tpool_worker, tm_batch);
+    for (i = 0; i < num; i++) {
+        pthread_create(&thread, NULL, tpool_worker, tm);
         pthread_detach(thread);
     }
 
     return tm;
 }
 
-void tpool_destroy(tpool_t *tm)
-{
+void tpool_destroy(tpool_t *tm) {
     tpool_work_t *work;
     tpool_work_t *work2;
 

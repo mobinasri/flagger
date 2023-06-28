@@ -21,8 +21,7 @@ workflow runFlaggerPreprocess{
             suffix = "corrected",
             options = "--primaryOnly --minReadLen ${minReadLength} --minAlignment ${minAlignmentLength} --maxDiv ${maxDivergence}",
             flagRemoveSupplementary = true,
-            flagRemoveMultiplePrimary = true,
-            diskSize = ceil(size(bam, "GB")) * 2 + 64
+            flagRemoveMultiplePrimary = true
     }
     
 
@@ -32,8 +31,7 @@ workflow runFlaggerPreprocess{
         input:
             bam = correctBam.correctedBam,
             minMAPQ = 0,
-            assemblyFastaGz = assemblyFastaGz,
-            diskSize = ceil(size(correctBam.correctedBam, "GB"))  + 512
+            assemblyFastaGz = assemblyFastaGz
     }
     
 
@@ -46,8 +44,7 @@ workflow runFlaggerPreprocess{
         input:
             bam = correctBam.correctedBam,
             minMAPQ = 20,
-            assemblyFastaGz = assemblyFastaGz,
-            diskSize = ceil(size(correctBam.correctedBam, "GB"))  + 512
+            assemblyFastaGz = assemblyFastaGz
     }
 
     output {

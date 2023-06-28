@@ -15,7 +15,7 @@ task pdfGenerator{
         Int memSize=16
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.0"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<

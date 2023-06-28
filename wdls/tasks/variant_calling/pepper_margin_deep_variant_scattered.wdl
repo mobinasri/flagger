@@ -26,8 +26,7 @@ workflow runPepperMarginDeepVariantScattered{
     if (flagRemoveMultiplePrimary) {
         call pmdv_t.removeMultiplePrimary{
             input:
-                bam = bam,
-                diskSize = 2 * ceil(size(bam, "GB")) + 64
+                bam = bam
         }
     }
    
@@ -40,8 +39,7 @@ workflow runPepperMarginDeepVariantScattered{
             bam = bamForCalling,
             bamIndex = baiForCalling,
             splitNumber = numberOfCallerNodes,
-            threadCount = numberOfCallerNodes,
-            diskSize = 2 * ceil(size(bam, "GB")) + 64
+            threadCount = numberOfCallerNodes
     }
     scatter (part in zip(splitBamContigWise.splitBams, splitBamContigWise.splitBeds)) {
         call pmdv_t.pmdv{
@@ -53,7 +51,6 @@ workflow runPepperMarginDeepVariantScattered{
                 minMAPQ = minMAPQ,
                 threadCount = nodeThreadCount,
                 memSize = 32,
-                diskSize= 2 * ceil(size(part.left, "GB")) + 128,
                 dockerImage = dockerImage,
                 memSize = variantCallingMemory
         }

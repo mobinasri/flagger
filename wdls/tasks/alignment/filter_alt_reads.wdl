@@ -20,8 +20,8 @@ task filterAltReads {
         # runtime configurations
         Int memSize=8
         Int threadCount=8
-        Int diskSize=512
-        String dockerImage="mobinasri/flagger:v0.3.0"
+        Int diskSize = ceil(size(bam, "GB")) * 2 + 64
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<

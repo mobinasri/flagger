@@ -61,7 +61,6 @@ workflow longReadFullAlignment {
             # runtime configurations
             memSize=8,
             threadCount=8,
-            diskSize= ceil(2 * size(readAligner.bamFile, "GB")) + 64,
             dockerImage="mobinasri/secphase:v0.3.0",
             preemptible=2
     }

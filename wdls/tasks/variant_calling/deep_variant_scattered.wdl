@@ -23,8 +23,7 @@ workflow runDeepVariantScattered{
             bam = bam,
             bamIndex = bamIndex,
             splitNumber = numberOfCallerNodes,
-            threadCount = numberOfCallerNodes,
-            diskSize = 2 * ceil(size(bam, "GB")) + 64
+            threadCount = numberOfCallerNodes
     }
     scatter (part in zip(splitBamContigWise.splitBams, splitBamContigWise.splitBeds)) {
         call dpv_t.deepVariant{
@@ -36,7 +35,6 @@ workflow runDeepVariantScattered{
                 includeSecondary = includeSecondary,
                 includeSupplementary = includeSupplementary,
                 minMAPQ = minMAPQ,
-                diskSize = 2 * ceil(size(part.left, "GB")) + 64,
                 dockerImage = dockerImage,
                 memSize = variantCallingMemory
         }
@@ -59,8 +57,8 @@ task splitBamContigWise{
         Int splitNumber
         Int memSize=32
         Int threadCount
-        Int diskSize=512
-        String dockerImage="mobinasri/flagger:v0.3.0"
+        Int diskSize=2 * ceil(size(bam, "GB")) + 64
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -121,7 +119,7 @@ task increaseMapq{
         Int memSize=4
         Int threadCount=2
         Int diskSize=64
-        String dockerImage="mobinasri/flagger:v0.3.0"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
         String zones="us-west2-a"
     }

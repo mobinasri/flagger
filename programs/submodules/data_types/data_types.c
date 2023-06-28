@@ -147,6 +147,14 @@ VectorDouble*** VectorDouble_constructArray2D(int len1, int len2, int dim){
         return vecArray;
 }
 
+VectorDouble**** VectorDouble_constructArray3D(int len1, int len2, int len3, int dim){
+    VectorDouble**** vecArray = (VectorDouble****) malloc(len1 * sizeof(VectorDouble***));
+    for(int i = 0; i < len1; i++){
+        vecArray[i] = VectorDouble_constructArray2D(len2, len3, dim);
+    }
+    return vecArray;
+}
+
 void VectorDouble_destructArray1D(VectorDouble** vecArray, int len){
         for(int i = 0; i < len; i++){
                 VectorDouble_destruct(vecArray[i]);
@@ -161,6 +169,12 @@ void VectorDouble_destructArray2D(VectorDouble*** vecArray, int len1, int len2){
         free(vecArray);
 }
 
+void VectorDouble_destructArray3D(VectorDouble**** vecArray, int len1, int len2, int len3){
+    for(int i = 0; i < len1; i++){
+        VectorDouble_destructArray2D(vecArray[i], len2, len3);
+    }
+    free(vecArray);
+}
 
 void VectorDouble_setValue(VectorDouble* vec, double value){
         for(int i = 0; i < vec->dim; i++){

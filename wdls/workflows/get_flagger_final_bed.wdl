@@ -18,7 +18,7 @@ task getFinalBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.0"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<

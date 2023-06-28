@@ -730,7 +730,7 @@ def plot_log_likelihood(ll, init_iters_actual, acc_iters_actual, post_iters_actu
     plt.figure(figsize=(20,12))
     ax = plt.axes([0.1,0.1,0.8,0.8])
     ax.set_xlabel("Effective EM iterations")
-    ax.set_xlabel("Log Likelihood")
+    ax.set_ylabel("Log Likelihood")
     
     ax.plot(ll_effective_iters, ll, color="gray", label = "log-likelihood", linewidth=1)
     ax.scatter(ll_effective_iters, ll, color=ll_colors, s=20)
@@ -892,7 +892,7 @@ def main():
         cov_counts = parse_data(counts_path)
     n_obs = sum(cov_counts)
 
-    if em_mode not in ["regular", "accerelated", "combined"]:
+    if em_mode not in ["regular", "accelerated", "combined"]:
         print("--em_mode can only be one of these three modes: regular, accelerated, combined")
         exit()
 
