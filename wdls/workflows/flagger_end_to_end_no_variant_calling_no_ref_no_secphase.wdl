@@ -4,13 +4,10 @@ import "flagger.wdl" as flagger_t
 import "flagger_preprocess_no_variant_calling.wdl" as preprocess_t
 import "../../ext/secphase/wdls/workflows/secphase.wdl" as secphase_t
 
-workflow FlaggerEndToEndNoVariantCallingNoRef{
+workflow FlaggerEndToEndNoVariantCallingNoRefNoSecphase{
     input{
         File assemblyFastaGz
         File readAlignmentBam
-        String secphaseDockerImage = "mobinasri/secphase:v0.3.0"
-        String secphaseOptions
-        String secphaseVersion = "v0.3.0"
         Float maxReadDivergence
         String sampleName
         String suffix
