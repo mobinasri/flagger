@@ -141,7 +141,7 @@ int ptBlock_cmp_sqs(const void *a, const void *b) {
 
 
 stHash *ptBlock_parse_bed(char *bed_path) {
-    FILE *fp = fopen(bed_path, "r+");
+    FILE *fp = fopen(bed_path, "r");
     size_t read;
     size_t len;
     char *line = NULL;
@@ -339,6 +339,9 @@ void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path){
         // iterate over blocks in this contig
         for(int j = 0; j < stList_length(blocks); j++) {
             ptBlock* block = stList_get(blocks, j);
+            // it may happen when the whole projected variant block is within an insertion in another haplotype
+            // TODO: experiment if it can help to output these coordinates
+            if(block->rfe < block->rfs) continue;
             fprintf(fp, "%s\t%d\t%d\n", contig, block->rfs, block->rfe + 1); // end should be 1-based in BED
         }
 
@@ -357,3 +360,13 @@ void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char* contig, stLis
         stList_append(blocks, ptBlock_copy(stList_get(blocks_to_add,i)));
     }
 }
+
+stList* ptBlock_copy_stList(stList* blocks) {
+    stList *copy_blocks = stList_construct3(0, ptBlock_destruct);
+    for (int i = 0; i < stList_length(blocks); i++) {
+        ptBlock* block = stList_get(blocks, i);
+        stList_append(copy_blocks, ptBlock_copy(block));
+    }
+    return copy_blocks;
+}
+

@@ -1,5 +1,13 @@
 #include "common.h"
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <stdbool.h>
 
+
+bool file_exists (char *filename) {
+    struct stat   buffer;
+    return (stat (filename, &buffer) == 0);
+}
 
 char* get_timestamp() {
     static char timestamp[TIMESTAMP_SIZE + 1];  // static variable to hold the timestamp string

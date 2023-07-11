@@ -790,9 +790,9 @@ calc_local_baq(const faidx_t *fai, const char *contig_name, ptAlignment *alignme
         }
         // for the markers located within the ending margin of the confident block
         while (marker &&
-               (marker->base_idx <= block->sqe ||
-                marker->alignment_idx == alignment_idx)) {
-            if (marker->base_idx <= block->sqe &&
+               ((marker->base_idx <= block->sqe &&
+                 marker->alignment_idx == alignment_idx) || (marker->alignment_idx != alignment_idx))) {
+            if (block->sqe - block_margin <= marker->base_idx &&
                 marker->alignment_idx == alignment_idx) {
                 qual[marker->base_idx] = 0;
             }

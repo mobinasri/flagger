@@ -201,6 +201,7 @@ int ptBlock_get_total_number(stHash *blocks_per_contig);
 
 void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char* contig, stList* blocks_to_add);
 
+stList* ptBlock_copy_stList(stList* blocks);
 
 #endif /* PT_BLOCK_H */
 

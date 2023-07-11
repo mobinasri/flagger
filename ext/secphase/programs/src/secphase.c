@@ -18,12 +18,16 @@
 #include "ptVariant.h"
 #include "ptAlignment.h"
 #include "ptMarker.h"
+#include "tpool.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #define SCORE_TYPE_MARKER           0
 #define SCORE_TYPE_EDIT_DISTANCE    1
+
+pthread_mutex_t mutex;
+
 
 void print_alignment_scores(ptAlignment **alignments, int alignments_len, int best_idx, int score_type,
                             FILE *output_log_file) {
@@ -67,6 +71,269 @@ void merge_and_save_blocks(stHash *blocks_per_contig, char *info_str, char *bed_
     stHash_destruct(merged_blocks_per_contig);
 }
 
+
+void *runOneThread(void *arg_) {
+    // get all arguments
+    work_arg_t *arg = arg_;
+    int thread_idx = arg->thread_idx;
+    int64_t bam_adr_start = arg->bam_adr_start;
+    int64_t bam_adr_end = arg->bam_adr_end;
+    bool baq_flag = arg->baq_flag;
+    bool consensus = arg->consensus;
+    int indel_threshold = arg->indel_threshold;
+    int min_q = arg->min_q;
+    int min_score = arg->min_score;
+    double prim_margin_score = arg->prim_margin_score;
+    double prim_margin_random = arg->prim_margin_random;
+    int set_q = arg->set_q;
+    double conf_d = arg->conf_d;
+    double conf_e = arg->conf_e;
+    double conf_b = arg->conf_b;
+    samFile* bam_fo = arg->bam_fo;
+    char inputPath[1000];
+    strcpy(inputPath, arg->inputPath);
+    char fastaPath[1000];
+    strcpy(fastaPath, arg->fastaPath);
+    bool marker_mode = arg->marker_mode;
+    int *reads_modified_by_vars = arg->reads_modified_by_vars;
+    int *reads_modified_by_marker = arg->reads_modified_by_marker;
+    stHash *variant_ref_blocks_per_contig = arg->variant_ref_blocks_per_contig;
+    stHash *modified_blocks_by_vars_per_contig = arg->modified_blocks_by_vars_per_contig;
+    stHash *modified_blocks_by_marker_per_contig = arg->modified_blocks_by_marker_per_contig;
+    stHash *variant_blocks_all_haps_per_contig = arg->variant_blocks_all_haps_per_contig;
+    stHash *marker_blocks_all_haps_per_contig = arg->marker_blocks_all_haps_per_contig;
+    pthread_mutex_t *mutexPtr = arg->mutexPtr;
+    FILE *output_log_file = arg->output_log_file;
+
+    faidx_t *fai = fai_load(fastaPath);
+    // open input sam/bam file for parsing alignment records
+    samFile *fp = sam_open(inputPath, "r");
+    sam_hdr_t *sam_hdr = sam_hdr_read(fp);
+    // go to the position where it should start parsing alignments for this thread
+    bgzf_seek(fp->fp.bgzf, bam_adr_start, SEEK_SET);
+    bam1_t *b = bam_init1();
+    char read_name[100];
+    char read_name_new[100];
+    memset(read_name, '\0', 100);
+    memset(read_name_new, '\0', 100);
+    int alignments_len = 0;
+    ptAlignment *alignments[11];
+    int bytes_read;
+    int conf_blocks_length;
+    int count_parsed_alignments = 0;
+    int count_parsed_reads = 0;
+    int alignment_log_idx = 1;
+    int alignment_log_size = 20000;
+
+    //lock mutex
+    pthread_mutex_lock(mutexPtr);
+    fprintf(stderr,"[%s] [thread index = %d] Started parsing alignments\n", get_timestamp(), thread_idx);
+    pthread_mutex_unlock(mutexPtr);
+    while (true) {
+        bytes_read = sam_read1(fp, sam_hdr, b);
+        count_parsed_alignments += 1;
+        if (bytes_read > -1) {
+            strcpy(read_name_new, bam_get_qname(b));
+            if (read_name[0] == '\0') {
+                strcpy(read_name, read_name_new);
+            }
+        }
+        // If read name has changed or file is finished
+        if ((strcmp(read_name_new, read_name) != 0) || (bytes_read <= -1)) {
+            count_parsed_reads += 1;
+            // Check if we have more than one alignment
+            // and also not too many (more than 10) alignments
+            // Secphase currently does not support supplementary alignments
+            // Only one primary alignment should exist per read
+            if ((alignments_len > 1) &&
+                (alignments_len <= 10) &&
+                (ptAlignment_supplementary_count(alignments, alignments_len) == 0) &&
+                (ptAlignment_primary_count(alignments, alignments_len) == 1)) {
+                // Check if there is any variant block encompassed by any alignment
+                // If that is met then select the best alignment based on their edit distances
+                // to the variant blocks
+                stList *merged_variant_read_blocks = NULL;
+                if (overlap_variant_ref_blocks(variant_ref_blocks_per_contig, alignments, alignments_len)) {
+                    merged_variant_read_blocks = ptVariant_get_merged_variant_read_blocks(variant_ref_blocks_per_contig,
+                                                                                          alignments, alignments_len);
+                    // Set it to NULL if there is no block
+                    if (stList_length(merged_variant_read_blocks) == 0) {
+                        stList_destruct(merged_variant_read_blocks);
+                        merged_variant_read_blocks = NULL;
+                    }
+                }
+                if (merged_variant_read_blocks != NULL) {
+                    stList **variant_blocks_all_haps = set_scores_as_edit_distances(merged_variant_read_blocks,
+                                                                                    alignments, alignments_len, fai);
+                    int best_idx = get_best_record_index(alignments, alignments_len, 0, -100, 0);
+                    bam1_t *best = 0 <= best_idx ? alignments[best_idx]->record : NULL;
+                    if (best && (best->core.flag & BAM_FSECONDARY)) {
+                        //lock mutex
+                        pthread_mutex_lock(mutexPtr);
+                        fprintf(output_log_file, "#EDIT DISTANCE\n");
+                        fprintf(output_log_file, "$\t%s\n", read_name);
+                        print_alignment_scores(alignments, alignments_len, best_idx, SCORE_TYPE_EDIT_DISTANCE,
+                                               output_log_file);
+                        // add modified blocks
+                        int primary_idx = get_primary_index(alignments, alignments_len);
+                        ptBlock_add_alignment(modified_blocks_by_vars_per_contig, alignments[primary_idx]);
+                        ptBlock_add_alignment(modified_blocks_by_vars_per_contig, alignments[best_idx]);
+                        // add variant blocks
+                        ptBlock_add_blocks_by_contig(variant_blocks_all_haps_per_contig,
+                                                     alignments[primary_idx]->contig,
+                                                     variant_blocks_all_haps[primary_idx]);
+                        ptBlock_add_blocks_by_contig(variant_blocks_all_haps_per_contig,
+                                                     alignments[best_idx]->contig,
+                                                     variant_blocks_all_haps[best_idx]);
+                        *reads_modified_by_vars += 1;
+                        //unlock mutex
+                        pthread_mutex_unlock(mutexPtr);
+                    }
+                    stList_destruct(merged_variant_read_blocks);
+                    for (int i = 0; i < alignments_len; i++) {
+                        stList_destruct(variant_blocks_all_haps[i]);
+                    }
+                    free(variant_blocks_all_haps);
+                }
+                    // If there is no overlap with variant blocks go to the marker consistency mode
+                else if (marker_mode) {
+                    stList *markers = ptMarker_get_initial_markers(alignments, alignments_len, min_q);
+                    remove_all_mismatch_markers(&markers, alignments_len);
+                    sort_and_fill_markers(&markers, alignments, alignments_len);
+                    filter_ins_markers(&markers, alignments, alignments_len);
+                    if (markers && stList_length(markers) > 0) {
+                        int flank_margin = 625;
+                        set_confident_blocks(alignments, alignments_len, indel_threshold);
+                        while (consensus && needs_to_find_blocks(alignments, alignments_len, 5000, sam_hdr)) {
+                            flank_margin *= 0.8;
+                            set_flanking_blocks(alignments, alignments_len, markers, flank_margin);
+                            conf_blocks_length = correct_conf_blocks(alignments, alignments_len, indel_threshold);
+                            if (conf_blocks_length == 0) break;
+                        }
+                        if (conf_blocks_length > 0 || consensus == false) {
+                            if (baq_flag) {
+                                calc_update_baq_all(fai,
+                                                    alignments, alignments_len,
+                                                    markers, sam_hdr,
+                                                    conf_d, conf_e, conf_b, set_q);
+                            }
+                            filter_lowq_markers(&markers, min_q);
+                            calc_alignment_score(markers, alignments);
+                        }
+                    }
+
+                    if (bam_fo != NULL){
+                        pthread_mutex_lock(mutexPtr);
+                        for (int i = 0; i < alignments_len; i++) {
+                            sam_write1(bam_fo, sam_hdr, alignments[i]->record);
+                        }
+                        //unlock mutex
+                        pthread_mutex_unlock(mutexPtr);
+                    }
+                    // get the best alignment
+                    int best_idx = get_best_record_index(alignments, alignments_len, prim_margin_score, min_score,
+                                                         prim_margin_random);
+                    bam1_t *best = 0 <= best_idx ? alignments[best_idx]->record : NULL;
+                    if (best && (best->core.flag & BAM_FSECONDARY)) {
+                        //lock mutex
+                        pthread_mutex_lock(mutexPtr);
+                        fprintf(output_log_file, "#MARKER SCORE\n");
+                        fprintf(output_log_file, "$\t%s\n", read_name);
+                        print_alignment_scores(alignments, alignments_len, best_idx, SCORE_TYPE_MARKER,
+                                               output_log_file);
+                        // add modified blocks based on modified read coordinates
+                        int primary_idx = get_primary_index(alignments, alignments_len);
+                        ptBlock_add_alignment(modified_blocks_by_marker_per_contig, alignments[primary_idx]);
+                        ptBlock_add_alignment(modified_blocks_by_marker_per_contig, alignments[best_idx]);
+                        // add marker blocks
+                        ptMarker_add_marker_blocks_by_contig(marker_blocks_all_haps_per_contig,
+                                                             alignments[primary_idx]->contig,
+                                                             primary_idx,
+                                                             markers);
+                        ptMarker_add_marker_blocks_by_contig(marker_blocks_all_haps_per_contig,
+                                                             alignments[best_idx]->contig,
+                                                             best_idx,
+                                                             markers);
+                        *reads_modified_by_marker += 1;
+                        //unlock mutex
+                        pthread_mutex_unlock(mutexPtr);
+                    }
+                    stList_destruct(markers);
+                }
+            }
+            // update read name
+            strcpy(read_name, read_name_new);
+            // free alignments
+            for (int i = 0; i < alignments_len; i++) {
+                ptAlignment_destruct(alignments[i]);
+                alignments[i] = NULL;
+            }
+            // initialize for new alignments
+            alignments_len = 0;
+        }
+        if (count_parsed_alignments >= alignment_log_idx * alignment_log_size) {
+            alignment_log_idx += 1;
+            //lock mutex
+            pthread_mutex_lock(mutexPtr);
+            fprintf(stderr,
+                    "[%s] [thread index = %d] #parsed alignments = %d, #parsed reads = %d, #modifed by phased variants = %d, #modifed_by_markers = %d\n",
+                    get_timestamp(),
+                    thread_idx,
+                    count_parsed_alignments,
+                    count_parsed_reads,
+                    *reads_modified_by_vars,
+                    *reads_modified_by_marker);
+            fflush(stderr);
+            //lock mutex
+            pthread_mutex_unlock(mutexPtr);
+        }
+        if (bytes_read <= -1) break; // file is finished so break
+        if (bgzf_tell(fp->fp.bgzf) == bam_adr_end) break; // this thread is done for its allocated part of the part so break
+        if (b->core.flag & BAM_FUNMAP) continue; // unmapped
+        if (alignments_len > 10) continue;
+        alignments[alignments_len] = ptAlignment_construct(b, sam_hdr);
+        alignments_len += 1;
+    }
+
+
+    // free memory
+    fai_destroy(fai);
+    sam_hdr_destroy(sam_hdr);
+    sam_close(fp);
+    bam_destroy1(b);
+}
+
+
+void get_offset_array(char *input_path, int threads, int64_t *start_array, int64_t *end_array) {
+    char index_path[1000];
+    snprintf(index_path, 1000, "%s.secphase.index", input_path);
+    if (file_exists(index_path) == false) {
+        fprintf(stderr, "[%s] Error: To use multi threading please run secphase_index before running secphase!\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+    FILE *fp = fopen(index_path, "rb");
+    // get the total number of addresses in this index file
+    int64_t number_of_addresses;
+    fread(&number_of_addresses, sizeof(int64_t), 1, fp);
+    // read all addresses
+    int64_t *all_addresses = malloc(number_of_addresses * sizeof(int64_t));
+    fread(all_addresses, sizeof(int64_t), number_of_addresses, fp);
+    int64_t step_size = number_of_addresses / threads;
+
+    // fill start and end arrays
+    for (int i = 0; i < threads; i++) {
+        start_array[i] = all_addresses[i * step_size];
+        if (i < (threads - 1)) {
+            end_array[i] = all_addresses[(i + 1) * step_size];
+        }
+    }
+    // the address of the end of the file
+    end_array[threads - 1] = all_addresses[number_of_addresses - 1];
+    free(all_addresses);
+    fclose(fp);
+}
+
 static struct option long_options[] =
         {
                 {"inputBam",          required_argument, NULL, 'i'},
@@ -91,6 +358,8 @@ static struct option long_options[] =
                 {"outDir",            required_argument, NULL, 'o'},
                 {"variantBed",        required_argument, NULL, 'B'},
                 {"minGQ",             required_argument, NULL, 'G'},
+                {"threads",           required_argument, NULL, '@'},
+                {"writeBam",           no_argument, NULL, 'w'},
                 {NULL,                0,                 NULL, 0}
         };
 
@@ -110,28 +379,36 @@ int main(int argc, char *argv[]) {
     double conf_d = 1e-4;
     double conf_e = 0.1;
     double conf_b = 20;
-    char inputPath[200];
-    char fastaPath[200];
-    char variantBedPath[200];
+    char inputPath[1000];
+    char fastaPath[1000];
+    char variantBedPath[1000];
     variantBedPath[0] = NULL;
-    char vcfPath[200];
+    char vcfPath[1000];
     vcfPath[0] = NULL;
-    char prefix[200];
+    char prefix[1000];
     strcpy(prefix, "secphase");
-    char dirPath[200];
+    char dirPath[1000];
     strcpy(dirPath, "secphase_out_dir");
     char *program;
     bool preset_ont = false;
     bool preset_hifi = false;
     bool marker_mode = true;
+    bool write_bam = false;
+    int threads = 1;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:p:P:G:o:f:v:qd:e:b:n:r:m:ct:s:B:g:xyMh", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:p:P:G:o:f:v:qd:e:b:n:r:m:ct:s:B:g:@:wxyMh", long_options, NULL))) {
         switch (c) {
             case 'i':
                 strcpy(inputPath, optarg);
                 break;
             case 'f':
                 strcpy(fastaPath, optarg);
+                break;
+            case '@':
+                threads = atoi(optarg);
+                break;
+            case 'w':
+                write_bam = true;
                 break;
             case 'v':
                 strcpy(vcfPath, optarg);
@@ -258,6 +535,10 @@ int main(int argc, char *argv[]) {
                         "         --minVariantMargin, -g         Minimum margin for creating blocks around phased variants [Default: 50]\n");
                 fprintf(stderr,
                         "         --minGQ, -G         Minimum genotype quality of the phased variants [Default: 10]\n");
+                fprintf(stderr,
+                        "         --writeBam, -w         Write an output bam file with the base qualities modified by BAQ\n");
+                fprintf(stderr,
+                        "         --threads, -@         Number of threads  (For using more than one threads secphase_index should be run before running secphase) [Default: 1]\n");
                 return 1;
         }
     }
@@ -277,8 +558,8 @@ int main(int argc, char *argv[]) {
     faidx_t *fai = fai_load(fastaPath);
 
     stHash *variant_ref_blocks_per_contig;
-    char bed_path_ref_blocks[200];
-    snprintf(bed_path_ref_blocks, 200, "%s/%s.initial_variant_blocks.bed", dirPath, prefix);
+    char bed_path_ref_blocks[1000];
+    snprintf(bed_path_ref_blocks, 1000, "%s/%s.initial_variant_blocks.bed", dirPath, prefix);
     if (vcfPath != NULL && vcfPath[0] != NULL) {
         variant_ref_blocks_per_contig = ptVariant_parse_variants_and_extract_blocks(vcfPath, variantBedPath,
                                                                                     fai,
@@ -298,20 +579,26 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // open file for saving reads that have to be corrected
-    char output_log_path[200];
-    snprintf(output_log_path, 200, "%s/%s.out.log", dirPath, prefix);
-    FILE *output_log_file = fopen(output_log_path, "w+");
-    // open input sam/bam file for parsing alignment records
-    samFile *fp = sam_open(inputPath, "r");
-    sam_hdr_t *sam_hdr = sam_hdr_read(fp);
-    bam1_t *b = bam_init1();
-    char read_name[100];
-    char read_name_new[100];
-    memset(read_name, '\0', 100);
-    memset(read_name_new, '\0', 100);
-    int alignments_len = 0;
-    ptAlignment *alignments[11];
+    samFile *fp = NULL;
+    sam_hdr_t *sam_hdr = NULL;
+    samFile *bam_fo = NULL;
+
+    if (write_bam) {
+        // read input file for getting the header
+        fp = sam_open(inputPath, "r");
+        sam_hdr = sam_hdr_read(fp);
+
+        // open a bam file for writing
+        char output_bam_path[1000];
+        snprintf(output_bam_path, 1000, "%s/%s.quality_modified.out.bam", dirPath, prefix);
+        bam_fo = sam_open(output_bam_path, "w");
+        sam_hdr_write(bam_fo, sam_hdr);
+
+        // close input bam
+        sam_hdr_destroy(sam_hdr);
+        sam_close(fp);
+    }
+
     stHash *modified_blocks_by_vars_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                                    (void (*)(void *)) stList_destruct);
 
@@ -324,140 +611,49 @@ int main(int argc, char *argv[]) {
     stHash *marker_blocks_all_haps_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey,
                                                                   NULL,
                                                                   (void (*)(void *)) stList_destruct);
-    int bytes_read;
-    int conf_blocks_length;
+
+
+    pthread_mutex_t *mutexPtr = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(mutexPtr, NULL);
+
+    int64_t* bam_adr_start_array = malloc(threads * sizeof(int64_t));
+    int64_t* bam_adr_end_array = malloc(threads * sizeof(int64_t));
+    get_offset_array(inputPath, threads, bam_adr_start_array, bam_adr_end_array);
+
+    // open file for saving reads that have to be corrected
+    char output_log_path[1000];
+    snprintf(output_log_path, 1000, "%s/%s.out.log", dirPath, prefix);
+    FILE *output_log_file = fopen(output_log_path, "w+");
+
     int reads_modified_by_vars = 0;
     int reads_modified_by_marker = 0;
-    while (true) {
-        bytes_read = sam_read1(fp, sam_hdr, b);
-        if (bytes_read > -1) {
-            strcpy(read_name_new, bam_get_qname(b));
-            if (read_name[0] == '\0') {
-                strcpy(read_name, read_name_new);
-            }
-        }
-        // If read name has changed or file is finished
-        if ((strcmp(read_name_new, read_name) != 0) || (bytes_read <= -1)) {
-            // Check if we have more than one alignment
-            // and also not too many (more than 10) alignments
-            // Secphase currently does not support supplementary alignments
-            // Only one primary alignment should exist per read
-            if ((alignments_len > 1) &&
-                (alignments_len <= 10) &&
-                (ptAlignment_supplementary_count(alignments, alignments_len) == 0) &&
-                (ptAlignment_primary_count(alignments, alignments_len) == 1)) {
-                // Check if there is any variant block encompassed by any alignment
-                // If that is met then select the best alignment based on their edit distances
-                // to the variant blocks
-                stList *merged_variant_read_blocks = NULL;
-                if (overlap_variant_ref_blocks(variant_ref_blocks_per_contig, alignments, alignments_len)) {
-                    merged_variant_read_blocks = ptVariant_get_merged_variant_read_blocks(variant_ref_blocks_per_contig,
-                                                                                          alignments, alignments_len);
-                    // Set it to NULL if there is no block
-                    if (stList_length(merged_variant_read_blocks) == 0) {
-                        stList_destruct(merged_variant_read_blocks);
-                        merged_variant_read_blocks = NULL;
-                    }
-                }
-                if (merged_variant_read_blocks != NULL) {
-                    stList **variant_blocks_all_haps = set_scores_as_edit_distances(merged_variant_read_blocks,
-                                                                                    alignments, alignments_len, fai);
-                    int best_idx = get_best_record_index(alignments, alignments_len, 0, -100, 0);
-                    bam1_t *best = 0 <= best_idx ? alignments[best_idx]->record : NULL;
-                    if (best && (best->core.flag & BAM_FSECONDARY)) {
-                        fprintf(output_log_file, "#EDIT DISTANCE\n");
-                        fprintf(output_log_file, "$\t%s\n", read_name);
-                        print_alignment_scores(alignments, alignments_len, best_idx, SCORE_TYPE_EDIT_DISTANCE,
-                                               output_log_file);
-                        // add modified blocks
-                        int primary_idx = get_primary_index(alignments, alignments_len);
-                        ptBlock_add_alignment(modified_blocks_by_vars_per_contig, alignments[primary_idx]);
-                        ptBlock_add_alignment(modified_blocks_by_vars_per_contig, alignments[best_idx]);
-                        // add variant blocks
-                        ptBlock_add_blocks_by_contig(variant_blocks_all_haps_per_contig,
-                                                     alignments[primary_idx]->contig,
-                                                     variant_blocks_all_haps[primary_idx]);
-                        ptBlock_add_blocks_by_contig(variant_blocks_all_haps_per_contig,
-                                                     alignments[best_idx]->contig,
-                                                     variant_blocks_all_haps[best_idx]);
-                        reads_modified_by_vars += 1;
-                    }
-                    stList_destruct(merged_variant_read_blocks);
-                    for (int i = 0; i < alignments_len; i++) {
-                        stList_destruct(variant_blocks_all_haps[i]);
-                    }
-                    free(variant_blocks_all_haps);
-                }
-                    // If there is no overlap with variant blocks go to the marker consistency mode
-                else if (marker_mode) {
-                    stList *markers = ptMarker_get_initial_markers(alignments, alignments_len, min_q);
-                    remove_all_mismatch_markers(&markers, alignments_len);
-                    sort_and_fill_markers(&markers, alignments, alignments_len);
-                    filter_ins_markers(&markers, alignments, alignments_len);
-                    if (markers && stList_length(markers) > 0) {
-                        int flank_margin = 625;
-                        set_confident_blocks(alignments, alignments_len, indel_threshold);
-                        while (consensus && needs_to_find_blocks(alignments, alignments_len, 5000, sam_hdr)) {
-                            flank_margin *= 0.8;
-                            set_flanking_blocks(alignments, alignments_len, markers, flank_margin);
-                            conf_blocks_length = correct_conf_blocks(alignments, alignments_len, indel_threshold);
-                            if (conf_blocks_length == 0) break;
-                        }
-                        if (conf_blocks_length > 0 || consensus == false) {
-                            if (baq_flag) {
-                                calc_update_baq_all(fai,
-                                                    alignments, alignments_len,
-                                                    markers, sam_hdr,
-                                                    conf_d, conf_e, conf_b, set_q);
-                            }
-                            filter_lowq_markers(&markers, min_q);
-                            calc_alignment_score(markers, alignments);
-                        }
-                    }
-                    // get the best alignment
-                    int best_idx = get_best_record_index(alignments, alignments_len, prim_margin_score, min_score,
-                                                         prim_margin_random);
-                    bam1_t *best = 0 <= best_idx ? alignments[best_idx]->record : NULL;
-                    if (best && (best->core.flag & BAM_FSECONDARY)) {
-                        fprintf(output_log_file, "#MARKER SCORE\n");
-                        fprintf(output_log_file, "$\t%s\n", read_name);
-                        print_alignment_scores(alignments, alignments_len, best_idx, SCORE_TYPE_MARKER,
-                                               output_log_file);
-                        // add modified blocks based on modified read coordinates
-                        int primary_idx = get_primary_index(alignments, alignments_len);
-                        ptBlock_add_alignment(modified_blocks_by_marker_per_contig, alignments[primary_idx]);
-                        ptBlock_add_alignment(modified_blocks_by_marker_per_contig, alignments[best_idx]);
-                        // add marker blocks
-                        ptMarker_add_marker_blocks_by_contig(marker_blocks_all_haps_per_contig,
-                                                             alignments[primary_idx]->contig,
-                                                             primary_idx,
-                                                             markers);
-                        ptMarker_add_marker_blocks_by_contig(marker_blocks_all_haps_per_contig,
-                                                             alignments[best_idx]->contig,
-                                                             best_idx,
-                                                             markers);
-                        reads_modified_by_marker += 1;
-                    }
-                    stList_destruct(markers);
-                }
-            }
-            // update read name
-            strcpy(read_name, read_name_new);
-            // free alignments
-            for (int i = 0; i < alignments_len; i++) {
-                ptAlignment_destruct(alignments[i]);
-                alignments[i] = NULL;
-            }
-            // initialize for new alignments
-            alignments_len = 0;
-        }
-        if (bytes_read <= -1) break; // file is finished so break
-        if (b->core.flag & BAM_FUNMAP) continue; // unmapped
-        if (alignments_len > 10) continue;
-        alignments[alignments_len] = ptAlignment_construct(b, sam_hdr);
-        alignments_len += 1;
-    }
+    stHash **variant_ref_blocks_per_contig_array = (stHash **) malloc(threads * sizeof(stHash * ));
 
+    tpool_t *tm = tpool_create(threads);
+    for (int thread_idx = 0; thread_idx < threads; thread_idx++) {
+        // copy variant blocks for each thread
+        variant_ref_blocks_per_contig_array[thread_idx] = ptVariant_copy_stHash_blocks_per_contig(
+                variant_ref_blocks_per_contig);
+        work_arg_t *arg =
+                tpool_create_work_arg(thread_idx, bam_adr_start_array[thread_idx],  bam_adr_end_array[thread_idx],
+                                      baq_flag, consensus, indel_threshold, min_q,
+                                      min_score, prim_margin_score, prim_margin_random, set_q,
+                                      conf_d, conf_e, conf_b, inputPath,
+                                      fastaPath,
+                                      marker_mode,
+                                      variant_ref_blocks_per_contig_array[thread_idx],
+                                      modified_blocks_by_vars_per_contig,
+                                      modified_blocks_by_marker_per_contig,
+                                      variant_blocks_all_haps_per_contig,
+                                      marker_blocks_all_haps_per_contig,
+                                      &reads_modified_by_vars,
+                                      &reads_modified_by_marker,
+                                      output_log_file, bam_fo,
+                                      mutexPtr);
+        tpool_add_work(tm, runOneThread, arg);
+    }
+    tpool_wait(tm);
+    tpool_destroy(tm);
 
     fprintf(stderr, "[%s] Number of reads modified by phased variants = %d\n", get_timestamp(),
             reads_modified_by_vars);
@@ -466,38 +662,40 @@ int main(int argc, char *argv[]) {
 
 
     // save the read blocks modified by markers and variants
-    char bed_path[200];
+    char bed_path[1000];
 
-    snprintf(bed_path, 200, "%s/%s.modified_read_blocks.variants.bed", dirPath, prefix);
+    snprintf(bed_path, 1000, "%s/%s.modified_read_blocks.variants.bed", dirPath, prefix);
     merge_and_save_blocks(modified_blocks_by_vars_per_contig, "read blocks modified by phased variants",
                           bed_path);
 
-    snprintf(bed_path, 200, "%s/%s.modified_read_blocks.markers.bed", dirPath, prefix);
+    snprintf(bed_path, 1000, "%s/%s.modified_read_blocks.markers.bed", dirPath, prefix);
     merge_and_save_blocks(modified_blocks_by_marker_per_contig, "read blocks modified by markers",
                           bed_path);
 
     // save the variant and marker blocks
-    snprintf(bed_path, 200, "%s/%s.variant_blocks.bed", dirPath, prefix);
+    snprintf(bed_path, 1000, "%s/%s.variant_blocks.bed", dirPath, prefix);
     merge_and_save_blocks(variant_blocks_all_haps_per_contig,
                           "projected variant blocks on all haplotypes",
                           bed_path);
 
-    snprintf(bed_path, 200, "%s/%s.marker_blocks.bed", dirPath, prefix);
+    snprintf(bed_path, 1000, "%s/%s.marker_blocks.bed", dirPath, prefix);
     merge_and_save_blocks(marker_blocks_all_haps_per_contig,
                           "projected marker blocks on all haplotypes",
                           bed_path);
 
 
     // free memory
-    fai_destroy(fai);
-    sam_hdr_destroy(sam_hdr);
-    sam_close(fp);
-    bam_destroy1(b);
+    for (int thread_idx = 0; thread_idx < threads; thread_idx++) {
+        stHash_destruct(variant_ref_blocks_per_contig_array[thread_idx]);
+    }
+    free(variant_ref_blocks_per_contig_array);
     fclose(output_log_file);
     stHash_destruct(variant_ref_blocks_per_contig);
     stHash_destruct(modified_blocks_by_marker_per_contig);
     stHash_destruct(modified_blocks_by_vars_per_contig);
     stHash_destruct(marker_blocks_all_haps_per_contig);
     stHash_destruct(variant_blocks_all_haps_per_contig);
+
+    if(write_bam) sam_close(bam_fo);
 }
 //main();
