@@ -74,7 +74,7 @@ task sortByNameAndIndex {
             cat readnames.txt | awk '$1 > 1' | tr -s ' ' | cut -d ' ' -f3 > selected_readnames.txt
             extract_reads -i ~{bamFile} -o output/${BAM_PREFIX}.bam -r selected_readnames.txt
         else
-            ln ~{bamFile} output/${BAM_PREFIX}.bam
+            ln -s ~{bamFile} output/${BAM_PREFIX}.bam
         fi
         samtools sort -n -@8 output/${BAM_PREFIX}.bam > output/${BAM_PREFIX}.sorted_by_qname.bam
         secphase_index -i output/${BAM_PREFIX}.sorted_by_qname.bam
@@ -119,7 +119,7 @@ task secphaseIndex {
         BAM_FILENAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_FILENAME%.bam}
 
-        ln ~{bam} ${BAM_PREFIX}.bam
+        ln -s ~{bam} ${BAM_PREFIX}.bam
 
         secphase_index -i ${BAM_PREFIX}.bam
     >>>
@@ -169,17 +169,17 @@ task secphase {
         BAM_FILENAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_FILENAME%.bam}
 
-        ln ~{bam} ${BAM_PREFIX}.bam
-        ln ~{bamSecphaseIndex} ${BAM_PREFIX}.bam.secphase.index
+        ln -s ~{bam} ${BAM_PREFIX}.bam
+        ln -s ~{bamSecphaseIndex} ${BAM_PREFIX}.bam.secphase.index
 
-        ln ~{diploidAssemblyFastaGz} asm.fa.gz
+        ln -s ~{diploidAssemblyFastaGz} asm.fa.gz
         gunzip -c asm.fa.gz > asm.fa
         samtools faidx asm.fa
 
         mkdir output
         if [[ -n "~{phasedVcf}" ]];then
-            ln ~{phasedVcf} phased.vcf
-            ln ~{variantBed} variant.bed
+            ln -s ~{phasedVcf} phased.vcf
+            ln -s ~{variantBed} variant.bed
             echo "Running variant/marker dual mode"
             secphase ~{options} -@~{threadCount}  -i ${BAM_PREFIX}.bam -f asm.fa --outDir output --prefix ~{prefix} -v phased.vcf -B variant.bed
         else
@@ -361,7 +361,7 @@ task sortByName {
         cat readnames.txt | awk '$1 > 1' | tr -s ' ' | cut -d ' ' -f3 > selected_readnames.txt
         extract_reads -i ~{bamFile} -o output/${BAM_PREFIX}.bam -r selected_readnames.txt
         else
-        ln ~{bamFile} output/${BAM_PREFIX}.bam
+        ln -s ~{bamFile} output/${BAM_PREFIX}.bam
         fi
         samtools sort -n -@8 output/${BAM_PREFIX}.bam > output/${BAM_PREFIX}.sorted_by_qname.bam
     >>>

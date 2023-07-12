@@ -36,8 +36,8 @@ task subsetAlignment {
         BAM_FILENAME=$(basename ~{inputBam})
         BAM_PREFIX=${BAM_FILENAME%.bam}
        
-        ln ~{inputBam} ${BAM_PREFIX}.bam
-        ln ~{inputBai} ${BAM_PREFIX}.bam.bai
+        ln -s ~{inputBam} ${BAM_PREFIX}.bam
+        ln -s ~{inputBai} ${BAM_PREFIX}.bam.bai
         #samtools index ${BAM_PREFIX}.bam
 
         mkdir output
