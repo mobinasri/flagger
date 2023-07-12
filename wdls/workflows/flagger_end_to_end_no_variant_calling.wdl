@@ -104,5 +104,8 @@ workflow FlaggerEndToEndNoVariantCalling{
         File statsTsv = stats.flaggerStatsTsv
         File statsPercOnlyTsv = stats.flaggerStatsPercOnlyTsv
 
+        # secphase log
+        File secphaseOutLog = secphase.outLog
+
     }
 }

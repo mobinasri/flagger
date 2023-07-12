@@ -143,5 +143,8 @@ workflow FlaggerEndToEnd{
         # after removing alt alignments
         File altRemovedStatsTsv = stats_alt_removed.flaggerStatsTsv
         File altRemovedStatsPercOnlyTsv = stats_alt_removed.flaggerStatsPercOnlyTsv
+
+        # secphase log
+        File secphaseOutLog = secphase.outLog
     }
 }

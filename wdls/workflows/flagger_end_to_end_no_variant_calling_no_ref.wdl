@@ -52,5 +52,8 @@ workflow FlaggerEndToEndNoVariantCallingNoRef{
         File finalBed = flagger.finalBed
         File miscFilesTarGz = flagger.miscFilesTarGz
         File pdf = flagger.pdf
+
+        # secphase log
+        File secphaseOutLog = secphase.outLog
     }
 }
