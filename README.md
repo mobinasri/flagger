@@ -136,13 +136,13 @@ Recommended values for the parameters of flagger_end_to_end.wdl:
 |preprocess.moreOptions | "-m 1000 -r 0.4" |
 |preprocess.qCutoff | 10 |
 |preprocess.vafCutoff | 0.3|
-|FlaggerEndToEnd.refBiasedBlocksBedArray | [ "gs://masri/flagger/v0.3.2/chm13v1.1_hifi_r1_high_biased.bed", "gs://masri/flagger/v0.3.2/chm13v1.1_hifi_r2_low_biased.bed" ] for HiFi and  [ "gs://masri/flagger/v0.3.2/chm13v1.1_ont_r2_low_biased.bed"] for ONT |
+|FlaggerEndToEnd.refBiasedBlocksBedArray | [ "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r1_high_biased.bed", "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r2_low_biased.bed" ] for HiFi and  [ "gs://masri/flagger/v0.3.0/chm13v1.1_ont_r2_low_biased.bed"] for ONT |
 |FlaggerEndToEnd.refBiasedRegionFactorArray | [ 1.25, 0.75 ] for HiFi and [0.75] for ONT |
 |FlaggerEndToEnd.refBiasedRegionNameArray | [ "hifi_biased_high", "hifi_biased_low" ] for HiFi and  ["ont_biased_low" ] for ONT |
-|FlaggerEndToEnd.refCntrBed | "gs://masri/flagger/v0.3.2/chm13v2.0.censat.bed" |
-|FlaggerEndToEnd.refCntrCtBed | "gs://masri/flagger/v0.3.2/chm13v2.0.ct.bed" |
-|FlaggerEndToEnd.refSDBed| "gs://masri/flagger/v0.3.2/chm13v2.0.sd.bed" |
-|FlaggerEndToEnd.refSexBed| "gs://masri/flagger/v0.3.2/chm13v2.0.sex.bed" |
+|FlaggerEndToEnd.refCntrBed | "gs://masri/flagger/v0.3.0/chm13v2.0.censat.bed" |
+|FlaggerEndToEnd.refCntrCtBed | "gs://masri/flagger/v0.3.0/chm13v2.0.ct.bed" |
+|FlaggerEndToEnd.refSDBed| "gs://masri/flagger/v0.3.0/chm13v2.0.sd.bed" |
+|FlaggerEndToEnd.refSexBed| "gs://masri/flagger/v0.3.0/chm13v2.0.sex.bed" |
 |FlaggerEndToEnd.refName | "chm13v2.0"|
 |FlaggerEndToEnd.secphaseOptions | "--hifi" for HiFi and "--ont" for ONT |
 
@@ -152,7 +152,7 @@ All files with gs urls are publicly accessible so if you are running the WDL on 
 |:--------|:-----|
 |asm2asmAlignment.aligner|"minimap2" |
 |asm2asmAlignment.alignmentBam.options |"-L --eqx --cs"|
-|asm2asmAlignment.refAssemblyFastaGz | "gs://masri/flagger/v0.3.2/chm13v2.0.fa.gz" |
+|asm2asmAlignment.refAssemblyFastaGz | "gs://masri/flagger/v0.3.0/chm13v2.0.fa.gz" |
 |asm2asmAlignment.alignmentBam.threadCount |32|
 |asm2asmAlignment.preset | asm5|
 |asm2asmAlignment.suffix | "chm13_v2.0" |
@@ -163,10 +163,10 @@ Below are the main commands for running Flagger locally using Cromwell.
 wget https://github.com/broadinstitute/cromwell/releases/download/85/cromwell-85.jar
 wget https://github.com/broadinstitute/cromwell/releases/download/85/womtool-85.jar
 
-# Get version 0.3.1 of Flagger
-wget https://github.com/mobinasri/flagger/archive/refs/tags/v0.3.1.zip
+# Get version 0.3.2 of Flagger
+wget https://github.com/mobinasri/flagger/archive/refs/tags/v0.3.2.zip
 
-unzip v0.3.1.zip
+unzip v0.3.2.zip
 
 # make a directory for saving outputs and json files
 mkdir workdir 
