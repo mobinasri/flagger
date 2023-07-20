@@ -94,7 +94,7 @@ By having the biallelic snps it is possible to find the alignments with alternat
 docker run \
  -v ${INPUT_DIR}:/input \
  -v ${OUTPUT_DIR}:/output \
- mobinasri/flagger:v0.3.1 \
+ mobinasri/flagger:v0.3.2 \
  filter_alt_reads \
  -i "/input/${INPUT_BAM}" \
  -o "/output/${ALT_FILTERED_BAM}"

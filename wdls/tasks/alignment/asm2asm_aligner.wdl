@@ -48,7 +48,7 @@ task runSplitAssembly {
         Int memSize=8
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.1"
+        String dockerImage="mobinasri/flagger:v0.3.2"
         Int preemptible=2
     }
     command <<<
