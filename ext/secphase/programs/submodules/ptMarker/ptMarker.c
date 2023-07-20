@@ -437,6 +437,7 @@ stList *intersect_by_rd_f(stList *blocks1, stList *blocks2) {
 
 void set_confident_blocks(ptAlignment **alignments, int alignments_len, int threshold) {
     for (int i = 0; i < alignments_len; i++) {
+
         alignments[i]->conf_blocks = find_confident_blocks(alignments[i], threshold);
     }
 }
@@ -485,6 +486,7 @@ stList *find_flanking_blocks(ptAlignment *alignment, stList *markers, int margin
 
 void set_flanking_blocks(ptAlignment **alignments, int alignments_len, stList *markers, int margin) {
     for (int i = 0; i < alignments_len; i++) {
+        if(alignments[i]->flank_blocks) stList_destruct(alignments[i]->flank_blocks);
         alignments[i]->flank_blocks = find_flanking_blocks(alignments[i], markers, margin);
     }
 }
@@ -516,6 +518,7 @@ int correct_conf_blocks(ptAlignment **alignments, int alignments_len, int thresh
             stList_destruct(alignments[i]->conf_blocks);
             alignments[i]->conf_blocks = stList_construct3(0, ptBlock_destruct);
         }
+        stList_destruct(blocks);
         return 0;
     }
     stList *corrected_conf_blocks;
@@ -638,7 +641,9 @@ int correct_conf_blocks(ptAlignment **alignments, int alignments_len, int thresh
         // update confident blocks for each alignment object
         alignments[i]->conf_blocks = corrected_conf_blocks;
     }
-    return stList_length(blocks);
+    int len_blocks = stList_length(blocks);
+    stList_destruct(blocks);
+    return len_blocks;
 }
 
 bool needs_to_find_blocks(ptAlignment **alignments, int alignments_len, int threshold, sam_hdr_t *sam_hdr) {

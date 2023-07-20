@@ -36,8 +36,8 @@ task haplotag{
         FILENAME=`basename ~{bam}`
         PREFIX="${FILENAME%.*.*}"
 
-        ln -s ~{bam} ${PREFIX}.bam
-        ln -s ~{bai} ${PREFIX}.bai
+        ln ~{bam} ${PREFIX}.bam
+        ln ~{bai} ${PREFIX}.bai
         tabix ~{vcfGz}
 
         gunzip -c ~{refFastaGz} > ref.fa

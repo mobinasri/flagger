@@ -16,7 +16,7 @@ task getPhasedReadIds{
         Int memSize=16
         Int threadCount=4
         Int diskSize=256
-        String dockerImage="mobinasri/secphase:v0.4.2"
+        String dockerImage="mobinasri/secphase:v0.4.3"
         Int preemptible=2
     }
     command <<<
@@ -49,8 +49,8 @@ task getPhasedReadIds{
             grep -v -F -f output/${PREFIX}.2to1.txt output/${PREFIX}.hap2_read_ids.initial.txt > output/hap2_tmp.txt
             cat output/hap2_tmp.txt output/${PREFIX}.1to2.txt > output/${PREFIX}.hap2_read_ids.txt
         else
-            cp output/${PREFIX}.hap1_read_ids.initial.txt output/${PREFIX}.hap1_read_ids.txt
-            cp output/${PREFIX}.hap2_read_ids.initial.txt output/${PREFIX}.hap2_read_ids.txt
+            ln output/${PREFIX}.hap1_read_ids.initial.txt output/${PREFIX}.hap1_read_ids.txt
+            ln output/${PREFIX}.hap2_read_ids.initial.txt output/${PREFIX}.hap2_read_ids.txt
         fi
         
     >>>

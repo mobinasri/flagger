@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include "ptVariant.h"
 #include "ptBlock.h"
+#include "ptAlignment.h"
 #include "sam.h"
 
 
@@ -23,9 +24,6 @@ struct tpool_work {
 typedef struct tpool_work tpool_work_t;
 
 typedef struct work_arg_t {
-    int thread_idx;
-    int64_t bam_adr_start;
-    int64_t bam_adr_end;
     bool baq_flag;
     bool consensus;
     int indel_threshold;
@@ -50,6 +48,10 @@ typedef struct work_arg_t {
     FILE *output_log_file;
     samFile* bam_fo;
     pthread_mutex_t *mutexPtr;
+    ptAlignment** alignments;
+    int alignments_len;
+    int flank_margin;
+    sam_hdr_t *sam_hdr;
 } work_arg_t;
 
 struct tpool {
@@ -59,14 +61,14 @@ struct tpool {
     pthread_cond_t work_cond;
     pthread_cond_t working_cond;
     size_t working_cnt;
+    size_t remaining_cnt;
     size_t thread_cnt;
     bool stop;
     int idx;
 };
 
 
-work_arg_t *tpool_create_work_arg(int thread_idx, int64_t bam_adr_start, int64_t bam_adr_end,
-                                  bool baq_flag, bool consensus, int indel_threshold, int min_q,
+work_arg_t *tpool_create_work_arg(bool baq_flag, bool consensus, int indel_threshold, int min_q,
                                   int min_score, double prim_margin_score, double prim_margin_random, int set_q,
                                   double conf_d, double conf_e, double conf_b, char *inputPath,
                                   char *fastaPath, bool marker_mode,
@@ -79,7 +81,11 @@ work_arg_t *tpool_create_work_arg(int thread_idx, int64_t bam_adr_start, int64_t
                                   int *reads_modified_by_marker,
                                   FILE *output_log_file,
                                   samFile* bam_fo,
-                                  pthread_mutex_t *mutexPtr);
+                                  pthread_mutex_t *mutexPtr,
+                                  ptAlignment** alignments, int alignments_len,
+                                  int flank_margin, sam_hdr_t *sam_hdr);
+
+work_arg_t *tpool_shallow_copy_work_arg(work_arg_t * arg_src);
 
 tpool_t *tpool_create(size_t num);
 

@@ -62,11 +62,11 @@ Two heuristics are applied for increasing specificity:
 
 ### Running Secphase in marker mode
 
-To run Secphase it is recommended to use the docker image `mobinasri/secphase:v0.4.2`.
+To run Secphase it is recommended to use the docker image `mobinasri/secphase:v0.4.3`.
 
 Here are the parameters `secphase` can accept:
 ```
-./secphase -h
+secphase -h
 
 Usage: secphase  -i <INPUT_BAM> -f <FASTA> 
 Options:
@@ -92,6 +92,8 @@ Options:
          --minScore, -n         Minimum marker score of the selected secondary alignment [Default: -10]
          --minVariantMargin, -g         Minimum margin for creating blocks around phased variants [Default: 50]
          --minGQ, -G         Minimum genotype quality of the phased variants [Default: 10]
+         --writeBam, -w         Write an output bam file with the base qualities modified by BAQ
+         --threads, -@         Number of threads  (For using more than one threads secphase_index should be run before running secphase) [Default: 4]
 ```
 Some notes:
 
@@ -105,18 +107,11 @@ In summary given a bam file (usually sorted by reference position) you can run t
 ## Sort by read name
 samtools sort -n -@8 ${INPUT_DIR}/${BAM_PREFIX}.bam > ${INPUT_DIR}/${BAM_PREFIX}.sorted_qname.bam
 
-## Create secphase index
-docker run \
-	-v ${INPUT_DIR}:${INPUT_DIR} \
-	mobinasri/secphase:v0.4.2 \
-	secphase_index \
-	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam
-
 ## Run Secphase for HiFi alignments
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
 	-v ${OUTPUT_DIR}:${OUTPUT_DIR}
-	mobinasri/secphase:v0.4.2 \
+	mobinasri/secphase:v0.4.3 \
 	secphase --hifi \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
 	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa \
@@ -128,7 +123,7 @@ docker run \
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
 	-v ${OUTPUT_DIR}:${OUTPUT_DIR}
-	mobinasri/secphase:v0.4.2 \
+	mobinasri/secphase:v0.4.3 \
 	secphase --ont \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
 	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa \
@@ -162,7 +157,7 @@ For producing a phased vcf file one approach can be aligning all HiFi reads to e
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
 	-v ${OUTPUT_DIR}:${OUTPUT_DIR}
-	mobinasri/secphase:v0.4.2 \
+	mobinasri/secphase:v0.4.3 \
 	secphase --ont \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
 	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa \
@@ -175,7 +170,7 @@ docker run \
 ### Correcting bam file with secphase output
 
 To swap the pri/sec tags of the reads reported in `*.out.log` and produce a modified bam file you can run the program  `correct_bam`.
-Again it is recommended to run it using the docker image `mobinasri/secphase:v0.4.2`.
+Again it is recommended to run it using the docker image `mobinasri/secphase:v0.4.3`.
 
 Here are the parameters `correct_bam` can accept:
 ```
@@ -214,7 +209,7 @@ To produce the modified bam file: (Here the input bam file can be sorted by refe
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
 	-v ${OUTPUT_DIR}:${OUTPUT_DIR} \
-	mobinasri/secphase:v0.4.2 \
+	mobinasri/secphase:v0.4.3 \
 	correct_bam \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.bam \
 	-P ${OUTPUT_DIR}/${SAMPLE_NAME}.out.log \
