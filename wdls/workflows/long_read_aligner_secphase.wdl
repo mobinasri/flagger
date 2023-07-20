@@ -61,7 +61,7 @@ workflow longReadFullAlignment {
             # runtime configurations
             memSize=8,
             threadCount=8,
-            dockerImage="mobinasri/secphase:v0.4.2",
+            dockerImage="mobinasri/secphase:v0.4.3",
             preemptible=2
     }
 

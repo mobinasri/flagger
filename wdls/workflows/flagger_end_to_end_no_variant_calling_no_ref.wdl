@@ -8,9 +8,9 @@ workflow FlaggerEndToEndNoVariantCallingNoRef{
     input{
         File assemblyFastaGz
         File readAlignmentBam
-        String secphaseDockerImage = "mobinasri/secphase:v0.4.2"
+        String secphaseDockerImage = "mobinasri/secphase:v0.4.3"
         String secphaseOptions
-        String secphaseVersion = "v0.4.2"
+        String secphaseVersion = "v0.4.3"
         Float maxReadDivergence
         String sampleName
         String suffix
