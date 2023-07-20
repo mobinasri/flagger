@@ -394,7 +394,17 @@ task filterBeds {
             bedtools subtract -sorted -a initial/${PREFIX}.filtered.${c}.bed -b filtered/${PREFIX}.filtered.unknown.bed > filtered/${PREFIX}.filtered.${c}.bed
         done
 
-        tar -cf ${PREFIX}.beds.filtered.tar filtered
+        mkdir gt_1k
+        for c in error duplicated collapsed unknown
+        do
+            cat filtered/${PREFIX}.filtered.$c.bed | awk '$3-$2 < ~{minBlockLength}' >> hap.tmp.bed
+            cat filtered/${PREFIX}.filtered.$c.bed | awk '$3-$2 >= ~{minBlockLength}' > gt_1k/${PREFIX}.filtered.$c.bed
+        done
+        cat hap.tmp.bed filtered/${PREFIX}.filtered.haploid.bed | sort -k1,1 -k2,2n | bedtools merge -i - > gt_1k/${PREFIX}.filtered.haploid.bed
+
+
+
+        tar -cf ${PREFIX}.beds.filtered.tar gt_1k
         gzip ${PREFIX}.beds.filtered.tar
         
     >>>
