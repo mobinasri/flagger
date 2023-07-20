@@ -60,20 +60,25 @@ Two heuristics are applied for increasing specificity:
 - If the selected alignment is secondary its score should be at least `20` (`10` for ONT) units larger than the score of the primary alignment otherwise it is not reported as the correct one.
 (These parameters will be tuned more systematically in the later versions)
 
-### How To Run The Phasing Program
+### Running Secphase in marker mode
 
-To run the phasing program it is recommended to use the docker image `mobinasri/secphase:v0.3.0`.
+To run Secphase it is recommended to use the docker image `mobinasri/secphase:v0.4.3`.
 
 Here are the parameters `secphase` can accept:
 ```
-./secphase -h
+secphase -h
 
-Usage: secphase  -i <INPUT_BAM> -f <FASTA>
+Usage: secphase  -i <INPUT_BAM> -f <FASTA> 
 Options:
-         --inputBam, -i         Input bam file
-         --inputFasta, -f         Input fasta file
-         --hifi, -x         hifi preset params [-q -c -t10 -d 1e-4 -e 0.1 -b20 -m10 -s40 -p50 -r50 -n -50] (Only one of --hifi or --ont should be enabled)
-         --ont, -y        ont present params [-q -c -t20 -d 1e-3 -e 0.1 -b20 -m10 -s20 -p10 -r10 -n -50] (Only one of --hifi or --ont should be enabled)
+         --inputBam, -i         Input BAM file
+         --inputFasta, -f         Input FASTA file
+         --inputVcf, -v         Input phased VCF file
+         --variantBed, -B         Input BED file for subsetting phased variants
+         --outDir, -o         Output dir for saving outputs [Default = "secphase_out_dir"]
+         --prefix, -P         Prefix of the output files [Default = "secphase"]
+         --disableMarkerMode, -M         If alignments do not overlap with variants Secphase will not switch to marker mode
+         --hifi, -x         hifi preset params (only for marker mode) [-q -c -t10 -d 1e-4 -e 0.1 -b20 -m10 -s40 -p40 -r0 -n -10] (Only one of --hifi or --ont should be enabled)
+         --ont, -y        ont preset params (only for marker mode) [-q -c -t20 -d 1e-3 -e 0.1 -b20 -m10 -s20 -p20 -r0 -n -10] (Only one of --hifi or --ont should be enabled) 
          --baq, -q         Calculate BAQ [Disabled by default]
          --gapOpen, -d         Gap prob [Default: 1e-4, (for ONT use 1e-2)]
          --gapExt, -e         Gap extension [Default: 0.1]
@@ -82,36 +87,52 @@ Options:
          --indelThreshold, -t         Indel size threshold for confident blocks [Default: 10 (for ONT use 20)]
          --initQ, -s         Before calculating BAQ set all base qualities to this number [Default: 40 (for ONT use 20)]
          --minQ, -m         Minimum base quality (or BAQ if -q is set) to be considered as a marker  [Default: 20 (for ONT use 10)]
-         --primMarginScore, -p         Minimum margin between the consistensy score of primary and secondary alignment to select the secondary alignment [Default: 50]
-         --primMarginRandom, -r         Maximum margin between the consistensy score of primary and secondary alignment to select one randomly [Default: 50]
-         --minScore, -n         Minimum consistency score of the selected secondary alignment [Default: -50]
+         --primMarginScore, -p         Minimum margin between the consistency score of primary and secondary alignment to select the secondary alignment [Default: 40]
+         --primMarginRandom, -r         Maximum margin between the consistency score of primary and secondary alignment to select one randomly [Default: 0]
+         --minScore, -n         Minimum marker score of the selected secondary alignment [Default: -10]
+         --minVariantMargin, -g         Minimum margin for creating blocks around phased variants [Default: 50]
+         --minGQ, -G         Minimum genotype quality of the phased variants [Default: 10]
+         --writeBam, -w         Write an output bam file with the base qualities modified by BAQ
+         --threads, -@         Number of threads  (For using more than one threads secphase_index should be run before running secphase) [Default: 4]
 ```
+Some notes:
 
-The default values are set for the HiFi reads and the input bam file must be sorted by read name and contain the `cs` tag. So given a bam file (usually sorted by reference position) you can run these lines:
+- By default Secphase will not calculate BAQ for markers. For enabling BAQ the parameteres `--baq` and `--consensus` have to be set. For HiFi reads preset `--hifi` and for ONT `--ont` is recommended. These presets will enable `--baq --consensus` automatically. 
+- The input bam file must be sorted **by read name and contain the** `cs` **tag**. 
+- The sorted bam file should be indexed with `secphase_index` prior to running `secphase`; it will create an index file with the suffix `.secphase.index` which is necessary for multi-threading. 
+
+In summary given a bam file (usually sorted by reference position) you can run these lines:
 
 ```
 ## Sort by read name
 samtools sort -n -@8 ${INPUT_DIR}/${BAM_PREFIX}.bam > ${INPUT_DIR}/${BAM_PREFIX}.sorted_qname.bam
 
-## Phase reads for HiFi
+## Run Secphase for HiFi alignments
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
-	mobinasri/secphase:v0.3.0 \
+	-v ${OUTPUT_DIR}:${OUTPUT_DIR}
+	mobinasri/secphase:v0.4.3 \
 	secphase --hifi \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
-	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa > ${PHASING_OUT}.log
+	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa \
+	--outDir ${OUTPUT_DIR} \
+	--prefix ${SAMPLE_NAME} \
+	--threads ${THREAD_COUNT}
 
-## Phase reads for ONT
+## Run Secphase for ONT alignments
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
-	mobinasri/secphase:v0.3.0 \
+	-v ${OUTPUT_DIR}:${OUTPUT_DIR}
+	mobinasri/secphase:v0.4.3 \
 	secphase --ont \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
-	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa > ${OUTPUT_DIR}/${PHASING_OUT}.log
+	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa \
+	--outDir ${OUTPUT_DIR} \
+	--prefix ${SAMPLE_NAME} \
+	--threads ${THREAD_COUNT}
 ```
-
-`${PHASING_OUT}.log` conatins the names of the reads whose secondary and primary alignments have to be swapped.
-Here is an example of a record in the `${PHASING_OUT}.log`:
+`${OUTPUT_DIR}/${SAMPLE_NAME}.out.log` conatins the names of the reads whose secondary and primary alignments have to be swapped.
+Here is an example of a record in this file:
 
 ```
 $	m64043_200710_174426/2353/ccs
@@ -119,17 +140,37 @@ $	m64043_200710_174426/2353/ccs
 @	-0.00	HG00438#2#JAHBCA010000036.1	3898995	3918995
 ```
 
-Based on the initial letter of each line we can indentify the correct phasing of each read:
+Based on the initial letter of each line we can identify the correct phasing of each read:
 - `$` proceeds the read name which is `m64043_200710_174426/1311005/ccs` in this example
 - `*` proceeds the score and the start/end position of the primary alignment which is not to the correct haplotype
 - `@` proceeds the score and the start/end position of the secondary alignment which is to the correct haplotype
 - `!` proceeds the score and the start/end position of any other alignments (This example has only two alignments)
 
+### Running Secphase in dual mode
 
-### How To Run The Correction Program
+It is also possible to give a phased vcf file to Secphase along with the desired regions in a bed file. These variants will help phasing the read alignments to a diploid assembly. Using the command below Secphase will use variants (variant mode) for phasing whenever a read spans over at least one variant in at least one of its primary/secondary alignments. Whenever a read has no overlap with variants it will use the original marker mode. This mode is called dual mode since it is switching between variant and marker mode. It is possible to disable the dual mode and use only the variant mode by using `--disableMarkerMode`.
 
-To swap the pri/sec tags of the reads reported in `${PHASING_OUT}.log` and produce a modified bam file you can run the program  `correct_bam`.
-Again it is recommended to run it using the docker image `mobinasri/secphase:v0.3.0`.
+For producing a phased vcf file one approach can be aligning all HiFi reads to each haplotype, call variants (by DeepVariant for example) and phasing them with ONT Ultra Long reads (by Whatshap for example). It is recommended to narrow down this process to homozygous regions. To obtain the homozygous blocks the script `find_homozygous_regions.py` can be employed (described below).
+
+```
+## Run Secphase for HiFi alignments in dual mode
+docker run \
+	-v ${INPUT_DIR}:${INPUT_DIR} \
+	-v ${OUTPUT_DIR}:${OUTPUT_DIR}
+	mobinasri/secphase:v0.4.3 \
+	secphase --ont \
+	-i ${INPUT_DIR}/${BAM_PREFIX}.sorted.bam \
+	-f ${INPUT_DIR}/${FASTA_PREFIX}.fa \
+	--inputVcf ${INPUT_DIR}/phased_variants.vcf.gz \
+	--variantBed ${INPUT_DIR}/variant_blocks.bed \
+	--outDir ${OUTPUT_DIR} \
+	--prefix ${SAMPLE_NAME} \
+	--threads ${THREAD_COUNT}
+```
+### Correcting bam file with secphase output
+
+To swap the pri/sec tags of the reads reported in `*.out.log` and produce a modified bam file you can run the program  `correct_bam`.
+Again it is recommended to run it using the docker image `mobinasri/secphase:v0.4.3`.
 
 Here are the parameters `correct_bam` can accept:
 ```
@@ -148,14 +189,18 @@ Usage: correct_bam  -i <INPUT_BAM> -o <OUTPUT_BAM> -p <PHASING_LOG> -m <MAPQ_TAB
 	* Filter the alignments shorter than the given threshold
 
 Options:
-         --inputBam,	-i         input bam file (must contain cs tag)
+         --inputBam,	-i         input bam file
          --outputBam,	-o         output bam file
-         --phasingLog,	-P         the phasing log path [optional]
-         --mapqTable,	-M         the adjusted mapq table path [optional]
+         --maxMapq,	-x         maximum mapq [default:100]
+         --phasingLog,	-P         the phasing log path (output of secphase) [optional]
+         --mapqTable,	-M         the adjusted mapq table (tab-delimited) path (4 columns with no header: read_name, contig_name, 1_based_contig_start , new_mapq) [optional]
+         --exclude,	-e         Path to a file containing the read names that have to be excluded [optional]
          --noTag,	-t         output no optional fields
          --primaryOnly,	-p         output only primary alignments
          --minReadLen,	-m         min read length [default: 5k]
-         --minAlignmentLen,	-a        min alignment length [default: 5k]
+         --minAlignmentLen,	-a         min alignment length [default: 5k]
+         --maxDiv,	-d         min gap-compressed divergence ("de" tag) [default: 0.12]
+         --threads,	-n         number of threads (for bam I/O)[default: 2]
 ```
 
 To produce the modified bam file: (Here the input bam file can be sorted by reference position but must contain the `cs` tag)
@@ -164,10 +209,10 @@ To produce the modified bam file: (Here the input bam file can be sorted by refe
 docker run \
 	-v ${INPUT_DIR}:${INPUT_DIR} \
 	-v ${OUTPUT_DIR}:${OUTPUT_DIR} \
-	mobinasri/secphase:v0.3.0 \
+	mobinasri/secphase:v0.4.3 \
 	correct_bam \
 	-i ${INPUT_DIR}/${BAM_PREFIX}.bam \
-	-P ${INPUT_DIR}/${PHASING_OUT}.log \
+	-P ${OUTPUT_DIR}/${SAMPLE_NAME}.out.log \
 	-o ${OUTPUT_DIR}/${BAM_PREFIX}.corrected.bam \
 	--primaryOnly
 ```
@@ -206,7 +251,7 @@ options:
 
 Each of the phasing and correction programs is wdlized separately. The phasing wdl file is named [`secphase.wdl`](https://dockstore.org/workflows/github.com/mobinasri/secphase/Secphase) and the correction wdl file is named [`correct_bam.wdl`](https://dockstore.org/my-workflows/github.com/mobinasri/secphase/CorrectBam). These links can be used for importing the workflows to Terra or running locally with cromwell.
 Some notes about the inputs to these workflows:
-- For `secphase.wdl` set `secphase.options` to `--ont` for ONT-guppy4(and 5) data and change it to `--hifi` for HiFi data.
+- For `secphase.wdl` set `secphase.options` to `--ont` for ONT data and change it to `--hifi` for HiFi data.
 
 ### Acknowledgements
 

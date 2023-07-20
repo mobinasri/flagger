@@ -12,9 +12,9 @@ workflow FlaggerEndToEndNoVariantCalling{
         File readAlignmentBam
         File hap1ToRefBam
         File hap2ToRefBam
-        String secphaseDockerImage = "mobinasri/secphase:v0.3.0"
+        String secphaseDockerImage = "mobinasri/secphase:v0.4.3"
         String secphaseOptions
-        String secphaseVersion = "v0.3.0"
+        String secphaseVersion = "v0.4.3"
         Float maxReadDivergence
         String sampleName
         String suffix
@@ -103,6 +103,9 @@ workflow FlaggerEndToEndNoVariantCalling{
         # all alignments
         File statsTsv = stats.flaggerStatsTsv
         File statsPercOnlyTsv = stats.flaggerStatsPercOnlyTsv
+
+        # secphase log
+        File secphaseOutLog = secphase.outLog
 
     }
 }

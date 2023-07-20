@@ -13,8 +13,8 @@ workflow FlaggerEndToEnd{
         File readAlignmentBam
         File hap1ToRefBam
         File hap2ToRefBam
-        String secphaseDockerImage = "mobinasri/secphase:v0.3.0"
-        String secphaseVersion = "v0.3.0"
+        String secphaseDockerImage = "mobinasri/secphase:v0.4.3"
+        String secphaseVersion = "v0.4.3"
         String secphaseOptions
         Float maxReadDivergence
         String variantCaller 
@@ -143,5 +143,8 @@ workflow FlaggerEndToEnd{
         # after removing alt alignments
         File altRemovedStatsTsv = stats_alt_removed.flaggerStatsTsv
         File altRemovedStatsPercOnlyTsv = stats_alt_removed.flaggerStatsPercOnlyTsv
+
+        # secphase log
+        File secphaseOutLog = secphase.outLog
     }
 }

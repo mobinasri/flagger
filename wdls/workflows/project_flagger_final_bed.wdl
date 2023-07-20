@@ -239,7 +239,7 @@ task mergeBeds {
         set -o xtrace
 
         mkdir input output
-        ln ~{sep=" " beds} input
+        ln -s ~{sep=" " beds} input
         for comp in  ~{sep=" " comps}
         do
             BED_COMP=input/$(ls input | grep "${comp}.")

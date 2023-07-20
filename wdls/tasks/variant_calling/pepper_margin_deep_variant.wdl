@@ -117,11 +117,11 @@ task pmdv{
         
         BAM_NAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_NAME%%.bam}
-        ln ~{bam} ${BAM_PREFIX}.bam
+        ln -s ~{bam} ${BAM_PREFIX}.bam
 
         if [ -n "~{bamIndex}" ]
         then
-            ln ~{bamIndex} ${BAM_PREFIX}.bam.bai
+            ln -s ~{bamIndex} ${BAM_PREFIX}.bam.bai
         else
             samtools index ${BAM_PREFIX}.bam
         fi

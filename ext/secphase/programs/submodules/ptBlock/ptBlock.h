@@ -43,6 +43,12 @@ typedef struct {
  */
 ptBlock *ptBlock_construct(int rfs, int rfe, int sqs, int sqe, int rds_f, int rde_f);
 
+/* Construct a ptBlock structure with count
+ *
+ */
+ptBlock *ptBlock_construct_with_count(int rfs, int rfe, int sqs, int sqe, int rds_f, int rde_f, int count);
+
+int ptBlock_get_count(ptBlock* block);
 
 /* Set data and the related functions in a ptBlock structure.
  * It also receives three functions
@@ -62,6 +68,15 @@ void ptBlock_destruct_data(ptBlock *block);
 
 void *ptBlock_copy_data(ptBlock *block);
 
+// the three functions for keeping count data in ptBlock structs
+
+void extend_count_data(void* dest_, void *src_);
+
+
+void destruct_count_data(void *src_);
+
+
+void *copy_count_data(void *src_);
 
 /* Make a copy of a ptBlock structure
  */
@@ -156,6 +171,38 @@ stList *ptBlock_merge_blocks(stList *blocks,
                              int (*get_start)(ptBlock *), int (*get_end)(ptBlock *),
                              void (*set_end)(ptBlock *, int));
 
+/**
+ * Merge blocks (should be sorted by stList_sort)
+ * Since merging can be performed by either rfs/rfe or rds_f/rde_f this function
+ * takes two functions as inputs for getting start and end of each block
+ * the functions that can be used for this purpose are defined above (starting with ptBlock_get_)
+ * This enables merging block by different criteria
+ * it also takes set_end/set_start function for updating the end and start locations of merged block if it had
+ * overlap with any new block during the merging process
+ * This function is different from ptBlock_merge_blocks (without "_v2"). The current one
+ *  will create a separate block wherever we have different overlapping blocks however the
+ *  other one will create one block for all consecutive overlapping blocks. "_v2" is useful
+ *  if we want to know the number of overlapping blocks in each merged block.
+ *
+ *
+ * @param blocks  stList of blocks each of which saved as a ptBlock
+ * @param  get_start   Function for getting the start coordinate of each block
+ * @param  get_end   Function for getting the end coordinate of each block
+ * @param  set_start  Function for updating the start coordinate of each block
+ * @param  set_end  Function for updating the end coordinate of each block
+ *
+ * @return  merged blocks
+ *
+ * @Note    input blocks should be sorted based on the start coordinates so the sorting criteria
+ *          should match the merging criteria
+ *          For example if blocks are sorted by ptBlock_cmp_rfs you can merge by ptBlock_get_rfs/rfe
+ *          and if they are sorted by ptBlock_cmp_rds_f you can merge by ptBlock_get_rds_f/rde_f
+ *
+ */
+
+stList *ptBlock_merge_blocks_v2(stList *blocks,
+                                int (*get_start)(ptBlock *), int (*get_end)(ptBlock *),
+                                void (*set_start)(ptBlock *, int), void (*set_end)(ptBlock *, int));
 
 /**
  * Merge blocks for each contig (each list should be sorted by stList_sort. ptBlock_parse_bed
@@ -193,14 +240,30 @@ stHash *ptBlock_merge_blocks_per_contig_by_rd_f(stHash *blocks_per_contig);
 
 stHash *ptBlock_merge_blocks_per_contig_by_sq(stHash *blocks_per_contig);
 
-void ptBlock_add_alignment(stHash *blocks_per_contig, ptAlignment *alignment);
+/**
+ * Similar to ptBlock_merge_blocks_per_contig
+ * but it works with ptBlock_merge_blocks_v2() instead of ptBlock_merge_blocks()
+ *
+ */
+stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
+                                        int (*get_start)(ptBlock *), int (*get_end)(ptBlock *),
+                                        void (*set_start)(ptBlock *, int), void (*set_end)(ptBlock *, int));
 
-void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path);
+stHash *ptBlock_merge_blocks_per_contig_by_rf_v2(stHash *blocks_per_contig);
+
+stHash *ptBlock_merge_blocks_per_contig_by_rd_f_v2(stHash *blocks_per_contig);
+
+stHash *ptBlock_merge_blocks_per_contig_by_sq_v2(stHash *blocks_per_contig);
+
+void ptBlock_add_alignment(stHash *blocks_per_contig, ptAlignment *alignment, bool init_count_data);
+
+void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path, bool print_count_data);
 
 int ptBlock_get_total_number(stHash *blocks_per_contig);
 
 void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char* contig, stList* blocks_to_add);
 
+stList* ptBlock_copy_stList(stList* blocks);
 
 #endif /* PT_BLOCK_H */
 

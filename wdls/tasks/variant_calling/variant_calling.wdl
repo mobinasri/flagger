@@ -75,8 +75,8 @@ task splitBam{
         ## hard link the bam and bai files to the working directory
         BAM_NAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_NAME%%.bam}
-        ln -f ~{bam} > ${BAM_PREFIX}.bam
-        ln -f ~{bamIndex} > ${BAM_PREFIX}.bam.bai
+        ln -s ~{bam} ${BAM_PREFIX}.bam
+        ln -s ~{bamIndex} ${BAM_PREFIX}.bam.bai
 
         ## make a bed file that covers the whole assembly
         cat ${ASSEMBLY_PREFIX}.fa.fai | awk '{print $1"\t"0"\t"$2}' > ${ASSEMBLY_PREFIX}.bed
@@ -133,7 +133,7 @@ task callVariant{
         ## hard link the bam file to the working directory and produce its index file
         BAM_NAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_NAME%%.bam}
-        ln -f ~{bam} > ${BAM_PREFIX}.bam
+        ln -s ~{bam} ${BAM_PREFIX}.bam
         samtools index ${BAM_PREFIX}.bam
 
         ## unzip the fasta file and produce its index
@@ -195,7 +195,7 @@ task mergeVcf{
         set -o xtrace
 
         mkdir vcf_files
-        ln ~{sep=" " vcfGzFiles} vcf_files
+        ln -s ~{sep=" " vcfGzFiles} vcf_files
         files=(vcf_files/*) 
 
         ## make a header for the merged vcf file

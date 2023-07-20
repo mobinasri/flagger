@@ -84,7 +84,7 @@ task filterHiFiAdapter {
         cd data
         FILENAME=$(basename -- "~{readFastq}")
         PREFIX="${FILENAME%.*}"
-        ln ~{readFastq} ${PREFIX}.fastq
+        ln -s ~{readFastq} ${PREFIX}.fastq
         wc -l ${PREFIX}.fastq | awk '{print $1/4}' > ${PREFIX}.countReads
         bash ${HIFI_ADAPTER_FILTER_BASH} -t ~{threadCount}
         OUTPUTSIZE=`du -s -BG *.filt.fastq | sed 's/G.*//'`

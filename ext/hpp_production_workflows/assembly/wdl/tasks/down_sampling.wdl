@@ -111,7 +111,7 @@ task getCoverage {
         FILE_NAME=$(basename ~{readFastq})
         PREFIX=${FILE_NAME%.*}
 
-        ln ~{readFastq} ${PREFIX}.fq
+        ln -s ~{readFastq} ${PREFIX}.fq
         samtools faidx ${PREFIX}.fq
         cat ${PREFIX}.fq.fai | awk -vrefLength=~{refLength} '{totalBases+=$2}END{printf "%.2f\n",totalBases/refLength}' > coverage.txt
 
