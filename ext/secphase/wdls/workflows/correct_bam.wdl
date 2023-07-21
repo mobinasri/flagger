@@ -19,9 +19,9 @@ task correctBam {
         Boolean flagRemoveMultiplePrimary = false
         Boolean flagRemoveSupplementary = false
         # runtime configurations
-        Int memSize=8
-        Int threadCount=8
-        Int diskSize=512
+        Int memSize = 8
+        Int threadCount = 8
+        Int diskSize = ceil(2 * size(bam, "GB")) + 64
         String dockerImage="mobinasri/secphase:v0.4.3"
         Int preemptible=2
     }

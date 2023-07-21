@@ -13,8 +13,7 @@ workflow runSecPhase {
     call sortByName {
         input:
             bamFile = inputBam,
-            dockerImage = secphaseDockerImage,
-            diskSize = 7 * ceil(size(inputBam, "GB")) + 64
+            dockerImage = secphaseDockerImage
     }
 
     call secphase {
@@ -25,8 +24,7 @@ workflow runSecPhase {
             variantBed = variantBed,
             options = secphaseOptions,
             dockerImage = secphaseDockerImage,
-            prefix = "secphase_${version}",
-            diskSize = ceil(size(sortByName.outputBam, "GB")) + 64
+            prefix = "secphase_${version}"
     }
 
     output {
@@ -52,7 +50,7 @@ task secphase {
         # runtime configurations
         Int memSize=32
         Int threadCount=8
-        Int diskSize=128
+        Int diskSize = ceil(size(bam, "GB")) + 64
         String dockerImage="mobinasri/secphase:v0.4.3"
         Int preemptible=2
         String zones="us-west2-a"
@@ -118,6 +116,7 @@ task sortByName {
         String dockerImage="mobinasri/secphase:v0.4.3"
         Int preemptible=2
         String zones="us-west2-a"
+        Int diskSize = 7 * ceil(size(bamFile, "GB")) + 64
     }
     command <<<
         # Set the exit code of a pipeline to that of the rightmost command
