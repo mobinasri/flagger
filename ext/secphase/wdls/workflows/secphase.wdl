@@ -112,7 +112,6 @@ task sortByName {
         # runtime configurations
         Int memSize=16
         Int threadCount=8
-        Int diskSize=1024
         String dockerImage="mobinasri/secphase:v0.4.3"
         Int preemptible=2
         String zones="us-west2-a"
