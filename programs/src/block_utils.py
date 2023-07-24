@@ -439,10 +439,15 @@ def findProjections(mode, cigarList, forwardBlocks,
                 # append the whole deletion
                 projectionCigar.append((cigarOp, cigarSize))
                 diff += cigarSize
+                projectionEndPos += cigarSize
                 projection.update(projectionStartPos, projectionEndPos,
                                   projectableStartPos, projectableEndPos,
                                   blocks[blockIdx][2], diff, projectionCigar)
                 blockEndedOnTheEdgeOfOperation = False
+                projectionCigar = []
+                diff = 0
+                blockIdx += 1
+                if blockIdx >= len(blocks): break
             nextOpStartRef += cigarSize
 
     # Note that nextOpStart(Contig | Ref) are not pointing to any cigar operation at this moment
