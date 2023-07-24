@@ -116,10 +116,11 @@ class Projection:
         self.projectionBlocks.append((projectionStartPos, projectionEndPos, info, r)) # there is no valid projection for this block
         if self.orientation == '+':
             self.projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
+            self.projectionCigarList.append(projectionCigar)
         else:
             reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), self.contigLength)
             self.projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
-        self.projectionCigarList.append(projectionCigar)
+            self.projectionCigarList.insert(0, projectionCigar)
 
 def findProjections(mode, cigarList, forwardBlocks, 
                     chromLength, chromStart, chromEnd, 

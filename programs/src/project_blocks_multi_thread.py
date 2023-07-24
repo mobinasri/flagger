@@ -5,7 +5,11 @@ import re
 from block_utils import findProjections, Alignment
 from multiprocessing import Pool
 
-def runProjection(line, mode, blocks):
+def makeCigarString(cigarList):
+    cigarFlattened = ["".join(op,length) for op,length in cigarList]
+    return "".join(cigarFlattened)
+
+def runProjection(line, mode, blocks, includeEndingIndel, includePostIndel):
     # Extract the alignment attributes like the contig name, alignment boundaries, orientation and cigar 
     alignment = Alignment(line)
     chromName = alignment.chromName
@@ -18,7 +22,7 @@ def runProjection(line, mode, blocks):
         if len(blocks[contigName]) == 0: # Continue if there is no block in the contig
             return [chromName, contigName, [], []]
                 #print(blocks[contigName], contigStart, contigEnd, chrom, chromStart, chromEnd)
-        qBlocks, rBlocks, _ = findProjections(mode,
+        qBlocks, rBlocks, cigarList = findProjections(mode,
                                             alignment.cigarList,
                                             blocks[contigName],
                                             alignment.chromLength,
@@ -26,12 +30,11 @@ def runProjection(line, mode, blocks):
                                             alignment.contigLength,
                                             alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
                                             alignment.orientation,
-                                            False,
-                                            False)
+                                            includeEndingIndel, includePostIndel)
     else:
         if len(blocks[chromName]) == 0: # Continue if there is no block in the chrom
             return [chromName, contigName, [], []]
-        qBlocks, rBlocks, _ = findProjections(mode,
+        qBlocks, rBlocks, cigarList = findProjections(mode,
                                             alignment.cigarList,
                                             blocks[chromName],
                                             alignment.chromLength,
@@ -39,18 +42,17 @@ def runProjection(line, mode, blocks):
                                             alignment.contigLength,
                                             alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
                                             alignment.orientation,
-                                            False,
-                                            False)
-    return [chromName, contigName, qBlocks, rBlocks]
+                                            includeEndingIndel, includePostIndel)
+    return [chromName, contigName, qBlocks, rBlocks, cigarList]
 
-def runProjectionParallel(pafPath, mode, blocks, threads):
+def runProjectionParallel(pafPath, mode, blocks, includeEndingIndel, includePostIndel, threads):
     allPafLines = []
     with open(pafPath,"r") as fPaf:
         for line in fPaf:
             allPafLines.append(line)
     pool = Pool(threads)
     print("Started projecting")
-    results = pool.starmap(runProjection, [(line, mode, blocks) for line in allPafLines])
+    results = pool.starmap(runProjection, [(line, mode, blocks,includeEndingIndel, includePostIndel) for line in allPafLines])
     pool.close()
     return results
 
@@ -80,7 +82,17 @@ def main():
                     help='Print divergence percentage (between asm and ref block) as the 4th column in the output bed file')
     parser.add_argument('--flagger', action='store_true',
                     help='Only use when the input bed file in the output of flagger. It will add similar fields to the output bed file.')
-    
+    parser.add_argument('--printCigar', action='store_true',
+                        help='Add the subset cigar for each projection (in the last column)')
+    parser.add_argument('--includeEndingIndel', action='store_true',
+                        help='If a projection ended in an indel add that the overlapping indel to the projection')
+    parser.add_argument('--includePostIndel', action='store_true',
+                        help='If a projection ended/started right before/after an indel add that indel to the projection \
+                             for + orientation it will add the indel after the right end \
+                             for - orientation it will add the indel before the left end \
+                             (This option has very limited applications so should not be on usually)')
+
+
     # Fetch the arguments
     args = parser.parse_args()
     mode = args.mode
@@ -91,6 +103,9 @@ def main():
     threads = args.threads
     printDiv = args.divergence
     flagger = args.flagger
+    printCigar = args.printCigar
+    includeEndingIndel = args.includeEndingIndel
+    includePostIndel = args.includePostIndel
 
     # Save the track line if there is one
     trackLine = None
@@ -109,7 +124,7 @@ def main():
             info = attrbs[3:] if len(attrbs) > 3 else [""]
             blocks[contigName].append((start, end, info))
 
-    results = runProjectionParallel(pafPath, mode, blocks, threads)
+    results = runProjectionParallel(pafPath, mode, blocks, includeEndingIndel, includePostIndel, threads)
 
     # Read the alignments one by one and for each of them find the projections by calling findProjections
     with open(outputProjection, "w") as fRef, open(outputProjectable, "w") as fQuery:
@@ -122,6 +137,7 @@ def main():
             contigName = res[1]
             qBlocks = res[2]
             rBlocks = res[3]
+            cigarString = makeCigarString(res[4]) if printCigar else ""
 
 
             if mode == "asm2ref":
@@ -137,15 +153,22 @@ def main():
                     rBlock[2][3] = str(rBlock[0] - 1)
                     rBlock[2][4] = str(rBlock[1])
                 if printDiv == True:
-                    fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], rBlock[3], "\t".join(rBlock[2])))
+                    fRef.write("{}\t{}\t{}\t{:.3f}\t{}".format(ctgRef, rBlock[0] - 1, rBlock[1], rBlock[3], "\t".join(rBlock[2])))
                 else:
-                    fRef.write("{}\t{}\t{}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
+                    fRef.write("{}\t{}\t{}\t{}".format(ctgRef, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
                 if flagger: 
                     qBlock[2][3] = str(qBlock[0] - 1)
                     qBlock[2][4] = str(qBlock[1])
                 if printDiv == True:
-                    fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgQuery, qBlock[0] - 1, qBlock[1], qBlock[3], "\t".join(qBlock[2])))
+                    fQuery.write("{}\t{}\t{}\t{:.3f}\t{}".format(ctgQuery, qBlock[0] - 1, qBlock[1], qBlock[3], "\t".join(qBlock[2])))
                 else:
-                    fQuery.write("{}\t{}\t{}\t{}\n".format(ctgQuery, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
+                    fQuery.write("{}\t{}\t{}\t{}".format(ctgQuery, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
+
+                if printCigar:
+                    fQuery.write("\t{}",cigarString)
+                    fRef.write("\t{}",cigarString)
+                fQuery.write("\n")
+                fRef.write("\n")
+
 main()
 
