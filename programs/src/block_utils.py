@@ -5,6 +5,7 @@ import re
 
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
 
+
 def getCigarList(cigarString):
     """
         Returns a list of tuples based on the cigar string. 
@@ -93,10 +94,37 @@ def convertIndelsInCigar(cigarList):
             newCigarList.append((cigarOp, cigarSize))
     return newCigarList
 
+
+
+class Projection:
+    """
+        A class for saving the data related to the projection of a list of blocks
+    """
+
+    def __init__(self, orientation, contigLength):
+        self.orientation = orientation
+        self.contigLength = contigLength
+        self.projectionBlocks = []
+        self.projectableBlocks = []
+        self.projectionCigarList = []
+
+    def update(self,
+               projectionStartPos, projectionEndPos,
+               projectableStartPos, projectableEndPos,
+               info, diff, projectionCigar):
+        r = None if diff == None else diff/ (projectionEndPos - projectionStartPos + 1) * 100
+        self.projectionBlocks.append((projectionStartPos, projectionEndPos, info, r)) # there is no valid projection for this block
+        if self.orientation == '+':
+            self.projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
+        else:
+            reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), self.contigLength)
+            self.projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
+        self.projectionCigarList.append(projectionCigar)
+
 def findProjections(mode, cigarList, forwardBlocks, 
                     chromLength, chromStart, chromEnd, 
                     contigLength, contigStart, contigEnd, 
-                    orientation):
+                    orientation, includeEndingIndel, includePostIndel):
     """
         Returns:
             * projectableBlocks: A list of tuples which contains the blocks that could be projected 
@@ -122,35 +150,34 @@ def findProjections(mode, cigarList, forwardBlocks,
             * contigEnd: (Integer) Where the alignment ends in the coordinates of the query contig (1-based and closed)
             * orientation: (str) {'+', '-'}
     """
-    # If the mode is 'asm2ref' we can simply call the same function but by changing the arguments in a clever manner!:
+    # If the mode is 'ref2asm' we can simply call the same function but by changing the arguments in a clever manner!:
     #   1. The cigar operations should become with respect to the assembly contig not the reference
     #      to reach that aim we should call "convertIndelsInCigar"
     #   2. If the orientation is negative we should reverse the order of the cigar operations
     #   3. After this conversion we can assume that our reference is the assembly contig so the 
     #      the length, start and end positions of the reference and the assembly contig should be swapped
-    #   4. Finally all we need is just to call the function again but in the mode of 'ref2asm'
+    #   4. Finally all we need is just to call the function again but in the mode of 'asm2ref'
     if mode == 'ref2asm':
         convertedCigarList = convertIndelsInCigar(cigarList)
         if orientation == '+':
             return findProjections('asm2ref', convertedCigarList, forwardBlocks,
                                    contigLength, contigStart, contigEnd,
                                    chromLength, chromStart, chromEnd, 
-                                   orientation)
+                                   orientation, includeEndingIndel, includePostIndel)
         else:
             return findProjections('asm2ref', convertedCigarList[::-1], forwardBlocks,
                                    contigLength, contigStart, contigEnd,
                                    chromLength, chromStart, chromEnd,
-                                   orientation)
+                                   orientation, includeEndingIndel, includePostIndel)
+    projection = Projection(orientation, contigLength)
     blockIdx = 0
-    projectableBlocks = []
-    projectionBlocks = []
     nextOpStartRef = chromStart
     nextOpStartContig = None
     currOpStartRef = None
     currOpStartContig = None
     # Return if the blocks has no overlap with the alignment
     if (forwardBlocks[-1][1] < contigStart) or (contigEnd < forwardBlocks[0][0]):
-        return projectionBlocks, projectableBlocks
+        return projection
     # The cigar starts from the end of the contig if the alignment orientation is negative,
     # so the blocks coordinates and their order should be reversed in that case.
     # (Note that the blocks will be reversed back after the projections are all found) 
@@ -170,16 +197,41 @@ def findProjections(mode, cigarList, forwardBlocks,
         projectableStartPos = nextOpStartContig
 
     diff = 0
-    #print(cigarList)
+    projectionCigar = []
+    blockEndedOnTheEdgeOfOperation = False
     # iterate over cigar elements and find the projections
     for cigarOp, cigarSize in cigarList:
         #print(cigarOp,cigarSize)
-        # Case 1: Mismatch or Match
+        ####################################
+        #### Case 1: Mismatch or Match #####
+        ####################################
         if cigarOp == 'M' or cigarOp == 'X' or cigarOp == '=':
             currOpStartContig = nextOpStartContig
             currOpStartRef = nextOpStartRef
             nextOpStartContig = currOpStartContig + cigarSize
             nextOpStartRef = currOpStartRef + cigarSize
+            # save the previous block if it ended on the (right-most) edge of the previous operation
+            if blockEndedOnTheEdgeOfOperation:
+                projection.update(projectionStartPos, projectionEndPos,
+                                  projectableStartPos, projectableEndPos,
+                                  blocks[blockIdx][2], diff, projectionCigar)
+                projectionCigar = []
+                diff = 0
+                blockIdx += 1
+                if len(blocks) <= blockIdx: break
+                # reset blockEndedOnTheEdgeOfOperation
+                blockEndedOnTheEdgeOfOperation = False
+            # if the whole operation was within the block
+            ###
+            # REF:  AAAAAAAAAAAAAAAAAAA
+            # ASM:  AAAAAAA^^^^AAAAAAAA
+            #              ||||
+            # BLK:      [*********]
+            ###
+            if blocks[blockIdx][0] < currOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
+                # append the whole operation
+                projectionCigar.append((cigarOp, cigarSize))
+                if cigarOp == 'X': diff += cigarSize
             # When the while loop ends the blockIdx points to the block whose end position is 
             # not within the current operation (each operation can be assumed as an interval)
             # There exists three scenarios for the start position of the block with blockIdx:
@@ -196,63 +248,148 @@ def findProjections(mode, cigarList, forwardBlocks,
             #   operations : -----------[            *M          ][        I      ][      M   ]-----
             #   blocks :     ----------------------------------------[       Block      ]-----------
             #
-            if cigarOp == 'X' and blocks[blockIdx][0] < currOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
-                diff += cigarSize
             while (blockIdx < len(blocks)) and (blocks[blockIdx][1] < nextOpStartContig):
+                # if the whole block is within the operation
+                # update the start positions
+                ###
+                # REF:  AAAAAAAAAAAAAAAAAAA
+                # ASM:  AAAAA^^^^^^^^^^AAAAAA
+                #              ||||||
+                # BLK:         [****]
+                ###
                 if currOpStartContig <= blocks[blockIdx][0]:
                     projectionStartPos = currOpStartRef + blocks[blockIdx][0] - currOpStartContig
                     projectableStartPos = blocks[blockIdx][0]
+                # otherwise only the end position in withtin the operation
+                # In either case the end positions should be updated
+                ###
+                # REF:  AAAAAAAAAAAAAAAAAAAAA
+                # ASM:  AAAAA^^^^^^^^^^AAAAAA
+                #            ||||||
+                # BLK:   [   *****]
+                ###
                 projectionEndPos = currOpStartRef + blocks[blockIdx][1] - currOpStartContig
                 projectableEndPos = blocks[blockIdx][1]
-                if cigarOp == 'X':
-                    diff += min(blocks[blockIdx][1], nextOpStartContig - 1) - max(blocks[blockIdx][0], currOpStartContig) + 1
-                info = blocks[blockIdx][2]
-                r = diff/ (projectionEndPos - projectionStartPos + 1) * 100
-                projectionBlocks.append((projectionStartPos, projectionEndPos, info, r))
-                if orientation == '+':
-                    projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
-                else:
-                    reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
-                    projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
+                # find the size of the overlap between the current operation and the block
+                overlapOpSize = blocks[blockIdx][1] - max(blocks[blockIdx][0], currOpStartContig) + 1
+                # append the overlapped operation
+                projectionCigar.append((cigarOp, overlapOpSize))
+                if cigarOp == 'X': diff += overlapOpSize
+                # if the current block is ending exactly at the end of this operation
+                # and we should keep the post-ending indel
+                # (to be more specific post-ending deletion in 'asm2ref' mode)
+                if blocks[blockIdx][1] == nextOpStartContig - 1 and includePostIndel:
+                    blockEndedOnTheEdgeOfOperation = True
+                    break
+                else: # otherwise we can easily finish the projection process of this block
+                    projection.update(projectionStartPos, projectionEndPos,
+                                      projectableStartPos, projectableEndPos,
+                                      blocks[blockIdx][2], diff, projectionCigar)
+                projectionCigar = []
                 diff = 0
                 blockIdx += 1
             if blockIdx >= len(blocks):
                 break
-            # In case of the 2nd scenario, the projection start position should be updated
+            # In case of the 2nd scenario mentioned above, the projection start position should be updated
+            ###
+            # REF:  AAAAAAAAAAAAAAAAAAAAAA
+            # ASM:  AAAAA^^^^^^^^^^AAAAAAA
+            #                 |||||
+            # BLK:            [****    ]
+            ###
             if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig):
-                if cigarOp == 'X':
-                    diff += min(blocks[blockIdx][1], nextOpStartContig - 1) - max(blocks[blockIdx][0], currOpStartContig) + 1
+                # find the overlap size between the current operation and the block
+                overlapOpSize = (nextOpStartContig - 1) - blocks[blockIdx][0] + 1
+                # append the overlapped operation
+                projectionCigar.append((cigarOp, overlapOpSize))
+                if cigarOp == 'X': diff += overlapOpSize
                 projectionStartPos = currOpStartRef + blocks[blockIdx][0] - currOpStartContig
                 projectableStartPos = blocks[blockIdx][0]
-        # Case 2: Insertion
+        ####################################
+        ####### Case 2: Insertion ##########
+        ####################################
         elif cigarOp == 'I':
             currOpStartContig = nextOpStartContig
             nextOpStartContig = currOpStartContig + cigarSize
             # For insertion there is no need to shift the reference
             currOpStartRef = nextOpStartRef
-            # if cigar interval is completely within block with the last base not ending
+
+            # save the previous block if it ended on the (right-most) edge of the previous operation
+            if blockEndedOnTheEdgeOfOperation:
+                projection.update(projectionStartPos, projectionEndPos,
+                                  projectableStartPos, projectableEndPos,
+                                  blocks[blockIdx][2], diff, projectionCigar)
+                projectionCigar = []
+                diff = 0
+                blockIdx += 1
+                if len(blocks) <= blockIdx: break
+                # reset blockEndedOnTheEdgeOfOperation
+                blockEndedOnTheEdgeOfOperation = False
+
+            # if whole operation is within block with the last base not ending
+            ###
+            # REF:  AAAAAAA----AAAAAAAA
+            # ASM:  AAAAAAAAAAAAAAAAAAA
+            #              ||||
+            # BLK:     [   ****    ]
+            ###
             if blocks[blockIdx][0] < currOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
+                projectionCigar.append((cigarOp, cigarSize))
                 diff += cigarSize
             # The beginning and endings of the blocks are excluded from the projection if they are insertions
-            # So I trim the blocks to make their projections start and end in match/mismatch
+            # So the blocks are trimmed to make their projections start and end in match/mismatch
             while (blockIdx < len(blocks)) and (blocks[blockIdx][1] < nextOpStartContig):
                 # If a block is completely within an insertion then there is no valid projection for it
+                ###
+                # REF:  AAAAAAA---------AAAAAAAA
+                # ASM:  AAAAAAAAAAAAAAAAAAAAAAAA
+                #                  |||||
+                # BLK:             [***]
+                ###
                 if currOpStartContig <= blocks[blockIdx][0]:
-                    blockIdx += 1
-                    continue
-                # If there is a block that ends in an insertion that inserted part will not be projected
-                # So the end position of that projection will be one base before where the insertion starts
+                    projectionCigar.append((cigarOp, cigarSize))
+                    projectionStartPos = None
+                    projectionEndPos = None
+                    projectableStartPos = blocks[blockIdx][0]
+                    projectableEndPos = blocks[blockIdx][1]
+                    diff = None # no projection so divergence not defined
+                    # if the block ended exactly at the end of this operation
+                    # then we may have deletion for the next operation
+                    # so we should set the blockEndedOnTheEdge flag to true
+                    # then check this flag in the next operation
+                    if blocks[blockIdx][1] == nextOpStartContig - 1 and includePostIndel:
+                        blockEndedOnTheEdgeOfOperation = True
+                        break # break here to go to the next cigar and check if it's deletion
+                    else:
+                        if includeEndingIndel:
+                            projection.update(projectionStartPos, projectionEndPos,
+                                              projectableStartPos, projectableEndPos,
+                                              blocks[blockIdx][2], diff, projectionCigar)
+                        projectionCigar = []
+                        # go to the next block
+                        blockIdx += 1
+                        continue
+                # There is a block that ends in an insertion
+                ###
+                # REF:  AAAAAAA---------AAAAAAAA
+                # ASM:  AAAAAAAAAAAAAAAAAAAAAAAA
+                #              |||||
+                # BLK:     [   ****]
+                ###
+                # (Note that the ending inserted part was not projected in v0.3.2)
+                # The end position of the projection block will be one base before where the insertion starts
                 # Note that one base before the insertion is absolutely an M
                 projectionEndPos = currOpStartRef - 1
-                projectableEndPos = currOpStartContig - 1
-                info = blocks[blockIdx][2]
-                r = diff/ (projectionEndPos - projectionStartPos + 1) * 100
-                projectionBlocks.append((projectionStartPos, projectionEndPos, info, r))
-                if orientation == '+':
-                    projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
-                else:
-                    reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
-                    projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
+                projectableEndPos = blocks[blockIdx][1] if includeEndingIndel else currOpStartContig - 1
+                # append the overlapped operation if overlapSize was positive
+                # (or if equivalently includeEndingIndel was true)
+                overlapOpSize = projectableEndPos - currOpStartContig + 1
+                if overlapOpSize > 0: projectionCigar.append((cigarOp, overlapOpSize))
+                diff += overlapOpSize
+                projection.update(projectionStartPos, projectionEndPos,
+                                  projectableStartPos, projectableEndPos,
+                                  blocks[blockIdx][2], diff, projectionCigar)
+                projectionCigar = []
                 diff = 0
                 blockIdx += 1
             if blockIdx >= len(blocks):
@@ -260,15 +397,53 @@ def findProjections(mode, cigarList, forwardBlocks,
             # If the last block starts with insertion but is not completely an insertion,
             # the initial inserted part is not projectable onto the reference so we start 
             # from the next operation (which should be an M)
+            ###
+            # REF:  AAAAAAA---------AAAAAAAA
+            # ASM:  AAAAAAAAAAAAAAAAAAAAAAAA
+            #                   ||||
+            # BLK:              [***    ]
+            ###
             if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig):
                 projectionStartPos = currOpStartRef
-                projectableStartPos = nextOpStartContig
-        # Case 3: Deletion
+                projectableStartPos = blocks[blockIdx][0] if includeEndingIndel else nextOpStartContig
+                # append the overlapped operation if overlapSize was positive
+                # (or if equivalently includeEndingIndel was true)
+                overlapOpSize = (nextOpStartContig - 1) - projectableStartPos + 1
+                if overlapOpSize > 0: projectionCigar.append((cigarOp, overlapOpSize))
+                diff += overlapOpSize
+
+        ####################################
+        ####### Case 2: Deletion ###########
+        ####################################
         elif cigarOp == 'D':
             # if deletion is completely within the block
+            ###
+            # REF:  AAAAAAAAAAAAAAAAA
+            # ASM:  AAAAAA----AAAAAAA
+            #             ||||
+            # BLK:   [    ****   ]
+            ###
             if blocks[blockIdx][0] < nextOpStartContig and nextOpStartContig <= blocks[blockIdx][1]:
+                # append the whole deletion
+                projectionCigar.append((cigarOp, cigarSize))
                 diff += cigarSize
+            # if the block ended exactly one base before the deletion
+            ###
+            # REF:  AAAAAAAAAAAAAAAAA
+            # ASM:  AAAAAA----AAAAAAA
+            #             ||||
+            # BLK:   [   ]****
+            ###
+            elif blockEndedOnTheEdgeOfOperation:
+                # append the whole deletion
+                projectionCigar.append((cigarOp, cigarSize))
+                diff += cigarSize
+                projection.update(projectionStartPos, projectionEndPos,
+                                  projectableStartPos, projectableEndPos,
+                                  blocks[blockIdx][2], diff, projectionCigar)
+                blockEndedOnTheEdgeOfOperation = False
             nextOpStartRef += cigarSize
+
     # Note that nextOpStart(Contig | Ref) are not pointing to any cigar operation at this moment
     # since iterating over the cigar elements has finished. Those variables are now pointing to one base
     # after the end of the last cigar operation.
@@ -276,15 +451,11 @@ def findProjections(mode, cigarList, forwardBlocks,
     if (blockIdx < len(blocks)) and (blocks[blockIdx][0] < nextOpStartContig):
         projectionEndPos = nextOpStartRef - 1
         projectableEndPos = nextOpStartContig - 1
-        info = blocks[blockIdx][2]
-        r = diff/ (projectionEndPos - projectionStartPos + 1) * 100
-        projectionBlocks.append((projectionStartPos, projectionEndPos, info, r))
-        if orientation == '+':
-            projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
-        else:
-            reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), contigLength)
-            projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
-    return projectableBlocks, projectionBlocks
+        projection.update(projectionStartPos, projectionEndPos,
+                          projectableStartPos, projectableEndPos,
+                          blocks[blockIdx][2], diff, projectionCigar)
+
+    return projection.projectableBlocks, projection.projectionBlocks, projection.projectionCigarList
                 
 
 def iterateCS(cs_str):

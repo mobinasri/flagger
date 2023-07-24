@@ -7,7 +7,7 @@ from multiprocessing import Pool
 
 def runProjection(line, mode, blocks):
     # Extract the alignment attributes like the contig name, alignment boundaries, orientation and cigar 
-    alignment = Alignment(line);
+    alignment = Alignment(line)
     chromName = alignment.chromName
     contigName = alignment.contigName
     if alignment.isPrimary == False:
@@ -18,25 +18,29 @@ def runProjection(line, mode, blocks):
         if len(blocks[contigName]) == 0: # Continue if there is no block in the contig
             return [chromName, contigName, [], []]
                 #print(blocks[contigName], contigStart, contigEnd, chrom, chromStart, chromEnd)
-        qBlocks, rBlocks = findProjections(mode,
+        qBlocks, rBlocks, _ = findProjections(mode,
                                             alignment.cigarList,
                                             blocks[contigName],
                                             alignment.chromLength,
                                             alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
                                             alignment.contigLength,
                                             alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
-                                            alignment.orientation)
+                                            alignment.orientation,
+                                            False,
+                                            False)
     else:
         if len(blocks[chromName]) == 0: # Continue if there is no block in the chrom
             return [chromName, contigName, [], []]
-        qBlocks, rBlocks = findProjections(mode,
+        qBlocks, rBlocks, _ = findProjections(mode,
                                             alignment.cigarList,
                                             blocks[chromName],
                                             alignment.chromLength,
                                             alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
                                             alignment.contigLength,
                                             alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
-                                            alignment.orientation)
+                                            alignment.orientation,
+                                            False,
+                                            False)
     return [chromName, contigName, qBlocks, rBlocks]
 
 def runProjectionParallel(pafPath, mode, blocks, threads):
@@ -126,7 +130,9 @@ def main():
             else:
                 ctgRef = contigName
                 ctgQuery = chromName
-            for rBlock in rBlocks:
+            for rBlock, qBlock in zip(rBlocks, qBlocks):
+                # Skip if there is no valid projection
+                if rBlock[0] == None or qBlock[0] == None: continue
                 if flagger:
                     rBlock[2][3] = str(rBlock[0] - 1)
                     rBlock[2][4] = str(rBlock[1])
@@ -134,7 +140,6 @@ def main():
                     fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], rBlock[3], "\t".join(rBlock[2])))
                 else:
                     fRef.write("{}\t{}\t{}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
-            for qBlock in qBlocks:
                 if flagger: 
                     qBlock[2][3] = str(qBlock[0] - 1)
                     qBlock[2][4] = str(qBlock[1])
