@@ -137,7 +137,7 @@ def main():
             contigName = res[1]
             qBlocks = res[2]
             rBlocks = res[3]
-            cigarString = makeCigarString(res[4]) if printCigar else ""
+            cigarList = res[4]
 
 
             if mode == "asm2ref":
@@ -146,7 +146,8 @@ def main():
             else:
                 ctgRef = contigName
                 ctgQuery = chromName
-            for rBlock, qBlock in zip(rBlocks, qBlocks):
+            for rBlock, qBlock, cigar in zip(rBlocks, qBlocks, cigarList):
+                cigarString = makeCigarString(cigar)
                 # Skip if there is no valid projection
                 if rBlock[0] == None or qBlock[0] == None: continue
                 if flagger:
