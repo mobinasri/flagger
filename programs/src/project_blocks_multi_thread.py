@@ -166,8 +166,8 @@ def main():
                     fQuery.write("{}\t{}\t{}\t{}".format(ctgQuery, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
 
                 if printCigar:
-                    fQuery.write("\t{}",cigarString)
-                    fRef.write("\t{}",cigarString)
+                    fQuery.write("\t{}".format(cigarString))
+                    fRef.write("\t{}".format(cigarString))
                 fQuery.write("\n")
                 fRef.write("\n")
 
