@@ -6,7 +6,7 @@ from block_utils import findProjections, Alignment
 from multiprocessing import Pool
 
 def makeCigarString(cigarList):
-    cigarFlattened = ["".join(op,length) for op,length in cigarList]
+    cigarFlattened = ["".join(op) for op in cigarList]
     return "".join(cigarFlattened)
 
 def runProjection(line, mode, blocks, includeEndingIndel, includePostIndel):
