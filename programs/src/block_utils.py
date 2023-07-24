@@ -120,7 +120,7 @@ class Projection:
         else:
             reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), self.contigLength)
             self.projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
-            self.projectionCigarList.insert(0, projectionCigar)
+            self.projectionCigarList.append(projectionCigar[::-1])
 
 def findProjections(mode, cigarList, forwardBlocks, 
                     chromLength, chromStart, chromEnd, 
