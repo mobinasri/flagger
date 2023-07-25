@@ -171,5 +171,5 @@ def main():
                 fQuery.write("\n")
                 fRef.write("\n")
 
-main()
+if __name__ == "__main__": main()
 
