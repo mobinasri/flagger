@@ -34,7 +34,7 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(qBlocks[i][1], projectableBlocks[i][1], "Incorrect projectable end position")
             self.assertEqual(rBlocks[i][0], projectionBlocks[i][0], "Incorrect projection start position")
             self.assertEqual(rBlocks[i][1], projectionBlocks[i][1], "Incorrect projection end position")
-            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]))
+            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
 
     def testPositiveAsm2RefIncludeEndingIndel(self):
         alignment = self.alignmentPositive
@@ -60,7 +60,7 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(qBlocks[i][1], projectableBlocks[i][1], "Incorrect projectable end position")
             self.assertEqual(rBlocks[i][0], projectionBlocks[i][0], "Incorrect projection start position")
             self.assertEqual(rBlocks[i][1], projectionBlocks[i][1], "Incorrect projection end position")
-            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]))
+            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
 
     def testPositiveAsm2RefIncludeEndingAndPostIndel(self):
         alignment = self.alignmentPositive
@@ -86,7 +86,7 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(qBlocks[i][1], projectableBlocks[i][1], "Incorrect projectable end position")
             self.assertEqual(rBlocks[i][0], projectionBlocks[i][0], "Incorrect projection start position")
             self.assertEqual(rBlocks[i][1], projectionBlocks[i][1], "Incorrect projection end position")
-            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]))
+            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
 
     def testPositiveRef2Asm(self):
         alignment = self.alignmentPositive
@@ -112,6 +112,32 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(qBlocks[i][1], projectableBlocks[i][1], "Incorrect projectable end position")
             self.assertEqual(rBlocks[i][0], projectionBlocks[i][0], "Incorrect projection start position")
             self.assertEqual(rBlocks[i][1], projectionBlocks[i][1], "Incorrect projection end position")
-            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]))
+            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
+
+    def testPositiveRef2AsmInclude(self):
+        alignment = self.alignmentPositive
+        mode = "ref2asm"
+        includeEndingIndel = False
+        includePostIndel = False
+        # block start and end are 1-based
+        blocks = [(11, 16, "NA"), (29, 31, "NA"), (32, 35, "NA")]
+        projectionBlocks = [(101, 108), (111, 113), (124,125)]
+        projectableBlocks = [(11, 16), (29, 31), (32, 33)]
+        cigarListTruth = ["4=1X2I1=", "1X2=", "1X1="]
+        qBlocks, rBlocks, cigarList = findProjections(mode,
+                                                      alignment.cigarList,
+                                                      blocks,
+                                                      alignment.chromLength,
+                                                      alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
+                                                      alignment.contigLength,
+                                                      alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
+                                                      alignment.orientation,
+                                                      includeEndingIndel, includePostIndel)
+        for i in range(3):
+            self.assertEqual(qBlocks[i][0], projectableBlocks[i][0], "Incorrect projectable start position")
+            self.assertEqual(qBlocks[i][1], projectableBlocks[i][1], "Incorrect projectable end position")
+            self.assertEqual(rBlocks[i][0], projectionBlocks[i][0], "Incorrect projection start position")
+            self.assertEqual(rBlocks[i][1], projectionBlocks[i][1], "Incorrect projection end position")
+            self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
 
 unittest.main()
