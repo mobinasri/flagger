@@ -101,10 +101,11 @@ class Projection:
         A class for saving the data related to the projection of a list of blocks
     """
 
-    def __init__(self, orientation, contigLength, isCigarOriginal):
+    def __init__(self, orientation, contigLength, isCigarConverted, isCigarReversed):
         self.orientation = orientation
         self.contigLength = contigLength
-        self.isCigarOriginal = isCigarOriginal
+        self.isCigarConverted = isCigarConverted
+        self.isCigarReversed = isCigarReversed
         self.projectionBlocks = []
         self.projectableBlocks = []
         self.projectionCigarList = []
@@ -120,20 +121,21 @@ class Projection:
         else:
             reversedInterval = reverseInterval((projectableStartPos, projectableEndPos), self.contigLength)
             self.projectableBlocks.append((reversedInterval[0], reversedInterval[1], info, r))
-        if self.isCigarOriginal:
-            self.projectionCigarList.append(projectionCigar)
-        else:
-            # convert back then append
+        if self.isCigarConverted:
             convertedCigar = convertIndelsInCigar(projectionCigar)
-            self.projectionCigarList.append(convertedCigar[::-1])
+            if self.isCigarReversed:
+                self.projectionCigarList.append(convertedCigar[::-1])
+            else:
+                self.projectionCigarList.append(convertedCigar)
+        else:
+            self.projectionCigarList.append(projectionCigar)
 
 
 
 def findProjectionsInternal(mode, cigarList, forwardBlocks,
-                            chromLength, chromStart, chromEnd,
-                            contigLength, contigStart, contigEnd,
-                            orientation, includeEndingIndel, includePostIndel,
-                            isCigarOriginal):
+                    chromLength, chromStart, chromEnd,
+                    contigLength, contigStart, contigEnd,
+                    orientation, includeEndingIndel, includePostIndel, isCigarConverted, isCigarReversed):
     """
         Returns:
             * projectableBlocks: A list of tuples which contains the blocks that could be projected 
@@ -170,15 +172,15 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
         convertedCigarList = convertIndelsInCigar(cigarList)
         if orientation == '+':
             return findProjectionsInternal('asm2ref', convertedCigarList, forwardBlocks,
-                                   contigLength, contigStart, contigEnd,
-                                   chromLength, chromStart, chromEnd, 
-                                   orientation, includeEndingIndel, includePostIndel, True)
+                                           contigLength, contigStart, contigEnd,
+                                           chromLength, chromStart, chromEnd, 
+                                           orientation, includeEndingIndel, includePostIndel, True, False)
         else:
             return findProjectionsInternal('asm2ref', convertedCigarList[::-1], forwardBlocks,
-                                   contigLength, contigStart, contigEnd,
-                                   chromLength, chromStart, chromEnd,
-                                   orientation, includeEndingIndel, includePostIndel, False)
-    projection = Projection(orientation, contigLength, isCigarOriginal)
+                                           contigLength, contigStart, contigEnd,
+                                           chromLength, chromStart, chromEnd,
+                                           orientation, includeEndingIndel, includePostIndel, True, True)
+    projection = Projection(orientation, contigLength, isCigarConverted, isCigarReversed)
     blockIdx = 0
     nextOpStartRef = chromStart
     nextOpStartContig = None
@@ -472,15 +474,14 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
     return projection.projectableBlocks, projection.projectionBlocks, projection.projectionCigarList
 
 def findProjections(mode, cigarList, forwardBlocks,
-                     chromLength, chromStart, chromEnd,
-                     contigLength, contigStart, contigEnd,
-                     orientation, includeEndingIndel, includePostIndel):
-
+                    chromLength, chromStart, chromEnd,
+                    contigLength, contigStart, contigEnd,
+                    orientation, includeEndingIndel, includePostIndel):
     return findProjectionsInternal(mode, cigarList, forwardBlocks,
-                           chromLength, chromStart, chromEnd,
-                           contigLength, contigStart, contigEnd,
-                           orientation, includeEndingIndel, includePostIndel,
-                           True)
+                    chromLength, chromStart, chromEnd,
+                    contigLength, contigStart, contigEnd,
+                    orientation, includeEndingIndel, includePostIndel, False, False)
+
 
 def iterateCS(cs_str):
     pattern = re.compile(CS_PATTERN)
