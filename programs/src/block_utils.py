@@ -210,6 +210,8 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
     diff = 0
     projectionCigar = []
     blockEndedOnTheEdgeOfOperation = False
+    preCigarOp = None
+    preCigarSize = None
     # iterate over cigar elements and find the projections
     for cigarOp, cigarSize in cigarList:
         #print(cigarOp,cigarSize)
@@ -271,6 +273,11 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                 if currOpStartContig <= blocks[blockIdx][0]:
                     projectionStartPos = currOpStartRef + blocks[blockIdx][0] - currOpStartContig
                     projectableStartPos = blocks[blockIdx][0]
+                    if currOpStartContig == blocks[blockIdx][0] and \
+                        includePostIndel and \
+                        isCigarReversed and \
+                        preCigarOp == 'D':
+                        projectionStartPos = currOpStartRef - preCigarSize
                 # otherwise only the end position in withtin the operation
                 # In either case the end positions should be updated
                 ###
@@ -289,7 +296,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                 # if the current block is ending exactly at the end of this operation
                 # and we should keep the post-ending indel
                 # (to be more specific post-ending deletion in 'asm2ref' mode)
-                if blocks[blockIdx][1] == nextOpStartContig - 1 and includePostIndel:
+                if blocks[blockIdx][1] == nextOpStartContig - 1 and includePostIndel and not isCigarReversed:
                     blockEndedOnTheEdgeOfOperation = True
                     break
                 else: # otherwise we can easily finish the projection process of this block
@@ -316,6 +323,11 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                 if cigarOp == 'X': diff += overlapOpSize
                 projectionStartPos = currOpStartRef + blocks[blockIdx][0] - currOpStartContig
                 projectableStartPos = blocks[blockIdx][0]
+                if currOpStartContig == blocks[blockIdx][0] and \
+                        includePostIndel and \
+                        isCigarReversed and \
+                        preCigarOp == 'D':
+                    projectionStartPos = currOpStartRef - preCigarSize
         ####################################
         ####### Case 2: Insertion ##########
         ####################################
@@ -361,6 +373,12 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                     projectionCigar.append((cigarOp, cigarSize))
                     projectionStartPos = None
                     projectionEndPos = None
+                    if currOpStartContig == blocks[blockIdx][0] and \
+                            includePostIndel and \
+                            isCigarReversed and \
+                            preCigarOp == 'D':
+                        projectionStartPos = currOpStartRef - preCigarSize
+                        projectionEndPos = currOpStartRef - 1
                     projectableStartPos = blocks[blockIdx][0]
                     projectableEndPos = blocks[blockIdx][1]
                     diff = None # no projection so divergence not defined
@@ -368,7 +386,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                     # then we may have deletion for the next operation
                     # so we should set the blockEndedOnTheEdge flag to true
                     # then check this flag in the next operation
-                    if blocks[blockIdx][1] == nextOpStartContig - 1 and includePostIndel:
+                    if blocks[blockIdx][1] == nextOpStartContig - 1 and includePostIndel and not isCigarReversed:
                         blockEndedOnTheEdgeOfOperation = True
                         break # break here to go to the next cigar and check if it's deletion
                     else:
@@ -415,7 +433,13 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
             # BLK:              [***    ]
             ###
             if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig):
-                projectionStartPos = currOpStartRef
+                if currOpStartContig == blocks[blockIdx][0] and \
+                        includePostIndel and \
+                        isCigarReversed and \
+                        preCigarOp == 'D':
+                    projectionStartPos = currOpStartRef - preCigarSize
+                else:
+                    projectionStartPos = currOpStartRef
                 projectableStartPos = blocks[blockIdx][0] if includeEndingIndel else nextOpStartContig
                 # append the overlapped operation if overlapSize was positive
                 # (or if equivalently includeEndingIndel was true)
@@ -459,6 +483,8 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                 blockIdx += 1
                 if blockIdx >= len(blocks): break
             nextOpStartRef += cigarSize
+        preCigarOp = cigarOp
+        preCigarSize = cigarSize
 
     # Note that nextOpStart(Contig | Ref) are not pointing to any cigar operation at this moment
     # since iterating over the cigar elements has finished. Those variables are now pointing to one base
