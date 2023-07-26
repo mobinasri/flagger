@@ -278,6 +278,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                         isCigarReversed and \
                         preCigarOp == 'D':
                         projectionStartPos = currOpStartRef - preCigarSize
+                        projectionCigar.insert(0, (preCigarOp, preCigarSize))
                 # otherwise only the end position in withtin the operation
                 # In either case the end positions should be updated
                 ###
@@ -328,6 +329,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                         isCigarReversed and \
                         preCigarOp == 'D':
                     projectionStartPos = currOpStartRef - preCigarSize
+                    projectionCigar.insert(0, (preCigarOp, preCigarSize))
         ####################################
         ####### Case 2: Insertion ##########
         ####################################
@@ -379,6 +381,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                             preCigarOp == 'D':
                         projectionStartPos = currOpStartRef - preCigarSize
                         projectionEndPos = currOpStartRef - 1
+                        projectionCigar.insert(0, (preCigarOp, preCigarSize))
                     projectableStartPos = blocks[blockIdx][0]
                     projectableEndPos = blocks[blockIdx][1]
                     diff = None # no projection so divergence not defined
@@ -438,6 +441,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                         isCigarReversed and \
                         preCigarOp == 'D':
                     projectionStartPos = currOpStartRef - preCigarSize
+                    projectionCigar.insert(0, (preCigarOp, preCigarSize))
                 else:
                     projectionStartPos = currOpStartRef
                 projectableStartPos = blocks[blockIdx][0] if includeEndingIndel else nextOpStartContig
