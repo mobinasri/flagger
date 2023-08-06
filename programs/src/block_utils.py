@@ -2,6 +2,8 @@ import sys
 import argparse
 from collections import defaultdict
 import re
+from multiprocessing import Pool
+
 
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
 
@@ -696,3 +698,284 @@ def parseAssemblyIntervals(faiPath):
             contigLength = int(cols[1])
             assemblyIntervals[contigName] = [[0,contigLength]]
     return assemblyIntervals
+
+
+
+def makeCigarString(cigarList):
+    cigarFlattened = ["".join((str(opSize), op)) for op, opSize in cigarList]
+    return "".join(cigarFlattened)
+
+def runProjection(alignment, mode, blocks, includeEndingIndel, includePostIndel):
+    # Extract the alignment attributes like the contig name, alignment boundaries, orientation and cigar
+    chromName = alignment.chromName
+    contigName = alignment.contigName
+    orientation = alignment.orientation
+    if alignment.isPrimary == False:
+        return [chromName, contigName, orientation, [], []]
+    # rBlocks contains the projections and
+    # qBlocks contains the projectable blocks
+    if mode == "asm2ref":
+        if len(blocks[contigName]) == 0: # Continue if there is no block in the contig
+            return [chromName, contigName, orientation, [], []]
+            #print(blocks[contigName], contigStart, contigEnd, chrom, chromStart, chromEnd)
+        projectableBlocks, projectionBlocks, cigarList = findProjections(mode,
+                                                                         alignment.cigarList,
+                                                                         blocks[contigName],
+                                                                         alignment.chromLength,
+                                                                         alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
+                                                                         alignment.contigLength,
+                                                                         alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
+                                                                         alignment.orientation,
+                                                                         includeEndingIndel, includePostIndel)
+    else:
+        if len(blocks[chromName]) == 0: # Continue if there is no block in the chrom
+            return [chromName, contigName, orientation, [], []]
+        projectableBlocks, projectionBlocks, cigarList = findProjections(mode,
+                                                                         alignment.cigarList,
+                                                                         blocks[chromName],
+                                                                         alignment.chromLength,
+                                                                         alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
+                                                                         alignment.contigLength,
+                                                                         alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
+                                                                         alignment.orientation,
+                                                                         includeEndingIndel, includePostIndel)
+    return [chromName, contigName, orientation, projectableBlocks, projectionBlocks, cigarList]
+
+def runProjectionParallel(alignments, mode, blocks, includeEndingIndel, includePostIndel, threads):
+    pool = Pool(threads)
+    print("Started projecting")
+    results = pool.starmap(runProjection, [(alignment, mode, blocks,includeEndingIndel, includePostIndel) for alignment in alignments])
+    pool.close()
+    return results
+
+# This function is adapted from ptBlock_merge_blocks_v2() function from Secphase repo v0.4.3
+# https://github.com/mobinasri/secphase/blob/v0.4.3/programs/submodules/ptBlock/ptBlock.c
+def mergeBlocksWithOverlapCount(sortedRefBlocks):
+    blocksMergedFinalized = []
+    blocksMergedOngoing = []
+    if len(sortedRefBlocks) == 0: return blocksMergedFinalized
+
+    for b2 in sortedRefBlocks:
+        if len(blocksMergedOngoing) == 0: # Initiate bMerged for the first block
+            blocksMergedOngoing.append((b2[0], b2[1]), 1)
+            continue
+        e2 = b2[1]
+        s2 = b2[0]
+        blocksMergedTemp = blocksMergedOngoing
+        blocksMergedOngoing = []
+        for b1 in blocksMergedTemp:
+            e1 = b1[1]
+            s1 = b1[0]
+            c = b1[2]
+            #
+            # finalized:
+            #
+            #  s1       e1
+            # [**********]
+            #               [----------]
+            #                s2       e2
+            #
+            if e1 < s2 :
+                bMerged = (s1, e1, c)
+                blocksMergedFinalized.append(bMerged)
+            elif s1 <= s2:
+                #
+                # finalized:
+                #   s1       e1
+                #  [***-------]
+                #     [----------]
+                #      s2       e2
+                #
+                if s1 < s2: # && s2 <= e1
+                    bMerged = (s1, s2-1, c)
+                    blocksMergedFinalized.append(bMerged)
+
+                #
+                #  ongoing:
+                #
+                #    s1       e1                      s1        e1
+                #   [---*******]           OR        [----*****--]
+                #      [*******--]                       [*****]
+                #       s2      e2                        s2   e2
+                #
+                #
+                bMerged = (s2, min(e1, e2), c + 1)
+                blocksMergedOngoing.append(bMerged)
+                #
+                # finalized:
+                #     s1       e1
+                #    [-----*****]
+                #      [---]
+                #       s2 e2
+                #
+                if e2 < e1:
+                    bMerged = (e2 + 1, e1, c)
+                    blocksMergedOngoing.append(bMerged)
+            #
+            # ongoing:
+            #
+            #            s1       e1
+            #           [**********]
+            #       [----**********---]
+            #        s2              e2
+            #
+            elif e1 <= e2: # && s2 < s1
+                bMerged = (s1, e1, c + 1)
+                blocksMergedOngoing.append(bMerged)
+            else: # e2 < e1 && s2 < s1
+                #
+                # ongoing:
+                #
+                #            s1       e1
+                #           [******----]
+                #       [----******]
+                #        s2       e2
+                #
+                if s1 <= e2:
+                    bMerged = (s1, e2, c + 1)
+                    blocksMergedOngoing.append(bMerged)
+                #
+                # ongoing:
+                #
+                #            s1        e1
+                #           [------****]
+                #       [----------]
+                #        s2       e2
+                #
+                bMerged = (max(e2 + 1, s1), e1, c)
+                blocksMergedOngoing.append(bMerged)
+        # add the last non-overlapping block
+        #
+        # ongoing:
+        #
+        #       s1        e1
+        #      [----------]
+        #           [------****]
+        #            s2       e2
+        #
+        if max(e1 + 1, s2) <= e2:
+            bMerged = (max(e1 + 1, s2), e2, 1)
+            blocksMergedOngoing.append(bMerged)
+
+    # Add the remaining blocks
+    for b in blocksMergedOngoing:
+        bMerged = (b[0], b[1], b[2])
+        blocksMergedFinalized.append(bMerged)
+
+    return blocksMergedFinalized
+
+def mergeBlocksPerContigWithOverlapCount(sortedBlocksPerContig):
+    mergedBlocksPerContig = {}
+    for contigName, sortedBlocks in sortedBlocksPerContig.items():
+        mergedBlocksPerContig[contigName] = mergeBlocksWithOverlapCount(sortedBlocks)
+    return  mergedBlocksPerContig
+
+def getSortedBlocksPerRefContig(alignments):
+    blocksPerRefContig = defaultdict(list)
+    for alignment in alignments:
+        blocksPerRefContig[alignment.chromName].append((alignment.chromStart, alignment.chromEnd))
+
+    for contig in blocksPerRefContig:
+        sort(blocksPerRefContig[contig])
+
+    return blocksPerRefContig
+
+def getSortedBlocksPerQueryContig(alignments):
+    blocksPerQueryContig = defaultdict(list)
+    for alignment in alignments:
+        blocksPerQueryContig[alignment.contigName].append((alignment.contigStart, alignment.contigEnd))
+
+    for contig in blocksPerQueryContig:
+        sort(blocksPerQueryContig[contig])
+
+    return blocksPerQueryContig
+
+def getBlocksWithSingleAlignmentPerRefContig(alignments):
+    sortedBlocksPerRefContig = getSortedBlocksPerRefContig(alignments)
+    mergedBlocksPerRefContig = mergeBlocksPerContigWithOverlapCount(sortedBlocksPerRefContig)
+
+    blocksWithSingleAlignmentPerRefContig = defaultdict(list)
+    for refContig, mergedBlocks in mergedBlocksPerRefContig.items():
+        for start, end, count in mergedBlocks:
+            if count  == 1:
+                blocksWithSingleAlignmentPerRefContig[refContig].append((start, end, None))
+    return blocksWithSingleAlignmentPerRefContig
+
+def getBlocksWithSingleAlignmentPerQueryContig(alignments):
+    sortedBlocksPerQueryContig = getSortedBlocksPerQueryContig(alignments)
+    mergedBlocksPerQueryContig = mergeBlocksPerContigWithOverlapCount(sortedBlocksPerQueryContig)
+
+    blocksWithSingleAlignmentPerQueryContig = defaultdict(list)
+    for queryContig, mergedBlocks in mergedBlocksPerQueryContig.items():
+        for start, end, count in mergedBlocks:
+            if count  == 1:
+                blocksWithSingleAlignmentPerQueryContig[queryContig].append((start, end, None))
+    return blocksWithSingleAlignmentPerQueryContig
+
+def subsetAlignmentsToRefBlocks(alignments, blocksPerRefContig):
+    threads = 8
+    results = runProjectionParallel(alignments, 'ref2asm', blocksPerRefContig, False, False, threads)
+
+    contigLengths = {}
+    for alignment in alignments:
+        contigLengths[alignment.chromName] = alignment.chromLength
+        contigLengths[alignment.contigName] = alignment.contigLength
+
+    subsetAlignments = []
+    for res in results:
+        rContig = res[0]
+        qContig = res[1]
+        orientation = res[2]
+        projectableBlocks = res[3]
+        projectionBlocks = res[4]
+        cigarList = res[5]
+        if len(projectionBlocks) == 0 or len(projectableBlocks) == 0:
+            continue
+        # projection blocks are in query coordinates
+        # projectable blocks are in ref coordinates
+        for rBlock, qBlock, cigar in zip(projectableBlocks, projectionBlocks, cigarList):
+            # make a paf line
+            pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[0]}"
+            pafLine += f"\t{orientation}"
+            pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[0]}"
+            pafLine += "\ttp:A:P" # it is assumed that only primary alignments are used
+            pafLine += f"\tcg:Z:{makeCigarString(cigar)}"
+
+            # make a new alignment based on the current projection
+            alignment = Alignment(pafLine)
+            subsetAlignments.append(alignment)
+    return  subsetAlignments
+
+def subsetAlignmentsToQueryBlocks(alignments, blocksPerQueryContig):
+    threads = 8
+    results = runProjectionParallel(alignments, 'asm2ref', blocksPerQueryContig, False, False, threads)
+
+    contigLengths = {}
+    for alignment in alignments:
+        contigLengths[alignment.chromName] = alignment.chromLength
+        contigLengths[alignment.contigName] = alignment.contigLength
+
+    subsetAlignments = []
+    for res in results:
+        rContig = res[0]
+        qContig = res[1]
+        orientation = res[2]
+        projectableBlocks = res[3]
+        projectionBlocks = res[4]
+        cigarList = res[5]
+        if len(projectionBlocks) == 0 or len(projectableBlocks) == 0:
+            continue
+        # projectable blocks are in query coordinates
+        # projection blocks are in ref coordinates
+        for qBlock, rBlock, cigar in zip(projectableBlocks, projectionBlocks, cigarList):
+            # make a paf line
+            pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[0]}"
+            pafLine += f"\t{orientation}"
+            pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[0]}"
+            pafLine += "\ttp:A:P" # it is assumed that only primary alignments are used
+            pafLine += f"\tcg:Z:{makeCigarString(cigar)}"
+
+            # make a new alignment based on the current projection
+            alignment = Alignment(pafLine)
+            subsetAlignments.append(alignment)
+    return  subsetAlignments
