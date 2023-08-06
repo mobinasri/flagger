@@ -170,7 +170,6 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(rBlocks[i][1], projectionBlocks[i][1], "Incorrect projection end position")
             self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
 
-<<<<<<< HEAD
 
     def testNegativeAsm2Ref(self):
         alignment = self.alignmentNegative
