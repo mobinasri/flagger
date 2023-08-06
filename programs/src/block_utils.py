@@ -876,7 +876,7 @@ def getSortedBlocksPerRefContig(alignments):
         blocksPerRefContig[alignment.chromName].append((alignment.chromStart, alignment.chromEnd))
 
     for contig in blocksPerRefContig:
-        sort(blocksPerRefContig[contig])
+        blocksPerRefContig[contig].sort()
 
     return blocksPerRefContig
 
@@ -886,7 +886,7 @@ def getSortedBlocksPerQueryContig(alignments):
         blocksPerQueryContig[alignment.contigName].append((alignment.contigStart, alignment.contigEnd))
 
     for contig in blocksPerQueryContig:
-        sort(blocksPerQueryContig[contig])
+        blocksPerQueryContig[contig].sort()
 
     return blocksPerQueryContig
 
