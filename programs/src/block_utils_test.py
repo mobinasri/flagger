@@ -1,4 +1,4 @@
-from block_utils import findProjections, Alignment
+from block_utils import *
 import unittest
 from project_blocks_multi_thread import makeCigarString
 
@@ -8,10 +8,11 @@ class TestProjection(unittest.TestCase):
         """Define two alignments one in positive orientation and one in negative"""
         self.alignmentPositive = Alignment("ctg\t350\t100\t150\t+\tref\t158\t10\t58\t27\t48\t60\tcg:Z:4=1X2I2=1X10D1X2=10I1X1=5D5=1X4=5I3=1X6=\ttp:A:P")
         self.alignmentNegative = Alignment("ctg\t350\t200\t250\t-\tref\t158\t10\t58\t27\t48\t60\tcg:Z:4=1X2I2=1X10D1X2=10I1X1=5D5=1X4=5I3=1X6=\ttp:A:P")
+        self.alignmentOverlapping1 = Alignment("ctg1\t14\t0\t10\t-\tctg2\t10\t0\t10\t8\t10\t60\tcg:Z:3=1X2I1=2D1=1X1=\ttp:A:P")
+        self.alignmentOverlapping2 = Alignment("ctg1\t14\t10\t13\t+\tctg3\t5\t0\t5\t3\t3\t60\tcg:Z:1=2I1X1=\ttp:A:P")
+        self.alignmentOverlapping3 = Alignment("ctg1\t14\t4\t12\t+\tctg4\t5\t0\t5\t3\t5\t60\tcg:Z:4=3D1X\ttp:A:P")
+        self.alignmentsOverlapping = [self.alignmentOverlapping1, self.alignmentOverlapping2, self.alignmentOverlapping3]
         print(f"Tests:")
-
-    #def setUp(self):
-    #    print(f"\t- {self._testMethodName}")
 
     def testPositiveAsm2Ref(self):
         alignment = self.alignmentPositive
@@ -169,6 +170,7 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(rBlocks[i][1], projectionBlocks[i][1], "Incorrect projection end position")
             self.assertEqual(cigarListTruth[i], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
 
+<<<<<<< HEAD
 
     def testNegativeAsm2Ref(self):
         alignment = self.alignmentNegative
@@ -279,9 +281,30 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(rBlocks[j][1], projectionBlocks[i][1], "Incorrect projection end position")
             self.assertEqual(cigarListTruth[j], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
 
+    def testRefUniqueAlignments(self):
+        alignments = self.alignmentsOverlapping
+        refUniqueBlocksPerContig = getBlocksWithSingleAlignmentPerRefContig(alignments)
+        alignmentsOutput = subsetAlignmentsToRefBlocks(alignments, refUniqueBlocksPerContig)
+
+        refUniqueAlignment1 = Alignment("ctg1\t14\t0\t4\t-\tctg2\t10\t6\t10\t4\t4\t60\tcg:Z:3=1X\ttp:A:P")
+        refUniqueAlignment2 = Alignment("ctg1\t14\t12\t13\t+\tctg3\t5\t4\t5\t1\t1\t60\tcg:Z:1=\ttp:A:P")
+        refUniqueAlignments = [refUniqueAlignment1, refUniqueAlignment2]
+
+        self.assertCountEqual(refUniqueAlignments, alignmentsOutput, "Incorrect length of total alignments")
+        for i in range(len(alignmentsOutput)):
+            a = alignmentsOutput[i]
+            t = refUniqueAlignments[i]
+            self.assertEqual(t.chromLength, a.chromLength, "Incorrect chrom length")
+            self.assertEqual(t.chromStart, a.chromStart, "Incorrect chrom start")
+            self.assertEqual(t.chromEnd, a.chromEnd, "Incorrect chrom end")
+            self.assertEqual(t.contigLength, a.contigLength, "Incorrect contig length")
+            self.assertEqual(t.contigStart, a.contigStart, "Incorrect contig start")
+            self.assertEqual(t.contigEnd, a.contigEnd, "Incorrect contig end")
+            self.assertListEqual(t.cigarList, a.cigarList, "Incorrect CIGAR")
 
 def main():
     unittest.main(verbosity=2)
 
 if __name__ == '__main__':
     main()
+
