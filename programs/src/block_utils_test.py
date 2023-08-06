@@ -8,9 +8,9 @@ class TestProjection(unittest.TestCase):
         """Define two alignments one in positive orientation and one in negative"""
         self.alignmentPositive = Alignment("ctg\t350\t100\t150\t+\tref\t158\t10\t58\t27\t48\t60\tcg:Z:4=1X2I2=1X10D1X2=10I1X1=5D5=1X4=5I3=1X6=\ttp:A:P")
         self.alignmentNegative = Alignment("ctg\t350\t200\t250\t-\tref\t158\t10\t58\t27\t48\t60\tcg:Z:4=1X2I2=1X10D1X2=10I1X1=5D5=1X4=5I3=1X6=\ttp:A:P")
-        self.alignmentOverlapping1 = Alignment("ctg1\t14\t0\t10\t-\tctg2\t10\t0\t10\t8\t10\t60\tcg:Z:3=1X2I1=2D1=1X1=\ttp:A:P")
-        self.alignmentOverlapping2 = Alignment("ctg1\t14\t10\t13\t+\tctg3\t5\t0\t5\t3\t3\t60\tcg:Z:1=2I1X1=\ttp:A:P")
-        self.alignmentOverlapping3 = Alignment("ctg1\t14\t4\t12\t+\tctg4\t5\t0\t5\t3\t5\t60\tcg:Z:4=3D1X\ttp:A:P")
+        self.alignmentOverlapping1 = Alignment("ctg2\t10\t0\t10\t-\tctg1\t14\t0\t10\t8\t10\t60\tcg:Z:3=1X2I1=2D1=1X1=\ttp:A:P")
+        self.alignmentOverlapping2 = Alignment("ctg3\t5\t0\t5\t+\tctg1\t14\t10\t13\t3\t3\t60\tcg:Z:1=2I1X1=\ttp:A:P")
+        self.alignmentOverlapping3 = Alignment("ctg2\t10\t3\t8\t+\tctg1\t14\t4\t12\t3\t5\t60\tcg:Z:4=3D1X\ttp:A:P")
         self.alignmentsOverlapping = [self.alignmentOverlapping1, self.alignmentOverlapping2, self.alignmentOverlapping3]
         print(f"Tests:")
 
@@ -280,16 +280,39 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(rBlocks[j][1], projectionBlocks[i][1], "Incorrect projection end position")
             self.assertEqual(cigarListTruth[j], makeCigarString(cigarList[i]), "Incorrect CIGAR string")
 
+    def testCountAlignmentOverlapsRef(self):
+        alignments = self.alignmentsOverlapping
+        sortedBlocksPerRefContig = getSortedBlocksPerRefContig(alignments)
+        mergedBlocksOutput = mergeBlocksPerContigWithOverlapCount(sortedBlocksPerRefContig)
+
+        mergedBlocksPerRefContig = {"ctg1": [ (1, 4, 1), (5, 10, 2), (11, 12, 2), (13, 13, 1)] }
+ 
+        self.assertListEqual(list(mergedBlocksPerRefContig.keys()), list(mergedBlocksOutput.keys()), "Incorrect contig names")
+        self.assertEqual(len(mergedBlocksPerRefContig["ctg1"]), len(mergedBlocksOutput["ctg1"]), "Incorrect blocks length")
+
+        for i in range(len(mergedBlocksPerRefContig["ctg1"])):
+            truthBlock = mergedBlocksPerRefContig["ctg1"][i]
+            outputBlock = mergedBlocksOutput["ctg1"][i]
+            self.assertEqual(truthBlock[0], outputBlock[0], "Incorrect start position")
+            self.assertEqual(truthBlock[1], outputBlock[1], "Incorrect end position")
+            
+
+    #@unittest.SkipTest
     def testRefUniqueAlignments(self):
         alignments = self.alignmentsOverlapping
-        refUniqueBlocksPerContig = getBlocksWithSingleAlignmentPerRefContig(alignments)
-        alignmentsOutput = subsetAlignmentsToRefBlocks(alignments, refUniqueBlocksPerContig)
+        uniqueBlocksPerRefContig = getBlocksWithSingleAlignmentPerRefContig(alignments)
+        alignmentsOutput = subsetAlignmentsToRefBlocks(alignments, uniqueBlocksPerRefContig)
 
-        refUniqueAlignment1 = Alignment("ctg1\t14\t0\t4\t-\tctg2\t10\t6\t10\t4\t4\t60\tcg:Z:3=1X\ttp:A:P")
-        refUniqueAlignment2 = Alignment("ctg1\t14\t12\t13\t+\tctg3\t5\t4\t5\t1\t1\t60\tcg:Z:1=\ttp:A:P")
+        refUniqueAlignment1 = Alignment("ctg2\t10\t6\t10\t-\tctg1\t14\t0\t4\t4\t4\t60\tcg:Z:3=1X\ttp:A:P")
+        refUniqueAlignment2 = Alignment("ctg3\t5\t4\t5\t+\tctg1\t14\t12\t13\t1\t1\t60\tcg:Z:1=\ttp:A:P")
         refUniqueAlignments = [refUniqueAlignment1, refUniqueAlignment2]
 
-        self.assertCountEqual(refUniqueAlignments, alignmentsOutput, "Incorrect length of total alignments")
+        #print(alignmentsOutput[0].cigarList, alignmentsOutput[0].contigStart, alignmentsOutput[0].contigEnd)
+        #print(alignmentsOutput[1].cigarList, alignmentsOutput[1].contigStart, alignmentsOutput[1].contigEnd)
+
+        #print(alignmentsOutput[2].cigarList)
+
+        self.assertEqual(len(refUniqueAlignments), len(alignmentsOutput), "Incorrect length of total alignments")
         for i in range(len(alignmentsOutput)):
             a = alignmentsOutput[i]
             t = refUniqueAlignments[i]
@@ -299,7 +322,60 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(t.contigLength, a.contigLength, "Incorrect contig length")
             self.assertEqual(t.contigStart, a.contigStart, "Incorrect contig start")
             self.assertEqual(t.contigEnd, a.contigEnd, "Incorrect contig end")
+            self.assertEqual(t.orientation, a.orientation, "Incorrect orientation")
             self.assertListEqual(t.cigarList, a.cigarList, "Incorrect CIGAR")
+
+    def testQueryUniqueAlignments(self):
+        alignments = self.alignmentsOverlapping
+        uniqueBlocksPerQueryContig = getBlocksWithSingleAlignmentPerQueryContig(alignments)
+        alignmentsOutput = subsetAlignmentsToQueryBlocks(alignments, uniqueBlocksPerQueryContig)
+
+        queryUniqueAlignment1 = Alignment("ctg2\t10\t8\t10\t-\tctg1\t14\t0\t2\t2\t2\t60\tcg:Z:2=\ttp:A:P")
+        queryUniqueAlignment2 = Alignment("ctg2\t10\t0\t3\t-\tctg1\t14\t7\t10\t1\t1\t60\tcg:Z:1=1X1=\ttp:A:P")
+        queryUniqueAlignment3 = Alignment("ctg3\t5\t0\t5\t+\tctg1\t14\t10\t13\t3\t3\t60\tcg:Z:1=2I1X1=\ttp:A:P")
+        queryUniqueAlignments = [queryUniqueAlignment1, queryUniqueAlignment2, queryUniqueAlignment3]
+
+
+        self.assertEqual(len(queryUniqueAlignments), len(alignmentsOutput), "Incorrect length of total alignments")
+        for i in range(len(alignmentsOutput)):
+            a = alignmentsOutput[i]
+            t = queryUniqueAlignments[i]
+            self.assertEqual(t.chromLength, a.chromLength, "Incorrect chrom length")
+            self.assertEqual(t.chromStart, a.chromStart, "Incorrect chrom start")
+            self.assertEqual(t.chromEnd, a.chromEnd, "Incorrect chrom end")
+            self.assertEqual(t.contigLength, a.contigLength, "Incorrect contig length")
+            self.assertEqual(t.contigStart, a.contigStart, "Incorrect contig start")
+            self.assertEqual(t.contigEnd, a.contigEnd, "Incorrect contig end")
+            self.assertEqual(t.orientation, a.orientation, "Incorrect orientation")
+            self.assertListEqual(t.cigarList, a.cigarList, "Incorrect CIGAR")
+
+    def testTwoWayUniqueAlignments(self):
+        alignments = self.alignmentsOverlapping
+        uniqueBlocksPerQueryContig = getBlocksWithSingleAlignmentPerQueryContig(alignments)
+        uniqueBlocksPerRefContig = getBlocksWithSingleAlignmentPerRefContig(alignments)
+        refUniqueAlignments = subsetAlignmentsToRefBlocks(alignments, uniqueBlocksPerRefContig)
+        alignmentsOutput = subsetAlignmentsToQueryBlocks(refUniqueAlignments, uniqueBlocksPerQueryContig)
+
+
+
+        twoWayUniqueAlignment1 = Alignment("ctg2\t10\t8\t10\t-\tctg1\t14\t0\t2\t2\t2\t60\tcg:Z:2=\ttp:A:P")
+        twoWayUniqueAlignment2 = Alignment("ctg3\t5\t4\t5\t+\tctg1\t14\t12\t13\t1\t1\t60\tcg:Z:1=\ttp:A:P")
+        twoWayUniqueAlignments = [twoWayUniqueAlignment1, twoWayUniqueAlignment2]
+
+
+        self.assertEqual(len(twoWayUniqueAlignments), len(alignmentsOutput), "Incorrect length of total alignments")
+        for i in range(len(alignmentsOutput)):
+            a = alignmentsOutput[i]
+            t = twoWayUniqueAlignments[i]
+            self.assertEqual(t.chromLength, a.chromLength, "Incorrect chrom length")
+            self.assertEqual(t.chromStart, a.chromStart, "Incorrect chrom start")
+            self.assertEqual(t.chromEnd, a.chromEnd, "Incorrect chrom end")
+            self.assertEqual(t.contigLength, a.contigLength, "Incorrect contig length")
+            self.assertEqual(t.contigStart, a.contigStart, "Incorrect contig start")
+            self.assertEqual(t.contigEnd, a.contigEnd, "Incorrect contig end")
+            self.assertEqual(t.orientation, a.orientation, "Incorrect orientation")
+            self.assertListEqual(t.cigarList, a.cigarList, "Incorrect CIGAR")
+
 
 def main():
     unittest.main(verbosity=2)

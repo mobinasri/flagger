@@ -743,7 +743,7 @@ def runProjection(alignment, mode, blocks, includeEndingIndel, includePostIndel)
 
 def runProjectionParallel(alignments, mode, blocks, includeEndingIndel, includePostIndel, threads):
     pool = Pool(threads)
-    print("Started projecting")
+    #print("Started projecting")
     results = pool.starmap(runProjection, [(alignment, mode, blocks,includeEndingIndel, includePostIndel) for alignment in alignments])
     pool.close()
     return results
@@ -757,7 +757,7 @@ def mergeBlocksWithOverlapCount(sortedRefBlocks):
 
     for b2 in sortedRefBlocks:
         if len(blocksMergedOngoing) == 0: # Initiate bMerged for the first block
-            blocksMergedOngoing.append((b2[0], b2[1]), 1)
+            blocksMergedOngoing.append((b2[0], b2[1], 1))
             continue
         e2 = b2[1]
         s2 = b2[0]
@@ -873,7 +873,8 @@ def mergeBlocksPerContigWithOverlapCount(sortedBlocksPerContig):
 def getSortedBlocksPerRefContig(alignments):
     blocksPerRefContig = defaultdict(list)
     for alignment in alignments:
-        blocksPerRefContig[alignment.chromName].append((alignment.chromStart, alignment.chromEnd))
+        # make coors 1-based
+        blocksPerRefContig[alignment.chromName].append((alignment.chromStart + 1, alignment.chromEnd))
 
     for contig in blocksPerRefContig:
         blocksPerRefContig[contig].sort()
@@ -883,7 +884,8 @@ def getSortedBlocksPerRefContig(alignments):
 def getSortedBlocksPerQueryContig(alignments):
     blocksPerQueryContig = defaultdict(list)
     for alignment in alignments:
-        blocksPerQueryContig[alignment.contigName].append((alignment.contigStart, alignment.contigEnd))
+        # make coors 1-based
+        blocksPerQueryContig[alignment.contigName].append((alignment.contigStart + 1, alignment.contigEnd))
 
     for contig in blocksPerQueryContig:
         blocksPerQueryContig[contig].sort()
@@ -935,15 +937,16 @@ def subsetAlignmentsToRefBlocks(alignments, blocksPerRefContig):
         # projectable blocks are in ref coordinates
         for rBlock, qBlock, cigar in zip(projectableBlocks, projectionBlocks, cigarList):
             # make a paf line
-            pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[0]}"
+            pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[1]}"
             pafLine += f"\t{orientation}"
-            pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[0]}"
+            pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[1]}"
             pafLine += "\ttp:A:P" # it is assumed that only primary alignments are used
             pafLine += f"\tcg:Z:{makeCigarString(cigar)}"
 
             # make a new alignment based on the current projection
             alignment = Alignment(pafLine)
             subsetAlignments.append(alignment)
+    subsetAlignments.sort(key = lambda x : (x.chromName, x.chromStart, x.chromEnd, x.contigName, x.contigStart, x.contigEnd))
     return  subsetAlignments
 
 def subsetAlignmentsToQueryBlocks(alignments, blocksPerQueryContig):
@@ -969,13 +972,14 @@ def subsetAlignmentsToQueryBlocks(alignments, blocksPerQueryContig):
         # projection blocks are in ref coordinates
         for qBlock, rBlock, cigar in zip(projectableBlocks, projectionBlocks, cigarList):
             # make a paf line
-            pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[0]}"
+            pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[1]}"
             pafLine += f"\t{orientation}"
-            pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[0]}"
+            pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[1]}"
             pafLine += "\ttp:A:P" # it is assumed that only primary alignments are used
             pafLine += f"\tcg:Z:{makeCigarString(cigar)}"
 
             # make a new alignment based on the current projection
             alignment = Alignment(pafLine)
             subsetAlignments.append(alignment)
+    subsetAlignments.sort(key = lambda x : (x.chromName, x.chromStart, x.chromEnd, x.contigName, x.contigStart, x.contigEnd))
     return  subsetAlignments
