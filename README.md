@@ -24,7 +24,7 @@ Here are the commands for producing the alignments (taken from the [winnowmap do
   
   # alignment with winnowmap
   winnowmap -W repetitive_k15.txt -ax [map-ont | map-pb] -Y -L --eqx --cs -I8g <(cat pat_asm.fa mat_asm.fa) reads.fq.gz | \
-    samtools view -hb > read_alignment.bam
+    samtools view -hb | samtools sort -@8 > read_alignment.bam
 ````
 Any other appropriate long read aligner can also be employed in this step.
 
