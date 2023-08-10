@@ -192,8 +192,8 @@ class HomologyRelation:
             relationFreeIntervals[query2refRelation.block.newCtg] = subtractInterval(relationFreeIntervals[query2refRelation.block.newCtg], (alignment.contigStart, alignment.contigEnd))
 
         # create void relations for the intervals without alignments
-        for ctgName, intervals in relationFreeIntervals.items():
-            for interval in intervals:
+        for ctgName in contigLengths:
+            for interval in relationFreeIntervals[ctgName + newCtgSuffix]:
                 voidRelation = HomologyRelation.createVoidRelationFromInterval(ctgName, interval[0], interval[1], newCtgSuffix)
                 relationDict[ctgName].append(voidRelation)
 
