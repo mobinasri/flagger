@@ -57,10 +57,10 @@ class HomologyRelation:
 
         projections = []
         for i in range(3):
-            projections.append([projectableBlocks[i][0] + self.alignment.chromStart - 1,
-                                projectableBlocks[i][1] + self.alignment.chromStart - 1,
-                                projectionBlocks[i][0] + self.alignment.contigStart - 1,
-                                projectionBlocks[i][1] + self.alignment.contigStart - 1,
+            projections.append([projectableBlocks[i][0] + self.block.origStart - 1,
+                                projectableBlocks[i][1] + self.block.origStart - 1,
+                                projectionBlocks[i][0] + self.homologousBlock.origStart - 1,
+                                projectionBlocks[i][1] + self.homologousBlock.origStart - 1,
                                 cigarLists[i]])
         # sort projections by start position of the ref haplotype
         projections.sort(key = lambda x : x[0])
