@@ -542,6 +542,7 @@ def intersectInterval(interval_1, interval_2):
     """
         Receives two intervals; each interval is a tuple of (start, end) and
         returns their intersection
+        Note that both start and end coors should be either 1-based or 0-based
         If there is no overlap returns None
     """
     s1 = interval_1[0]
@@ -561,7 +562,7 @@ def subtractInterval(intervals, b):
         Arguments:
             intervals: a sorted list of intervals; each interval is a tuple of (start, end)
             b: a single interval that will be subtracted from the list of intervals
-            Note that start is 0-based closed and end is 0-based open
+            Note that both start and end coors should be either 1-based or 0-based
         Returns:
             a list of new intervals in which the interval, b, is absent
     """
@@ -579,7 +580,7 @@ def subtractInterval(intervals, b):
         # [      a       ]
         # [    a - b     ]    [       b       ]
         if a[0] < b[0]:
-            newInterval = (a[0], min(a[1], b[0]))
+            newInterval = (a[0], min(a[1], b[0] - 1))
             newIntervals.append(newInterval)
             
         # Could be either of the two cases below
@@ -593,7 +594,7 @@ def subtractInterval(intervals, b):
         #                     [      a       ]
         # [       b       ]   [     a - b    ]
         if b[1] < a[1]:
-            newInterval = (max(a[0], b[1]), a[1])
+            newInterval = (max(a[0], b[1] + 1), a[1])
             newIntervals.append(newInterval)
     return newIntervals
 
