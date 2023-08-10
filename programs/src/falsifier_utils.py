@@ -170,7 +170,7 @@ class HomologyRelation:
     def createAllInclusiveRelationDictFromAlignments(alignments: list, contigLengths: dict, newCtgSuffix: str) -> list:
         relationFreeIntervals = {}
         for ctgName, ctgLen in contigLengths.items():
-            relationFreeIntervals[ctgName] = [(0, ctgLen)]
+            relationFreeIntervals[ctgName + newCtgSuffix] = [(0, ctgLen)]
         relationDict = defaultdict(list)
 
         # create two-way relations; ref2query and query2ref and add them to the dictionary
@@ -182,14 +182,14 @@ class HomologyRelation:
                                                  ref2queryRelation.block,
                                                  None,
                                                  None)
-            relationDict[alignment.chromName].append(ref2queryRelation)
-            relationDict[alignment.contigName].append(query2refRelation)
+            relationDict[ref2queryRelation.block.newCtg].append(ref2queryRelation)
+            relationDict[query2refRelation.block.newCtg].append(query2refRelation)
 
             # update relation-free intervals
             # to create void relations from them
             # after the alignments are all iterated
-            relationFreeIntervals[alignment.chromName] = subtractInterval(relationFreeIntervals[alignment.chromName], (alignment.chromStart, alignment.chromEnd))
-            relationFreeIntervals[alignment.contigName] = subtractInterval(relationFreeIntervals[alignment.contigName], (alignment.contigStart, alignment.contigEnd))
+            relationFreeIntervals[ref2queryRelation.block.newCtg] = subtractInterval(relationFreeIntervals[ref2queryRelation.block.newCtg], (alignment.chromStart, alignment.chromEnd))
+            relationFreeIntervals[query2refRelation.block.newCtg] = subtractInterval(relationFreeIntervals[query2refRelation.block.newCtg], (alignment.contigStart, alignment.contigEnd))
 
         # create void relations for the intervals without alignments
         for ctgName, intervals in relationFreeIntervals.items():
@@ -198,7 +198,7 @@ class HomologyRelation:
                 relationDict[ctgName].append(voidRelation)
 
         # sort the relations for each contig based on start coordinates
-        for ctgName in contigLengths:
+        for ctgName in relationDict:
             relationDict[ctgName].sort(key = lambda x : x.block.origStart)
             for i, relation in enumerate(relationDict[ctgName]):
                 relation.block.orderIndex = i

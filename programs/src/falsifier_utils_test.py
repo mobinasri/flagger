@@ -34,19 +34,19 @@ class TestProjection(unittest.TestCase):
         #blockAlignment2 = Alignment(f"query_ctg\t11\t0\t11\t+\tref_ctg\t10\t0\t10\t0\t0\t60\tcg:Z:3=2D1X1I1=\ttp:A:P")
 
         truthRelations = defaultdict(list)
-        truthRelations["ctg1"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
+        truthRelations["ctg1_f"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
                                HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("1=1X2I3=1D3="), '+'),
                                HomologyRelation(ctg1HomologyBlock3, None, None, None),
                                HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock4, getCigarList("3=2D1X1I1="), '-'),
                                HomologyRelation(ctg1HomologyBlock5, None, None, None)]
-        truthRelations["ctg2"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
+        truthRelations["ctg2_f"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
                               HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
                               HomologyRelation(ctg2HomologyBlock3, None, None, None),
                               HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, None, None),
                               HomologyRelation(ctg2HomologyBlock5, None, None, None)]
-        truthRelations["ctg3"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
+        truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
-        for ctgName in ["ctg1", "ctg2", "ctg3"]:
+        for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f"]:
             
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -97,7 +97,7 @@ class TestProjection(unittest.TestCase):
         ctg3HomologyBlock1 = HomologyBlock("ctg3", 1, 10, '+', "ctg3_f", 0)
 
         truthRelations = defaultdict(list)
-        truthRelations["ctg1"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
+        truthRelations["ctg1_f"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
                                   HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("1=1X2I3=1D3="), '+'),
                                   HomologyRelation(ctg1HomologyBlock3, None, None, None),
                                   HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock6, getCigarList("2="), '-'),
@@ -105,7 +105,7 @@ class TestProjection(unittest.TestCase):
                                   HomologyRelation(ctg1HomologyBlock6, ctg2HomologyBlock4, getCigarList("1D1X1I1="), '-'),
                                   HomologyRelation(ctg1HomologyBlock7, None, None, None)]
 
-        truthRelations["ctg2"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
+        truthRelations["ctg2_f"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
                                   HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
                                   HomologyRelation(ctg2HomologyBlock3, None, None, None),
                                   HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock6, None, None),
@@ -113,9 +113,9 @@ class TestProjection(unittest.TestCase):
                                   HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock4, None, None),
                                   HomologyRelation(ctg2HomologyBlock7, None, None, None)]
 
-        truthRelations["ctg3"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
+        truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
-        for ctgName in ["ctg1", "ctg2", "ctg3"]:
+        for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f"]:
 
             self.assertTrue(ctgName in relationsDict, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(relationsDict[ctgName]), "Number of relations do not match")
