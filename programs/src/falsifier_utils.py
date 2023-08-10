@@ -43,7 +43,7 @@ class HomologyRelation:
         # created haplotype switch
         assert(self.block.origStrand == '+')
         assert(self.homologousBlock.origStrand == '+')
-        forwardBlocks = [(1, switchStart + 1, ""), (switchStart, switchEnd, ""), (switchEnd + 1, self.alignment.chromLength, "")]
+        forwardBlocks = [(1, switchStart - 1, ""), (switchStart, switchEnd, ""), (switchEnd + 1, self.alignment.chromLength, "")]
         includeEndingIndel = True
         includePostIndel = True
         projectableBlocks, projectionBlocks, cigarLists = \
