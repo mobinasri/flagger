@@ -17,6 +17,9 @@ class HomologyBlock:
         self.origStrand = origStrand # ['+' or '-']: if '-' the original block should be rev-complemented
         self.newCtg = newCtg # the name of the new contig where this block is localized in
         self.orderIndex = orderIndex # relative order of the block w.r.t to the other blocks in the new contig
+        self.annotations = {}
+
+
 
 
 class HomologyRelation:
@@ -153,12 +156,12 @@ class HomologyRelation:
         homologyRelation = HomologyRelation(block, homologousBlock, alignment.cigarList, alignment.orientation)
         return  homologyRelation
 
-    # given start should be 0-based
+    # given start should be 1-based
     # given end should be 1-based
     @staticmethod
     def createVoidRelationFromInterval(ctgName: str, ctgStart: int, ctgEnd: int, newCtgSuffix: str):
         block = HomologyBlock(ctgName,
-                              ctgStart + 1,
+                              ctgStart,
                               ctgEnd,
                               '+',
                               f'{ctgName}{newCtgSuffix}',
@@ -170,7 +173,7 @@ class HomologyRelation:
     def createAllInclusiveRelationDictFromAlignments(alignments: list, contigLengths: dict, newCtgSuffix: str) -> list:
         relationFreeIntervals = {}
         for ctgName, ctgLen in contigLengths.items():
-            relationFreeIntervals[ctgName + newCtgSuffix] = [(0, ctgLen)]
+            relationFreeIntervals[ctgName + newCtgSuffix] = [(1, ctgLen)]
         relationDict = defaultdict(list)
 
         # create two-way relations; ref2query and query2ref and add them to the dictionary
@@ -188,8 +191,8 @@ class HomologyRelation:
             # update relation-free intervals
             # to create void relations from them
             # after the alignments are all iterated
-            relationFreeIntervals[ref2queryRelation.block.newCtg] = subtractInterval(relationFreeIntervals[ref2queryRelation.block.newCtg], (alignment.chromStart, alignment.chromEnd))
-            relationFreeIntervals[query2refRelation.block.newCtg] = subtractInterval(relationFreeIntervals[query2refRelation.block.newCtg], (alignment.contigStart, alignment.contigEnd))
+            relationFreeIntervals[ref2queryRelation.block.newCtg] = subtractInterval(relationFreeIntervals[ref2queryRelation.block.newCtg], (alignment.chromStart + 1, alignment.chromEnd))
+            relationFreeIntervals[query2refRelation.block.newCtg] = subtractInterval(relationFreeIntervals[query2refRelation.block.newCtg], (alignment.contigStart + 1, alignment.contigEnd))
 
         # create void relations for the intervals without alignments
         for ctgName in contigLengths:
