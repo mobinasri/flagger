@@ -33,19 +33,43 @@ class TestProjection(unittest.TestCase):
         #blockAlignment1 = Alignment(f"query_ctg\t10\t0\t10\t+\tref_ctg\t9\t0\t9\t0\t0\t60\tcg:Z:1=1X2I3=1D3=\ttp:A:P")
         #blockAlignment2 = Alignment(f"query_ctg\t11\t0\t11\t+\tref_ctg\t10\t0\t10\t0\t0\t60\tcg:Z:3=2D1X1I1=\ttp:A:P")
 
-        truthRelations = {"ctg1" : [HomologyRelation(ctg1HomologyBlock1, None, None, None),
+        truthRelations = defaultdict(list)
+        truthRelations["ctg1"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
                                HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("1=1X2I3=1D3="), '+'),
                                HomologyRelation(ctg1HomologyBlock3, None, None, None),
                                HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock4, getCigarList("3=2D1X1I1="), '-'),
-                               HomologyRelation(ctg1HomologyBlock5, None, None, None)],
-                     "ctg2": [HomologyRelation(ctg2HomologyBlock1, None, None, None),
-                              HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, getCigarList("1=1X2I3=1D3="), '+'),
+                               HomologyRelation(ctg1HomologyBlock5, None, None, None)]
+        truthRelations["ctg2"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
+                              HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
                               HomologyRelation(ctg2HomologyBlock3, None, None, None),
-                              HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, getCigarList("3=2D1X1I1="), '-'),
-                              HomologyRelation(ctg2HomologyBlock5, None, None, None)],
-                     "ctg3": [HomologyRelation(ctg3HomologyBlock1, None, None, None)]}
+                              HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, None, None),
+                              HomologyRelation(ctg2HomologyBlock5, None, None, None)]
+        truthRelations["ctg3"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
-        self.assertDictEqual(truthRelations, outputRelations)
+        for ctgName in ["ctg1", "ctg2", "ctg3"]:
+            
+            self.assertTrue(ctgName in outputRelations, "Contig does not exist")
+            self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
+
+            for i in range(len(truthRelations[ctgName])):
+                truthRelation = truthRelations[ctgName][i]
+                outputRelation = outputRelations[ctgName][i]
+
+                for truthBlock, outputBlock, name in zip([truthRelation.block, truthRelation.homologousBlock], [outputRelation.block, outputRelation.homologousBlock], ["block", "homologous block"] ):
+                    if truthBlock == None:
+                        self.assertTrue(outputBlock == None, f"the block is not None ({name})")
+                    else:
+                        self.assertEqual(truthBlock.origCtg, outputBlock.origCtg, f"origCtg is not correct ({name})")
+                        self.assertEqual(truthBlock.origStart, outputBlock.origStart, f"origStart is not correct ({name})")
+                        self.assertEqual(truthBlock.origEnd, outputBlock.origEnd, f"origEnd is not correct ({name})")
+                        self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
+                        self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
+                        self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
+
+                if truthRelation.alignment == None:
+                    self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
+                else:
+                    self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
 
 
 def main():

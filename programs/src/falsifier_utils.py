@@ -36,7 +36,7 @@ class HomologyRelation:
             self.alignment = None
 
     @staticmethod
-    def createRef2QueryRelationFromAlignment(alignment: Alignment, newCtgSuffix: str) -> HomologyRelation:
+    def createRef2QueryRelationFromAlignment(alignment: Alignment, newCtgSuffix: str):
         block = HomologyBlock(alignment.chromName,
                               alignment.chromStart + 1,
                               alignment.chromEnd,
@@ -55,19 +55,19 @@ class HomologyRelation:
     # given start should be 0-based
     # given end should be 1-based
     @staticmethod
-    def createVoidRelationFromInterval(ctgName: str, ctgStart: int, ctgEnd: int, newCtgSuffix: str) -> HomologyRelation:
+    def createVoidRelationFromInterval(ctgName: str, ctgStart: int, ctgEnd: int, newCtgSuffix: str):
         block = HomologyBlock(ctgName,
                               ctgStart + 1,
                               ctgEnd,
                               '+',
                               f'{ctgName}{newCtgSuffix}',
                               None)
-        voidRelation = HomologyRelation(block, None, None)
+        voidRelation = HomologyRelation(block, None, None, None)
         return  voidRelation
 
     @staticmethod
     def createAllInclusiveRelationDictFromAlignments(alignments: list, contigLengths: dict, newCtgSuffix: str) -> list:
-        relationFreeIntervals = []
+        relationFreeIntervals = {}
         for ctgName, ctgLen in contigLengths.items():
             relationFreeIntervals[ctgName] = [(0, ctgLen)]
         relationDict = defaultdict(list)
@@ -79,6 +79,7 @@ class HomologyRelation:
             ref2queryRelation = HomologyRelation.createRef2QueryRelationFromAlignment(alignment, newCtgSuffix)
             query2refRelation = HomologyRelation(ref2queryRelation.homologousBlock,
                                                  ref2queryRelation.block,
+                                                 None,
                                                  None)
             relationDict[alignment.chromName].append(ref2queryRelation)
             relationDict[alignment.contigName].append(query2refRelation)
@@ -86,8 +87,8 @@ class HomologyRelation:
             # update relation-free intervals
             # to create void relations from them
             # after the alignments are all iterated
-            subtractInterval(relationFreeIntervals[alignment.chromName], (alignment.chromStart, alignment.chromEnd))
-            subtractInterval(relationFreeIntervals[alignment.contigName], (alignment.contigStart, alignment.contigEnd))
+            relationFreeIntervals[alignment.chromName] = subtractInterval(relationFreeIntervals[alignment.chromName], (alignment.chromStart, alignment.chromEnd))
+            relationFreeIntervals[alignment.contigName] = subtractInterval(relationFreeIntervals[alignment.contigName], (alignment.contigStart, alignment.contigEnd))
 
         # create void relations for the intervals without alignments
         for ctgName, intervals in relationFreeIntervals.items():
@@ -98,6 +99,8 @@ class HomologyRelation:
         # sort the relations for each contig based on start coordinates
         for ctgName in contigLengths:
             relationDict[ctgName].sort(key = lambda x : x.block.origStart)
+            for i, relation in enumerate(relationDict[ctgName]):
+                relation.block.orderIndex = i
         return relationDict
 
 
