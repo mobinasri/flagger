@@ -42,7 +42,7 @@ class HomologyRelation:
         # In other words it is not possible to create a switch within a previously
         # created haplotype switch
         assert(self.block.origStrand == '+')
-        assert(self.homologousBlock.origStrand == '-')
+        assert(self.homologousBlock.origStrand == '+')
         forwardBlocks = [(1, switchStart + 1), (switchStart, switchEnd), (switchEnd + 1, self.alignment.chromLength)]
         includeEndingIndel = True
         includePostIndel = True
@@ -57,10 +57,10 @@ class HomologyRelation:
 
         projections = []
         for i in range(3):
-            projections.append([projectableBlocks[i][0],
-                                projectableBlocks[i][1],
-                                projectionBlocks[i][0],
-                                projectionBlocks[i][1],
+            projections.append([projectableBlocks[i][0] + self.alignment.chromStart - 1,
+                                projectableBlocks[i][1] + self.alignment.chromStart - 1,
+                                projectionBlocks[i][0] + self.alignment.contigStart - 1,
+                                projectionBlocks[i][1] + self.alignment.contigStart - 1,
                                 cigarLists[i]])
         # sort projections by start position of the ref haplotype
         projections.sort(key = lambda x : x[0])
