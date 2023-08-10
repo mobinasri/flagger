@@ -190,7 +190,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
     currOpStartContig = None
     # Return if the blocks has no overlap with the alignment
     if (forwardBlocks[-1][1] < contigStart) or (contigEnd < forwardBlocks[0][0]):
-        return projection
+        return projection.projectableBlocks, projection.projectionBlocks, projection.projectionCigarList
     # The cigar starts from the end of the contig if the alignment orientation is negative,
     # so the blocks coordinates and their order should be reversed in that case.
     # (Note that the blocks will be reversed back after the projections are all found) 
