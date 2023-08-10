@@ -195,7 +195,7 @@ class HomologyRelation:
         for ctgName in contigLengths:
             for interval in relationFreeIntervals[ctgName + newCtgSuffix]:
                 voidRelation = HomologyRelation.createVoidRelationFromInterval(ctgName, interval[0], interval[1], newCtgSuffix)
-                relationDict[ctgName].append(voidRelation)
+                relationDict[voidRelation.block.newCtg].append(voidRelation)
 
         # sort the relations for each contig based on start coordinates
         for ctgName in relationDict:
