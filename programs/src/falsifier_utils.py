@@ -35,6 +35,107 @@ class HomologyRelation:
         else:
             self.alignment = None
 
+    # switchStart and switchEnd must be 1-based and closed
+    def induceSwitchError(self, switchStart, switchEnd):
+
+        # This function only works when the strand of the whole block is positive
+        # In other words it is not possible to create a switch within a previously
+        # created haplotype switch
+        assert(self.block.origStrand == '+')
+        assert(self.homologousBlock.origStrand == '-')
+        forwardBlocks = [(1, switchStart + 1), (switchStart, switchEnd), (switchEnd + 1, self.alignment.chromLength)]
+        includeEndingIndel = True
+        includePostIndel = True
+        projectableBlocks, projectionBlocks, cigarLists = \
+            findProjections('ref2asm', self.alignment.cigarList, forwardBlocks,
+                            self.alignment.chromLength, self.alignment.chromStart + 1, self.alignment.chromEnd,
+                            self.alignment.contigLength, self.alignment.contigStart + 1, self.alignment.contigEnd,
+                            self.alignment.orientation, includeEndingIndel, includePostIndel)
+
+        assert(len(projectableBlocks) == 3)
+        assert(len(projectionBlocks) == 3)
+
+        projections = []
+        for i in range(3):
+            projections.append([projectableBlocks[i][0],
+                                projectableBlocks[i][1],
+                                projectionBlocks[i][0],
+                                projectionBlocks[i][1],
+                                cigarLists[i]])
+        # sort projections by start position of the ref haplotype
+        projections.sort(key = lambda x : x[0])
+
+        rBlock = self.block
+        qBlock = self.homologousBlock
+
+        # create one homology block per projection
+        # the middle projection will be used for switching
+
+        # ref blocks
+
+        rBlockPart1 =  HomologyBlock(rBlock.origCtg,
+                                       projections[0][0],
+                                       projections[0][1],
+                                       '+',
+                                       rBlock.newCtg,
+                                       rBlock.orderIndex)
+        rBlockPart2 = HomologyBlock(qBlock.origCtg,
+                                       projections[1][2],
+                                       projections[1][3],
+                                       self.alignment.orientation,
+                                       rBlock.newCtg,
+                                       rBlock.orderIndex + 1)
+        rBlockPart3 = HomologyBlock(rBlock.origCtg,
+                                      projections[2][0],
+                                      projections[2][1],
+                                      '+',
+                                      rBlock.newCtg,
+                                      rBlock.orderIndex + 2)
+
+        # query blocks
+        qOrderIndexPart1 = qBlock.orderIndex if self.alignment.orientation  == '+' else qBlock.orderIndex + 2
+        qOrderIndexPart2 = qBlock.orderIndex + 1
+        qOrderIndexPart3 = qBlock.orderIndex + 2 if self.alignment.orientation  == '+' else qBlock.orderIndex
+
+        qBlockPart1 = HomologyBlock(qBlock.origCtg,
+                                    projections[0][2],
+                                    projections[0][3],
+                                    '+',
+                                    qBlock.newCtg,
+                                    qOrderIndexPart1)
+
+        qBlockPart2 = HomologyBlock(rBlock.origCtg,
+                                    projections[1][0],
+                                    projections[1][1],
+                                    self.alignment.orientation,
+                                    qBlock.newCtg,
+                                    qOrderIndexPart2)
+
+        qBlockPart3 = HomologyBlock(qBlock.origCtg,
+                                    projections[2][2],
+                                    projections[2][3],
+                                    '+',
+                                    qBlock.newCtg,
+                                    qOrderIndexPart3)
+
+        relationPart1 = HomologyRelation(rBlockPart1,
+                                                 qBlockPart1,
+                                                 projections[0][4],
+                                                 self.alignment.orientation)
+        relationPart2 = HomologyRelation(rBlockPart2,
+                                                 qBlockPart2,
+                                                 projections[1][4] if self.alignment.orientation == '+' else convertIndelsInCigar(projections[1][4]),
+                                                 self.alignment.orientation)
+        relationPart3 = HomologyRelation(rBlockPart3,
+                                                 qBlockPart3,
+                                                 projections[2][4],
+                                                 self.alignment.orientation)
+
+        homologyRelations = [relationPart1, relationPart2, relationPart3]
+
+        return  homologyRelations
+
+
     @staticmethod
     def createRef2QueryRelationFromAlignment(alignment: Alignment, newCtgSuffix: str):
         block = HomologyBlock(alignment.chromName,
@@ -102,6 +203,53 @@ class HomologyRelation:
             for i, relation in enumerate(relationDict[ctgName]):
                 relation.block.orderIndex = i
         return relationDict
+
+    @staticmethod
+    def induceSwitchErrorAndUpdateRelationsInNewContig(relationsDict, newCtg, orderIndex, switchStart, switchEnd):
+        relationsOneCtg = relationsDict[newCtg]
+        switchingRelation = relationsOneCtg[orderIndex]
+        newCtgOtherHap = switchingRelation.homologousBlock.newCtg
+        orderIndexOtherHap = switchingRelation.homologousBlock.orderIndex
+
+        # remove previous relation
+        # both from ref2query and from query2ref
+        relationsDict[newCtg].pop(orderIndex)
+        relationsDict[newCtgOtherHap].pop(orderIndexOtherHap)
+
+        # split relation into three parts and switch the middle part
+        ref2queryRelations = switchingRelation.induceSwitchError(switchStart, switchEnd)
+        query2refRelations = []
+
+        if switchingRelation.alignment.orientation == '+':
+            for relation in ref2queryRelations:
+                query2refRelation = HomologyRelation(relation.homologousBlock,
+                                                     relation.block,
+                                                     None,
+                                                     None)
+                query2refRelations.append(query2refRelation)
+        else:
+            for relation in ref2queryRelations[::-1]:
+                query2refRelation = HomologyRelation(relation.homologousBlock,
+                                                     relation.block,
+                                                     None,
+                                                     None)
+                query2refRelations.append(query2refRelation)
+
+        for relation in ref2queryRelations:
+            relationsDict[newCtg].insert(relation.block.orderIndex, relation)
+
+        # shift the indices of all the blocks after the last added relation by two
+        for relation in relationsDict[newCtg][orderIndex + 3:]:
+            relation.block.orderIndex += 2
+
+        for relation in query2refRelations:
+            relationsDict[newCtgOtherHap].insert(relation.block.orderIndex, relation)
+
+        # shift the indices of all the blocks after the last added relation by two
+        for relation in relationsDict[newCtgOtherHap][orderIndex + 3:]:
+            relation.block.orderIndex += 2
+
+
 
 
 
