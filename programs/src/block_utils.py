@@ -107,6 +107,16 @@ class BlockList:
                 newBlocks.append((max(s1, s2), min(e2, e1), c1))
                 if e2 < e1:
                     s1 = e2 + 1
+                else:
+                    i1 += 1
+                    if len(self.blocks) <= i1:
+                        break # break the while loop
+                    else:
+                        # update block1
+                        s1 = self.blocks[i1][0]
+                        e1 = self.blocks[i1][1]
+                        c1 = self.blocks[i1][2]
+                        continue
         if inplace:
             self.blocks = newBlocks
         else:
@@ -134,6 +144,7 @@ class BlockList:
         i2 = 0
         s1 = self.blocks[i1][0]
         e1 = self.blocks[i1][1]
+        c1 = self.blocks[i1][2]
         s2 = otherBlockList.blocks[i2][0]
         e2 = otherBlockList.blocks[i2][1]
         newBlocks = []
@@ -149,7 +160,7 @@ class BlockList:
                     while i1 < len(self.blocks):
                         s1 = self.blocks[i1][0]
                         e1 = self.blocks[i1][1]
-                        newBlocks.append((s1, e1, 0))
+                        newBlocks.append((s1, e1, c1))
                         i1 += 1
                     break # break the while loop since there is no more block
                 else:
@@ -158,7 +169,7 @@ class BlockList:
                     e2 = otherBlockList.blocks[i2][1]
                     continue
             elif e1 < s2: # block2 is after block1
-                newBlocks.append((s1, e1, 0))
+                newBlocks.append((s1, e1, c1))
                 i1 += 1
                 if len(self.blocks) <= i1:
                     break # break the while loop
@@ -169,9 +180,19 @@ class BlockList:
                     continue
             else: # there should be an overlap
                 if s1 < s2:
-                    newBlocks.append((s1, s2 - 1, 0))
+                    newBlocks.append((s1, s2 - 1, c1))
                 if e2 < e1:
                     s1 = e2 + 1
+                else:
+                    i1 += 1
+                    if len(self.blocks) <= i1:
+                        break # break the while loop
+                    else:
+                        # update block1
+                        s1 = self.blocks[i1][0]
+                        e1 = self.blocks[i1][1]
+                        c1 = self.blocks[i1][2]
+                        continue
         if inplace:
             self.blocks = newBlocks
         else:
