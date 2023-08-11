@@ -1020,7 +1020,7 @@ def getBlockListsWithSingleAlignmentPerRefContig(alignments):
     for refContig, mergedBlockList in mergedBlockListsPerRefContig.items():
         for start, end, count in mergedBlockList.blocks:
             if count  == 1:
-                blockListsWithSingleAlignmentPerRefContig[refContig].append((start, end, None))
+                blockListsWithSingleAlignmentPerRefContig[refContig].append((start, end))
     return blockListsWithSingleAlignmentPerRefContig
 
 def getBlockListsWithSingleAlignmentPerQueryContig(alignments):
@@ -1031,13 +1031,13 @@ def getBlockListsWithSingleAlignmentPerQueryContig(alignments):
     for refContig, mergedBlockList in mergedBlockListsPerQueryContig.items():
         for start, end, count in mergedBlockList.blocks:
             if count  == 1:
-                blockListsWithSingleAlignmentPerQueryContig[refContig].append((start, end, None))
+                blockListsWithSingleAlignmentPerQueryContig[refContig].append((start, end))
     return blockListsWithSingleAlignmentPerQueryContig
 
 def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
     threads = 8
     blocksPerRefContig = {}
-    for ctg, blockList in blockListsPerRefContig:
+    for ctg, blockList in blockListsPerRefContig.items():
         blocksPerRefContig[ctg] = blockList.blocks
     results = runProjectionParallel(alignments, 'ref2asm', blockListsPerRefContig.blocks, False, False, threads)
 
@@ -1075,7 +1075,7 @@ def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
 def subsetAlignmentsToQueryBlocks(alignments, blockListsPerQueryContig):
     threads = 8
     blocksPerQueryContig = {}
-    for ctg, blockList in blockListsPerQueryContig:
+    for ctg, blockList in blockListsPerQueryContig.items():
         blocksPerQueryContig[ctg] = blockList.blocks
     results = runProjectionParallel(alignments, 'asm2ref', blocksPerQueryContig, False, False, threads)
 
