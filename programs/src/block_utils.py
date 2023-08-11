@@ -1039,7 +1039,7 @@ def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
     blocksPerRefContig = {}
     for ctg, blockList in blockListsPerRefContig.items():
         blocksPerRefContig[ctg] = blockList.blocks
-    results = runProjectionParallel(alignments, 'ref2asm', blockListsPerRefContig.blocks, False, False, threads)
+    results = runProjectionParallel(alignments, 'ref2asm', blocksPerRefContig, False, False, threads)
 
     contigLengths = {}
     for alignment in alignments:
