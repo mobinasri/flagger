@@ -307,16 +307,16 @@ class TestProjection(unittest.TestCase):
     def testCountAlignmentOverlapsRef(self):
         alignments = self.alignmentsOverlapping
         blockListsPerRefContig = getBlockListsPerRefContig(alignments)
-        mergedBlocksOutput = mergeBlockListsPerContigWithOverlapCount(blockListsPerRefContig)
+        mergedBlockListsOutput = mergeBlockListsPerContigWithOverlapCount(blockListsPerRefContig)
 
-        mergedBlocksPerRefContig = {"ctg1": [ (1, 4, 1), (5, 10, 2), (11, 12, 2), (13, 13, 1)] }
+        mergedBlockListsTruth = {"ctg1": BlockList([ (1, 4, 1), (5, 10, 2), (11, 12, 2), (13, 13, 1)]) }
  
-        self.assertListEqual(list(mergedBlocksPerRefContig.keys()), list(mergedBlocksOutput.keys()), "Incorrect contig names")
-        self.assertEqual(len(mergedBlocksPerRefContig["ctg1"]), len(mergedBlocksOutput["ctg1"]), "Incorrect blocks length")
+        self.assertListEqual(list(mergedBlockListsTruth.keys()), list(mergedBlockListsOutput.keys()), "Incorrect contig names")
+        self.assertEqual(len(mergedBlockListsTruth["ctg1"].blocks), len(mergedBlockListsOutput["ctg1"].blocks), "Incorrect blocks length")
 
-        for i in range(len(mergedBlocksPerRefContig["ctg1"])):
-            truthBlock = mergedBlocksPerRefContig["ctg1"][i]
-            outputBlock = mergedBlocksOutput["ctg1"][i]
+        for i in range(len(mergedBlockListsTruth["ctg1"].blocks)):
+            truthBlock = mergedBlockListsTruth["ctg1"].blocks[i]
+            outputBlock = mergedBlockListsOutput["ctg1"].blocks[i]
             self.assertEqual(truthBlock[0], outputBlock[0], "Incorrect start position")
             self.assertEqual(truthBlock[1], outputBlock[1], "Incorrect end position")
             
