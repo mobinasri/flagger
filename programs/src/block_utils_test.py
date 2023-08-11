@@ -14,7 +14,29 @@ class TestProjection(unittest.TestCase):
         self.alignmentOverlapping4 = Alignment("ctg2\t10\t5\t10\t+\tctg1\t14\t4\t12\t5\t8\t60\tcg:Z:4=3D1X\ttp:A:P")
         self.alignmentsOverlapping = [self.alignmentOverlapping1, self.alignmentOverlapping2, self.alignmentOverlapping3]
         self.alignmentsOverlapping2 = [self.alignmentOverlapping1, self.alignmentOverlapping2, self.alignmentOverlapping4]
+        self.blockList1 = BlockList([(1,10), (14, 20), (21, 30)])
+        self.blockList2 = BlockList([(4,6), (8, 18), (25, 40)])
         print(f"Tests:")
+
+    def testIntersectBlockList(self):
+        outputIntersect = self.blockList1.intersect(self.blockList2, inplace=False)
+
+        truthIntersect = BlockList([(4, 6, 0), (8, 10, 0), (14, 18, 0), (25, 30, 0)])
+        self.assertEqual(len(outputIntersect.blocks) , len(truthIntersect.blocks), "Number of blocks is not correct")
+
+        for i in range(len(truthIntersect.blocks)):
+            self.assertEqual(truthIntersect.blocks[i][0], outputIntersect.blocks[i][0], "Start is not correct")
+            self.assertEqual(truthIntersect.blocks[i][1], outputIntersect.blocks[i][1], "End is not correct")
+
+    def testSubtractBlockList(self):
+        outputSubtract = self.blockList1.subtract(self.blockList2, inplace=False)
+
+        truthSubctract = BlockList([(1, 3, 0), (7, 7, 0), (19, 20, 0), (21, 24, 0)])
+        self.assertEqual(len(outputSubtract.blocks) , len(truthSubctract.blocks), "Number of blocks is not correct")
+
+        for i in range(len(truthSubctract.blocks)):
+            self.assertEqual(truthSubctract.blocks[i][0], outputSubtract.blocks[i][0], "Start is not correct")
+            self.assertEqual(truthSubctract.blocks[i][1], outputSubtract.blocks[i][1], "End is not correct")
 
     def testPositiveAsm2Ref(self):
         alignment = self.alignmentPositive

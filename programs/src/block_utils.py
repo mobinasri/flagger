@@ -3,7 +3,7 @@ import argparse
 from collections import defaultdict
 import re
 from multiprocessing import Pool
-
+from copy import deepcopy
 
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
 
@@ -22,6 +22,272 @@ def getCigarList(cigarString):
     cigarSizes = [int(size) for size in re.compile("M|I|D|X|=").split(cigarString)[:-1]]
     cigarList = [ (op, size) for op, size in zip(cigarOps, cigarSizes)]
     return cigarList
+
+class BlockList:
+    def __init__(self, blocks):
+        """
+        Takes a list of intervals like below
+            [(s1, e1), (s2, e2), ... ,(sN, eN)]
+        It will copy the list and save the copy in the "blocks" attribute
+        A 3rd entry is also added for each tuple, which is initialized to zero
+        the purpose of the 3rd entry is mainly for merging and intersecting
+
+        Each interval can also be a triple
+            [(s1, e1, c1), (s2, e2, c2), ..., (sN, eN, cN)]
+        where c can be an integer data for each interval
+        In this case the given 3rd entries will be saved in the "blocks" attribute
+        Please note that if the 3rd entries are given
+        """
+        if 0 < len(blocks):
+            if len(blocks[0]) == 2:
+                self.blocks = sorted([(block[0], block[1], 0) for block in blocks])
+            else:
+                self.blocks = sorted(blocks)
+        else:
+            self.blocks = []
+
+    def copy(self):
+        return BlockList(deepcopy(self.blocks))
+
+    def intersect(self, otherBlockList, inplace):
+        """
+            Note that this function assumes that blocks in self do not have any
+            overlap within themselves. Same assumption applies for otherBlockList.
+            Arguments:
+                otherBlockList: a BlockList to intersect with self blocks
+                inplace: If True the intersected blocks will be saved inplace
+            Returns:
+                If inplace is False it will return a new BlockList with the intersected blocks
+        """
+        if len(self.blocks) == 0 or len(otherBlockList.blocks) == 0:
+            if inplace:
+                return
+            else:
+                return BlockList([])
+
+        # there is at least one block in both self and otherBlockList
+        i1 = 0
+        i2 = 0
+        s1 = self.blocks[i1][0]
+        e1 = self.blocks[i1][1]
+        c1 = self.blocks[i1][2]
+        s2 = otherBlockList.blocks[i2][0]
+        e2 = otherBlockList.blocks[i2][1]
+        newBlocks = []
+
+        while True:
+            if e2 < s1: # block1 is after block2
+                i2 += 1
+                if len(otherBlockList.blocks) <= i2:
+                    break # break the while loop since there is no more block
+                else:
+                    # update block2
+                    s2 = otherBlockList.blocks[i2][0]
+                    e2 = otherBlockList.blocks[i2][1]
+                    continue
+            elif e1 < s2: # block2 is after block1
+                i1 += 1
+                if len(self.blocks) <= i1:
+                    break # break the while loop
+                else:
+                    # update block1
+                    s1 = self.blocks[i1][0]
+                    e1 = self.blocks[i1][1]
+                    c1 = self.blocks[i1][2]
+                    continue
+            else: # there should be an overlap
+                newBlocks.append((max(s1, s2), min(e2, e1), c1))
+                if e2 < e1:
+                    s1 = e2 + 1
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            newBlockList = BlockList(newBlocks)
+            return newBlockList
+
+
+    def subtract(self, otherBlockList, inplace):
+        """
+            Note that this function assumes that blocks in self do not have any
+            overlap within themselves. Same assumption applies for otherBlockList.
+            Arguments:
+                otherBlockList: a BlockList to subtract from self blocks
+                inplace: If True the subtracted blocks will be saved inplace
+            Returns:
+                If inplace is False it will return a new BlockList with the subtracted blocks
+        """
+        if len(self.blocks) == 0 or len(otherBlockList.blocks) == 0:
+            if inplace:
+                return
+            else:
+                return self.copy()
+        # there is at least one block in both self and otherBlockList
+        i1 = 0
+        i2 = 0
+        s1 = self.blocks[i1][0]
+        e1 = self.blocks[i1][1]
+        s2 = otherBlockList.blocks[i2][0]
+        e2 = otherBlockList.blocks[i2][1]
+        newBlocks = []
+
+        while True:
+            if e2 < s1: # block1 is after block2
+                i2 += 1
+                if len(otherBlockList.blocks) <= i2:
+                    # add the last block, which could be partial
+                    # then add all the remaining blocks completely
+                    newBlocks.append((s1, e1, 0))
+                    i1 += 1
+                    while i1 < len(self.blocks):
+                        s1 = self.blocks[i1][0]
+                        e1 = self.blocks[i1][1]
+                        newBlocks.append((s1, e1, 0))
+                        i1 += 1
+                    break # break the while loop since there is no more block
+                else:
+                    # update block2
+                    s2 = otherBlockList.blocks[i2][0]
+                    e2 = otherBlockList.blocks[i2][1]
+                    continue
+            elif e1 < s2: # block2 is after block1
+                newBlocks.append((s1, e1, 0))
+                i1 += 1
+                if len(self.blocks) <= i1:
+                    break # break the while loop
+                else:
+                    # update block1
+                    s1 = self.blocks[i1][0]
+                    e1 = self.blocks[i1][1]
+                    continue
+            else: # there should be an overlap
+                if s1 < s2:
+                    newBlocks.append((s1, s2 - 1, 0))
+                if e2 < e1:
+                    s1 = e2 + 1
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            newBlockList = BlockList(newBlocks)
+            return newBlockList
+
+    # This function is adapted from ptBlock_merge_blocks_v2() function from Secphase repo v0.4.3
+    # https://github.com/mobinasri/secphase/blob/v0.4.3/programs/submodules/ptBlock/ptBlock.c
+    def mergeWithOverlapCount(self, inplace):
+        blocksMergedFinalized = []
+        blocksMergedOngoing = []
+        if len(self.blocks) == 0: return blocksMergedFinalized
+
+        for b2 in self.blocks:
+            if len(blocksMergedOngoing) == 0: # Initiate bMerged for the first block
+                blocksMergedOngoing.append((b2[0], b2[1], 1))
+                continue
+            e2 = b2[1]
+            s2 = b2[0]
+            blocksMergedTemp = blocksMergedOngoing
+            blocksMergedOngoing = []
+            for b1 in blocksMergedTemp:
+                e1 = b1[1]
+                s1 = b1[0]
+                c = b1[2]
+                #
+                # finalized:
+                #
+                #  s1       e1
+                # [**********]
+                #               [----------]
+                #                s2       e2
+                #
+                if e1 < s2 :
+                    bMerged = (s1, e1, c)
+                    blocksMergedFinalized.append(bMerged)
+                elif s1 <= s2:
+                    #
+                    # finalized:
+                    #   s1       e1
+                    #  [***-------]
+                    #     [----------]
+                    #      s2       e2
+                    #
+                    if s1 < s2: # && s2 <= e1
+                        bMerged = (s1, s2-1, c)
+                        blocksMergedFinalized.append(bMerged)
+
+                    #
+                    #  ongoing:
+                    #
+                    #    s1       e1                      s1        e1
+                    #   [---*******]           OR        [----*****--]
+                    #      [*******--]                       [*****]
+                    #       s2      e2                        s2   e2
+                    #
+                    #
+                    bMerged = (s2, min(e1, e2), c + 1)
+                    blocksMergedOngoing.append(bMerged)
+                    #
+                    # finalized:
+                    #     s1       e1
+                    #    [-----*****]
+                    #      [---]
+                    #       s2 e2
+                    #
+                    if e2 < e1:
+                        bMerged = (e2 + 1, e1, c)
+                        blocksMergedOngoing.append(bMerged)
+                #
+                # ongoing:
+                #
+                #            s1       e1
+                #           [**********]
+                #       [----**********---]
+                #        s2              e2
+                #
+                elif e1 <= e2: # && s2 < s1
+                    bMerged = (s1, e1, c + 1)
+                    blocksMergedOngoing.append(bMerged)
+                else: # e2 < e1 && s2 < s1
+                    #
+                    # ongoing:
+                    #
+                    #            s1       e1
+                    #           [******----]
+                    #       [----******]
+                    #        s2       e2
+                    #
+                    if s1 <= e2:
+                        bMerged = (s1, e2, c + 1)
+                        blocksMergedOngoing.append(bMerged)
+                    #
+                    # ongoing:
+                    #
+                    #            s1        e1
+                    #           [------****]
+                    #       [----------]
+                    #        s2       e2
+                    #
+                    bMerged = (max(e2 + 1, s1), e1, c)
+                    blocksMergedOngoing.append(bMerged)
+            # add the last non-overlapping block
+            #
+            # ongoing:
+            #
+            #       s1        e1
+            #      [----------]
+            #           [------****]
+            #            s2       e2
+            #
+            if max(e1 + 1, s2) <= e2:
+                bMerged = (max(e1 + 1, s2), e2, 1)
+                blocksMergedOngoing.append(bMerged)
+
+        # Add the remaining blocks
+        for b in blocksMergedOngoing:
+            bMerged = (b[0], b[1], b[2])
+            blocksMergedFinalized.append(bMerged)
+
+        if inplace:
+            self.blocks = blocksMergedFinalized
+        else:
+            return BlockList(blocksMergedFinalized)
 
 class Alignment:
     """
@@ -538,67 +804,6 @@ def iterateCS(cs_str):
 
 
 
-def intersectInterval(interval_1, interval_2):
-    """
-        Receives two intervals; each interval is a tuple of (start, end) and
-        returns their intersection
-        Note that both start and end coors should be either 1-based or 0-based
-        If there is no overlap returns None
-    """
-    s1 = interval_1[0]
-    e1 = interval_1[1]
-    s2 = interval_2[0]
-    e2 = interval_2[1]
-    
-    s = max(s1,s2)
-    e = min(e1,e2)
-    if e < s:
-        return None
-    return (s, e)
- 
-
-def subtractInterval(intervals, b):
-    """
-        Arguments:
-            intervals: a sorted list of intervals; each interval is a tuple of (start, end)
-            b: a single interval that will be subtracted from the list of intervals
-            Note that both start and end coors should be either 1-based or 0-based
-        Returns:
-            a list of new intervals in which the interval, b, is absent
-    """
-    newIntervals = []
-    for a in intervals:
-        
-        # Could be either of the two cases below
-        # case 1: (with overlap) [ a - b ] is what should remain
-        #
-        # [      a      ]
-        # [a - b][        b      ]
-        #
-        # or case 2: (with no overlap)
-        #
-        # [      a       ]
-        # [    a - b     ]    [       b       ]
-        if a[0] < b[0]:
-            newInterval = (a[0], min(a[1], b[0] - 1))
-            newIntervals.append(newInterval)
-            
-        # Could be either of the two cases below
-        # case 1: (with overlap)
-        #
-        #            [      a      ]
-        # [        b      ][ a - b ]
-        #
-        # or case 2: (with no overlap)
-        #
-        #                     [      a       ]
-        # [       b       ]   [     a - b    ]
-        if b[1] < a[1]:
-            newInterval = (max(a[0], b[1] + 1), a[1])
-            newIntervals.append(newInterval)
-    return newIntervals
-
-
 def iterateCigar(alignment):
     """
         A generator functions which recieves an alignment and iterates over its cigar operations
@@ -749,121 +954,6 @@ def runProjectionParallel(alignments, mode, blocks, includeEndingIndel, includeP
     pool.close()
     return results
 
-# This function is adapted from ptBlock_merge_blocks_v2() function from Secphase repo v0.4.3
-# https://github.com/mobinasri/secphase/blob/v0.4.3/programs/submodules/ptBlock/ptBlock.c
-def mergeBlocksWithOverlapCount(sortedRefBlocks):
-    blocksMergedFinalized = []
-    blocksMergedOngoing = []
-    if len(sortedRefBlocks) == 0: return blocksMergedFinalized
-
-    for b2 in sortedRefBlocks:
-        if len(blocksMergedOngoing) == 0: # Initiate bMerged for the first block
-            blocksMergedOngoing.append((b2[0], b2[1], 1))
-            continue
-        e2 = b2[1]
-        s2 = b2[0]
-        blocksMergedTemp = blocksMergedOngoing
-        blocksMergedOngoing = []
-        for b1 in blocksMergedTemp:
-            e1 = b1[1]
-            s1 = b1[0]
-            c = b1[2]
-            #
-            # finalized:
-            #
-            #  s1       e1
-            # [**********]
-            #               [----------]
-            #                s2       e2
-            #
-            if e1 < s2 :
-                bMerged = (s1, e1, c)
-                blocksMergedFinalized.append(bMerged)
-            elif s1 <= s2:
-                #
-                # finalized:
-                #   s1       e1
-                #  [***-------]
-                #     [----------]
-                #      s2       e2
-                #
-                if s1 < s2: # && s2 <= e1
-                    bMerged = (s1, s2-1, c)
-                    blocksMergedFinalized.append(bMerged)
-
-                #
-                #  ongoing:
-                #
-                #    s1       e1                      s1        e1
-                #   [---*******]           OR        [----*****--]
-                #      [*******--]                       [*****]
-                #       s2      e2                        s2   e2
-                #
-                #
-                bMerged = (s2, min(e1, e2), c + 1)
-                blocksMergedOngoing.append(bMerged)
-                #
-                # finalized:
-                #     s1       e1
-                #    [-----*****]
-                #      [---]
-                #       s2 e2
-                #
-                if e2 < e1:
-                    bMerged = (e2 + 1, e1, c)
-                    blocksMergedOngoing.append(bMerged)
-            #
-            # ongoing:
-            #
-            #            s1       e1
-            #           [**********]
-            #       [----**********---]
-            #        s2              e2
-            #
-            elif e1 <= e2: # && s2 < s1
-                bMerged = (s1, e1, c + 1)
-                blocksMergedOngoing.append(bMerged)
-            else: # e2 < e1 && s2 < s1
-                #
-                # ongoing:
-                #
-                #            s1       e1
-                #           [******----]
-                #       [----******]
-                #        s2       e2
-                #
-                if s1 <= e2:
-                    bMerged = (s1, e2, c + 1)
-                    blocksMergedOngoing.append(bMerged)
-                #
-                # ongoing:
-                #
-                #            s1        e1
-                #           [------****]
-                #       [----------]
-                #        s2       e2
-                #
-                bMerged = (max(e2 + 1, s1), e1, c)
-                blocksMergedOngoing.append(bMerged)
-        # add the last non-overlapping block
-        #
-        # ongoing:
-        #
-        #       s1        e1
-        #      [----------]
-        #           [------****]
-        #            s2       e2
-        #
-        if max(e1 + 1, s2) <= e2:
-            bMerged = (max(e1 + 1, s2), e2, 1)
-            blocksMergedOngoing.append(bMerged)
-
-    # Add the remaining blocks
-    for b in blocksMergedOngoing:
-        bMerged = (b[0], b[1], b[2])
-        blocksMergedFinalized.append(bMerged)
-
-    return blocksMergedFinalized
 
 def mergeBlocksPerContigWithOverlapCount(sortedBlocksPerContig):
     mergedBlocksPerContig = {}
