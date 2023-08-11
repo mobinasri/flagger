@@ -168,34 +168,34 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock1.annotationBlockLists = {"annot1": BlockList([(4, 6)]),
                                                    "annot2": BlockList([(1,3)])}
         ctg1HomologyBlock2 = HomologyBlock("ctg1", 7, 15, '+', "ctg1_f", 1)
-        ctg1HomologyBlock2.annotationBlockLists = {"annot1": BlockList([(7, 10), (14, 15)]),
-                                                   "annot2": BlockList([(11, 13)])}
+        ctg1HomologyBlock2.annotationBlockLists = {"annot1": BlockList([(1, 4), (8, 9)]),
+                                                   "annot2": BlockList([(5, 7)])}
         ctg1HomologyBlock3 = HomologyBlock("ctg1", 16, 20, '+', "ctg1_f", 2)
-        ctg1HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(16, 18)]),
-                                                   "annot2": BlockList([(19, 20)])}
+        ctg1HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(1, 3)]),
+                                                   "annot2": BlockList([(4, 5)])}
         ctg1HomologyBlock4 = HomologyBlock("ctg1", 21, 27, '+', "ctg1_f", 3)
         ctg1HomologyBlock4.annotationBlockLists = {"annot1": BlockList([]),
-                                                   "annot2": BlockList([(21, 27)])}
+                                                   "annot2": BlockList([(1, 7)])}
         ctg1HomologyBlock5 = HomologyBlock("ctg1", 28, 30, '+', "ctg1_f", 4)
         ctg1HomologyBlock5.annotationBlockLists = {"annot1": BlockList([]),
-                                                   "annot2": BlockList([(28, 30)])}
+                                                   "annot2": BlockList([(1, 3)])}
 
 
         ctg2HomologyBlock1 = HomologyBlock("ctg2", 1, 8, '+', "ctg2_f", 0)
         ctg2HomologyBlock1.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1,8)])}
         ctg2HomologyBlock2 = HomologyBlock("ctg2", 9, 18, '+', "ctg2_f", 1)
-        ctg2HomologyBlock2.annotationBlockLists = {"annot1": BlockList([(9, 12)]),
-                                                   "annot2": BlockList([(13, 18)])}
+        ctg2HomologyBlock2.annotationBlockLists = {"annot1": BlockList([(1, 4)]),
+                                                   "annot2": BlockList([(5, 10)])}
         ctg2HomologyBlock3 = HomologyBlock("ctg2", 19, 21, '+', "ctg2_f", 2)
-        ctg2HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(21, 21)]),
-                                                   "annot2": BlockList([(19, 20)])}
+        ctg2HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(3, 3)]),
+                                                   "annot2": BlockList([(1, 2)])}
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 22, 27, '+', "ctg2_f", 3)
-        ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(22, 27)]),
+        ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1, 6)]),
                                                    "annot2": BlockList([])}
         ctg2HomologyBlock5 = HomologyBlock("ctg2", 28, 30, '+', "ctg2_f", 4)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([]),
-                                                   "annot2": BlockList([(28, 30)])}
+                                                   "annot2": BlockList([(1, 3)])}
 
         ctg3HomologyBlock1 = HomologyBlock("ctg3", 1, 10, '+', "ctg3_f", 0)
         ctg3HomologyBlock1.annotationBlockLists = {"annot1": BlockList([(1,10)]),

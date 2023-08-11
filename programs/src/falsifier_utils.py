@@ -80,7 +80,7 @@ class HomologyBlock:
         """
         for name, blockList in parentBlock.annotationBlockLists:
             subsetBlockList = blockList.intersect(blockList([(start, end)]), inplace=False)
-            subsetBlockList.shift(start - 1, minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
+            subsetBlockList.shift( -(start - 1), minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
             self.addAnnotationBlockList(name, subsetBlockList)
             
 
