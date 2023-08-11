@@ -1020,7 +1020,7 @@ def getBlockListsWithSingleAlignmentPerRefContig(alignments):
     for refContig, mergedBlockList in mergedBlockListsPerRefContig.items():
         for start, end, count in mergedBlockList.blocks:
             if count  == 1:
-                blockListsWithSingleAlignmentPerRefContig[refContig].append((start, end))
+                blockListsWithSingleAlignmentPerRefContig[refContig].append((start, end, None))
     return blockListsWithSingleAlignmentPerRefContig
 
 def getBlockListsWithSingleAlignmentPerQueryContig(alignments):
@@ -1031,7 +1031,7 @@ def getBlockListsWithSingleAlignmentPerQueryContig(alignments):
     for refContig, mergedBlockList in mergedBlockListsPerQueryContig.items():
         for start, end, count in mergedBlockList.blocks:
             if count  == 1:
-                blockListsWithSingleAlignmentPerQueryContig[refContig].append((start, end))
+                blockListsWithSingleAlignmentPerQueryContig[refContig].append((start, end, None))
     return blockListsWithSingleAlignmentPerQueryContig
 
 def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
