@@ -19,6 +19,9 @@ class HomologyBlock:
         self.orderIndex = orderIndex # relative order of the block w.r.t to the other blocks in the new contig
         self.annotations = {}
 
+    def addAnnotation(self, name, intervals):
+        self.annotations[name] = intervals
+
 
 
 
@@ -173,7 +176,7 @@ class HomologyRelation:
     def createAllInclusiveRelationDictFromAlignments(alignments: list, contigLengths: dict, newCtgSuffix: str) -> list:
         relationFreeIntervals = {}
         for ctgName, ctgLen in contigLengths.items():
-            relationFreeIntervals[ctgName + newCtgSuffix] = [(1, ctgLen)]
+            relationFreeIntervals[ctgName + newCtgSuffix] = BlockList([(1, ctgLen)])
         relationDict = defaultdict(list)
 
         # create two-way relations; ref2query and query2ref and add them to the dictionary
@@ -191,12 +194,12 @@ class HomologyRelation:
             # update relation-free intervals
             # to create void relations from them
             # after the alignments are all iterated
-            relationFreeIntervals[ref2queryRelation.block.newCtg] = subtractInterval(relationFreeIntervals[ref2queryRelation.block.newCtg], (alignment.chromStart + 1, alignment.chromEnd))
-            relationFreeIntervals[query2refRelation.block.newCtg] = subtractInterval(relationFreeIntervals[query2refRelation.block.newCtg], (alignment.contigStart + 1, alignment.contigEnd))
+            relationFreeIntervals[ref2queryRelation.block.newCtg].subtract(BlockList([(alignment.chromStart + 1, alignment.chromEnd)]), inplace=True)
+            relationFreeIntervals[query2refRelation.block.newCtg].subtract(BlockList([(alignment.contigStart + 1, alignment.contigEnd)]), inplace=True)
 
         # create void relations for the intervals without alignments
         for ctgName in contigLengths:
-            for interval in relationFreeIntervals[ctgName + newCtgSuffix]:
+            for interval in relationFreeIntervals[ctgName + newCtgSuffix].blocks:
                 voidRelation = HomologyRelation.createVoidRelationFromInterval(ctgName, interval[0], interval[1], newCtgSuffix)
                 relationDict[voidRelation.block.newCtg].append(voidRelation)
 
