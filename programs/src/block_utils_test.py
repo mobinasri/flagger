@@ -306,8 +306,8 @@ class TestProjection(unittest.TestCase):
 
     def testCountAlignmentOverlapsRef(self):
         alignments = self.alignmentsOverlapping
-        sortedBlocksPerRefContig = getSortedBlocksPerRefContig(alignments)
-        mergedBlocksOutput = mergeBlocksPerContigWithOverlapCount(sortedBlocksPerRefContig)
+        blockListsPerRefContig = getBlockListsPerRefContig(alignments)
+        mergedBlocksOutput = mergeBlockListsPerContigWithOverlapCount(blockListsPerRefContig)
 
         mergedBlocksPerRefContig = {"ctg1": [ (1, 4, 1), (5, 10, 2), (11, 12, 2), (13, 13, 1)] }
  
@@ -324,8 +324,8 @@ class TestProjection(unittest.TestCase):
     #@unittest.SkipTest
     def testRefUniqueAlignments(self):
         alignments = self.alignmentsOverlapping
-        uniqueBlocksPerRefContig = getBlocksWithSingleAlignmentPerRefContig(alignments)
-        alignmentsOutput = subsetAlignmentsToRefBlocks(alignments, uniqueBlocksPerRefContig)
+        uniqueBlockListsPerRefContig = getBlockListsWithSingleAlignmentPerRefContig(alignments)
+        alignmentsOutput = subsetAlignmentsToRefBlocks(alignments, uniqueBlockListsPerRefContig)
 
         refUniqueAlignment1 = Alignment("ctg2\t10\t6\t10\t-\tctg1\t14\t0\t4\t4\t4\t60\tcg:Z:3=1X\ttp:A:P")
         refUniqueAlignment2 = Alignment("ctg3\t5\t4\t5\t+\tctg1\t14\t12\t13\t1\t1\t60\tcg:Z:1=\ttp:A:P")
@@ -351,8 +351,8 @@ class TestProjection(unittest.TestCase):
 
     def testQueryUniqueAlignments(self):
         alignments = self.alignmentsOverlapping
-        uniqueBlocksPerQueryContig = getBlocksWithSingleAlignmentPerQueryContig(alignments)
-        alignmentsOutput = subsetAlignmentsToQueryBlocks(alignments, uniqueBlocksPerQueryContig)
+        uniqueBlockListsPerQueryContig = getBlockListsWithSingleAlignmentPerQueryContig(alignments)
+        alignmentsOutput = subsetAlignmentsToQueryBlocks(alignments, uniqueBlockListsPerQueryContig)
 
         queryUniqueAlignment1 = Alignment("ctg2\t10\t8\t10\t-\tctg1\t14\t0\t2\t2\t2\t60\tcg:Z:2=\ttp:A:P")
         queryUniqueAlignment2 = Alignment("ctg2\t10\t0\t3\t-\tctg1\t14\t7\t10\t1\t1\t60\tcg:Z:1=1X1=\ttp:A:P")
@@ -376,10 +376,10 @@ class TestProjection(unittest.TestCase):
 
     def testTwoWayUniqueAlignments(self):
         alignments = self.alignmentsOverlapping
-        uniqueBlocksPerQueryContig = getBlocksWithSingleAlignmentPerQueryContig(alignments)
-        uniqueBlocksPerRefContig = getBlocksWithSingleAlignmentPerRefContig(alignments)
-        refUniqueAlignments = subsetAlignmentsToRefBlocks(alignments, uniqueBlocksPerRefContig)
-        alignmentsOutput = subsetAlignmentsToQueryBlocks(refUniqueAlignments, uniqueBlocksPerQueryContig)
+        uniqueBlockListsPerQueryContig = getBlockListsWithSingleAlignmentPerQueryContig(alignments)
+        uniqueBlockListsPerRefContig = getBlockListsWithSingleAlignmentPerRefContig(alignments)
+        refUniqueAlignments = subsetAlignmentsToRefBlocks(alignments, uniqueBlockListsPerRefContig)
+        alignmentsOutput = subsetAlignmentsToQueryBlocks(refUniqueAlignments, uniqueBlockListsPerQueryContig)
 
 
 
@@ -403,10 +403,10 @@ class TestProjection(unittest.TestCase):
 
     def testTwoWayUniqueAlignments_2(self):
         alignments = self.alignmentsOverlapping2
-        uniqueBlocksPerQueryContig = getBlocksWithSingleAlignmentPerQueryContig(alignments)
-        uniqueBlocksPerRefContig = getBlocksWithSingleAlignmentPerRefContig(alignments)
-        refUniqueAlignments = subsetAlignmentsToRefBlocks(alignments, uniqueBlocksPerRefContig)
-        alignmentsOutput = subsetAlignmentsToQueryBlocks(refUniqueAlignments, uniqueBlocksPerQueryContig)
+        uniqueBlockListsPerQueryContig = getBlockListsWithSingleAlignmentPerQueryContig(alignments)
+        uniqueBlockListsPerRefContig = getBlockListsWithSingleAlignmentPerRefContig(alignments)
+        refUniqueAlignments = subsetAlignmentsToRefBlocks(alignments, uniqueBlockListsPerRefContig)
+        alignmentsOutput = subsetAlignmentsToQueryBlocks(refUniqueAlignments, uniqueBlockListsPerQueryContig)
 
         twoWayUniqueAlignment1 = Alignment("ctg3\t5\t4\t5\t+\tctg1\t14\t12\t13\t1\t1\t60\tcg:Z:1=\ttp:A:P")
         twoWayUniqueAlignments = [twoWayUniqueAlignment1]

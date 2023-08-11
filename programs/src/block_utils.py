@@ -24,7 +24,7 @@ def getCigarList(cigarString):
     return cigarList
 
 class BlockList:
-    def __init__(self, blocks):
+    def __init__(self, blocks = None):
         """
         Takes a list of intervals like below
             [(s1, e1), (s2, e2), ... ,(sN, eN)]
@@ -38,16 +38,24 @@ class BlockList:
         In this case the given 3rd entries will be saved in the "blocks" attribute
         Please note that if the 3rd entries are given
         """
-        if 0 < len(blocks):
+        if blocks == None:
+            self.blocks = []
+        elif len(blocks) == 0:
+            self.blocks = []
+        else:
             if len(blocks[0]) == 2:
                 self.blocks = sorted([(block[0], block[1], 0) for block in blocks])
             else:
                 self.blocks = sorted(blocks)
-        else:
-            self.blocks = []
 
     def copy(self):
         return BlockList(deepcopy(self.blocks))
+
+    def append(self, block):
+        self.blocks.append((block[0], block[1], 0 if len(block) == 2 else block[2]))
+
+    def sort(self):
+        self.blocks.sort()
 
     def intersect(self, otherBlockList, inplace):
         """
@@ -955,59 +963,62 @@ def runProjectionParallel(alignments, mode, blocks, includeEndingIndel, includeP
     return results
 
 
-def mergeBlocksPerContigWithOverlapCount(sortedBlocksPerContig):
-    mergedBlocksPerContig = {}
-    for contigName, sortedBlocks in sortedBlocksPerContig.items():
-        mergedBlocksPerContig[contigName] = mergeBlocksWithOverlapCount(sortedBlocks)
-    return  mergedBlocksPerContig
+def mergeBlockListsPerContigWithOverlapCount(blockListsPerContig):
+    mergedBlockListsPerContig = defaultdict(BlockList)
+    for contigName, blockList in blockListsPerContig.items():
+        mergedBlockListsPerContig[contigName] = blockList.mergeWithOverlapCount(inplace=False)
+    return mergedBlockListsPerContig
 
-def getSortedBlocksPerRefContig(alignments):
-    blocksPerRefContig = defaultdict(list)
+def getBlockListsPerRefContig(alignments):
+    blockListsPerRefContig = defaultdict(BlockList)
     for alignment in alignments:
         # make coors 1-based
-        blocksPerRefContig[alignment.chromName].append((alignment.chromStart + 1, alignment.chromEnd))
+        blockListsPerRefContig[alignment.chromName].append((alignment.chromStart + 1, alignment.chromEnd))
 
-    for contig in blocksPerRefContig:
-        blocksPerRefContig[contig].sort()
+    for contig in blockListsPerRefContig:
+        blockListsPerRefContig[contig].sort()
 
-    return blocksPerRefContig
+    return blockListsPerRefContig
 
-def getSortedBlocksPerQueryContig(alignments):
-    blocksPerQueryContig = defaultdict(list)
+def getBlockListsPerQueryContig(alignments):
+    blockListsPerQueryContig = defaultdict(BlockList)
     for alignment in alignments:
         # make coors 1-based
-        blocksPerQueryContig[alignment.contigName].append((alignment.contigStart + 1, alignment.contigEnd))
+        blockListsPerQueryContig[alignment.contigName].append((alignment.contigStart + 1, alignment.contigEnd))
 
-    for contig in blocksPerQueryContig:
-        blocksPerQueryContig[contig].sort()
+    for contig in blockListsPerQueryContig:
+        blockListsPerQueryContig[contig].sort()
 
-    return blocksPerQueryContig
+    return blockListsPerQueryContig
 
-def getBlocksWithSingleAlignmentPerRefContig(alignments):
-    sortedBlocksPerRefContig = getSortedBlocksPerRefContig(alignments)
-    mergedBlocksPerRefContig = mergeBlocksPerContigWithOverlapCount(sortedBlocksPerRefContig)
+def getBlockListsWithSingleAlignmentPerRefContig(alignments):
+    blockListsPerRefContig = getBlockListsPerRefContig(alignments)
+    mergedBlockListsPerRefContig = mergeBlockListsPerContigWithOverlapCount(blockListsPerRefContig)
 
-    blocksWithSingleAlignmentPerRefContig = defaultdict(list)
-    for refContig, mergedBlocks in mergedBlocksPerRefContig.items():
-        for start, end, count in mergedBlocks:
+    blockListsWithSingleAlignmentPerRefContig = defaultdict(BlockList)
+    for refContig, mergedBlockList in mergedBlockListsPerRefContig.items():
+        for start, end, count in mergedBlockList.blocks:
             if count  == 1:
-                blocksWithSingleAlignmentPerRefContig[refContig].append((start, end, None))
-    return blocksWithSingleAlignmentPerRefContig
+                blockListsWithSingleAlignmentPerRefContig[refContig].append((start, end))
+    return blockListsWithSingleAlignmentPerRefContig
 
-def getBlocksWithSingleAlignmentPerQueryContig(alignments):
-    sortedBlocksPerQueryContig = getSortedBlocksPerQueryContig(alignments)
-    mergedBlocksPerQueryContig = mergeBlocksPerContigWithOverlapCount(sortedBlocksPerQueryContig)
+def getBlockListsWithSingleAlignmentPerQueryContig(alignments):
+    blockListsPerQueryContig = getBlockListsPerQueryContig(alignments)
+    mergedBlockListsPerQueryContig = mergeBlockListsPerContigWithOverlapCount(blockListsPerQueryContig)
 
-    blocksWithSingleAlignmentPerQueryContig = defaultdict(list)
-    for queryContig, mergedBlocks in mergedBlocksPerQueryContig.items():
-        for start, end, count in mergedBlocks:
+    blockListsWithSingleAlignmentPerQueryContig = defaultdict(BlockList)
+    for refContig, mergedBlockList in mergedBlockListsPerQueryContig.items():
+        for start, end, count in mergedBlockList.blocks:
             if count  == 1:
-                blocksWithSingleAlignmentPerQueryContig[queryContig].append((start, end, None))
-    return blocksWithSingleAlignmentPerQueryContig
+                blockListsWithSingleAlignmentPerQueryContig[refContig].append((start, end))
+    return blockListsWithSingleAlignmentPerQueryContig
 
-def subsetAlignmentsToRefBlocks(alignments, blocksPerRefContig):
+def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
     threads = 8
-    results = runProjectionParallel(alignments, 'ref2asm', blocksPerRefContig, False, False, threads)
+    blocksPerRefContig = {}
+    for ctg, blockList in blockListsPerRefContig:
+        blocksPerRefContig[ctg] = blockList.blocks
+    results = runProjectionParallel(alignments, 'ref2asm', blockListsPerRefContig.blocks, False, False, threads)
 
     contigLengths = {}
     for alignment in alignments:
@@ -1040,8 +1051,11 @@ def subsetAlignmentsToRefBlocks(alignments, blocksPerRefContig):
     subsetAlignments.sort(key = lambda x : (x.chromName, x.chromStart, x.chromEnd, x.contigName, x.contigStart, x.contigEnd))
     return  subsetAlignments
 
-def subsetAlignmentsToQueryBlocks(alignments, blocksPerQueryContig):
+def subsetAlignmentsToQueryBlocks(alignments, blockListsPerQueryContig):
     threads = 8
+    blocksPerQueryContig = {}
+    for ctg, blockList in blockListsPerQueryContig:
+        blocksPerQueryContig[ctg] = blockList.blocks
     results = runProjectionParallel(alignments, 'asm2ref', blocksPerQueryContig, False, False, threads)
 
     contigLengths = {}
