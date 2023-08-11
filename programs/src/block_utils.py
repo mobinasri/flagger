@@ -48,6 +48,11 @@ class BlockList:
             else:
                 self.blocks = sorted(blocks)
 
+    def isEqual(self, otherBlockList):
+        if len(self.blocks) != len(otherBlockList.blocks): return False
+        for int1, int2 in zip(self.blocks, otherBlockList.blocks):
+            if int1 != int2: return False
+        return True
     def copy(self):
         return BlockList(deepcopy(self.blocks))
 
@@ -198,6 +203,55 @@ class BlockList:
         else:
             newBlockList = BlockList(newBlocks)
             return newBlockList
+
+    def truncateFromEnd(self, lengthToTruncate, inplace):
+        newBlocks = []
+        for s, e, c in self.blocks:
+            # skip if the whole block is shorter than given length
+            if e - s + 1 <= lengthToTruncate: continue
+            newBlocks.append((s, e - lengthToTruncate, c))
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            return BlockList(newBlocks)
+
+    def truncateFromStart(self, lengthToTruncate, inplace):
+        newBlocks = []
+        for s, e, c in self.blocks:
+            # skip if the whole block is shorter than given length
+            if e - s + 1 <= lengthToTruncate: continue
+            newBlocks.append((s + lengthToTruncate, e, c))
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            return BlockList(newBlocks)
+
+    def truncateFromBothSides(self, lengthToTruncate, inplace):
+        newBlocks = []
+        for s, e, c in self.blocks:
+            # skip if the whole block is shorter than given length
+            if e - s + 1 <= (2 * lengthToTruncate): continue
+            newBlocks.append((s + lengthToTruncate, e - lengthToTruncate, c))
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            return BlockList(newBlocks)
+
+    def shift(self, lengthToShift, minCoordinate, maxCoordinate, inplace):
+        newBlocks = []
+        for s, e, c in self.blocks:
+            newS = s + lengthToShift
+            newE = e + lengthToShift
+            # skip if the shifted block is out of the range
+            if newE < minCoordinate or maxCoordinate < newS: continue
+            # truncate if a part of the shifted block is out of the range
+            newS = minCoordinate if newS < minCoordinate else newS
+            newE = maxCoordinate if maxCoordinate < newE else newE
+            newBlocks.append((newS, newE, c))
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            return BlockList(newBlocks)
 
     # This function is adapted from ptBlock_merge_blocks_v2() function from Secphase repo v0.4.3
     # https://github.com/mobinasri/secphase/blob/v0.4.3/programs/submodules/ptBlock/ptBlock.c

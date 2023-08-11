@@ -17,10 +17,72 @@ class HomologyBlock:
         self.origStrand = origStrand # ['+' or '-']: if '-' the original block should be rev-complemented
         self.newCtg = newCtg # the name of the new contig where this block is localized in
         self.orderIndex = orderIndex # relative order of the block w.r.t to the other blocks in the new contig
-        self.annotations = {}
+        self.annotationBlockLists = defaultdict(BlockList)
+        self.annotationBlockListsToBeSampled = defaultdict(BlockList)
+        self.misAssemblyBlockLists = defaultdict(BlockList)
 
-    def addAnnotation(self, name, intervals):
-        self.annotations[name] = intervals
+    def addMisAssemblyBlockList(self, name, blockList):
+        """
+
+        :param name: The name of the misassembly to add [either "Err", "Dup" or "Col"]
+        :param blockList: A BlockList containing the coordinates of the misassembled part
+                          (Note that coordinates should be 1-based and relative to
+                           the start position of this block rather than the original contig.
+                           The "shift" method of "BlockList" can be used for shifting
+                           coordinates prior to adding blockList)
+        """
+        self.misAssemblyBlockLists[name] = blockList.copy()
+    def addAnnotationBlockList(self, name, blockList):
+        """
+        :param name: The name of the annotation to add
+        :param blockList: A BlockList containing the coordinates of the annotation
+                          (Note that coordinates should be 1-based and relative to
+                           the start position of this block rather than the original contig.
+                           The "shift" method of "BlockList" can be used for shifting
+                           coordinates prior to adding blockList)
+        """
+        self.annotationBlockLists[name] = blockList.copy()
+
+    def updateOneAnnotationBlockListToBeSampled(self, name, lengthToTruncateFromEnd, wholeBlockMargin):
+        """
+
+        :param name: The name of the annotation to update
+        :param lengthToTruncateFromEnd: The length of each annotation block to
+                                        be excluded from sampling (from the right side)
+        :param wholeBlockMargin: The margin of the whole block to be excluded from sampling
+                                 (from both side of the whole block)
+        """
+        annotationBlockListToBeSampled = self.annotationBlockLists[name].copy()
+        # truncate the right side of the blocks
+        annotationBlockListToBeSampled.truncateFromEnd(lengthToTruncateFromEnd, inplace=True)
+
+        # truncate the blocks to make sure they are far enough
+        # from the edges of the whole block
+        wholeBlockWithoutMargin = BlockList([(1, self.origEnd - self.origStart + 1)]).truncateFromBothSides(wholeBlockMargin, inplace=False)
+        annotationBlockListToBeSampled.intersect(wholeBlockWithoutMargin, inplace=True)
+        self.annotationBlockListsToBeSampled[name] = annotationBlockListToBeSampled
+
+    def updateAllAnnotationBlockListsToBeSampled(self, lengthToTruncateFromEnd, wholeBlockMargin):
+        """
+        Run "updateOneAnnotationBlockListToBeSampled" for all existing annotations
+        """
+        for name in self.annotationBlockLists:
+            self.updateOneAnnotationBlockListToBeSampled(name, lengthToTruncateFromEnd, wholeBlockMargin)
+    
+    def extractAnnotationsFromParentBlock(self, parentBlock, start, end):
+        """
+        This function is useful for moving annotation coordinates from the parent block to the
+        child one (self), which is one part of the parent block
+
+        :param parentBlock: The block which was split and then one part of it is the current block
+        :param start: 1-based location of the parent block which is the first base in this block
+        :param end: 1-based location of the parent block which is the last base in this block
+        """
+        for name, blockList in parentBlock.annotationBlockLists:
+            subsetBlockList = blockList.intersect(blockList([(start, end)]), inplace=False)
+            subsetBlockList.shift(start - 1, minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
+            self.addAnnotationBlockList(name, subsetBlockList)
+            
 
 
 
@@ -85,18 +147,23 @@ class HomologyRelation:
                                        '+',
                                        rBlock.newCtg,
                                        rBlock.orderIndex)
+        rBlockPart1.extractAnnotationsFromParentBlock(rBlock, projections[0][0], projections[0][1])
+
         rBlockPart2 = HomologyBlock(qBlock.origCtg,
                                        projections[1][2],
                                        projections[1][3],
                                        self.alignment.orientation,
                                        rBlock.newCtg,
                                        rBlock.orderIndex + 1)
+        rBlockPart2.extractAnnotationsFromParentBlock(qBlock, projections[1][2], projections[1][3])
+
         rBlockPart3 = HomologyBlock(rBlock.origCtg,
                                       projections[2][0],
                                       projections[2][1],
                                       '+',
                                       rBlock.newCtg,
                                       rBlock.orderIndex + 2)
+        rBlockPart3.extractAnnotationsFromParentBlock(rBlock, projections[2][0], projections[2][1])
 
         # query blocks
         qOrderIndexPart1 = qBlock.orderIndex if self.alignment.orientation  == '+' else qBlock.orderIndex + 2
@@ -109,6 +176,7 @@ class HomologyRelation:
                                     '+',
                                     qBlock.newCtg,
                                     qOrderIndexPart1)
+        qBlockPart1.extractAnnotationsFromParentBlock(qBlock, projections[0][2], projections[0][3])
 
         qBlockPart2 = HomologyBlock(rBlock.origCtg,
                                     projections[1][0],
@@ -116,6 +184,7 @@ class HomologyRelation:
                                     self.alignment.orientation,
                                     qBlock.newCtg,
                                     qOrderIndexPart2)
+        qBlockPart2.extractAnnotationsFromParentBlock(rBlock, projections[1][0], projections[1][1])
 
         qBlockPart3 = HomologyBlock(qBlock.origCtg,
                                     projections[2][2],
@@ -123,6 +192,7 @@ class HomologyRelation:
                                     '+',
                                     qBlock.newCtg,
                                     qOrderIndexPart3)
+        qBlockPart3.extractAnnotationsFromParentBlock(qBlock, projections[2][2], projections[2][3])
 
         relationPart1 = HomologyRelation(rBlockPart1,
                                                  qBlockPart1,
@@ -209,6 +279,22 @@ class HomologyRelation:
             for i, relation in enumerate(relationDict[ctgName]):
                 relation.block.orderIndex = i
         return relationDict
+
+    @staticmethod
+    def fillAnnotationBlockListsFromOriginalContigs(relationsDict, annotationBlockListsPerOrigContig, contigLengths, newCtgSuffix):
+        for ctgName, annotationBlockLists in annotationBlockListsPerOrigContig.items():
+            newCtgName = ctgName + newCtgSuffix
+            # create a homology block for the whole original contig,
+            # including the annotations
+            wholeOrigContigBlock = HomologyBlock(ctgName, 1, contigLengths[ctgName], '+', newCtgName, 0)
+            for name, blockList in annotationBlockLists:
+                wholeOrigContigBlock.addAnnotationBlockList(name, blockList)
+            # the created homology block will then be used for extracting the
+            # annotations related to each relation.block
+            for relation in relationsDict[newCtgName]:
+                relation.block.extractAnnotationsFromParentBlock(wholeOrigContigBlock,
+                                                                 relation.block.origStart,
+                                                                 relation.block.origEnd)
 
     @staticmethod
     def induceSwitchErrorAndUpdateRelationsInNewContig(relationsDict, newCtg, orderIndex, switchStart, switchEnd):
