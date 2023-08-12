@@ -218,6 +218,112 @@ class HomologyRelation:
 
         return  homologyRelations
 
+    def induceCollapseError(self, collapseStart, collapseEnd):
+
+        # This function only works when the strand of the whole block is positive
+        # In other words it is not possible to create a switch within a previously
+        # created haplotype switch
+        assert(self.block.origStrand == '+')
+        assert(self.homologousBlock.origStrand == '+')
+        forwardBlocks = [(1, collapseStart - 1, ""), (collapseStart, collapseEnd, ""), (collapseEnd + 1, self.alignment.chromLength, "")]
+        includeEndingIndel = True
+        includePostIndel = True
+        projectableBlocks, projectionBlocks, cigarLists = \
+            findProjections('ref2asm', self.alignment.cigarList, forwardBlocks,
+                            self.alignment.chromLength, self.alignment.chromStart + 1, self.alignment.chromEnd,
+                            self.alignment.contigLength, self.alignment.contigStart + 1, self.alignment.contigEnd,
+                            self.alignment.orientation, includeEndingIndel, includePostIndel)
+
+        assert(len(projectableBlocks) == 3)
+        assert(len(projectionBlocks) == 3)
+
+        projectionsOrigCoor = []
+        projectionsRelCoor = []
+        for i in range(3):
+            projectionsOrigCoor.append([projectableBlocks[i][0] + self.block.origStart - 1,
+                                        projectableBlocks[i][1] + self.block.origStart - 1,
+                                        projectionBlocks[i][0] + self.homologousBlock.origStart - 1,
+                                        projectionBlocks[i][1] + self.homologousBlock.origStart - 1,
+                                        cigarLists[i]])
+            projectionsRelCoor.append([projectableBlocks[i][0],
+                                       projectableBlocks[i][1],
+                                       projectionBlocks[i][0],
+                                       projectionBlocks[i][1],
+                                       cigarLists[i]])
+        # sort projections by start position of the ref haplotype
+        projectionsOrigCoor.sort(key = lambda x : x[0])
+        projectionsRelCoor.sort(key = lambda x : x[0])
+
+        rBlock = self.block
+        qBlock = self.homologousBlock
+
+        # create one homology block per projection
+        # the middle projection will be used for switching
+
+        # ref blocks
+
+        rBlockPart1 =  HomologyBlock(rBlock.origCtg,
+                                     projectionsOrigCoor[0][0],
+                                     projectionsOrigCoor[0][1],
+                                     '+',
+                                     rBlock.newCtg,
+                                     rBlock.orderIndex)
+        rBlockPart1.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[0][0], projectionsRelCoor[0][1])
+
+        rBlockPart2 = HomologyBlock(rBlock.origCtg,
+                                    projectionsOrigCoor[1][0],
+                                    projectionsOrigCoor[1][1],
+                                    self.alignment.orientation,
+                                    qBlock.newCtg,
+                                    rBlock.orderIndex + 1)
+        rBlockPart2.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[1][0], projectionsRelCoor[1][1])
+
+        rBlockPart3 = HomologyBlock(rBlock.origCtg,
+                                    projectionsOrigCoor[2][0],
+                                    projectionsOrigCoor[2][1],
+                                    '+',
+                                    rBlock.newCtg,
+                                    rBlock.orderIndex + 2)
+        rBlockPart3.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[2][0], projectionsRelCoor[2][1])
+
+        # query blocks
+        qOrderIndexPart1 = qBlock.orderIndex if self.alignment.orientation  == '+' else qBlock.orderIndex + 1
+        qOrderIndexPart3 = qBlock.orderIndex + 1 if self.alignment.orientation  == '+' else qBlock.orderIndex
+
+        qBlockPart1 = HomologyBlock(qBlock.origCtg,
+                                    projectionsOrigCoor[0][2],
+                                    projectionsOrigCoor[0][3],
+                                    '+',
+                                    qBlock.newCtg,
+                                    qOrderIndexPart1)
+        qBlockPart1.extractAnnotationsFromParentBlock(qBlock, projectionsRelCoor[0][2], projectionsRelCoor[0][3])
+
+        # skip qBlockPart2 since we want to make rBlockPart1 completely collapsed
+
+        qBlockPart3 = HomologyBlock(qBlock.origCtg,
+                                    projectionsOrigCoor[2][2],
+                                    projectionsOrigCoor[2][3],
+                                    '+',
+                                    qBlock.newCtg,
+                                    qOrderIndexPart3)
+        qBlockPart3.extractAnnotationsFromParentBlock(qBlock, projectionsRelCoor[2][2], projectionsRelCoor[2][3])
+
+        relationPart1 = HomologyRelation(rBlockPart1,
+                                         qBlockPart1,
+                                         projectionsOrigCoor[0][4],
+                                         self.alignment.orientation)
+        relationPart2 = HomologyRelation(rBlockPart2,
+                                         None,
+                                         None,
+                                         None)
+        relationPart3 = HomologyRelation(rBlockPart3,
+                                         qBlockPart3,
+                                         projectionsOrigCoor[2][4],
+                                         self.alignment.orientation)
+
+        homologyRelations = [relationPart1, relationPart2, relationPart3]
+
+        return  homologyRelations
 
     @staticmethod
     def createRef2QueryRelationFromAlignment(alignment: Alignment, newCtgSuffix: str):
@@ -348,6 +454,50 @@ class HomologyRelation:
         for relation in relationsDict[newCtgOtherHap][orderIndex + 3:]:
             relation.block.orderIndex += 2
 
+    @staticmethod
+    def induceCollapseErrorAndUpdateRelationsInNewContig(relationsDict, newCtg, orderIndex, collapseStart, collapseEnd):
+        relationsOneCtg = relationsDict[newCtg]
+        collapsingRelation = relationsOneCtg[orderIndex]
+        newCtgOtherHap = collapsingRelation.homologousBlock.newCtg
+        orderIndexOtherHap = collapsingRelation.homologousBlock.orderIndex
+
+        # remove previous relation
+        # both from ref2query and from query2ref
+        relationsDict[newCtg].pop(orderIndex)
+        relationsDict[newCtgOtherHap].pop(orderIndexOtherHap)
+
+        # split relation into three parts and switch the middle part
+        ref2queryRelations = collapsingRelation.induceCollapseError(collapseStart, collapseEnd)
+        query2refRelations = []
+
+        if collapsingRelation.alignment.orientation == '+':
+            for relation in [ref2queryRelations[0], ref2queryRelations[2]]:
+                query2refRelation = HomologyRelation(relation.homologousBlock,
+                                                     relation.block,
+                                                     None,
+                                                     None)
+                query2refRelations.append(query2refRelation)
+        else:
+            for relation in [ref2queryRelations[2], ref2queryRelations[0]]: # skip the middle relation in collapsing
+                query2refRelation = HomologyRelation(relation.homologousBlock,
+                                                     relation.block,
+                                                     None,
+                                                     None)
+                query2refRelations.append(query2refRelation)
+
+        for relation in ref2queryRelations:
+            relationsDict[newCtg].insert(relation.block.orderIndex, relation)
+
+        # shift the indices of all the blocks after the last added relation by two
+        for relation in relationsDict[newCtg][orderIndex + 3:]:
+            relation.block.orderIndex += 2
+
+        for relation in query2refRelations:
+            relationsDict[newCtgOtherHap].insert(relation.block.orderIndex, relation)
+
+        # shift the indices of all the blocks after the last added relation by two
+        for relation in relationsDict[newCtgOtherHap][orderIndex + 2:]:
+            relation.block.orderIndex += 1
 
 
 
