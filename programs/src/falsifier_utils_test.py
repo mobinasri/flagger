@@ -146,9 +146,13 @@ class TestProjection(unittest.TestCase):
                     self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
                 else:
                     self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
-
+    
     def testInducingSwitchErrorWithAnnotations(self):
         outputRelations = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments, self.contigLengths, "_f")
+        HomologyRelation.fillAnnotationBlockListsFromOriginalContigs(outputRelations,
+                                                                     self.annotationBlockListsPerOrigContig,
+                                                                     self.contigLengths,
+                                                                     "_f")
 
         orderIndex = 3
         switchStart = 3
@@ -169,13 +173,13 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock4.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1, 2)])}
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 25, 25, '-', "ctg1_f", 4)
-        ctg1HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,1)]),
+        ctg1HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,1)]),
                                                    "annot2": BlockList([])}
         ctg1HomologyBlock6 = HomologyBlock("ctg1", 25, 27, '+', "ctg1_f", 5)
         ctg1HomologyBlock6.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1, 3)])}
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 28, 30, '+', "ctg1_f", 6)
-        ctg1HomologyBlock5.annotationBlockLists = {"annot1": BlockList([]),
+        ctg1HomologyBlock7.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1, 3)])}
 
         # ctg2_f
@@ -189,7 +193,7 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(3, 3)]),
                                                    "annot2": BlockList([(1, 2)])}
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 22, 24, '+', "ctg2_f", 3)
-        ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1, 6)]),
+        ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1, 3)]),
                                                    "annot2": BlockList([])}
         ctg2HomologyBlock5 = HomologyBlock("ctg1", 23, 24, '-', "ctg2_f", 4)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([]),
@@ -239,8 +243,6 @@ class TestProjection(unittest.TestCase):
                         for name, blockList in truthBlock.annotationBlockLists.items():
                             self.assertTrue(blockList.isEqual(outputBlock.annotationBlockLists[name]), f"annotation list is not correct ({name})")
 
-                else:
-                    self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
 
 
     def testFillingAnnotationBlockListsFromOriginalContigs(self):
