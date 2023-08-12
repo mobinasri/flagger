@@ -123,15 +123,22 @@ class HomologyRelation:
         assert(len(projectableBlocks) == 3)
         assert(len(projectionBlocks) == 3)
 
-        projections = []
+        projectionsOrigCoor = []
+        projectionsRelCoor = []
         for i in range(3):
-            projections.append([projectableBlocks[i][0] + self.block.origStart - 1,
-                                projectableBlocks[i][1] + self.block.origStart - 1,
-                                projectionBlocks[i][0] + self.homologousBlock.origStart - 1,
-                                projectionBlocks[i][1] + self.homologousBlock.origStart - 1,
-                                cigarLists[i]])
+            projectionsOrigCoor.append([projectableBlocks[i][0] + self.block.origStart - 1,
+                                        projectableBlocks[i][1] + self.block.origStart - 1,
+                                        projectionBlocks[i][0] + self.homologousBlock.origStart - 1,
+                                        projectionBlocks[i][1] + self.homologousBlock.origStart - 1,
+                                        cigarLists[i]])
+            projectionsRelCoor.append([projectableBlocks[i][0],
+                                        projectableBlocks[i][1],
+                                        projectionBlocks[i][0],
+                                        projectionBlocks[i][1],
+                                        cigarLists[i]])
         # sort projections by start position of the ref haplotype
-        projections.sort(key = lambda x : x[0])
+        projectionsOrigCoor.sort(key = lambda x : x[0])
+        projectionsRelCoor.sort(key = lambda x : x[0])
 
         rBlock = self.block
         qBlock = self.homologousBlock
@@ -142,28 +149,28 @@ class HomologyRelation:
         # ref blocks
 
         rBlockPart1 =  HomologyBlock(rBlock.origCtg,
-                                       projections[0][0],
-                                       projections[0][1],
+                                       projectionsOrigCoor[0][0],
+                                       projectionsOrigCoor[0][1],
                                        '+',
                                        rBlock.newCtg,
                                        rBlock.orderIndex)
-        rBlockPart1.extractAnnotationsFromParentBlock(rBlock, projections[0][0], projections[0][1])
+        rBlockPart1.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[0][0], projectionsRelCoor[0][1])
 
         rBlockPart2 = HomologyBlock(qBlock.origCtg,
-                                       projections[1][2],
-                                       projections[1][3],
+                                       projectionsOrigCoor[1][2],
+                                       projectionsOrigCoor[1][3],
                                        self.alignment.orientation,
                                        rBlock.newCtg,
                                        rBlock.orderIndex + 1)
-        rBlockPart2.extractAnnotationsFromParentBlock(qBlock, projections[1][2], projections[1][3])
+        rBlockPart2.extractAnnotationsFromParentBlock(qBlock, projectionsRelCoor[1][2], projectionsRelCoor[1][3])
 
         rBlockPart3 = HomologyBlock(rBlock.origCtg,
-                                      projections[2][0],
-                                      projections[2][1],
+                                      projectionsOrigCoor[2][0],
+                                      projectionsOrigCoor[2][1],
                                       '+',
                                       rBlock.newCtg,
                                       rBlock.orderIndex + 2)
-        rBlockPart3.extractAnnotationsFromParentBlock(rBlock, projections[2][0], projections[2][1])
+        rBlockPart3.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[2][0], projectionsRelCoor[2][1])
 
         # query blocks
         qOrderIndexPart1 = qBlock.orderIndex if self.alignment.orientation  == '+' else qBlock.orderIndex + 2
@@ -171,40 +178,40 @@ class HomologyRelation:
         qOrderIndexPart3 = qBlock.orderIndex + 2 if self.alignment.orientation  == '+' else qBlock.orderIndex
 
         qBlockPart1 = HomologyBlock(qBlock.origCtg,
-                                    projections[0][2],
-                                    projections[0][3],
+                                    projectionsOrigCoor[0][2],
+                                    projectionsOrigCoor[0][3],
                                     '+',
                                     qBlock.newCtg,
                                     qOrderIndexPart1)
-        qBlockPart1.extractAnnotationsFromParentBlock(qBlock, projections[0][2], projections[0][3])
+        qBlockPart1.extractAnnotationsFromParentBlock(qBlock, projectionsRelCoor[0][2], projectionsRelCoor[0][3])
 
         qBlockPart2 = HomologyBlock(rBlock.origCtg,
-                                    projections[1][0],
-                                    projections[1][1],
+                                    projectionsOrigCoor[1][0],
+                                    projectionsOrigCoor[1][1],
                                     self.alignment.orientation,
                                     qBlock.newCtg,
                                     qOrderIndexPart2)
-        qBlockPart2.extractAnnotationsFromParentBlock(rBlock, projections[1][0], projections[1][1])
+        qBlockPart2.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[1][0], projectionsRelCoor[1][1])
 
         qBlockPart3 = HomologyBlock(qBlock.origCtg,
-                                    projections[2][2],
-                                    projections[2][3],
+                                    projectionsOrigCoor[2][2],
+                                    projectionsOrigCoor[2][3],
                                     '+',
                                     qBlock.newCtg,
                                     qOrderIndexPart3)
-        qBlockPart3.extractAnnotationsFromParentBlock(qBlock, projections[2][2], projections[2][3])
+        qBlockPart3.extractAnnotationsFromParentBlock(qBlock, projectionsRelCoor[2][2], projectionsRelCoor[2][3])
 
         relationPart1 = HomologyRelation(rBlockPart1,
                                                  qBlockPart1,
-                                                 projections[0][4],
+                                                 projectionsOrigCoor[0][4],
                                                  self.alignment.orientation)
         relationPart2 = HomologyRelation(rBlockPart2,
                                                  qBlockPart2,
-                                                 projections[1][4] if self.alignment.orientation == '+' else convertIndelsInCigar(projections[1][4]),
+                                                 projectionsOrigCoor[1][4] if self.alignment.orientation == '+' else convertIndelsInCigar(projections[1][4]),
                                                  self.alignment.orientation)
         relationPart3 = HomologyRelation(rBlockPart3,
                                                  qBlockPart3,
-                                                 projections[2][4],
+                                                 projectionsOrigCoor[2][4],
                                                  self.alignment.orientation)
 
         homologyRelations = [relationPart1, relationPart2, relationPart3]
