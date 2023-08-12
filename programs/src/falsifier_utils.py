@@ -207,7 +207,7 @@ class HomologyRelation:
                                                  self.alignment.orientation)
         relationPart2 = HomologyRelation(rBlockPart2,
                                                  qBlockPart2,
-                                                 projectionsOrigCoor[1][4] if self.alignment.orientation == '+' else convertIndelsInCigar(projections[1][4]),
+                                                 projectionsOrigCoor[1][4] if self.alignment.orientation == '+' else convertIndelsInCigar(projectionsOrigCoor[1][4]),
                                                  self.alignment.orientation)
         relationPart3 = HomologyRelation(rBlockPart3,
                                                  qBlockPart3,
