@@ -169,7 +169,7 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock4.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1, 2)])}
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 25, 25, '-', "ctg1_f", 4)
-        ctg1HomologyBlock4.annotationBlockLists = {"annot1": BlockList([1,1]),
+        ctg1HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,1)]),
                                                    "annot2": BlockList([])}
         ctg1HomologyBlock6 = HomologyBlock("ctg1", 25, 27, '+', "ctg1_f", 5)
         ctg1HomologyBlock6.annotationBlockLists = {"annot1": BlockList([]),
@@ -201,7 +201,7 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1,3)])}
         ctg3HomologyBlock1 = HomologyBlock("ctg3", 1, 10, '+', "ctg3_f", 0)
-        ctg3HomologyBlock1.annotationBlockLists = {"annot1": BlockList([1,10]),
+        ctg3HomologyBlock1.annotationBlockLists = {"annot1": BlockList([(1,10)]),
                                                    "annot2": BlockList([])}
 
         truthRelations = defaultdict(list)
