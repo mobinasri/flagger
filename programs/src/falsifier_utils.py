@@ -78,8 +78,8 @@ class HomologyBlock:
         :param start: 1-based location of the parent block which is the first base in this block
         :param end: 1-based location of the parent block which is the last base in this block
         """
-        for name, blockList in parentBlock.annotationBlockLists:
-            subsetBlockList = blockList.intersect(blockList([(start, end)]), inplace=False)
+        for name, blockList in parentBlock.annotationBlockLists.items():
+            subsetBlockList = blockList.intersect(BlockList([(start, end)]), inplace=False)
             subsetBlockList.shift( -(start - 1), minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
             self.addAnnotationBlockList(name, subsetBlockList)
             
@@ -287,7 +287,7 @@ class HomologyRelation:
             # create a homology block for the whole original contig,
             # including the annotations
             wholeOrigContigBlock = HomologyBlock(ctgName, 1, contigLengths[ctgName], '+', newCtgName, 0)
-            for name, blockList in annotationBlockLists:
+            for name, blockList in annotationBlockLists.items():
                 wholeOrigContigBlock.addAnnotationBlockList(name, blockList)
             # the created homology block will then be used for extracting the
             # annotations related to each relation.block

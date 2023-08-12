@@ -148,10 +148,10 @@ class TestProjection(unittest.TestCase):
                     self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
 
     def testFillingAnnotationBlockListsFromOriginalContigs(self):
-        relationsDict = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments,
+        outputRelations = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments,
                                                                                       self.contigLengths,
                                                                                       "_f")
-        HomologyRelation.fillAnnotationBlockListsFromOriginalContigs(relationsDict,
+        HomologyRelation.fillAnnotationBlockListsFromOriginalContigs(outputRelations,
                                                                      self.annotationBlockListsPerOrigContig,
                                                                      self.contigLengths,
                                                                      "_f")
