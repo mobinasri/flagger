@@ -292,10 +292,10 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 22, 24, '+', "ctg2_f", 3)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1, 3)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock5 = HomologyBlock("ctg2", 26, 27, '+', "ctg2_f", 5)
+        ctg2HomologyBlock5 = HomologyBlock("ctg2", 26, 27, '+', "ctg2_f", 4)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1, 2)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock6 = HomologyBlock("ctg2", 28, 30, '+', "ctg2_f", 6)
+        ctg2HomologyBlock6 = HomologyBlock("ctg2", 28, 30, '+', "ctg2_f", 5)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1,3)])}
         ctg3HomologyBlock1 = HomologyBlock("ctg3", 1, 10, '+', "ctg3_f", 0)
@@ -306,9 +306,9 @@ class TestProjection(unittest.TestCase):
         truthRelations["ctg1_f"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
                                     HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("1=1X2I3=1D3="), '+'),
                                     HomologyRelation(ctg1HomologyBlock3, None, None, None),
-                                    HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock6, getCigarList("2="), '-'),
+                                    HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock5, getCigarList("2="), '-'),
                                     HomologyRelation(ctg1HomologyBlock5, None, None, None),
-                                    HomologyRelation(ctg1HomologyBlock6, ctg2HomologyBlock5, getCigarList("1D1X1I1="), '-'),
+                                    HomologyRelation(ctg1HomologyBlock6, ctg2HomologyBlock4, getCigarList("1D1X1I1="), '-'),
                                     HomologyRelation(ctg1HomologyBlock7, None, None, None)]
 
         truthRelations["ctg2_f"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),

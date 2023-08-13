@@ -273,8 +273,8 @@ class HomologyRelation:
         rBlockPart2 = HomologyBlock(rBlock.origCtg,
                                     projectionsOrigCoor[1][0],
                                     projectionsOrigCoor[1][1],
-                                    self.alignment.orientation,
-                                    qBlock.newCtg,
+                                    '+',
+                                    rBlock.newCtg,
                                     rBlock.orderIndex + 1)
         rBlockPart2.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[1][0], projectionsRelCoor[1][1])
 
