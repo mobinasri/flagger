@@ -358,7 +358,7 @@ class TestProjection(unittest.TestCase):
         orderIndex = 3
         duplicationStart = 3
         duplicationEnd = 4
-        HomologyRelation.induceCollapseErrorAndUpdateRelationsInNewContig(outputRelations, "ctg1_f", orderIndex, duplicationStart, duplicationEnd)
+        HomologyRelation.induceDuplicationErrorAndUpdateRelationsInNewContig(outputRelations, "ctg1_f", orderIndex, duplicationStart, duplicationEnd)
 
         # ctg1_f
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
@@ -401,13 +401,13 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 22, 24, '+', "ctg2_f", 3)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1, 3)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock5 = HomologyBlock("ctg2", 25, 25, '-', "ctg2_f", 4)
+        ctg2HomologyBlock5 = HomologyBlock("ctg2", 25, 25, '+', "ctg2_f", 4)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,1)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock6 = HomologyBlock("ctg2", 26, 27, '+', "ctg2_f", 4)
+        ctg2HomologyBlock6 = HomologyBlock("ctg2", 26, 27, '+', "ctg2_f", 5)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(1, 2)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock7 = HomologyBlock("ctg2", 28, 30, '+', "ctg2_f", 5)
+        ctg2HomologyBlock7 = HomologyBlock("ctg2", 28, 30, '+', "ctg2_f", 6)
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1,3)])}
 
@@ -457,7 +457,6 @@ class TestProjection(unittest.TestCase):
                         self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
                         self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
                         self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
-
                     if truthRelation.alignment == None:
                         self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
                     else:

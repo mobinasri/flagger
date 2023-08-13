@@ -390,7 +390,7 @@ class HomologyRelation:
                                     projectionsOrigCoor[1][0],
                                     projectionsOrigCoor[1][1],
                                     '+',
-                                    rBlock.origCtg + "_Dup_{projectionsOrigCoor[1][0]}_{projectionsOrigCoor[1][1]}",
+                                    rBlock.origCtg + f"_Dup_{projectionsOrigCoor[1][0]}_{projectionsOrigCoor[1][1]}",
                                     0)
         rBlockPart2Dup.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[1][0], projectionsRelCoor[1][1])
 
@@ -642,7 +642,7 @@ class HomologyRelation:
         ref2queryRelations, duplicatedRelation = duplicatingRelation.induceDuplicationError(collapseStart, collapseEnd)
         query2refRelations = []
 
-        if duplicatedRelation.alignment.orientation == '+':
+        if duplicatingRelation.alignment.orientation == '+':
             for relation in ref2queryRelations:
                 query2refRelation = HomologyRelation(relation.homologousBlock,
                                                      relation.block,
@@ -672,7 +672,7 @@ class HomologyRelation:
             relation.block.orderIndex += 2
 
         # add new contig for the false duplication
-        relationsDict[duplicatedRelation.block.newCtg] = [duplicatingRelation]
+        relationsDict[duplicatedRelation.block.newCtg] = [duplicatedRelation]
 
 
 
