@@ -32,6 +32,7 @@ class HomologyBlock:
                            coordinates prior to adding blockList)
         """
         self.misAssemblyBlockLists[name] = blockList.copy()
+
     def addAnnotationBlockList(self, name, blockList):
         """
         :param name: The name of the annotation to add
@@ -68,7 +69,7 @@ class HomologyBlock:
         """
         for name in self.annotationBlockLists:
             self.updateOneAnnotationBlockListToBeSampled(name, lengthToTruncateFromEnd, wholeBlockMargin)
-    
+
     def extractAnnotationsFromParentBlock(self, parentBlock, start, end):
         """
         This function is useful for moving annotation coordinates from the parent block to the
