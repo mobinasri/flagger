@@ -412,7 +412,7 @@ class HomologyRelationChains:
 
         # convert cigar if the alignment orientation is negative
         if relationPart2.alignment.orientation == '-':
-            relationPart2.alignment.cigarList = convertIndelsInCigar(relationPart2.cigarList)
+            relationPart2.alignment.cigarList = convertIndelsInCigar(relationPart2.alignment.cigarList)
             rBlockPart2.origStrand = '-'
             qBlockPart2.origStrand = '-'
 
