@@ -21,7 +21,7 @@ class TestProjection(unittest.TestCase):
         print(f"Tests:")
 
     def testCreatingHomologyRelationsDict(self):
-        outputRelations = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments, self.contigLengths, "_f")
+        outputRelationChains = HomologyRelationChains(self.alignments, self.contigLengths, 0, 0, "_f")
 
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
         ctg1HomologyBlock2 = HomologyBlock("ctg1", 7, 15, '+', "ctg1_f", 1)
@@ -53,6 +53,7 @@ class TestProjection(unittest.TestCase):
                               HomologyRelation(ctg2HomologyBlock5, None, None, None)]
         truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
+        outputRelations = outputRelationChains.relationChains
         for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f"]:
             
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
@@ -77,87 +78,23 @@ class TestProjection(unittest.TestCase):
                     self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
                 else:
                     self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
-    def testInducingSwitchError(self):
-        relationsDict = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments, self.contigLengths, "_f")
 
-        orderIndex = 3
-        switchStart = 3
-        switchEnd = 4
-        HomologyRelation.induceSwitchErrorAndUpdateRelationsInNewContig(relationsDict, "ctg1_f", orderIndex, switchStart, switchEnd)
-
-        ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
-        ctg1HomologyBlock2 = HomologyBlock("ctg1", 7, 15, '+', "ctg1_f", 1)
-        ctg1HomologyBlock3 = HomologyBlock("ctg1", 16, 20, '+', "ctg1_f", 2)
-        ctg1HomologyBlock4 = HomologyBlock("ctg1", 21, 22, '+', "ctg1_f", 3)
-        ctg1HomologyBlock5 = HomologyBlock("ctg2", 25, 25, '-', "ctg1_f", 4)
-        ctg1HomologyBlock6 = HomologyBlock("ctg1", 25, 27, '+', "ctg1_f", 5)
-        ctg1HomologyBlock7 = HomologyBlock("ctg1", 28, 30, '+', "ctg1_f", 6)
-
-        ctg2HomologyBlock1 = HomologyBlock("ctg2", 1, 8, '+', "ctg2_f", 0)
-        ctg2HomologyBlock2 = HomologyBlock("ctg2", 9, 18, '+', "ctg2_f", 1)
-        ctg2HomologyBlock3 = HomologyBlock("ctg2", 19, 21, '+', "ctg2_f", 2)
-        ctg2HomologyBlock4 = HomologyBlock("ctg2", 22, 24, '+', "ctg2_f", 3)
-        ctg2HomologyBlock5 = HomologyBlock("ctg1", 23, 24, '-', "ctg2_f", 4)
-        ctg2HomologyBlock6 = HomologyBlock("ctg2", 26, 27, '+', "ctg2_f", 5)
-        ctg2HomologyBlock7 = HomologyBlock("ctg2", 28, 30, '+', "ctg2_f", 6)
-
-        ctg3HomologyBlock1 = HomologyBlock("ctg3", 1, 10, '+', "ctg3_f", 0)
-
-        truthRelations = defaultdict(list)
-        truthRelations["ctg1_f"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
-                                  HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("1=1X2I3=1D3="), '+'),
-                                  HomologyRelation(ctg1HomologyBlock3, None, None, None),
-                                  HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock6, getCigarList("2="), '-'),
-                                  HomologyRelation(ctg1HomologyBlock5, ctg2HomologyBlock5, getCigarList("1=1I"), '-'),
-                                  HomologyRelation(ctg1HomologyBlock6, ctg2HomologyBlock4, getCigarList("1D1X1I1="), '-'),
-                                  HomologyRelation(ctg1HomologyBlock7, None, None, None)]
-
-        truthRelations["ctg2_f"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
-                                  HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
-                                  HomologyRelation(ctg2HomologyBlock3, None, None, None),
-                                  HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock6, None, None),
-                                  HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock5, None, None),
-                                  HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock4, None, None),
-                                  HomologyRelation(ctg2HomologyBlock7, None, None, None)]
-
-        truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
-
-        for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f"]:
-
-            self.assertTrue(ctgName in relationsDict, "Contig does not exist")
-            self.assertEqual(len(truthRelations[ctgName]), len(relationsDict[ctgName]), "Number of relations do not match")
-
-            for i in range(len(truthRelations[ctgName])):
-                truthRelation = truthRelations[ctgName][i]
-                outputRelation = relationsDict[ctgName][i]
-
-                for truthBlock, outputBlock, name in zip([truthRelation.block, truthRelation.homologousBlock], [outputRelation.block, outputRelation.homologousBlock], ["block", "homologous block"] ):
-                    if truthBlock == None:
-                        self.assertTrue(outputBlock == None, f"the block is not None ({name})")
-                    else:
-                        self.assertEqual(truthBlock.origCtg, outputBlock.origCtg, f"origCtg is not correct ({name})")
-                        self.assertEqual(truthBlock.origStart, outputBlock.origStart, f"origStart is not correct ({name})")
-                        self.assertEqual(truthBlock.origEnd, outputBlock.origEnd, f"origEnd is not correct ({name})")
-                        self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
-                        self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
-                        self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
-
-                if truthRelation.alignment == None:
-                    self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
-                else:
-                    self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
-    
     def testInducingSwitchErrorWithAnnotations(self):
-        outputRelations = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments, self.contigLengths, "_f")
-        HomologyRelation.fillAnnotationBlockListsFromOriginalContigs(outputRelations,
-                                                                     self.annotationBlockListsPerOrigContig,
-                                                                     self.contigLengths,
-                                                                     "_f")
+        outputRelationChains = HomologyRelationChains(self.alignments,
+                                                      self.contigLengths,
+                                                      0, 0,
+                                                      "_f")
+        outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContig,
+                                                                         self.contigLengths,
+                                                                         "_f")
 
         orderIndex = 3
         switchStart = 3
         switchEnd = 4
-        HomologyRelation.induceSwitchErrorAndUpdateRelationsInNewContig(outputRelations, "ctg1_f", orderIndex, switchStart, switchEnd)
+        outputRelationChains.induceSwitchMisAssembly("ctg1_f",
+                                                     orderIndex,
+                                                     switchStart,
+                                                     switchEnd)
 
         # ctg1_f
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
@@ -227,6 +164,7 @@ class TestProjection(unittest.TestCase):
 
         truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
+        outputRelations = outputRelationChains.relationChains
         for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
@@ -242,19 +180,35 @@ class TestProjection(unittest.TestCase):
                     else:
                         for name, blockList in truthBlock.annotationBlockLists.items():
                             self.assertTrue(blockList.isEqual(outputBlock.annotationBlockLists[name]), f"annotation list is not correct ({name})")
+                        self.assertEqual(truthBlock.origCtg, outputBlock.origCtg, f"origCtg is not correct ({name})")
+                        self.assertEqual(truthBlock.origStart, outputBlock.origStart, f"origStart is not correct ({name})")
+                        self.assertEqual(truthBlock.origEnd, outputBlock.origEnd, f"origEnd is not correct ({name})")
+                        self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
+                        self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
+                        self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
+
+                if truthRelation.alignment == None:
+                    self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
+                else:
+                    self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
 
 
     def testInducingCollapseErrorWithAnnotations(self):
-        outputRelations = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments, self.contigLengths, "_f")
-        HomologyRelation.fillAnnotationBlockListsFromOriginalContigs(outputRelations,
-                                                                     self.annotationBlockListsPerOrigContig,
-                                                                     self.contigLengths,
-                                                                     "_f")
+        outputRelationChains = HomologyRelationChains(self.alignments,
+                                                      self.contigLengths,
+                                                      0, 0,
+                                                      "_f")
+        outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContig,
+                                                                         self.contigLengths,
+                                                                         "_f")
 
         orderIndex = 3
         collapseStart = 3
         collapseEnd = 4
-        HomologyRelation.induceCollapseErrorAndUpdateRelationsInNewContig(outputRelations, "ctg1_f", orderIndex, collapseStart, collapseEnd)
+        outputRelationChains.induceCollapseMisAssembly("ctg1_f",
+                                                       orderIndex,
+                                                       collapseStart,
+                                                       collapseEnd)
 
         # ctg1_f
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
@@ -320,6 +274,7 @@ class TestProjection(unittest.TestCase):
 
         truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
+        outputRelations = outputRelationChains.relationChains
         for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
@@ -349,16 +304,21 @@ class TestProjection(unittest.TestCase):
 
 
     def testInducingDuplicationErrorWithAnnotations(self):
-        outputRelations = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments, self.contigLengths, "_f")
-        HomologyRelation.fillAnnotationBlockListsFromOriginalContigs(outputRelations,
-                                                                     self.annotationBlockListsPerOrigContig,
-                                                                     self.contigLengths,
-                                                                     "_f")
+        outputRelationChains = HomologyRelationChains(self.alignments,
+                                                      self.contigLengths,
+                                                      0, 0,
+                                                      "_f")
+        outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContig,
+                                                                         self.contigLengths,
+                                                                         "_f")
 
         orderIndex = 3
         duplicationStart = 3
         duplicationEnd = 4
-        HomologyRelation.induceDuplicationErrorAndUpdateRelationsInNewContig(outputRelations, "ctg1_f", orderIndex, duplicationStart, duplicationEnd)
+        outputRelationChains.induceDuplicationMisAssembly("ctg1_f",
+                                                          orderIndex,
+                                                          duplicationStart,
+                                                          duplicationEnd)
 
         # ctg1_f
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
@@ -436,6 +396,7 @@ class TestProjection(unittest.TestCase):
         truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
         truthRelations["ctg1_Dup_23_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
+        outputRelations = outputRelationChains.relationChains
         for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f", "ctg1_Dup_23_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
@@ -464,13 +425,13 @@ class TestProjection(unittest.TestCase):
 
 
     def testFillingAnnotationBlockListsFromOriginalContigs(self):
-        outputRelations = HomologyRelation.createAllInclusiveRelationDictFromAlignments(self.alignments,
-                                                                                      self.contigLengths,
-                                                                                      "_f")
-        HomologyRelation.fillAnnotationBlockListsFromOriginalContigs(outputRelations,
-                                                                     self.annotationBlockListsPerOrigContig,
-                                                                     self.contigLengths,
-                                                                     "_f")
+        outputRelationChains = HomologyRelationChains(self.alignments,
+                                                      self.contigLengths,
+                                                      0, 0,
+                                                      "_f")
+        outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContig,
+                                                                         self.contigLengths,
+                                                                         "_f")
 
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
         ctg1HomologyBlock1.annotationBlockLists = {"annot1": BlockList([(4, 6)]),
@@ -525,6 +486,7 @@ class TestProjection(unittest.TestCase):
                                     HomologyRelation(ctg2HomologyBlock5, None, None, None)]
         truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
+        outputRelations = outputRelationChains.relationChains
         for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
