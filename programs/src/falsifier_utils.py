@@ -406,9 +406,10 @@ class HomologyRelationChains:
         rBlockPart2 = relationPart2.block
         qBlockPart2 = relationPart2.homologousBlock
 
-        # swap indices and new contig names
+        # swap blocks, order indices and new contig names
         rBlockPart2.orderIndex, qBlockPart2.orderIndex = qBlockPart2.orderIndex,  rBlockPart2.orderIndex
         rBlockPart2.newCtg, qBlockPart2.newCtg = qBlockPart2.newCtg,  rBlockPart2.newCtg
+        relationPart2.block, relationPart2.homologousBlock = relationPart2.homologousBlock, relationPart2.block
 
         # convert cigar if the alignment orientation is negative
         if relationPart2.alignment.orientation == '-':
