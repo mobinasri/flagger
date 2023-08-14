@@ -475,9 +475,13 @@ class HomologyRelationChains:
         relationPart2.homologousBlock = None
         relationPart2.alignment = None
 
-        # since qBlockPart2 is going to be ignored, orderIndex of qBlockPart3 should be adjusted
+        # since qBlockPart2 is going to be ignored, orderIndex of qBlockPart1/3 should be adjusted
+        qBlockPart1 = ref2querySplitRelations[0].homologousBlock
         qBlockPart3 = ref2querySplitRelations[2].homologousBlock
-        qBlockPart3.orderIndex -= 1
+        if relationToSplit.alignment.orientation == '+':
+            qBlockPart3.orderIndex -= 1
+        else:
+            qBlockPart1.orderIndex -= 1
 
         # create the equivalent list of relations from query to ref
         # these relations will show the same connections between blocks
