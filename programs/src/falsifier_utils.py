@@ -402,16 +402,17 @@ class HomologyRelationChains:
         ref2querySplitRelations = relationToSplit.splitIntoThreeParts(switchStart, switchEnd)
 
         # the blocks that have to be swapped
-        rBlockPart2 = ref2querySplitRelations[1].block
-        qBlockPart2 = ref2querySplitRelations[1].homologousBlock
+        relationPart2 = ref2querySplitRelations[1]
+        rBlockPart2 = relationPart2.block
+        qBlockPart2 = relationPart2.homologousBlock
 
         # swap indices and new contig names
         rBlockPart2.orderIndex, qBlockPart2.orderIndex = qBlockPart2.orderIndex,  rBlockPart2.orderIndex
         rBlockPart2.newCtg, qBlockPart2.newCtg = qBlockPart2.newCtg,  rBlockPart2.newCtg
 
         # convert cigar if the alignment orientation is negative
-        if rBlockPart2.alignment.orientation == '-':
-            rBlockPart2.alignment.cigarList = convertIndelsInCigar(rBlockPart2.alignment.cigarList)
+        if relationPart2.alignment.orientation == '-':
+            relationPart2.alignment.cigarList = convertIndelsInCigar(relationPart2.cigarList)
             rBlockPart2.origStrand = '-'
             qBlockPart2.origStrand = '-'
 
