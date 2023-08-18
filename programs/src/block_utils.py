@@ -204,7 +204,7 @@ class BlockList:
             newBlockList = BlockList(newBlocks)
             return newBlockList
 
-    def truncateFromEnd(self, lengthToTruncate, inplace):
+    def truncateFromRight(self, lengthToTruncate, inplace):
         newBlocks = []
         for s, e, c in self.blocks:
             # skip if the whole block is shorter than given length
@@ -215,12 +215,38 @@ class BlockList:
         else:
             return BlockList(newBlocks)
 
-    def truncateFromStart(self, lengthToTruncate, inplace):
+    def truncateFromLeft(self, lengthToTruncate, inplace):
         newBlocks = []
         for s, e, c in self.blocks:
             # skip if the whole block is shorter than given length
             if e - s + 1 <= lengthToTruncate: continue
             newBlocks.append((s + lengthToTruncate, e, c))
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            return BlockList(newBlocks)
+
+    def extendFromLeft(self, lengthToExtend, leftMostPosition, inplace):
+        newBlocks = []
+        for s, e, c in self.blocks:
+            # do not extend before leftMostPosition
+            newS = max(s - lengthToExtend, leftMostPosition)
+            # skip if block is empty
+            if e < newS: continue
+            newBlocks.append((newS, e, c))
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            return BlockList(newBlocks)
+
+    def extendFromRight(self, lengthToExtend, rightMostPosition, inplace):
+        newBlocks = []
+        for s, e, c in self.blocks:
+            # do not extend after rightMostPosition
+            newE = min(e + lengthToExtend, rightMostPosition)
+            # skip if block is empty
+            if newE < s: continue
+            newBlocks.append((s, newE, c))
         if inplace:
             self.blocks = newBlocks
         else:
@@ -248,6 +274,15 @@ class BlockList:
             newS = minCoordinate if newS < minCoordinate else newS
             newE = maxCoordinate if maxCoordinate < newE else newE
             newBlocks.append((newS, newE, c))
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            return BlockList(newBlocks)
+
+    def removeBlocksShorterThan(self, minLength, inplace):
+        newBlocks = []
+        for s, e, c in self.blocks:
+            if e - s + 1 < minLength: continue
         if inplace:
             self.blocks = newBlocks
         else:
