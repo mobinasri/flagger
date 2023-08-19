@@ -33,7 +33,7 @@ class HomologyBlock:
         self.containsMisAssembly = False
 
     def clearAnnotationStartBlocksForSampling(self):
-        for annotation in self.annotationStartBlockListsForSampling:
+        for annotation in self.annotationBlockLists:
             self.annotationStartBlockListsForSampling[annotation] = BlockList([])
             self.annotationStartBlockLengthsForSampling[annotation] = []
             self.annotationStartTotalLengthsForSampling[annotation] = 0
@@ -93,10 +93,10 @@ class HomologyBlock:
         assert(0.5 <= self.minOverlapRatioWithEachAnnotation)
         #The length to be excluded from sampling in each continuous annotation
         #block (from the right side)
-        lengthToTruncateFromRight = int(self.misAssemblyLength * self.minOverlapRatioWithEachAnnotation) + 1
+        lengthToTruncateFromRight = int(self.misAssemblyLength * self.minOverlapRatioWithEachAnnotation)
 
         # The length to be extended from the left side
-        lengthToExtendFromLeft = self.misAssemblyLength - lengthToTruncateFromRight
+        lengthToExtendFromLeft = self.misAssemblyLength - lengthToTruncateFromRight - 1
         # The margin of the whole block to be excluded from sampling
         # (from left side)
         wholeBlockMarginFromLeft = self.minMarginLength
@@ -105,7 +105,7 @@ class HomologyBlock:
         wholeBlockMarginFromRight = self.misAssemblyLength + self.minMarginLength
 
         wholeBlockWithoutMargins = BlockList([(1, self.origEnd - self.origStart + 1)]).truncateFromLeft(wholeBlockMarginFromLeft, inplace=False)
-        wholeBlockWithoutMargins.truncateFromRight(wholeBlockMarginFromRight, inplace=True)
+        wholeBlockWithoutMargins.truncateFromRight(wholeBlockMarginFromRight - 1, inplace=True)
 
         for name in self.annotationBlockLists:
             self.annotationStartBlockListsForSampling[name] = self.annotationBlockLists[name].copy()
@@ -120,7 +120,8 @@ class HomologyBlock:
             self.annotationStartBlockListsForSampling[name].extendFromLeft(lengthToExtendFromLeft,
                                                                            leftMostPosition= 1,
                                                                            inplace=True)
-            
+
+
             # truncate the blocks to make sure they do not have overlap with the margins
             self.annotationStartBlockListsForSampling[name].intersect(wholeBlockWithoutMargins, inplace=True)
             self.annotationStartBlockLengthsForSampling[name] = [i[1] - i[0] + 1 for i in self.annotationStartBlockListsForSampling[name].blocks]
@@ -157,6 +158,20 @@ class HomologyBlock:
             subsetBlockList = blockList.intersect(BlockList([(start, end)]), inplace=False)
             subsetBlockList.shift( -(start - 1), minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
             self.addAnnotationBlockList(name, subsetBlockList)
+
+    def extractMisAssembliesFromParentBlock(self, parentBlock, start, end):
+        """
+        This function is useful for moving annotation coordinates from the parent block to the
+        child one (self), which is one part of the parent block
+
+        :param parentBlock: The block which was split and then one part of it is the current block
+        :param start: 1-based location of the parent block which is the first base in this block
+        :param end: 1-based location of the parent block which is the last base in this block
+        """
+        for name, blockList in parentBlock.misAssemblyBlockLists.items():
+            subsetBlockList = blockList.intersect(BlockList([(start, end)]), inplace=False)
+            subsetBlockList.shift( -(start - 1), minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
+            self.addMisAssemblyBlockList(name, subsetBlockList)
 
 
 
@@ -279,6 +294,7 @@ class HomologyRelation:
                                      rBlock.newCtg,
                                      rBlock.orderIndex)
         rBlockPart1.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[0][0], projectionsRelCoor[0][1])
+        rBlockPart1.extractMisAssembliesFromParentBlock(rBlock, projectionsRelCoor[0][0], projectionsRelCoor[0][1])
         rBlockPart1.copySamplingLengthAttributes(rBlock)
         rBlockPart1.updateAnnotationStartLocationsForSampling()
 
@@ -289,6 +305,7 @@ class HomologyRelation:
                                     rBlock.newCtg,
                                     rBlock.orderIndex + 1)
         rBlockPart2.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[1][0], projectionsRelCoor[1][1])
+        rBlockPart2.extractMisAssembliesFromParentBlock(rBlock, projectionsRelCoor[1][0], projectionsRelCoor[1][1])
         rBlockPart2.copySamplingLengthAttributes(rBlock)
         rBlockPart2.updateAnnotationStartLocationsForSampling()
 
@@ -299,6 +316,7 @@ class HomologyRelation:
                                     rBlock.newCtg,
                                     rBlock.orderIndex + 2)
         rBlockPart3.extractAnnotationsFromParentBlock(rBlock, projectionsRelCoor[2][0], projectionsRelCoor[2][1])
+        rBlockPart3.extractMisAssembliesFromParentBlock(rBlock, projectionsRelCoor[2][0], projectionsRelCoor[2][1])
         rBlockPart3.copySamplingLengthAttributes(rBlock)
         rBlockPart3.updateAnnotationStartLocationsForSampling()
 
@@ -314,6 +332,8 @@ class HomologyRelation:
                                     qBlock.newCtg,
                                     qOrderIndexPart1)
         qBlockPart1.extractAnnotationsFromParentBlock(qBlock, projectionsRelCoor[0][2], projectionsRelCoor[0][3])
+        qBlockPart1.extractMisAssembliesFromParentBlock(qBlock, projectionsRelCoor[0][2], projectionsRelCoor[0][3])
+        qBlockPart1.clearAnnotationStartBlocksForSampling()
         #qBlockPart1.copySamplingLengthAttributes(qBlock)
         #qBlockPart1.updateAnnotationStartLocationsForSampling()
 
@@ -324,6 +344,8 @@ class HomologyRelation:
                                     qBlock.newCtg,
                                     qOrderIndexPart2)
         qBlockPart2.extractAnnotationsFromParentBlock(qBlock, projectionsRelCoor[1][2], projectionsRelCoor[1][3])
+        qBlockPart2.extractMisAssembliesFromParentBlock(qBlock, projectionsRelCoor[1][2], projectionsRelCoor[1][3])
+        qBlockPart2.clearAnnotationStartBlocksForSampling()
         #qBlockPart2.copySamplingLengthAttributes(qBlock)
         #qBlockPart2.updateAnnotationStartLocationsForSampling()
 
@@ -334,6 +356,8 @@ class HomologyRelation:
                                     qBlock.newCtg,
                                     qOrderIndexPart3)
         qBlockPart3.extractAnnotationsFromParentBlock(qBlock, projectionsRelCoor[2][2], projectionsRelCoor[2][3])
+        qBlockPart3.extractMisAssembliesFromParentBlock(qBlock, projectionsRelCoor[2][2], projectionsRelCoor[2][3])
+        qBlockPart3.clearAnnotationStartBlocksForSampling()
         #qBlockPart3.copySamplingLengthAttributes(qBlock)
         #qBlockPart3.updateAnnotationStartLocationsForSampling()
 
@@ -369,7 +393,8 @@ class HomologyRelationChains:
         # weights as values; one weight per newCtg
         # it will be filled by calling "updateAnnotationStartLocationsForSampling"
         self.newCtgAnnotationWeightsForSampling = defaultdict(list)
-        self.newCtgListRefOnly = origCtgListRefOnly
+        self.newCtgListForSampling = [c + newCtgSuffix for c in origCtgListRefOnly]
+        self.newCtgToIndexForSampling = {c: i for i, c in enumerate(self.newCtgListForSampling)}
         self.misAssemblyLength = 0
 
     @staticmethod
@@ -509,7 +534,7 @@ class HomologyRelationChains:
         else:
             rBlockPart2.addMisAssemblyBlockList("Err",
                                                 BlockList([(1, switchEffectWindowLength),
-                                                           (rBlockPart2Length - switchEffectWindowLength, rBlockPart2Length)]))
+                                                           (rBlockPart2Length - switchEffectWindowLength + 1, rBlockPart2Length)]))
         rBlockPart2.containsMisAssembly= True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -523,7 +548,7 @@ class HomologyRelationChains:
         else:
             qBlockPart2.addMisAssemblyBlockList("Err",
                                                 BlockList([(1, switchEffectWindowLength),
-                                                           (qBlockPart2Length - switchEffectWindowLength, qBlockPart2Length)]))
+                                                           (qBlockPart2Length - switchEffectWindowLength + 1, qBlockPart2Length)]))
         qBlockPart2.containsMisAssembly= True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -538,7 +563,7 @@ class HomologyRelationChains:
                                                 BlockList([(1, rBlockPart1Length)]))
         else:
             rBlockPart1.addMisAssemblyBlockList("Err",
-                                                BlockList([(rBlockPart1Length - switchEffectWindowLength, rBlockPart1Length)]))
+                                                BlockList([(rBlockPart1Length - switchEffectWindowLength + 1, rBlockPart1Length)]))
 
 
         # add misassembly with the "Err" label to the beginning part of the right reference block
@@ -563,7 +588,7 @@ class HomologyRelationChains:
         else:
             if relationToSplit.alignment.orientation == '+':
                 qBlockPart1.addMisAssemblyBlockList("Err",
-                                                    BlockList([(qBlockPart1Length - switchEffectWindowLength, qBlockPart1Length)]))
+                                                    BlockList([(qBlockPart1Length - switchEffectWindowLength + 1, qBlockPart1Length)]))
             else: # '-'
                 qBlockPart1.addMisAssemblyBlockList("Err",
                                                     BlockList([(1, switchEffectWindowLength)]))
@@ -583,7 +608,7 @@ class HomologyRelationChains:
                                                     BlockList([(1, switchEffectWindowLength)]))
             else: # '-'
                 qBlockPart3.addMisAssemblyBlockList("Err",
-                                                    BlockList([(qBlockPart3Length - switchEffectWindowLength, qBlockPart3Length)]))
+                                                    BlockList([(qBlockPart3Length - switchEffectWindowLength + 1, qBlockPart3Length)]))
 
 
 
@@ -621,6 +646,9 @@ class HomologyRelationChains:
         # shift the indices of all the blocks after the last added relation by two
         for relation in self.relationChains[otherHapNewCtg][otherHapOrderIndex + 3:]:
             relation.block.orderIndex += 2
+
+        
+        self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
     def induceCollapseMisAssembly(self, newCtg, orderIndex, collapseStart, collapseEnd):
 
@@ -700,6 +728,8 @@ class HomologyRelationChains:
         # shift the indices of all the blocks after the last added relation by one
         for relation in self.relationChains[otherHapNewCtg][otherHapOrderIndex + 2:]:
             relation.block.orderIndex += 1
+
+        self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
     def induceDuplicationMisAssembly(self, newCtg, orderIndex, duplicationStart, duplicationEnd):
 
@@ -783,12 +813,32 @@ class HomologyRelationChains:
         for relation in self.relationChains[otherHapNewCtg][otherHapOrderIndex + 3:]:
             relation.block.orderIndex += 2
 
+        self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
+
+
+
+    def updateNewCtgAnnotationWeightsForSampling(self, newCtg, parentRelation, childRelations):
+        
+        assert(newCtg in self.newCtgToIndexForSampling)
+        newCtgIndex = self.newCtgToIndexForSampling[newCtg]
+
+        # reduce the old weights related to the parent block
+        parentRefBlock = parentRelation.block
+        for annot, total in parentRefBlock.annotationStartTotalLengthsForSampling.items():
+            if 0 < len(self.newCtgAnnotationWeightsForSampling[annot]):
+                self.newCtgAnnotationWeightsForSampling[annot][newCtgIndex] -= total
+
+        # add the new weights related to the child blocks
+        for relation in childRelations:
+            for annot, total in relation.block.annotationStartTotalLengthsForSampling.items():
+                if 0 < len(self.newCtgAnnotationWeightsForSampling[annot]):
+                    self.newCtgAnnotationWeightsForSampling[annot][newCtgIndex] += total
 
     def getListOfSamplingLengths(self, newCtg, annotation):
         relations = self.relationChains[newCtg]
         lengths = []
         for relation in relations:
-            lengths += relation.block.annotationStartTotalLengthsForSampling[annotation]
+            lengths.append(relation.block.annotationStartTotalLengthsForSampling[annotation])
         return  lengths
 
     def getTotalSamplingLength(self, newCtg, annotation):
@@ -809,13 +859,17 @@ class HomologyRelationChains:
                 if relation.homologousBlock is not None and \
                         relation.block.containsMisAssembly is False and \
                         relation.alignment is not None:
+
                     relation.block.setSamplingLengthAttributes(misAssemblyLength,
                                                                minOverlapRatioWithEachAnnotation,
                                                                minMarginLength)
                     relation.block.updateAnnotationStartLocationsForSampling()
+                else:
+                    relation.block.clearAnnotationStartBlocksForSampling()
+
         for annotation in annotations:
             newCtgWeights = []
-            for newCtg in self.newCtgList:
+            for newCtg in self.newCtgListForSampling:
                 newCtgWeights.append(self.getTotalSamplingLength(newCtg, annotation))
             self.newCtgAnnotationWeightsForSampling[annotation] =  newCtgWeights
 

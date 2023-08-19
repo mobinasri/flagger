@@ -18,7 +18,7 @@ class TestProjection(unittest.TestCase):
                                                   "ctg3":{"annot1": BlockList([(1,10)]),
                                                           "annot2": BlockList()}
                                                   }
-        self.alignment3 = Alignment("ctg2\t68\t6\t65\t+\tctg1\t60\t7\t55\t40\t49\t60\tcg:Z:3=1X2=2I1=2D1X2=3I2=3D2=1X2=4I6=4I2=1X3=1I3=4I1=4D1=2I6=")
+        self.alignment3 = Alignment("ctg2\t68\t5\t65\t+\tctg1\t60\t6\t55\t40\t49\t60\tcg:Z:3=1X2=2I1=2D1X2=3I2=3D2=1X2=4I6=4I2=1X3=1I3=4I1=4D1=2I6=")
         self.annotationBlockListsPerOrigContigForAlignment3 = {"ctg1":{"annot1": BlockList([(1, 12),(30, 34), (51, 60)]),
                                                                        "annot2": BlockList([(13, 29), (35, 50)])},
                                                               "ctg2":{"annot1": BlockList([(1, 68)]),
@@ -28,7 +28,7 @@ class TestProjection(unittest.TestCase):
         print(f"Tests:")
 
     def testCreatingHomologyRelationsDict(self):
-        outputRelationChains = HomologyRelationChains(self.alignments, self.contigLengths, 0, 0, "_f")
+        outputRelationChains = HomologyRelationChains(self.alignments, self.contigLengths, ["ctg1"], "_f")
 
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
         ctg1HomologyBlock2 = HomologyBlock("ctg1", 7, 15, '+', "ctg1_f", 1)
@@ -89,7 +89,7 @@ class TestProjection(unittest.TestCase):
     def testInducingSwitchErrorWithAnnotations(self):
         outputRelationChains = HomologyRelationChains(self.alignments,
                                                       self.contigLengths,
-                                                      0, 0,
+                                                      ["ctg1"],
                                                       "_f")
         outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContig,
                                                                          self.contigLengths,
@@ -205,7 +205,7 @@ class TestProjection(unittest.TestCase):
     def testInducingCollapseErrorWithAnnotations(self):
         outputRelationChains = HomologyRelationChains(self.alignments,
                                                       self.contigLengths,
-                                                      0, 0,
+                                                      ["ctg1"],
                                                       "_f")
         outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContig,
                                                                          self.contigLengths,
@@ -315,7 +315,7 @@ class TestProjection(unittest.TestCase):
     def testInducingDuplicationErrorWithAnnotations(self):
         outputRelationChains = HomologyRelationChains(self.alignments,
                                                       self.contigLengths,
-                                                      0, 0,
+                                                      ["ctg1"],
                                                       "_f")
         outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContig,
                                                                          self.contigLengths,
@@ -436,7 +436,7 @@ class TestProjection(unittest.TestCase):
     def testFillingAnnotationBlockListsFromOriginalContigs(self):
         outputRelationChains = HomologyRelationChains(self.alignments,
                                                       self.contigLengths,
-                                                      0, 0,
+                                                      ["ctg1"],
                                                       "_f")
         outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContig,
                                                                          self.contigLengths,
@@ -515,7 +515,7 @@ class TestProjection(unittest.TestCase):
     def testThreeMisAssembliesWithAnnotations(self):
         outputRelationChains = HomologyRelationChains([self.alignment3],
                                                       self.contigLengthsForAlignment3,
-                                                      0, 0,
+                                                      ["ctg1"],
                                                       "_f")
         outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContigForAlignment3,
                                                                          self.contigLengthsForAlignment3,
@@ -528,7 +528,6 @@ class TestProjection(unittest.TestCase):
                                                                        misAssemblyLength,
                                                                        minOverlapRatioWithEachAnnotation,
                                                                        minMarginLength)
-
 
 
 
@@ -591,7 +590,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock1.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1HomologyBlock3.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
 
 
 
@@ -629,7 +628,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock5.misAssemblyBlockLists = {"Err": BlockList([(1,1)])}
+        ctg1HomologyBlock6.misAssemblyBlockLists = {"Err": BlockList([(1,1)])}
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -657,7 +656,7 @@ class TestProjection(unittest.TestCase):
 
 
         ctg1HomologyBlock9 = HomologyBlock("ctg1", 56, 60, '+', "ctg1_f", 8)
-        ctg1HomologyBlock9.annotationBlockLists = {"annot1": BlockList([(5,5)]),
+        ctg1HomologyBlock9.annotationBlockLists = {"annot1": BlockList([(1,5)]),
                                                    "annot2": BlockList([])}
         ctg1HomologyBlock9.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
                                                                    "annot2": BlockList([])}
@@ -699,8 +698,8 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock4.misAssemblyBlockLists = {"Err": BlockList([(11,11)])}
 
         ctg2HomologyBlock5 = HomologyBlock("ctg1", 32, 36, '+', "ctg2_f", 4)
-        ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,5)]),
-                                                   "annot2": BlockList([])}
+        ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,3)]),
+                                                   "annot2": BlockList([(4,5)])}
         ctg2HomologyBlock5.misAssemblyBlockLists = {"Err": BlockList([(1,1), (5,5)])}
 
 
@@ -714,7 +713,7 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([(1,9)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock8 = HomologyBlock("ctg2", 66, 68, '+', "ctg2_f", 6)
+        ctg2HomologyBlock8 = HomologyBlock("ctg2", 66, 68, '+', "ctg2_f", 7)
         ctg2HomologyBlock8.annotationBlockLists = {"annot1": BlockList([(1,3)]),
                                                    "annot2": BlockList([])}
 
@@ -755,7 +754,7 @@ class TestProjection(unittest.TestCase):
         truthRelations["ctg1_Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f", "ctg1_Dup_23_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f", "ctg1_Dup_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -770,16 +769,17 @@ class TestProjection(unittest.TestCase):
                     else:
                         # check annotation blocks
                         for name, blockList in truthBlock.annotationBlockLists.items():
+                            #print(name, truthBlock.orderIndex,blockList.blocks, outputBlock.annotationBlockLists[name].blocks)
                             self.assertTrue(blockList.isEqual(outputBlock.annotationBlockLists[name]), f"annotation list is not correct ({name})")
                         # check start location blocks for sampling per annotation
                         for name, blockList in truthBlock.annotationStartBlockListsForSampling.items():
                             self.assertTrue(blockList.isEqual(outputBlock.annotationStartBlockListsForSampling[name]), f"annotation list for sampling is not correct ({name})")
                         # check lengths of the sampling blocks per annotation
                         for name, blocksLengthList in truthBlock.annotationStartBlockLengthsForSampling.items():
-                            self.assertListEqual(blocksLengthList, outputBlock.annotationStartBlockLengthsForSampling[name]), f"annotation length list for sampling is not correct ({name})")
+                            self.assertListEqual(blocksLengthList, outputBlock.annotationStartBlockLengthsForSampling[name], f"annotation length list for sampling is not correct ({name})")
                         # check total length of sampling blocks per annotation
                         for name, blocksTotalLength in truthBlock.annotationStartTotalLengthsForSampling.items():
-                            self.assertEqual(blocksTotalLength, outputBlock.annotationStartTotalLengthsForSampling[name]), f"total annotation length for sampling is not correct ({name})")
+                            self.assertEqual(blocksTotalLength, outputBlock.annotationStartTotalLengthsForSampling[name], f"total annotation length for sampling is not correct ({name})")
 
                         self.assertEqual(truthBlock.origCtg, outputBlock.origCtg, f"origCtg is not correct ({name})")
                         self.assertEqual(truthBlock.origStart, outputBlock.origStart, f"origStart is not correct ({name})")

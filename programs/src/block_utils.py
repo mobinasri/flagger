@@ -282,7 +282,8 @@ class BlockList:
     def removeBlocksShorterThan(self, minLength, inplace):
         newBlocks = []
         for s, e, c in self.blocks:
-            if e - s + 1 < minLength: continue
+            if minLength <= e - s + 1:
+                newBlocks.append((s, e, c))
         if inplace:
             self.blocks = newBlocks
         else:
