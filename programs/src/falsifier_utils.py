@@ -32,6 +32,18 @@ class HomologyBlock:
         self.minMarginLength = 10000
         self.containsMisAssembly = False
 
+    def reverseAllBlockLists(self):
+        """
+            Make the coordinates of all the block lists in this homology block w.r.t to the end of whole block
+        """
+        blockLength = self.origEnd - self.origStart + 1
+        for annotation in self.annotationBlockLists:
+            self.annotationBlockLists[annotation].reverse(blockLength, inplace=True)
+            self.annotationStartBlockListsForSampling[annotation].reverse(blockLength, inplace=True)
+            self.annotationStartBlockLengthsForSampling[annotation].reverse()
+        for name in self.misAssemblyBlockLists:
+            self.misAssemblyBlockLists[name].reverse(blockLength, inplace=True)
+
     def clearAnnotationStartBlocksForSampling(self):
         for annotation in self.annotationBlockLists:
             self.annotationStartBlockListsForSampling[annotation] = BlockList([])
@@ -518,8 +530,11 @@ class HomologyRelationChains:
         relationPart2.alignment.cigarList = convertIndelsInCigar(relationPart2.alignment.cigarList)
 
         # update the strand orientation of the switched blocks
+        # and reverse the coordinates
         # if the alignment's orientation was negative
         if relationPart2.alignment.orientation == '-':
+            rBlockPart2.reverseAllBlockLists()
+            qBlockPart2.reverseAllBlockLists()
             rBlockPart2.origStrand = '-'
             qBlockPart2.origStrand = '-'
 

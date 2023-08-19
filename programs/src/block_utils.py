@@ -279,6 +279,18 @@ class BlockList:
         else:
             return BlockList(newBlocks)
 
+    def reverse(self, wholeBlockLength, inplace):
+        """
+            make the coordinates with respect to the end of the whole block/contig
+        """
+        newBlocks = []
+        for s, e, c in self.blocks[::-1]:
+            newBlocks.append((wholeBlockLength - e + 1, wholeBlockLength - s + 1, c))
+        if inplace:
+            self.blocks = newBlocks
+        else:
+            return BlockList(newBlocks)
+
     def removeBlocksShorterThan(self, minLength, inplace):
         newBlocks = []
         for s, e, c in self.blocks:

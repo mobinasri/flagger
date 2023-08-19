@@ -28,7 +28,7 @@ class TestProjection(unittest.TestCase):
         # alignment 4 is same as alignment 3 but in negative orientation
         self.alignment4 = Alignment("ctg2\t68\t3\t63\t-\tctg1\t60\t6\t55\t40\t49\t60\tcg:Z:3=1X2=2I1=2D1X2=3I2=3D2=1X2=4I6=4I2=1X3=1I3=4I1=4D1=2I6=")
         self.annotationBlockListsPerOrigContigForAlignment4 = self.annotationBlockListsPerOrigContigForAlignment3
-        self.contigLengthsForAlignment3 =  self.contigLengthsForAlignment3
+        self.contigLengthsForAlignment4 =  self.contigLengthsForAlignment3
         print(f"Tests:")
 
     def testCreatingHomologyRelationsDict(self):
@@ -1055,7 +1055,6 @@ class TestProjection(unittest.TestCase):
                     else:
                         # check annotation blocks
                         for name, blockList in truthBlock.annotationBlockLists.items():
-                            #print(name, truthBlock.orderIndex,blockList.blocks, outputBlock.annotationBlockLists[name].blocks)
                             self.assertTrue(blockList.isEqual(outputBlock.annotationBlockLists[name]), f"annotation list is not correct ({name})")
                         # check start location blocks for sampling per annotation
                         for name, blockList in truthBlock.annotationStartBlockListsForSampling.items():
