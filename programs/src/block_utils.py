@@ -16,7 +16,7 @@ def reverseComplement(seq):
           't':'a',
           'g':'c',
           'c':'g'}
-    return "".join([comp(x) for x in seq[::-1]])
+    return "".join([comp[x] for x in seq[::-1]])
 
 
 def getCigarList(cigarString):
