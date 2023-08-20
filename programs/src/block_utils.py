@@ -7,6 +7,17 @@ from copy import deepcopy
 
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
 
+def reverseComplement(seq):
+    comp={'A':'T',
+          'T':'A',
+          'C':'G',
+          'G':'C',
+          'a':'t',
+          't':'a',
+          'g':'c',
+          'c':'g'}
+    return "".join([comp(x) for x in seq[::-1]])
+
 
 def getCigarList(cigarString):
     """
