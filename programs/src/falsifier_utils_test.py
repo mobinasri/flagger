@@ -25,10 +25,14 @@ class TestProjection(unittest.TestCase):
                                                                       "annot2": BlockList([])}
                                                               }
         self.contigLengthsForAlignment3 = {"ctg1": 60, "ctg2": 68}
+        self.contigSequencesForAlignment3 = {"ctg1": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACTACTACGAGTTTAAAGTAGTAGGGGT",
+                                             "ctg2": "ACACAGTGAGTAACACTATACAATCGGATATTACTACGTAATAATACCGAGACCATATTGTAGTATGT"}
         # alignment 4 is same as alignment 3 but in negative orientation
         self.alignment4 = Alignment("ctg2\t68\t3\t63\t-\tctg1\t60\t6\t55\t40\t49\t60\tcg:Z:3=1X2=2I1=2D1X2=3I2=3D2=1X2=4I6=4I2=1X3=1I3=4I1=4D1=2I6=")
         self.annotationBlockListsPerOrigContigForAlignment4 = self.annotationBlockListsPerOrigContigForAlignment3
         self.contigLengthsForAlignment4 =  self.contigLengthsForAlignment3
+        self.contigSequencesForAlignment4 = {"ctg1": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACTACTACGAGTTTAAAGTAGTAGGGGT",
+                                             "ctg2": "ACATACTACAATATGGTCTCGGTATTATTACGTAGTAATATCCGATTGTATAGTGTTACTCACTGTGT"}
         print(f"Tests:")
 
     def testCreatingHomologyRelationsDict(self):
@@ -1091,6 +1095,96 @@ class TestProjection(unittest.TestCase):
                         self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
                     else:
                         self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
+
+
+    def testSequenceThreeMisAssembliesPositiveAlignment(self):
+        outputRelationChains = HomologyRelationChains([self.alignment3],
+                                                      self.contigLengthsForAlignment3,
+                                                      ["ctg1"],
+                                                      "_f")
+        # make a switch error
+        orderIndex = 1
+        switchStart = 26
+        switchEnd = 30
+        switchEffectWindowLength = 1
+        outputRelationChains.induceSwitchMisAssembly("ctg1_f",
+                                                     orderIndex,
+                                                     switchStart,
+                                                     switchEnd,
+                                                     switchEffectWindowLength)
+
+        # make a false duplication
+        orderIndex = 1
+        duplicationStart = 14
+        duplicationEnd = 18
+        outputRelationChains.induceDuplicationMisAssembly("ctg1_f",
+                                                          orderIndex,
+                                                          duplicationStart,
+                                                          duplicationEnd)
+
+        # make a collapsed block
+        orderIndex = 5
+        collapseStart = 8
+        collapseEnd = 12
+        outputRelationChains.induceCollapseMisAssembly("ctg1_f",
+                                                       orderIndex,
+                                                       collapseStart,
+                                                       collapseEnd)
+
+
+        truthSequences = {"ctg1_f": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACGTAATACTACGAGTTTAAAGTAGTAGGGGT",
+                          "ctg2_f_p1": "ACACAGTGAGTAACACTATACAATCGGATATTACTACTAATACCGAGACCA",
+                          "ctg2_f_p2": "ATTGTAGTATGT",
+                          "ctg1_Dup_20_24": "ATATA"}
+
+        for newCtg, newSeq in outputRelationChains.yeildNewCtgSequences(self.contigSequencesForAlignment3):
+            self.assertEqual(truthSequences[newCtg], newSeq, f"sequence of {newCtg} is not correct")
+
+
+    def testSequenceThreeMisAssembliesNegativeAlignment(self):
+        outputRelationChains = HomologyRelationChains([self.alignment4],
+                                                      self.contigLengthsForAlignment4,
+                                                      ["ctg1"],
+                                                      "_f")
+        # make a switch error
+        orderIndex = 1
+        switchStart = 26
+        switchEnd = 30
+        switchEffectWindowLength = 1
+        outputRelationChains.induceSwitchMisAssembly("ctg1_f",
+                                                     orderIndex,
+                                                     switchStart,
+                                                     switchEnd,
+                                                     switchEffectWindowLength)
+
+        # make a false duplication
+        orderIndex = 1
+        duplicationStart = 14
+        duplicationEnd = 18
+        outputRelationChains.induceDuplicationMisAssembly("ctg1_f",
+                                                          orderIndex,
+                                                          duplicationStart,
+                                                          duplicationEnd)
+
+        # make a collapsed block
+        orderIndex = 5
+        collapseStart = 8
+        collapseEnd = 12
+        outputRelationChains.induceCollapseMisAssembly("ctg1_f",
+                                                       orderIndex,
+                                                       collapseStart,
+                                                       collapseEnd)
+
+
+        truthSequences = {"ctg1_f": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACGTAATACTACGAGTTTAAAGTAGTAGGGGT",
+                          "ctg2_f_p1": "ACATACTACAAT",
+                          "ctg2_f_p2": "TGGTCTCGGTATTAGTAGTAATATCCGATTGTATAGTGTTACTCACTGTGT",
+                          "ctg1_Dup_20_24": "ATATA"}
+
+        for newCtg, newSeq in outputRelationChains.yeildNewCtgSequences(self.contigSequencesForAlignment4):
+            self.assertEqual(truthSequences[newCtg], newSeq, f"sequence of {newCtg} is not correct")
+
+
 
 
 def main():
