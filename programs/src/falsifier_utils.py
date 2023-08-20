@@ -3,6 +3,7 @@ from collections import defaultdict
 from copy import deepcopy
 import random
 import numpy as np
+import re
 
 class HomologyBlock:
     """
@@ -31,6 +32,14 @@ class HomologyBlock:
         self.minOverlapRatioWithEachAnnotation = 0.5
         self.minMarginLength = 10000
         self.containsMisAssembly = False
+
+    def getSequence(self, origCtgSequences):
+        origCtgSeq = origCtgSequences[self.origCtg]
+        # note that start and end are 1-based closed
+        blockSeq = origCtgSeq[self.origStart - 1: self.origEnd]
+        if self.origStrand == '-':
+            blockSeq = reverseComplement(blockSeq)
+        return blockSeq
 
     def reverseAllBlockLists(self):
         """
@@ -665,6 +674,57 @@ class HomologyRelationChains:
         
         self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
+    def breakIntoTwoContigs(self, newCtg, lastOrderIndexOnLeft):
+        """
+        split the relation chain of the new contig into two parts
+        remove new contig from the chains table and insert two smaller contigs/chains
+        (Reminder: each contig is represented as a sorted chain of relations)
+
+        The split contigs are named according to the below text:
+
+        if the contig has not been split before
+        add "_p1"/"_p2" to the end of the name; one suffix for each part
+        if it was split before, so it already has "_p1"/"_p2" then
+        just add an extension ".1"/".2" (1 for the left part and 2 for the right part)
+        therefore the final name of split contigs can be like examples below:
+
+        ${ORIGINAL_NAME}_f_p2 or ${ORIGINAL_NAME}_f_p1 which means that it was split only once
+
+        or like ${ORIGINAL_NAME}_f_p1.1.2 which means that it was split three times "_p1" -> ".1" -> ".2"
+        for the first time it was on the left side ("_p1"),
+        for the second time on the left side (".1")
+        and for the third time it was on the right side (".2")
+
+        :param newCtg: The name of the new contig (parent chain) to break
+        :param lastOrderIndexOnLeft: The relations of the new contig will be split into two parts:
+                                        - part 1: From index 0 to lastOrderIndexOnLeft inclusively
+                                        - part 2: From index lastOrderIndexOnLeft + 1 till the end inclusively
+        """
+        z = re.findall("(?<=_f_p)[0-9.]+$", newCtg)
+        if len(z) == 1:
+            newCtgLeft = newCtg + ".1"
+            newCtgRight = newCtg + ".2"
+        else:
+            newCtgLeft = newCtg + "_p1"
+            newCtgRight = newCtg + "_p2"
+
+        assert (lastOrderIndexOnLeft < len(self.relationChains[newCtg]))
+        # insert all relations up to lastOrderIndexOnLeft to "newCtgLeft"
+        # their indices don't need to be changed
+        for relation in self.relationChains[newCtg][:lastOrderIndexOnLeft + 1]:
+            self.relationChains[newCtgLeft].append(relation)
+
+        # insert all relations after otherHapOrderIndex to "otherHapNewCtgRight"
+        for relation in self.relationChains[lastOrderIndexOnLeft + 1:]:
+            self.relationChains[newCtgRight].append(relation)
+
+        # set the indices of all the blocks in the new contig on the right side
+        for i, relation in enumerate(self.relationChains[newCtgRight]):
+            relation.block.orderIndex = i
+
+        # delete the parent contig
+        del self.relationChains[newCtg]
+
     def induceCollapseMisAssembly(self, newCtg, orderIndex, collapseStart, collapseEnd):
 
         relationToSplit = self.relationChains[newCtg][orderIndex]
@@ -743,6 +803,12 @@ class HomologyRelationChains:
         # shift the indices of all the blocks after the last added relation by one
         for relation in self.relationChains[otherHapNewCtg][otherHapOrderIndex + 2:]:
             relation.block.orderIndex += 1
+
+        # break the query contigs into two parts
+        # one part ends right before the collapsed block
+        # the other part starts right after the collapsed block
+        self.breakIntoTwoContigs(newCtg=otherHapNewCtg,
+                                 lastOrderIndexOnLeft=otherHapOrderIndex)
 
         self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
@@ -837,15 +903,19 @@ class HomologyRelationChains:
         assert(newCtg in self.newCtgToIndexForSampling)
         newCtgIndex = self.newCtgToIndexForSampling[newCtg]
 
-        # reduce the old weights related to the parent block
+        # subtract the old weights related to the parent block
         parentRefBlock = parentRelation.block
         for annot, total in parentRefBlock.annotationStartTotalLengthsForSampling.items():
+            # if "updateAnnotationStartLocationsForSampling" is not called
+            # then the weight list would be empty
             if 0 < len(self.newCtgAnnotationWeightsForSampling[annot]):
                 self.newCtgAnnotationWeightsForSampling[annot][newCtgIndex] -= total
 
         # add the new weights related to the child blocks
         for relation in childRelations:
             for annot, total in relation.block.annotationStartTotalLengthsForSampling.items():
+                # if "updateAnnotationStartLocationsForSampling" is not called
+                # then the weight list would be empty
                 if 0 < len(self.newCtgAnnotationWeightsForSampling[annot]):
                     self.newCtgAnnotationWeightsForSampling[annot][newCtgIndex] += total
 
@@ -943,6 +1013,18 @@ class HomologyRelationChains:
         orderIndex = self.getWeightedRandomOrderIndexForSampling(newCtg, annotation)
         start, end = self.getRandomIntervalFromRelationBlock(newCtg, annotation, orderIndex, misAssemblyLength)
         return newCtg, orderIndex, start, end
+
+    def getNewCtgSequence(self, newCtg, origCtgSequences):
+        newCtgSeqList = []
+        for relation in self.relationChains[newCtg]:
+            blockSeq = relation.block.getSequence(origCtgSequences)
+            newCtgSeqList.append(blockSeq)
+        return  "".join(newCtgSeqList)
+
+    def yeildNewCtgSequences(self, origCtgSequences):
+        for newCtg in self.relationChains:
+            yield newCtg, self.getNewCtgSequence(newCtg, origCtgSequences)
+
 
 
 
