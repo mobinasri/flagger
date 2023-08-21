@@ -4,6 +4,7 @@ from collections import defaultdict
 import re
 from multiprocessing import Pool
 from copy import deepcopy
+import random
 
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
 
@@ -17,6 +18,30 @@ def reverseComplement(seq):
           'g':'c',
           'c':'g'}
     return "".join([comp[x] for x in seq[::-1]])
+
+def induceSingleBaseErrors(seq, errorRate):
+    """
+    Takes a sequence and induces single-base errors in it with the given error rate
+    :param seq: A string of base letters
+    :param errorRate: The ratio of the bases that has be replaced by false bases
+    :return: The erroneous sequence
+    """
+    otherBases = {'A':['G', 'T', 'C'],
+                  'T':['A', 'C', 'G'],
+                  'C':['A', 'T', 'G'],
+                  'G':['C', 'A', 'T'],
+                  'a':['t', 'c', 'g'],
+                  't':['a', 'c', 'g'],
+                  'g':['c', 't', 'a'],
+                  'c':['g', 'a', 't']}
+    erroneousSeq = []
+    for x in seq:
+        if random.uniform(0,1) < errorRate:
+            erroneousSeq.append(random.choice(otherBases[x]))
+        else:
+            erroneousSeq.append(x)
+    return "".join(erroneousSeq)
+
 
 
 def getCigarList(cigarString):

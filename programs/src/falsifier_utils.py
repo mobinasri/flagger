@@ -550,13 +550,13 @@ class HomologyRelationChains:
 
         ### Adding misassembly blocks expected to be represented in read alignments ####
 
-        # add misassembly with "Err" label to both ends of the middle reference block
+        # add misassembly with "Msj" label to both ends of the middle reference block
         rBlockPart2Length = rBlockPart2.origEnd - rBlockPart2.origStart + 1
         if rBlockPart2Length <= 2.5 * switchEffectWindowLength:
-            rBlockPart2.addMisAssemblyBlockList("Err",
+            rBlockPart2.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, rBlockPart2Length)]))
         else:
-            rBlockPart2.addMisAssemblyBlockList("Err",
+            rBlockPart2.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, switchEffectWindowLength),
                                                            (rBlockPart2Length - switchEffectWindowLength + 1, rBlockPart2Length)]))
         rBlockPart2.containsMisAssembly= True
@@ -564,13 +564,13 @@ class HomologyRelationChains:
         # another misassmbley later
         rBlockPart2.clearAnnotationStartBlocksForSampling()
 
-        # add misassembly with "Err" label to both ends of the middle query block
+        # add misassembly with "Msj" label to both ends of the middle query block
         qBlockPart2Length = qBlockPart2.origEnd - qBlockPart2.origStart + 1
         if qBlockPart2Length <= 2.5 * switchEffectWindowLength:
-            qBlockPart2.addMisAssemblyBlockList("Err",
+            qBlockPart2.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, qBlockPart2Length)]))
         else:
-            qBlockPart2.addMisAssemblyBlockList("Err",
+            qBlockPart2.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, switchEffectWindowLength),
                                                            (qBlockPart2Length - switchEffectWindowLength + 1, qBlockPart2Length)]))
         qBlockPart2.containsMisAssembly= True
@@ -579,59 +579,59 @@ class HomologyRelationChains:
         qBlockPart2.clearAnnotationStartBlocksForSampling()
 
 
-        # add misassembly with the "Err" label to the end part of the left reference block
+        # add misassembly with the "Msj" label to the end part of the left reference block
         rBlockPart1 = ref2querySplitRelations[0].block
         rBlockPart1Length = rBlockPart1.origEnd - rBlockPart1.origStart + 1
         if rBlockPart1Length <= switchEffectWindowLength:
-            rBlockPart1.addMisAssemblyBlockList("Err",
+            rBlockPart1.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, rBlockPart1Length)]))
         else:
-            rBlockPart1.addMisAssemblyBlockList("Err",
+            rBlockPart1.addMisAssemblyBlockList("Msj",
                                                 BlockList([(rBlockPart1Length - switchEffectWindowLength + 1, rBlockPart1Length)]))
 
 
-        # add misassembly with the "Err" label to the beginning part of the right reference block
+        # add misassembly with the "Msj" label to the beginning part of the right reference block
         rBlockPart3 = ref2querySplitRelations[2].block
         rBlockPart3Length = rBlockPart3.origEnd - rBlockPart3.origStart + 1
         if rBlockPart3Length <= switchEffectWindowLength:
-            rBlockPart3.addMisAssemblyBlockList("Err",
+            rBlockPart3.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, rBlockPart3Length)]))
         else:
-            rBlockPart3.addMisAssemblyBlockList("Err",
+            rBlockPart3.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, switchEffectWindowLength)]))
 
 
-        # add misassembly with the "Err" label to the left query block
+        # add misassembly with the "Msj" label to the left query block
         # it will be added to the end if orientation was positive
         # it will be added to the beginning if orientation was negative
         qBlockPart1 = ref2querySplitRelations[0].homologousBlock
         qBlockPart1Length = qBlockPart1.origEnd - qBlockPart1.origStart + 1
         if qBlockPart1Length <= switchEffectWindowLength:
-            qBlockPart1.addMisAssemblyBlockList("Err",
+            qBlockPart1.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, qBlockPart1Length)]))
         else:
             if relationToSplit.alignment.orientation == '+':
-                qBlockPart1.addMisAssemblyBlockList("Err",
+                qBlockPart1.addMisAssemblyBlockList("Msj",
                                                     BlockList([(qBlockPart1Length - switchEffectWindowLength + 1, qBlockPart1Length)]))
             else: # '-'
-                qBlockPart1.addMisAssemblyBlockList("Err",
+                qBlockPart1.addMisAssemblyBlockList("Msj",
                                                     BlockList([(1, switchEffectWindowLength)]))
 
 
-        # add misassembly with the "Err" label to the right query block
+        # add misassembly with the "Msj" label to the right query block
         # it will be added to the beginning if orientation was positive
         # it will be added to the end if orientation was negative
         qBlockPart3 = ref2querySplitRelations[2].homologousBlock
         qBlockPart3Length = qBlockPart3.origEnd - qBlockPart3.origStart + 1
         if qBlockPart3Length <= switchEffectWindowLength:
-            qBlockPart3.addMisAssemblyBlockList("Err",
+            qBlockPart3.addMisAssemblyBlockList("Msj",
                                                 BlockList([(1, qBlockPart3Length)]))
         else:
             if relationToSplit.alignment.orientation == '+':
-                qBlockPart3.addMisAssemblyBlockList("Err",
+                qBlockPart3.addMisAssemblyBlockList("Msj",
                                                     BlockList([(1, switchEffectWindowLength)]))
             else: # '-'
-                qBlockPart3.addMisAssemblyBlockList("Err",
+                qBlockPart3.addMisAssemblyBlockList("Msj",
                                                     BlockList([(qBlockPart3Length - switchEffectWindowLength + 1, qBlockPart3Length)]))
 
 
@@ -899,6 +899,78 @@ class HomologyRelationChains:
         self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
 
+    def induceBaseErrorMisAssembly(self, newCtg, orderIndex, errorStart, errorEnd):
+
+        relationToSplit = self.relationChains[newCtg][orderIndex]
+
+        # get the order index and the name of the new contig
+        # for the homologous block
+        otherHapOrderIndex = relationToSplit.homologousBlock.orderIndex
+        otherHapNewCtg = relationToSplit.homologousBlock.newCtg
+
+        # remove previous relation
+        # both from ref2query and from query2ref
+        self.relationChains[newCtg].pop(orderIndex)
+        self.relationChains[otherHapNewCtg].pop(otherHapOrderIndex)
+
+        # split the homology relation into three parts
+        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(errorStart, errorEnd)
+
+        # the ref block that has to be contaminated with base errors
+        rBlockPart2 = ref2querySplitRelations[1].block
+        rBlockPart2.addMisAssemblyBlockList( "Err",
+                                             BlockList([(1, rBlockPart2.origEnd - rBlockPart2.origStart + 1)]))
+        rBlockPart2.containsMisAssembly = True
+        # blocks with misassembly cannot be used for creating
+        # another misassmbley later
+        rBlockPart2.clearAnnotationStartBlocksForSampling()
+
+        # the query block that is supposed to be collapsed since the
+        # ref haplotype is highly erroneous
+        qBlockPart2 = ref2querySplitRelations[1].homologousBlock
+        qBlockPart2.addMisAssemblyBlockList( "Col",
+                                             BlockList([(1, qBlockPart2.origEnd - qBlockPart2.origStart + 1)]))
+        qBlockPart2.containsMisAssembly = True
+        # blocks with misassembly cannot be used for creating
+        # another misassmbley later
+        qBlockPart2.clearAnnotationStartBlocksForSampling()
+
+        # create the equivalent list of relations from query to ref
+        # these relations will show the same connections between blocks
+        # but in the other way around
+        query2refSplitRelations = []
+        if relationToSplit.alignment.orientation == '+':
+            for relation in ref2querySplitRelations:
+                query2refRelation = HomologyRelation(relation.homologousBlock,
+                                                     relation.block,
+                                                     None,
+                                                     None)
+                query2refSplitRelations.append(query2refRelation)
+        else:
+            for relation in ref2querySplitRelations[::-1]:
+                query2refRelation = HomologyRelation(relation.homologousBlock,
+                                                     relation.block,
+                                                     None,
+                                                     None)
+                query2refSplitRelations.append(query2refRelation)
+
+        # insert split relations to relation chain of the "newCtg"
+        for relation in ref2querySplitRelations:
+            self.relationChains[newCtg].insert(relation.block.orderIndex, relation)
+
+        # shift the indices of all the blocks after the last added relation by two
+        for relation in self.relationChains[newCtg][orderIndex + 3:]:
+            relation.block.orderIndex += 2
+
+        # insert split relations to relation chain of the "otherHapNewCtg"
+        for relation in query2refSplitRelations:
+            self.relationChains[otherHapNewCtg].insert(relation.block.orderIndex, relation)
+
+        # shift the indices of all the blocks after the last added relation by two
+        for relation in self.relationChains[otherHapNewCtg][otherHapOrderIndex + 3:]:
+            relation.block.orderIndex += 2
+
+        self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
     def updateNewCtgAnnotationWeightsForSampling(self, newCtg, parentRelation, childRelations):
         
