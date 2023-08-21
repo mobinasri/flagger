@@ -1641,31 +1641,31 @@ class TestProjection(unittest.TestCase):
                                                    "annot2": BlockList([])}
 
         # the blocks after the collapse block starts here
-        ctg2HomologyBlock5 = HomologyBlock("ctg2", 14, 25, '+', "ctg2_f_p2", 4)
+        ctg2HomologyBlock5 = HomologyBlock("ctg2", 14, 25, '+', "ctg2_f_p2", 0)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,12)]),
                                                    "annot2": BlockList([])}
         ctg2HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(12,12)])}
 
-        ctg2HomologyBlock6 = HomologyBlock("ctg1", 32, 36, '-', "ctg2_f_p2", 5)
+        ctg2HomologyBlock6 = HomologyBlock("ctg1", 32, 36, '-', "ctg2_f_p2", 1)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(3,5)]),
                                                    "annot2": BlockList([(1,2)])}
         ctg2HomologyBlock6.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (5,5)])}
 
-        ctg2HomologyBlock7 = HomologyBlock("ctg2", 35, 45, '+', "ctg2_f_p2", 6)
+        ctg2HomologyBlock7 = HomologyBlock("ctg2", 35, 45, '+', "ctg2_f_p2", 2)
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
         ctg2HomologyBlock7.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
 
 
-        ctg2HomologyBlock8 = HomologyBlock("ctg2", 46, 47, '+', "ctg2_f_p2", 7)
+        ctg2HomologyBlock8 = HomologyBlock("ctg2", 46, 47, '+', "ctg2_f_p2", 3)
         ctg2HomologyBlock8.annotationBlockLists = {"annot1": BlockList([(1,2)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock9 = HomologyBlock("ctg2", 48, 63, '+', "ctg2_f_p2", 8)
+        ctg2HomologyBlock9 = HomologyBlock("ctg2", 48, 63, '+', "ctg2_f_p2", 4)
         ctg2HomologyBlock9.annotationBlockLists = {"annot1": BlockList([(1,16)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock10 = HomologyBlock("ctg2", 64, 68, '+', "ctg2_f_p2", 9)
+        ctg2HomologyBlock10 = HomologyBlock("ctg2", 64, 68, '+', "ctg2_f_p2", 5)
         ctg2HomologyBlock10.annotationBlockLists = {"annot1": BlockList([(1,5)]),
                                                     "annot2": BlockList([])}
 
