@@ -62,7 +62,7 @@ class HomologyBlock:
     def addMisAssemblyBlockList(self, name, blockList):
         """
 
-        :param name: The name of the misassembly to add [either "Err", "Dup" or "Col"]
+        :param name: The name of the misassembly to add [either "Msj", "Err", "Dup" , "Col_Del", "Col_Err"]
         :param blockList: A BlockList containing the coordinates of the misassembled part
                           (Note that coordinates should be 1-based and relative to
                            the start position of this block rather than the original contig.
@@ -752,7 +752,7 @@ class HomologyRelationChains:
         relationPart2.alignment = None
 
         rBlockPart2 = relationPart2.block
-        rBlockPart2.addMisAssemblyBlockList("Col",
+        rBlockPart2.addMisAssemblyBlockList("Col_Del",
                                             BlockList([(1, rBlockPart2.origEnd - rBlockPart2.origStart + 1)]))
         rBlockPart2.containsMisAssembly = True
         # blocks with misassembly cannot be used for creating
@@ -928,7 +928,7 @@ class HomologyRelationChains:
         # the query block that is supposed to be collapsed since the
         # ref haplotype is highly erroneous
         qBlockPart2 = ref2querySplitRelations[1].homologousBlock
-        qBlockPart2.addMisAssemblyBlockList( "Col",
+        qBlockPart2.addMisAssemblyBlockList( "Col_Err",
                                              BlockList([(1, qBlockPart2.origEnd - qBlockPart2.origStart + 1)]))
         qBlockPart2.containsMisAssembly = True
         # blocks with misassembly cannot be used for creating
