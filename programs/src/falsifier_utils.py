@@ -935,6 +935,9 @@ class HomologyRelationChains:
         # another misassmbley later
         qBlockPart2.clearAnnotationStartBlocksForSampling()
 
+        # the erroneous block will not have the previous alignment
+        ref2querySplitRelations[1].alignment = None
+
         # create the equivalent list of relations from query to ref
         # these relations will show the same connections between blocks
         # but in the other way around

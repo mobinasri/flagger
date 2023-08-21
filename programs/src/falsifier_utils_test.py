@@ -1686,15 +1686,15 @@ class TestProjection(unittest.TestCase):
 
         truthRelations = defaultdict(list)
         truthRelations["ctg1_f"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
-                                    HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock9, getCigarList("3=1X2=2I1=2D1X2=3I1="), '+'),
-                                    HomologyRelation(ctg1HomologyBlock3, ctg2HomologyBlock8, getCigarList("1=3D1="), '+'),
-                                    HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock7, getCigarList("1=1X2=4I3="), '+'),
-                                    HomologyRelation(ctg1HomologyBlock5, ctg2HomologyBlock6, getCigarList("3=4D2="), '+'),
-                                    HomologyRelation(ctg1HomologyBlock6, ctg2HomologyBlock5, getCigarList("1X3=1I3=4I"), '+'),
+                                    HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock9, getCigarList("3=1X2=2I1=2D1X2=3I1="), '-'),
+                                    HomologyRelation(ctg1HomologyBlock3, ctg2HomologyBlock8, getCigarList("1=3D1="), '-'),
+                                    HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock7, getCigarList("1=1X2=4I3="), '-'),
+                                    HomologyRelation(ctg1HomologyBlock5, ctg2HomologyBlock6, getCigarList("3=4D2="), '-'),
+                                    HomologyRelation(ctg1HomologyBlock6, ctg2HomologyBlock5, getCigarList("1X3=1I3=4I"), '-'),
                                     HomologyRelation(ctg1HomologyBlock7, None, None, None),
-                                    HomologyRelation(ctg1HomologyBlock8, ctg2HomologyBlock4, getCigarList("1=2I1="), '+'),
-                                    HomologyRelation(ctg1HomologyBlock9, ctg2HomologyBlock3, getCigarList("4="), '+'),
-                                    HomologyRelation(ctg1HomologyBlock10, ctg2HomologyBlock2, getCigarList("1="), '+'),
+                                    HomologyRelation(ctg1HomologyBlock8, ctg2HomologyBlock4, getCigarList("1=2I1="), '-'),
+                                    HomologyRelation(ctg1HomologyBlock9, ctg2HomologyBlock3, None, None),
+                                    HomologyRelation(ctg1HomologyBlock10, ctg2HomologyBlock2, getCigarList("1="), '-'),
                                     HomologyRelation(ctg1HomologyBlock11, None, None, None)]
 
         # the relations before the collapsed block
