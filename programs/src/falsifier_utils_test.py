@@ -1330,7 +1330,7 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock8 = HomologyBlock("ctg2", 61, 64, '+', "ctg2_f_p2", 1)
         ctg2HomologyBlock8.annotationBlockLists = {"annot1": BlockList([(1,4)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock6.misAssemblyBlockLists = {"Col_Err": BlockList([(1,4)])}
+        ctg2HomologyBlock8.misAssemblyBlockLists = {"Col_Err": BlockList([(1,4)])}
 
         ctg2HomologyBlock9 = HomologyBlock("ctg2", 65, 65, '+', "ctg2_f_p2", 2)
         ctg2HomologyBlock9.annotationBlockLists = {"annot1": BlockList([(1,1)]),
