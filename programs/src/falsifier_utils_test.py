@@ -1363,7 +1363,7 @@ class TestProjection(unittest.TestCase):
                                     HomologyRelation(ctg1HomologyBlock6, ctg2HomologyBlock6, getCigarList("1X3=1I3=4I"), '+'),
                                     HomologyRelation(ctg1HomologyBlock7, None, None, None),
                                     HomologyRelation(ctg1HomologyBlock8, ctg2HomologyBlock7, getCigarList("1=2I1="), '+'),
-                                    HomologyRelation(ctg1HomologyBlock9, ctg2HomologyBlock8, getCigarList("4="), '+'),
+                                    HomologyRelation(ctg1HomologyBlock9, ctg2HomologyBlock8, None, None),
                                     HomologyRelation(ctg1HomologyBlock10, ctg2HomologyBlock9, getCigarList("1="), '+'),
                                     HomologyRelation(ctg1HomologyBlock11, None, None, None)]
 
