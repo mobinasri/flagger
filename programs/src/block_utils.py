@@ -751,7 +751,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
             #                 |||||
             # BLK:            [****    ]
             ###
-            if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig):
+            if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig) and (nextOpStartContig <= blocks[blockIdx][1]):
                 # find the overlap size between the current operation and the block
                 overlapOpSize = (nextOpStartContig - 1) - blocks[blockIdx][0] + 1
                 # append the overlapped operation
