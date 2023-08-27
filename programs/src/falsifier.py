@@ -186,7 +186,9 @@ def main():
             # Filter short alignments based the given minimum length
             alignmentLengthQuery = alignment.contigEnd - alignment.contigStart + 1
             alignmentLengthRef = alignment.chromEnd - alignment.chromStart + 1
-            if alignmentLengthQuery >= minAlignmentLength and alignmentLengthRef >= minAlignmentLength:
+            if alignmentLengthQuery >= minAlignmentLength and \
+                    alignmentLengthRef >= minAlignmentLength and \
+                    alignment.isPrimary:
                 alignments.append(alignment)
 
     # parse hap1 sequences
