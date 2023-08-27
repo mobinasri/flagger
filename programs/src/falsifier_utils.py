@@ -493,6 +493,9 @@ class HomologyRelationChains:
             newCtgName = origCtg + newCtgSuffix
             # create a homology block for the whole original contig,
             # including the annotations
+            if origCtg not in origContigLengths:
+                print(f"{origCtg} is present in annotation but not in the fasta file so its annotation is skipped!")
+                continue
             wholeOrigContigBlock = HomologyBlock(origCtg, 1, origContigLengths[origCtg], '+', newCtgName, 0)
             for name, blockList in annotationBlockLists.items():
                 wholeOrigContigBlock.addAnnotationBlockList(name, blockList)
