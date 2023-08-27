@@ -4,6 +4,9 @@ from copy import deepcopy
 import random
 import numpy as np
 import re
+from Bio.SeqIO.FastaIO import FastaWriter
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 class HomologyBlock:
     """
@@ -21,7 +24,7 @@ class HomologyBlock:
         self.newCtg = newCtg # the name of the new contig where this block is localized in
         self.orderIndex = orderIndex # relative order of the block w.r.t to the other blocks in the new contig
         self.annotationBlockLists = defaultdict(BlockList)
-        self.misAssemblyBlockLists = defaultdict(BlockList)
+        self.misAssemblyBlockList = BlockList()
 
         # attributes related to sampling locations
         # they will be updated with "setSamplingLengthAttributes" or "copySamplingLengthAttributes"
@@ -50,8 +53,7 @@ class HomologyBlock:
             self.annotationBlockLists[annotation].reverse(blockLength, inplace=True)
             self.annotationStartBlockListsForSampling[annotation].reverse(blockLength, inplace=True)
             self.annotationStartBlockLengthsForSampling[annotation].reverse()
-        for name in self.misAssemblyBlockLists:
-            self.misAssemblyBlockLists[name].reverse(blockLength, inplace=True)
+        self.misAssemblyBlockList.reverse(blockLength, inplace=True)
 
     def clearAnnotationStartBlocksForSampling(self):
         for annotation in self.annotationBlockLists:
@@ -59,17 +61,15 @@ class HomologyBlock:
             self.annotationStartBlockLengthsForSampling[annotation] = []
             self.annotationStartTotalLengthsForSampling[annotation] = 0
 
-    def addMisAssemblyBlockList(self, name, blockList):
+    def addMisAssemblyBlockList(self, blockList):
         """
-
-        :param name: The name of the misassembly to add [either "Msj", "Err", "Dup" , "Col_Del", "Col_Err"]
         :param blockList: A BlockList containing the coordinates of the misassembled part
                           (Note that coordinates should be 1-based and relative to
                            the start position of this block rather than the original contig.
                            The "shift" method of "BlockList" can be used for shifting
-                           coordinates prior to adding blockList)
+                           coordinates prior to calling this method)
         """
-        self.misAssemblyBlockLists[name] = blockList.copy()
+        self.misAssemblyBlockList.extend(blockList)
 
     def addAnnotationBlockList(self, name, blockList):
         """
@@ -186,13 +186,12 @@ class HomologyBlock:
         child one (self), which is one part of the parent block
 
         :param parentBlock: The block which was split and then one part of it is the current block
-        :param start: 1-based location of the parent block which is the first base in this block
-        :param end: 1-based location of the parent block which is the last base in this block
+        :param start: 1-based location in the parent block which is the first base in this block
+        :param end: 1-based location in the parent block which is the last base in this block
         """
-        for name, blockList in parentBlock.misAssemblyBlockLists.items():
-            subsetBlockList = blockList.intersect(BlockList([(start, end)]), inplace=False)
-            subsetBlockList.shift( -(start - 1), minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
-            self.addMisAssemblyBlockList(name, subsetBlockList)
+        subsetBlockList = parentBlock.intersect(BlockList([(start, end)]), inplace=False)
+        subsetBlockList.shift( -(start - 1), minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
+        self.addMisAssemblyBlockList(subsetBlockList)
 
 
 
@@ -553,12 +552,12 @@ class HomologyRelationChains:
         # add misassembly with "Msj" label to both ends of the middle reference block
         rBlockPart2Length = rBlockPart2.origEnd - rBlockPart2.origStart + 1
         if rBlockPart2Length <= 2.5 * switchEffectWindowLength:
-            rBlockPart2.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, rBlockPart2Length)]))
+            rBlockPart2.addMisAssemblyBlockList(BlockList([(1, rBlockPart2Length, "Msj")]))
         else:
-            rBlockPart2.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, switchEffectWindowLength),
-                                                           (rBlockPart2Length - switchEffectWindowLength + 1, rBlockPart2Length)]))
+            rBlockPart2.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj"),
+                                                           (rBlockPart2Length - switchEffectWindowLength + 1,
+                                                            rBlockPart2Length,
+                                                            "Msj")]))
         rBlockPart2.containsMisAssembly= True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -567,12 +566,12 @@ class HomologyRelationChains:
         # add misassembly with "Msj" label to both ends of the middle query block
         qBlockPart2Length = qBlockPart2.origEnd - qBlockPart2.origStart + 1
         if qBlockPart2Length <= 2.5 * switchEffectWindowLength:
-            qBlockPart2.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, qBlockPart2Length)]))
+            qBlockPart2.addMisAssemblyBlockList(BlockList([(1, qBlockPart2Length, "Msj")]))
         else:
-            qBlockPart2.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, switchEffectWindowLength),
-                                                           (qBlockPart2Length - switchEffectWindowLength + 1, qBlockPart2Length)]))
+            qBlockPart2.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj"),
+                                                           (qBlockPart2Length - switchEffectWindowLength + 1,
+                                                            qBlockPart2Length,
+                                                            "Msj")]))
         qBlockPart2.containsMisAssembly= True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -583,22 +582,20 @@ class HomologyRelationChains:
         rBlockPart1 = ref2querySplitRelations[0].block
         rBlockPart1Length = rBlockPart1.origEnd - rBlockPart1.origStart + 1
         if rBlockPart1Length <= switchEffectWindowLength:
-            rBlockPart1.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, rBlockPart1Length)]))
+            rBlockPart1.addMisAssemblyBlockList(BlockList([(1, rBlockPart1Length, "Msj")]))
         else:
-            rBlockPart1.addMisAssemblyBlockList("Msj",
-                                                BlockList([(rBlockPart1Length - switchEffectWindowLength + 1, rBlockPart1Length)]))
+            rBlockPart1.addMisAssemblyBlockList(BlockList([(rBlockPart1Length - switchEffectWindowLength + 1,
+                                                            rBlockPart1Length,
+                                                            "Msj")]))
 
 
         # add misassembly with the "Msj" label to the beginning part of the right reference block
         rBlockPart3 = ref2querySplitRelations[2].block
         rBlockPart3Length = rBlockPart3.origEnd - rBlockPart3.origStart + 1
         if rBlockPart3Length <= switchEffectWindowLength:
-            rBlockPart3.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, rBlockPart3Length)]))
+            rBlockPart3.addMisAssemblyBlockList(BlockList([(1, rBlockPart3Length, "Msj")]))
         else:
-            rBlockPart3.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, switchEffectWindowLength)]))
+            rBlockPart3.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj")]))
 
 
         # add misassembly with the "Msj" label to the left query block
@@ -607,15 +604,14 @@ class HomologyRelationChains:
         qBlockPart1 = ref2querySplitRelations[0].homologousBlock
         qBlockPart1Length = qBlockPart1.origEnd - qBlockPart1.origStart + 1
         if qBlockPart1Length <= switchEffectWindowLength:
-            qBlockPart1.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, qBlockPart1Length)]))
+            qBlockPart1.addMisAssemblyBlockList(BlockList([(1, qBlockPart1Length, "Msj")]))
         else:
             if relationToSplit.alignment.orientation == '+':
-                qBlockPart1.addMisAssemblyBlockList("Msj",
-                                                    BlockList([(qBlockPart1Length - switchEffectWindowLength + 1, qBlockPart1Length)]))
+                qBlockPart1.addMisAssemblyBlockList(BlockList([(qBlockPart1Length - switchEffectWindowLength + 1,
+                                                                qBlockPart1Length,
+                                                                "Msj")]))
             else: # '-'
-                qBlockPart1.addMisAssemblyBlockList("Msj",
-                                                    BlockList([(1, switchEffectWindowLength)]))
+                qBlockPart1.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj")]))
 
 
         # add misassembly with the "Msj" label to the right query block
@@ -624,15 +620,14 @@ class HomologyRelationChains:
         qBlockPart3 = ref2querySplitRelations[2].homologousBlock
         qBlockPart3Length = qBlockPart3.origEnd - qBlockPart3.origStart + 1
         if qBlockPart3Length <= switchEffectWindowLength:
-            qBlockPart3.addMisAssemblyBlockList("Msj",
-                                                BlockList([(1, qBlockPart3Length)]))
+            qBlockPart3.addMisAssemblyBlockList(BlockList([(1, qBlockPart3Length, "Msj")]))
         else:
             if relationToSplit.alignment.orientation == '+':
-                qBlockPart3.addMisAssemblyBlockList("Msj",
-                                                    BlockList([(1, switchEffectWindowLength)]))
+                qBlockPart3.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj")]))
             else: # '-'
-                qBlockPart3.addMisAssemblyBlockList("Msj",
-                                                    BlockList([(qBlockPart3Length - switchEffectWindowLength + 1, qBlockPart3Length)]))
+                qBlockPart3.addMisAssemblyBlockList(BlockList([(qBlockPart3Length - switchEffectWindowLength + 1,
+                                                                qBlockPart3Length,
+                                                                "Msj")]))
 
 
 
@@ -752,8 +747,7 @@ class HomologyRelationChains:
         relationPart2.alignment = None
 
         rBlockPart2 = relationPart2.block
-        rBlockPart2.addMisAssemblyBlockList("Col_Del",
-                                            BlockList([(1, rBlockPart2.origEnd - rBlockPart2.origStart + 1)]))
+        rBlockPart2.addMisAssemblyBlockList(BlockList([(1, rBlockPart2.origEnd - rBlockPart2.origStart + 1, "Col_Del")]))
         rBlockPart2.containsMisAssembly = True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -833,8 +827,7 @@ class HomologyRelationChains:
 
         # the block that has to be duplicated
         rBlockPart2 = ref2querySplitRelations[1].block
-        rBlockPart2.addMisAssemblyBlockList( "Dup",
-                                                BlockList([(1, rBlockPart2.origEnd - rBlockPart2.origStart + 1)]))
+        rBlockPart2.addMisAssemblyBlockList(BlockList([(1, rBlockPart2.origEnd - rBlockPart2.origStart + 1, "Dup")]))
         rBlockPart2.containsMisAssembly = True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -849,8 +842,7 @@ class HomologyRelationChains:
                                        newDupCtg,
                                        0)
         rBlockPart2Dup.annotationBlockLists = deepcopy(rBlockPart2.annotationBlockLists)
-        rBlockPart2Dup.addMisAssemblyBlockList( "Dup",
-                                                BlockList([(1, rBlockPart2Dup.origEnd - rBlockPart2Dup.origStart + 1)]))
+        rBlockPart2Dup.addMisAssemblyBlockList(BlockList([(1, rBlockPart2Dup.origEnd - rBlockPart2Dup.origStart + 1, "Dup")]))
         rBlockPart2Dup.containsMisAssembly = True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -918,8 +910,7 @@ class HomologyRelationChains:
 
         # the ref block that has to be contaminated with base errors
         rBlockPart2 = ref2querySplitRelations[1].block
-        rBlockPart2.addMisAssemblyBlockList( "Err",
-                                             BlockList([(1, rBlockPart2.origEnd - rBlockPart2.origStart + 1)]))
+        rBlockPart2.addMisAssemblyBlockList(BlockList([(1, rBlockPart2.origEnd - rBlockPart2.origStart + 1, "Err")]))
         rBlockPart2.containsMisAssembly = True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -928,8 +919,7 @@ class HomologyRelationChains:
         # the query block that is supposed to be collapsed since the
         # ref haplotype is highly erroneous
         qBlockPart2 = ref2querySplitRelations[1].homologousBlock
-        qBlockPart2.addMisAssemblyBlockList( "Col_Err",
-                                             BlockList([(1, qBlockPart2.origEnd - qBlockPart2.origStart + 1)]))
+        qBlockPart2.addMisAssemblyBlockList(BlockList([(1, qBlockPart2.origEnd - qBlockPart2.origStart + 1, "Col_Err")]))
         qBlockPart2.containsMisAssembly = True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
@@ -1099,8 +1089,127 @@ class HomologyRelationChains:
         return  "".join(newCtgSeqList)
 
     def yeildNewCtgSequences(self, origCtgSequences):
-        for newCtg in self.relationChains:
+        newCtgList = sorted(self.relationChains.keys().to_list())
+        for newCtg in newCtgList:
             yield newCtg, self.getNewCtgSequence(newCtg, origCtgSequences)
+
+    def getTotalLengthOfLongerBlocks(self, annotation, blockSizes):
+        """
+        It counts the total lengths of blocks longer than each block size in the given list and
+        returns the list of total lengths
+        :param blockSizes: A list of block sizes
+        :param annotation: The name of the annotation
+        :return: list of total lengths
+        """
+        totalLengths = [] * len(blockSizes)
+        for newCtg, relations in self.relationChains.items():
+            for relation in relations:
+                for block in relation.block.annotationBlockLists[annotation].blocks:
+                    for i, length in enumerate(blockSizes):
+                        if length < (block[1] - block[0]):
+                            totalLengths[i] += block[1] - block[0]
+        return totalLengths
+
+    def getTotalLengthOfLongerBlocksForAllAnnotations(self, annotations, blockSizes):
+        """
+        Run getTotalLengthOfLongerBlocks for each given annotation
+        :param annotations: A list of annotation names
+        :param blockSizes: A list of block sizes
+        :return: A dictionary with annotation names as keys and total length lists as values
+        """
+        totalLengths = defaultdict(list)
+        for annotation in annotations:
+            totalLengths[annotation] = self.getTotalLengthOfLongerBlocks(annotation, blockSizes)
+        return totalLengths
+
+    def writeNewContigsToFasta(self, origCtgSequences, fastaPath):
+        handle = open(fastaPath, "w")
+        writer = FastaWriter(handle)
+        for newCtg, newSeq in self.yeildNewCtgSequences(origCtgSequences):
+            record = SeqRecord(Seq(newSeq),
+                               id = newCtg,
+                               description = "")
+            writer.write_record(record)
+        handle.close()
+
+
+    def getNewCtgCoordinatesOfAnnotation(self, newCtg, annotation):
+        """
+        :param newCtg: The name of the new contig
+        :param annotation: The name of the annotation
+        :return: a BlockList that contains the coordinates of "annotation" in "newCtg"
+        """
+        newCtgAnnotationBlockList = BlockList()
+        newStart = 1
+        for relation in self.relationChains[newCtg]:
+            blockLen = relation.block.origEnd - relation.block.origStart + 1
+            annotationBlockList = relation.block.annotationBlockLists[annotation].copy()
+            # shifting coors to make them to be w.r.t. the start of the whole new contig
+            annotationBlockList.shift(newStart - 1, newStart, newStart + blockLen - 1, inplace=True)
+            # add coors of the annotation of this block to the block list for the whole new contig
+            newCtgAnnotationBlockList.extend(annotationBlockList)
+            # update the start coordinate for the next block
+            newStart += blockLen
+        return newCtgAnnotationBlockList
+
+
+    def getNewCtgCoordinatesOfMisAssemblies(self, newCtg):
+        """
+        :param newCtg: The name of the new contig
+        :return: a BlockList that contains the coordinates of all misassemblies in "newCtg"
+        """
+        newCtgMisAssembliesBlockList = BlockList()
+        newStart = 1
+        for relation in self.relationChains[newCtg]:
+            blockLen = relation.block.origEnd - relation.block.origStart + 1
+            misAssemblyBlockList = relation.block.misAssemblyBlockList.copy()
+            # shift coors to make them to be w.r.t. the start of the whole new contig
+            misAssemblyBlockList.shift(newStart - 1, newStart, newStart + blockLen - 1, inplace=True)
+            # add coors of the annotation of this block to the block list for the whole new contig
+            newCtgMisAssembliesBlockList.extend(misAssemblyBlockList)
+            # update the start coordinate for the next block
+            newStart += blockLen
+        return newCtgMisAssembliesBlockList
+
+    def writeAnnotationCoordinatesToBed(self, annotation, bedPath):
+        """
+        Write the coordinates of an annotation in the whole (falsified) assembly
+        to a bed file
+        :param annotation: The name of the annotation
+        :param bedPath: The path to the output bed file
+        """
+        newCtgList = sorted(self.relationChains.keys().to_list())
+        with open(bedPath, "w") as f:
+            for newCtg in newCtgList:
+                annotationBlockList = self.getNewCtgCoordinatesOfAnnotation(newCtg, annotation)
+                for block in annotationBlockList.blocks:
+                    # start should be 0-based in bed
+                    f.write(f"{newCtg}\t{block[0] - 1}\t{block[1]}\n")
+
+    def writeMisAssemblyCoordinatesToBed(self, bedPath):
+        """
+        Write the coordinates of mis-assemblies in the whole (falsified) assembly
+        to a bed file
+        :param bedPath: The path to the output bed file
+        """
+        newCtgList = sorted(self.relationChains.keys().to_list())
+        with open(bedPath, "w") as f:
+            for newCtg in newCtgList:
+                misAssemblyBlockList = self.getNewCtgCoordinatesOfMisAssemblies(newCtg)
+                for block in misAssemblyBlockList.blocks:
+                    # start should be 0-based in bed
+                    f.write(f"{newCtg}\t{block[0] - 1}\t{block[1]}\t{block[2]}\n")
+
+
+
+
+
+
+
+
+
+
+
 
 
 
