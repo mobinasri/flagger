@@ -59,12 +59,14 @@ def parseAnnotationsPerContig(annotationsJson):
     bedPaths = json.load(f)
 
     annotationsPerContig = defaultdict(dict)
+    annotationNames = []
     for name, path in bedPaths.items():
+        annotationNames.append(name)
         blocksForOneAnnotation = BlockList.parseBed(path, saveFourthColumnAsNumeric=False)
         for ctg, blockList in blocksForOneAnnotation.items():
             annotationsPerContig[ctg][name] = blockList
 
-    return annotationsPerContig
+    return annotationsPerContig, annotationNames
 
 def parseMisAssemblySizeTable(tsvPath):
     misAssemblySizeTable = pd.read_csv(tsvPath, sep="\t")
@@ -203,8 +205,7 @@ def main():
 
     diploidContigLengths = getContigLengths(diploidSequences)
 
-    annotationBlockLists = parseAnnotationsPerContig(annotationsJsonPath)
-    annotationNames = list(annotationBlockLists.keys())
+    annotationBlockLists, annotationNames = parseAnnotationsPerContig(annotationsJsonPath)
 
     # parse misassembly length/number tsv
     misAssemblySizeTable = parseMisAssemblySizeTable(misAssemblyTsvPath)
