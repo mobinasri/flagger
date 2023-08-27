@@ -5,6 +5,7 @@ import re
 from multiprocessing import Pool
 from copy import deepcopy
 import random
+from Bio import SeqIO
 
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
 
@@ -95,6 +96,13 @@ class BlockList:
     def append(self, block):
         self.blocks.append((block[0], block[1], 0 if len(block) == 2 else block[2]))
 
+    def extend(self, blockList):
+        self.blocks.extend(blockList.blocks)
+
+    def setThirdEntry(self, entry):
+        for b in self.blocks:
+            b[2] = entry
+
     def sort(self):
         self.blocks.sort()
 
@@ -102,6 +110,7 @@ class BlockList:
         """
             Note that this function assumes that blocks in self do not have any
             overlap within themselves. Same assumption applies for otherBlockList.
+            It will copy the third entries of the self blocks to the intersected blocks
             Arguments:
                 otherBlockList: a BlockList to intersect with self blocks
                 inplace: If True the intersected blocks will be saved inplace
@@ -455,6 +464,51 @@ class BlockList:
             self.blocks = blocksMergedFinalized
         else:
             return BlockList(blocksMergedFinalized)
+
+    @staticmethod
+    def parseBed(bedPath, saveFourthColumnAsNumeric):
+        """
+        Parse a bed file
+        :param bedPath: The path to a bed file
+        :param saveFourthColumnAsInt: If each track has a 4th column parse it and save it as the 3rd entry of each block in
+                                      BlockList
+        :return: A dictionary that contains contig names as keys and one BlockList as each value. Each BlockList will
+                 contain all the blocks for one contig
+        """
+
+
+        # create a dictionary whose values are BlockLists
+        blockListPerContig = defaultdict(BlockList)
+
+        # parse tracks and save them in the dictionary
+        with open(bedPath, "r") as f:
+            for line in f:
+                cols = line.strip().split()
+                if len(cols) == 4 and saveFourthColumnAsNumeric == True:
+                    c = float(cols[3])
+                else:
+                    c = 0
+                start = int(cols[1])
+                end = int(cols[2])
+                contig = cols[0]
+                blockListPerContig[contig].append((start, end, c))
+        # sort blocks per contig
+        for contig, blockList in blockListPerContig.items():
+            blockList.sort()
+        return blockListPerContig
+
+
+def parseFasta(fastaPath):
+    """
+    Parse fasta file and save the sequences in a dictionary
+    """
+    contigSequences = {}
+    fasta_sequences = SeqIO.parse(open(fastaPath),'fasta')
+    for fasta in fasta_sequences:
+        name, sequence = fasta.id, str(fasta.seq)
+        contigSequences[name] = sequence
+    return  contigSequences
+
 
 class Alignment:
     """
@@ -1151,6 +1205,11 @@ def getBlockListsPerQueryContig(alignments):
     return blockListsPerQueryContig
 
 def getBlockListsWithSingleAlignmentPerRefContig(alignments):
+    """
+    Takes a list of alignments and returns a dictionary that contains the blocks with single alignment in the reference coordinates.
+    The dictionary has ref contig names as keys and one BlockList as each value.
+    :param alignments: A list of alignments (no need to be sorted)
+    """
     blockListsPerRefContig = getBlockListsPerRefContig(alignments)
     mergedBlockListsPerRefContig = mergeBlockListsPerContigWithOverlapCount(blockListsPerRefContig)
 
@@ -1162,6 +1221,11 @@ def getBlockListsWithSingleAlignmentPerRefContig(alignments):
     return blockListsWithSingleAlignmentPerRefContig
 
 def getBlockListsWithSingleAlignmentPerQueryContig(alignments):
+    """
+    Takes a list of alignments and returns a dictionary that contains the blocks with single alignment in the query coordinates.
+    The dictionary has query contig names as keys and one BlockList as each value.
+    :param alignments: A list of alignments (no need to be sorted)
+    """
     blockListsPerQueryContig = getBlockListsPerQueryContig(alignments)
     mergedBlockListsPerQueryContig = mergeBlockListsPerContigWithOverlapCount(blockListsPerQueryContig)
 
@@ -1173,6 +1237,14 @@ def getBlockListsWithSingleAlignmentPerQueryContig(alignments):
     return blockListsWithSingleAlignmentPerQueryContig
 
 def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
+    """
+    Extracts subsets of the given alignments by projecting the blocks given in ref coordinates
+    :param alignments: A list of alignments (no need to be sorted)
+    :param blockListsPerRefContig: A dictionary that contains blocks in the reference coordinates.
+    The dictionary should have ref contig names as keys and one BlockList as each value.
+    :return: The list of subset alignments that does not span any bases outside the given blocks in the ref coordinates
+             The output is sorted by ref coordinates
+    """
     threads = 8
     blocksPerRefContig = {}
     for ctg, blockList in blockListsPerRefContig.items():
@@ -1211,6 +1283,14 @@ def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
     return  subsetAlignments
 
 def subsetAlignmentsToQueryBlocks(alignments, blockListsPerQueryContig):
+    """
+    Extracts subsets of the given alignments by projecting the blocks given in the query coordinates
+    :param alignments: A list of alignments (no need to be sorted)
+    :param blockListsPerRefContig: A dictionary that contains blocks in the query coordinates.
+    The dictionary should have query contig names as keys and one BlockList as each value.
+    :return: The list of subset alignments that does not span any bases outside the given blocks in the query coordinates
+             The output is sorted by query coordinates
+    """
     threads = 8
     blocksPerQueryContig = {}
     for ctg, blockList in blockListsPerQueryContig.items():
