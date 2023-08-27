@@ -1104,7 +1104,7 @@ class HomologyRelationChains:
         :param annotation: The name of the annotation
         :return: list of total lengths
         """
-        totalLengths = [] * len(blockSizes)
+        totalLengths = [0] * len(blockSizes)
         for newCtg, relations in self.relationChains.items():
             for relation in relations:
                 for block in relation.block.annotationBlockLists[annotation].blocks:
