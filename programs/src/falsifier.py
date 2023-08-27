@@ -65,7 +65,7 @@ def parseAnnotations(annotationsJson):
     return annotations
 
 def parseMisAssemblySizeTable(tsvPath):
-    misAssemblySizeTable = pd.read_csv(tsvPath, "\t")
+    misAssemblySizeTable = pd.read_csv(tsvPath, sep="\t")
     misAssemblySizeTable.index = misAssemblySizeTable["length_kb"]
     for row in misAssemblySizeTable.index:
         for annotation in misAssemblySizeTable.columns[1:]:
