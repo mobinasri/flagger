@@ -266,6 +266,8 @@ def main():
 
     print("Creating mis-assemblies is Done!")
 
+
+    os.makedirs(outputDir, exist_ok = True)
     print("Writing Fasta file for the falsified assembly")
     fastaPath = os.path.join(outputDir,"falsified_asm.fasta")
     relationChains.writeNewContigsToFasta(diploidSequences, fastaPath)
