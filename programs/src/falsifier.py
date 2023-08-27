@@ -60,7 +60,8 @@ def parseAnnotationsPerContig(annotationsJson):
 
     annotationsPerContig = defaultdict(dict)
     for name, path in bedPaths.items():
-        for ctg, blockList in BlockList.parseBed(path, saveFourthColumnAsNumeric=False):
+        blocksForOneAnnotation = BlockList.parseBed(path, saveFourthColumnAsNumeric=False)
+        for ctg, blockList in blocksForOneAnnotation.items():
             annotationsPerContig[ctg][name] = blockList
 
     return annotationsPerContig
