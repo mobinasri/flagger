@@ -60,7 +60,7 @@ def parseAnnotations(annotationsJson):
 
     annotations = {}
     for name, path in bedPaths.items():
-        annotations[name] = BlockList.parseBed(path)
+        annotations[name] = BlockList.parseBed(path, saveFourthColumnAsNumeric=False)
 
     return annotations
 
