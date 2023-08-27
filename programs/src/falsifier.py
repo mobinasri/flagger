@@ -10,7 +10,6 @@ import json
 import re
 import os
 
-def writeFasta(relationChains)
 
 def induceMultipleMisAssembliesOfTheSameType(relationChains, annotation, misAssemblyType, misAssemblySize, misAssemblyCount, switchEffectWindowSize):
     assert(misAssemblyType in ["Sw", "Err", "Dup", "Col"])
