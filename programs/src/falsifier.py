@@ -9,34 +9,54 @@ import pandas as pd
 import json
 import re
 import os
+import datetime
 
 
 def induceMultipleMisAssembliesOfTheSameType(relationChains, annotation, misAssemblyType, misAssemblySize, misAssemblyCount, switchEffectWindowSize):
     assert(misAssemblyType in ["Sw", "Err", "Dup", "Col"])
     for i in range(misAssemblyCount):
-        newCtg, orderIndex, start, end = relationChains.getRandomMisAssemblyInterval(annotation, misAssemblySize)
-        if misAssemblyType == "Sw":
-            relationChains.induceSwitchMisAssembly(newCtg,
-                                                   orderIndex,
-                                                   start,
-                                                   end,
-                                                   switchEffectWindowSize)
-        elif misAssemblyType == "Err":
-            relationChains.induceBaseErrorMisAssembly(newCtg,
-                                                      orderIndex,
-                                                      start,
-                                                      end)
-        elif misAssemblyType == "Dup":
-            relationChains.induceDuplicationMisAssembly(newCtg,
-                                                        orderIndex,
-                                                        start,
-                                                        end)
-        elif misAssemblyType == "Col":
-            relationChains.induceCollapseMisAssembly(newCtg,
-                                                     orderIndex,
-                                                     start,
-                                                     end)
+        iter = 0
+        while iter < 10:
+            if 0 < iter:
+                print(f"[{datetime.datetime.now()}] Retrying inducing the failed mis-assembly ({iter+1}/10 retries)")
+            res = False
+            newCtg, orderIndex, start, end = relationChains.getRandomMisAssemblyInterval(annotation, misAssemblySize)
+            if newCtg == None:
+                print(f"[{datetime.datetime.now()}] No more blocks remaining for sampling (Skipping {misAssemblyCount-i}/{misAssemblyCount}) : annotation = {annotation}, misAssemblyType = {misAssemblyType}, misAssemblySize = {misAssemblySize}")
+                return i
+            print(f"[{datetime.datetime.now()}] Mis-assembly location:\t {newCtg}[{orderIndex}]:\t{start}\t{end}\tlen={relationChains.relationChains[newCtg][orderIndex].block.origEnd - relationChains.relationChains[newCtg][orderIndex].block.origStart + 1}")
 
+            if misAssemblyType == "Sw":
+                res = relationChains.induceSwitchMisAssembly(newCtg,
+                                                             orderIndex,
+                                                             start,
+                                                             end,
+                                                             switchEffectWindowSize)
+            elif misAssemblyType == "Err":
+                res = relationChains.induceBaseErrorMisAssembly(newCtg,
+                                                                orderIndex,
+                                                                start,
+                                                                end)
+            elif misAssemblyType == "Dup":
+                res = relationChains.induceDuplicationMisAssembly(newCtg,
+                                                                  orderIndex,
+                                                                  start,
+                                                                  end)
+            elif misAssemblyType == "Col":
+                res = relationChains.induceCollapseMisAssembly(newCtg,
+                                                               orderIndex,
+                                                               start,
+                                                               end)
+            if res == True:
+                break
+            else:
+                print(f"[{datetime.datetime.now()}] Warning: Mis-assembly could not be induced (because of projection).")
+                iter += 1
+        # if the mis-assembly could not be created after 10 times trying 
+        if res == False:
+            return i
+
+    return misAssemblyCount
 
 
 
@@ -90,19 +110,19 @@ def getTotalLengthOfMisAssembliesForAllAnnotations(misAssemblySizeTable):
     """
 
     totalLengths = defaultdict(list)
-    print("Total lengths of requested mis-assemblies")
-    for iRow in range(misAssemblySizeTable.shape[0]):
-        misAssemblyLengthKb = int(misAssemblySizeTable.at[iRow, "length_kb"])
-        print(f"\t Mis-assembly Size: {misAssemblyLengthKb}")
+    print(f"[{datetime.datetime.now()}] Total lengths of requested mis-assemblies:")
+    for row in misAssemblySizeTable.index:
+        misAssemblyLengthKb = int(misAssemblySizeTable.at[row, "length_kb"])
+        print(f"\t Mis-assembly Size: {misAssemblyLengthKb}Kb")
         for annotation in misAssemblySizeTable.columns[1:]:
-            counts = misAssemblySizeTable.at[iRow, annotation]
+            counts = misAssemblySizeTable.at[row, annotation]
             totLen = sum(counts) * misAssemblyLengthKb * 1e3
             print(f"\t\tAnnotation: {annotation} -> {totLen/1e3} Kb")
             totalLengths[annotation].append(totLen)
     return totalLengths
 
 
-def checkFeasiblity(relationChains, annotations, misAssemblySizeTable, safetyFactor = 2):
+def checkFeasiblity(relationChains, annotations, misAssemblySizeTable, safetyFactor = 4):
     """
     Checks if there exist enough number of contiguous blocks per annotation to make misassemblies with the
     requested sizes
@@ -121,16 +141,21 @@ def checkFeasiblity(relationChains, annotations, misAssemblySizeTable, safetyFac
                          This check is performed separately per annotation.
     :return: True if feasible otherwise False
     """
-    blockSizes = np.array(misAssemblySizeTable["length_kb"], dtype=int)
+    blockSizes = np.array(misAssemblySizeTable["length_kb"], dtype=int) * 1000
     totalAvailableLengthsPerAnnotation = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotations, blockSizes)
     totalRequestedLengthsPerAnnotation = getTotalLengthOfMisAssembliesForAllAnnotations(misAssemblySizeTable)
 
+    flag = True
     for annotation in annotations:
-        for requestedLen, availableLen in zip(totalRequestedLengthsPerAnnotation[annotation],
-                                              totalAvailableLengthsPerAnnotation[annotation]):
+        for requestedLen, availableLen, blockSize in zip(totalRequestedLengthsPerAnnotation[annotation],
+                                              totalAvailableLengthsPerAnnotation[annotation],
+                                              blockSizes):
             if availableLen < safetyFactor * requestedLen:
-                return False
-    return True
+                print(f"[{datetime.datetime.now()}] Check Feasibility: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tNOT PASSED")
+                flag = False
+            else:
+                print(f"[{datetime.datetime.now()}] Check Feasibility: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tPASSED")
+    return flag
 
 
 
@@ -162,7 +187,7 @@ def main():
                         help='Minimum overlap ratio that each misassembly block should have with the related annotation (should be greater than or equal to 0.5) [Default = 0.75]')
     parser.add_argument('--contigSuffix', type=str, default = "_f",
                         help='The suffix to be added to the names of the new contigs (which could be either intact or with mis-assemblies) [Default = "_f"]')
-    parser.add_argument('--safetyFactor', type=float, default = 2.0, help='The factor for checking the feasibility of inducing the misassmblies of requested numbers and sizes [Default = 2.0]')
+    parser.add_argument('--safetyFactor', type=float, default = 4.0, help='The factor for checking the feasibility of inducing the misassmblies with the requested numbers and sizes [Default = 4.0]')
 
 
 
@@ -211,7 +236,7 @@ def main():
     misAssemblySizeTable = parseMisAssemblySizeTable(misAssemblyTsvPath)
     for annotation in misAssemblySizeTable.columns[1:]:
         if annotation not in annotationNames:
-            print(f"Error: {annotation} exists in the mis-assembly tsv but its path is not given in the json file!")
+            print(f"[{datetime.datetime.now()}] Error: {annotation} exists in the mis-assembly tsv but its path is not given in the json file!")
             exit()
 
     # find the hap1 coordinates with exactly one alignment from hap2
@@ -239,15 +264,17 @@ def main():
                                                                contigSuffix)
 
     if checkFeasiblity(relationChains, annotationNames, misAssemblySizeTable, safetyFactor = safetyFactor):
-        print(f"Feasibilty is PASSED with the safety factor of {safetyFactor}")
+        print(f"[{datetime.datetime.now()}] Feasibilty is PASSED with the safety factor of {safetyFactor}")
     else:
-        print(f"Feasibilty is NOT PASSED with the safety factor of {safetyFactor}")
+        print(f"[{datetime.datetime.now()}] Feasibilty is NOT PASSED with the safety factor of {safetyFactor}. Please use more contiguous alignments/annotations tracks or request for shorter (or fewer) misassemblies.")
         exit()
 
 
 
     misAssemblyTypes = ["Sw", "Err", "Dup", "Col"]
     misAssemblySizesSortedKb = sorted(np.array(misAssemblySizeTable["length_kb"]), reverse=True)
+    total_successful = 0
+    total_requested = 0
     for misAssemblySizeKb in misAssemblySizesSortedKb:
         # for each mis-assembly size, the start locations for sampling should be updated
         relationChains.updateAnnotationStartLocationsForSampling(annotationNames,
@@ -258,31 +285,35 @@ def main():
         for annotation in annotationNames:
             misAssemblyCounts = misAssemblySizeTable.at[misAssemblySizeKb, annotation]
             for misAssemblyType, misAssemblyCount in  zip(misAssemblyTypes, misAssemblyCounts) :
-                induceMultipleMisAssembliesOfTheSameType(relationChains,
-                                                         annotationNames,
-                                                         misAssemblyType,
-                                                         misAssemblySizeKb * 1000,
-                                                         misAssemblyCount,
-                                                         switchWindowLength)
-                print(f"Mis-assemblies are created: annotation = {annotation} type = {misAssemblyType}, length = {misAssemblySizeKb} Kb, count = {misAssemblyCount}")
+                print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
+                res = induceMultipleMisAssembliesOfTheSameType(relationChains,
+                                                               annotation,
+                                                               misAssemblyType,
+                                                               misAssemblySizeKb * 1000,
+                                                               misAssemblyCount,
+                                                               switchWindowLength)
+                print(f"[{datetime.datetime.now()}] ({res}/{misAssemblyCount}) Mis-assemblies could be created successfully:\tannotation = {annotation},\ttype = {misAssemblyType},\tlength = {misAssemblySizeKb} Kb")
+                total_successful += res
+                total_requested += misAssemblyCount
+                #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
 
-    print("Creating mis-assemblies is Done!")
+    print(f"[{datetime.datetime.now()}] Creating mis-assemblies is Done! ({total_successful}/{total_requested}) mi-assemblies could be created successfully.")
 
 
     os.makedirs(outputDir, exist_ok = True)
-    print("Writing Fasta file for the falsified assembly")
+    print(f"[{datetime.datetime.now()}] Writing Fasta file for the falsified assembly")
     fastaPath = os.path.join(outputDir,"falsified_asm.fasta")
     relationChains.writeNewContigsToFasta(diploidSequences, fastaPath)
-    print(f"The falsified assembly is written to {fastaPath}")
+    print(f"[{datetime.datetime.now()}] The falsified assembly is written to {fastaPath}")
 
     for annotation in annotationNames:
-        bedPath = os.path.join(outputDir, "falsified_asm.{annotation}.bed")
+        bedPath = os.path.join(outputDir, f"falsified_asm.{annotation}.bed")
         relationChains.writeAnnotationCoordinatesToBed(annotation, bedPath)
-        print(f"The coordinates of the annotation, {annotation} are written to {bedPath}")
+        print(f"[{datetime.datetime.now()}] The coordinates of the annotation, {annotation} are written to {bedPath}")
 
     bedPath = os.path.join(outputDir, "falsified_asm.mis_assemblies.bed")
     relationChains.writeMisAssemblyCoordinatesToBed(bedPath)
-    print(f"The coordinates of misassemblies are written to {bedPath}")
+    print(f"[{datetime.datetime.now()}] The coordinates of misassemblies are written to {bedPath}")
 
 
 

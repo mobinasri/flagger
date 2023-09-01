@@ -144,7 +144,9 @@ class HomologyBlock:
 
 
             # truncate the blocks to make sure they do not have overlap with the margins
+            #print(f"Before intersect with {wholeBlockWithoutMargins.blocks} = {self.annotationStartBlockListsForSampling[name].blocks}")
             self.annotationStartBlockListsForSampling[name].intersect(wholeBlockWithoutMargins, inplace=True)
+            #print(f"After intersect with {wholeBlockWithoutMargins.blocks} = {self.annotationStartBlockListsForSampling[name].blocks}")
             self.annotationStartBlockLengthsForSampling[name] = [i[1] - i[0] + 1 for i in self.annotationStartBlockListsForSampling[name].blocks]
             self.annotationStartTotalLengthsForSampling[name] = sum(self.annotationStartBlockLengthsForSampling[name])
 
@@ -189,7 +191,7 @@ class HomologyBlock:
         :param start: 1-based location in the parent block which is the first base in this block
         :param end: 1-based location in the parent block which is the last base in this block
         """
-        subsetBlockList = parentBlock.intersect(BlockList([(start, end)]), inplace=False)
+        subsetBlockList = parentBlock.misAssemblyBlockList.intersect(BlockList([(start, end)]), inplace=False)
         subsetBlockList.shift( -(start - 1), minCoordinate = 1, maxCoordinate = end - start + 1, inplace = True)
         self.addMisAssemblyBlockList(subsetBlockList)
 
@@ -281,10 +283,13 @@ class HomologyRelation:
 
         assert(len(projectableBlocks) == 3)
         assert(len(projectionBlocks) == 3)
-
+    
+        
         projectionsOrigCoor = []
         projectionsRelCoor = []
         for i in range(3):
+            if projectionBlocks[i][0] == None or projectionBlocks[i][1] == None:
+                return None
             projectionsOrigCoor.append([projectableBlocks[i][0] + self.block.origStart - 1,
                                         projectableBlocks[i][1] + self.block.origStart - 1,
                                         projectionBlocks[i][0] + self.homologousBlock.origStart - 1,
@@ -519,13 +524,17 @@ class HomologyRelationChains:
         otherHapOrderIndex = relationToSplit.homologousBlock.orderIndex
         otherHapNewCtg = relationToSplit.homologousBlock.newCtg
 
+        # split the homology relation into three parts
+        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(switchStart, switchEnd)
+
+        if ref2querySplitRelations == None:
+            return False
+
         # remove previous relation
         # both from ref2query and from query2ref
         self.relationChains[newCtg].pop(orderIndex)
         self.relationChains[otherHapNewCtg].pop(otherHapOrderIndex)
 
-        # split the homology relation into three parts
-        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(switchStart, switchEnd)
 
         # the blocks that have to be swapped
         relationPart2 = ref2querySplitRelations[1]
@@ -672,6 +681,8 @@ class HomologyRelationChains:
         
         self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
+        return True
+
     def breakIntoTwoContigs(self, newCtg, lastOrderIndexOnLeft):
         """
         split the relation chain of the new contig into two parts
@@ -734,13 +745,17 @@ class HomologyRelationChains:
         otherHapOrderIndex = relationToSplit.homologousBlock.orderIndex
         otherHapNewCtg = relationToSplit.homologousBlock.newCtg
 
+        # split the homology relation into three parts
+        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(collapseStart, collapseEnd)
+
+        if ref2querySplitRelations == None:
+            return False
+
         # remove previous relation
         # both from ref2query and from query2ref
         self.relationChains[newCtg].pop(orderIndex)
         self.relationChains[otherHapNewCtg].pop(otherHapOrderIndex)
 
-        # split the homology relation into three parts
-        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(collapseStart, collapseEnd)
 
         # the homologous block, which is qBlockPart2, should be removed
         # from the middle relation. The alignment should also be removed
@@ -811,6 +826,8 @@ class HomologyRelationChains:
 
         self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
+        return True
+
     def induceDuplicationMisAssembly(self, newCtg, orderIndex, duplicationStart, duplicationEnd):
 
         relationToSplit = self.relationChains[newCtg][orderIndex]
@@ -820,13 +837,17 @@ class HomologyRelationChains:
         otherHapOrderIndex = relationToSplit.homologousBlock.orderIndex
         otherHapNewCtg = relationToSplit.homologousBlock.newCtg
 
+        # split the homology relation into three parts
+        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(duplicationStart, duplicationEnd)
+
+        if ref2querySplitRelations == None:
+            return False
+
         # remove previous relation
         # both from ref2query and from query2ref
         self.relationChains[newCtg].pop(orderIndex)
         self.relationChains[otherHapNewCtg].pop(otherHapOrderIndex)
 
-        # split the homology relation into three parts
-        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(duplicationStart, duplicationEnd)
 
         # the block that has to be duplicated
         rBlockPart2 = ref2querySplitRelations[1].block
@@ -893,6 +914,8 @@ class HomologyRelationChains:
 
         self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
 
+        return True
+
 
     def induceBaseErrorMisAssembly(self, newCtg, orderIndex, errorStart, errorEnd):
 
@@ -903,13 +926,17 @@ class HomologyRelationChains:
         otherHapOrderIndex = relationToSplit.homologousBlock.orderIndex
         otherHapNewCtg = relationToSplit.homologousBlock.newCtg
 
+        # split the homology relation into three parts
+        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(errorStart, errorEnd)
+
+        if ref2querySplitRelations == None:
+            return False
+
         # remove previous relation
         # both from ref2query and from query2ref
         self.relationChains[newCtg].pop(orderIndex)
         self.relationChains[otherHapNewCtg].pop(otherHapOrderIndex)
 
-        # split the homology relation into three parts
-        ref2querySplitRelations = relationToSplit.splitIntoThreeParts(errorStart, errorEnd)
 
         # the ref block that has to be contaminated with base errors
         rBlockPart2 = ref2querySplitRelations[1].block
@@ -967,6 +994,8 @@ class HomologyRelationChains:
             relation.block.orderIndex += 2
 
         self.updateNewCtgAnnotationWeightsForSampling(newCtg, relationToSplit, ref2querySplitRelations)
+
+        return True
 
     def updateNewCtgAnnotationWeightsForSampling(self, newCtg, parentRelation, childRelations):
         
@@ -1036,7 +1065,10 @@ class HomologyRelationChains:
         :param annotation: The annotation name
         :return: The randomly selected new contig
         """
-        selectedNewCtg = random.choices(self.newCtgList,
+        #print(annotation, self.newCtgAnnotationWeightsForSampling)
+        if sum(self.newCtgAnnotationWeightsForSampling[annotation]) == 0:
+            return None
+        selectedNewCtg = random.choices(self.newCtgListForSampling,
                                         weights=self.newCtgAnnotationWeightsForSampling[annotation],
                                         k=1)[0]
         return selectedNewCtg
@@ -1080,6 +1112,8 @@ class HomologyRelationChains:
         :return: a randomly selected new contig name, index of relation, start and end coordinates
         """
         newCtg = self.getWeightedRandomNewCtgForSampling(annotation)
+        if newCtg == None:
+            return None, None, None, None
         orderIndex = self.getWeightedRandomOrderIndexForSampling(newCtg, annotation)
         start, end = self.getRandomIntervalFromRelationBlock(newCtg, annotation, orderIndex, misAssemblyLength)
         return newCtg, orderIndex, start, end
@@ -1092,7 +1126,7 @@ class HomologyRelationChains:
         return  "".join(newCtgSeqList)
 
     def yeildNewCtgSequences(self, origCtgSequences):
-        newCtgList = sorted(self.relationChains.keys().to_list())
+        newCtgList = sorted(list(self.relationChains.keys()))
         for newCtg in newCtgList:
             yield newCtg, self.getNewCtgSequence(newCtg, origCtgSequences)
 
@@ -1181,7 +1215,7 @@ class HomologyRelationChains:
         :param annotation: The name of the annotation
         :param bedPath: The path to the output bed file
         """
-        newCtgList = sorted(self.relationChains.keys().to_list())
+        newCtgList = sorted(list(self.relationChains.keys()))
         with open(bedPath, "w") as f:
             for newCtg in newCtgList:
                 annotationBlockList = self.getNewCtgCoordinatesOfAnnotation(newCtg, annotation)
@@ -1195,7 +1229,7 @@ class HomologyRelationChains:
         to a bed file
         :param bedPath: The path to the output bed file
         """
-        newCtgList = sorted(self.relationChains.keys().to_list())
+        newCtgList = sorted(list(self.relationChains.keys()))
         with open(bedPath, "w") as f:
             for newCtg in newCtgList:
                 misAssemblyBlockList = self.getNewCtgCoordinatesOfMisAssemblies(newCtg)
