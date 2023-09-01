@@ -509,6 +509,13 @@ def parseFasta(fastaPath):
         contigSequences[name] = sequence
     return  contigSequences
 
+def yieldFasta(fastaPath):
+    """
+    Parse fasta file and yield each name and sequence
+    """
+    fasta_sequences = SeqIO.parse(open(fastaPath),'fasta')
+    for fasta in fasta_sequences:
+        return fasta.id, str(fasta.seq)
 
 class Alignment:
     """
@@ -530,6 +537,9 @@ class Alignment:
         self.chromLength = int(cols[6])
         self.chromStart = int(cols[7]) # 0-based closed
         self.chromEnd = int(cols[8]) # 0-based open
+        self.numberOfMatches = int(cols[9])
+        self.alignmentLength = int(cols[10])
+        self.mappingQuality = int(cols[11])
         self.isPrimary = False
         if "tp:A:P" in paf_line:
             self.isPrimary = True
@@ -545,6 +555,14 @@ class Alignment:
         else:
             self.editDistance = None
 
+    def writeToPaf(self, pafPath, append=True):
+        openMode = "a" if append else "w"
+        with fopen(pafPath, openMode) as f:
+            status = 'tp:A:P' if self.isPrimary else 'tp:A:S'
+            f.write("\t".join([self.contigName, f'{self.contigLength}', f'{self.contigStart}', f'{self.contigEnd}', self.orientation,
+                               self.chromName, f'{self.chromLength}', f'{self.chromStart}', f'{self.chromEnd}',
+                               f'{self.numberOfMatches}', f'{self.alignmentLength}', f'{self.mappingQuality}',
+                               status, f'cg:Z:{makeCigarString(self.cigarList)}\n']))
 
 def reverseInterval(interval, contigLength):
     """
