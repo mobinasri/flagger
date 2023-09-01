@@ -119,7 +119,8 @@ class BlockList:
         """
         if len(self.blocks) == 0 or len(otherBlockList.blocks) == 0:
             if inplace:
-                return
+                self.blocks = []
+                return 
             else:
                 return BlockList([])
 
@@ -907,6 +908,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                         projectionCigar = []
                         # go to the next block
                         blockIdx += 1
+                        diff = 0
                         continue
                 # There is a block that ends in an insertion
                 ###
@@ -923,8 +925,9 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                 # append the overlapped operation if overlapSize was positive
                 # (or if equivalently includeEndingIndel was true)
                 overlapOpSize = projectableEndPos - currOpStartContig + 1
-                if overlapOpSize > 0: projectionCigar.append((cigarOp, overlapOpSize))
-                diff += overlapOpSize
+                if overlapOpSize > 0: 
+                    projectionCigar.append((cigarOp, overlapOpSize))
+                    diff += overlapOpSize
                 projection.update(projectionStartPos, projectionEndPos,
                                   projectableStartPos, projectableEndPos,
                                   blocks[blockIdx][2], diff, projectionCigar)
@@ -942,7 +945,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
             #                   ||||
             # BLK:              [***    ]
             ###
-            if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig):
+            if (currOpStartContig <= blocks[blockIdx][0]) and (blocks[blockIdx][0] < nextOpStartContig) and (nextOpStartContig <= blocks[blockIdx][1]) :
                 if currOpStartContig == blocks[blockIdx][0] and \
                         includePostIndel and \
                         isCigarReversed and \
@@ -955,8 +958,9 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                 # append the overlapped operation if overlapSize was positive
                 # (or if equivalently includeEndingIndel was true)
                 overlapOpSize = (nextOpStartContig - 1) - projectableStartPos + 1
-                if overlapOpSize > 0: projectionCigar.append((cigarOp, overlapOpSize))
-                diff += overlapOpSize
+                if overlapOpSize > 0: 
+                    projectionCigar.append((cigarOp, overlapOpSize))
+                    diff += overlapOpSize
 
         ####################################
         ####### Case 2: Deletion ###########
