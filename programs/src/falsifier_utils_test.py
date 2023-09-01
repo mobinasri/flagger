@@ -601,7 +601,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock3.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1HomologyBlock3.misAssemblyBlockList = BlockList([(1,5,"Dup")])
 
 
 
@@ -614,7 +614,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock4.misAssemblyBlockLists = {"Msj": BlockList([(7,7)])}
+        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Msj")])
 
 
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 35, 43, '+', "ctg1_f", 4)
@@ -626,7 +626,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock5.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (9,9)])}
+        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (9,9,"Msj")])
 
 
 
@@ -639,7 +639,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock6.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
+        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -651,7 +651,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock7.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock7.misAssemblyBlockLists = {"Col_Del": BlockList([(1,5)])}
+        ctg1HomologyBlock7.misAssemblyBlockList = BlockList([(1,5,"Col_Del")])
 
 
         ctg1HomologyBlock8 = HomologyBlock("ctg1", 49, 55, '+', "ctg1_f", 7)
@@ -687,7 +687,7 @@ class TestProjection(unittest.TestCase):
                                                                        "annot2": []}
         ctg1DupHomologyBlock.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                        "annot2": 0}
-        ctg1DupHomologyBlock.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1DupHomologyBlock.misAssemblyBlockList = BlockList([(1,5,"Dup")])
 
 
         # ctg2_f
@@ -706,18 +706,18 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 24, 34, '+', "ctg2_f_p1", 3)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock4.misAssemblyBlockLists = {"Msj": BlockList([(11,11)])}
+        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(11,11,"Msj")])
 
         ctg2HomologyBlock5 = HomologyBlock("ctg1", 32, 36, '+', "ctg2_f_p1", 4)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,3)]),
                                                    "annot2": BlockList([(4,5)])}
-        ctg2HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (5,5)])}
+        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (5,5,"Msj")])
 
 
         ctg2HomologyBlock6 = HomologyBlock("ctg2", 44, 55, '+', "ctg2_f_p1", 5)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(1, 12)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock6.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
+        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
 
 
         # the blocks after the collapsed block start here
@@ -803,8 +803,7 @@ class TestProjection(unittest.TestCase):
                         self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
                         self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
                         self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
-                        for name, blockList in truthBlock.misAssemblyBlockLists.items():
-                            self.assertTrue(blockList.isEqual(outputBlock.misAssemblyBlockLists[name]), f"mis-assembly block lists are not correct ({name})")
+                        self.assertTrue(truthBlock.misAssemblyBlockList.isEqual(outputBlock.misAssemblyBlockList), f"mis-assembly block lists are not correct ({name})")
 
                     if truthRelation.alignment == None:
                         self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
@@ -889,7 +888,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock3.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1HomologyBlock3.misAssemblyBlockList = BlockList([(1,5,"Dup")])
 
 
 
@@ -902,7 +901,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock4.misAssemblyBlockLists = {"Msj": BlockList([(7,7)])}
+        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Msj")])
 
 
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 26, 34, '-', "ctg1_f", 4)
@@ -914,7 +913,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock5.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (9,9)])}
+        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (9,9,"Msj")])
 
 
 
@@ -927,7 +926,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock6.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
+        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -939,7 +938,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock7.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock7.misAssemblyBlockLists = {"Col_Del": BlockList([(1,5)])}
+        ctg1HomologyBlock7.misAssemblyBlockList = BlockList([(1,5,"Col_Del")])
 
 
         ctg1HomologyBlock8 = HomologyBlock("ctg1", 49, 55, '+', "ctg1_f", 7)
@@ -975,7 +974,7 @@ class TestProjection(unittest.TestCase):
                                                                        "annot2": []}
         ctg1DupHomologyBlock.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                        "annot2": 0}
-        ctg1DupHomologyBlock.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1DupHomologyBlock.misAssemblyBlockList = BlockList([(1,5,"Dup")])
 
 
         # ctg2_f
@@ -991,17 +990,17 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock3 = HomologyBlock("ctg2", 14, 25, '+', "ctg2_f_p2", 0)
         ctg2HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(1,12)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock3.misAssemblyBlockLists = {"Msj": BlockList([(12,12)])}
+        ctg2HomologyBlock3.misAssemblyBlockList = BlockList([(12,12,"Msj")])
 
         ctg2HomologyBlock4 = HomologyBlock("ctg1", 32, 36, '-', "ctg2_f_p2", 1)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(3,5)]),
                                                    "annot2": BlockList([(1,2)])}
-        ctg2HomologyBlock4.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (5,5)])}
+        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(1,1,"Msj"), (5,5,"Msj")])
 
         ctg2HomologyBlock5 = HomologyBlock("ctg2", 35, 45, '+', "ctg2_f_p2", 2)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
+        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj")])
 
 
         ctg2HomologyBlock6 = HomologyBlock("ctg2", 46, 47, '+', "ctg2_f_p2", 3)
@@ -1088,8 +1087,7 @@ class TestProjection(unittest.TestCase):
                         self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
                         self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
                         self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
-                        for name, blockList in truthBlock.misAssemblyBlockLists.items():
-                            self.assertTrue(blockList.isEqual(outputBlock.misAssemblyBlockLists[name]), f"mis-assembly block lists are not correct ({name})")
+                        self.assertTrue(truthBlock.misAssemblyBlockList.isEqual(outputBlock.misAssemblyBlockList), f"mis-assembly block lists are not correct ({name})")
 
                     if truthRelation.alignment == None:
                         self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
@@ -1183,7 +1181,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock3.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1HomologyBlock3.misAssemblyBlockList = BlockList([(1,5,"Dup")])
 
 
 
@@ -1196,7 +1194,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock4.misAssemblyBlockLists = {"Msj": BlockList([(7,7)])}
+        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Msj")])
 
 
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 35, 43, '+', "ctg1_f", 4)
@@ -1208,7 +1206,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock5.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (9,9)])}
+        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (9,9,"Msj")])
 
 
 
@@ -1221,7 +1219,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock6.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
+        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1, "Msj")])
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -1233,7 +1231,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock7.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock7.misAssemblyBlockLists = {"Col_Del": BlockList([(1,5)])}
+        ctg1HomologyBlock7.misAssemblyBlockList = BlockList([(1,5,"Col_Del")])
 
 
         ctg1HomologyBlock8 = HomologyBlock("ctg1", 49, 50, '+', "ctg1_f", 7)
@@ -1256,7 +1254,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock9.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock9.misAssemblyBlockLists = {"Err": BlockList([(1,4)])}
+        ctg1HomologyBlock9.misAssemblyBlockList = BlockList([(1,4,"Err")])
 
         ctg1HomologyBlock10 = HomologyBlock("ctg1", 55, 55, '+', "ctg1_f", 9)
         ctg1HomologyBlock10.annotationBlockLists = {"annot1": BlockList([(1,1)]),
@@ -1289,7 +1287,7 @@ class TestProjection(unittest.TestCase):
                                                                        "annot2": []}
         ctg1DupHomologyBlock.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                        "annot2": 0}
-        ctg1DupHomologyBlock.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1DupHomologyBlock.misAssemblyBlockList = BlockList([(1,5,"Dup")])
 
 
         # ctg2_f
@@ -1308,18 +1306,18 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 24, 34, '+', "ctg2_f_p1", 3)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock4.misAssemblyBlockLists = {"Msj": BlockList([(11,11)])}
+        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(11,11,"Msj")])
 
         ctg2HomologyBlock5 = HomologyBlock("ctg1", 32, 36, '+', "ctg2_f_p1", 4)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,3)]),
                                                    "annot2": BlockList([(4,5)])}
-        ctg2HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (5,5)])}
+        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (5,5,"Msj")])
 
 
         ctg2HomologyBlock6 = HomologyBlock("ctg2", 44, 55, '+', "ctg2_f_p1", 5)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(1, 12)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock6.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
+        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
 
 
         # the blocks after the collapsed block start here
@@ -1330,7 +1328,7 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock8 = HomologyBlock("ctg2", 61, 64, '+', "ctg2_f_p2", 1)
         ctg2HomologyBlock8.annotationBlockLists = {"annot1": BlockList([(1,4)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock8.misAssemblyBlockLists = {"Col_Err": BlockList([(1,4)])}
+        ctg2HomologyBlock8.misAssemblyBlockList = BlockList([(1,4,"Col_Err")])
 
         ctg2HomologyBlock9 = HomologyBlock("ctg2", 65, 65, '+', "ctg2_f_p2", 2)
         ctg2HomologyBlock9.annotationBlockLists = {"annot1": BlockList([(1,1)]),
@@ -1418,8 +1416,7 @@ class TestProjection(unittest.TestCase):
                         self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
                         self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
                         self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
-                        for name, blockList in truthBlock.misAssemblyBlockLists.items():
-                            self.assertTrue(blockList.isEqual(outputBlock.misAssemblyBlockLists[name]), f"mis-assembly block lists are not correct ({name})")
+                        self.assertTrue(truthBlock.misAssemblyBlockList.isEqual(outputBlock.misAssemblyBlockList), f"mis-assembly block lists are not correct ({name})")
 
                     if truthRelation.alignment == None:
                         self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
@@ -1513,7 +1510,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock3.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1HomologyBlock3.misAssemblyBlockList = BlockList([(1,5,"Dup")])
 
 
 
@@ -1526,7 +1523,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock4.misAssemblyBlockLists = {"Msj": BlockList([(7,7)])}
+        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Msj")])
 
 
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 26, 34, '-', "ctg1_f", 4)
@@ -1538,7 +1535,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock5.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (9,9)])}
+        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (9,9,"Msj")])
 
 
 
@@ -1551,7 +1548,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock6.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
+        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -1563,7 +1560,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock7.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock7.misAssemblyBlockLists = {"Col_Del": BlockList([(1,5)])}
+        ctg1HomologyBlock7.misAssemblyBlockList = BlockList([(1,5,"Col_Del")])
 
 
         ctg1HomologyBlock8 = HomologyBlock("ctg1", 49, 50, '+', "ctg1_f", 7)
@@ -1586,7 +1583,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock9.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock9.misAssemblyBlockLists = {"Err": BlockList([(1,4)])}
+        ctg1HomologyBlock9.misAssemblyBlockList = BlockList([(1,4,"Err")])
 
         ctg1HomologyBlock10 = HomologyBlock("ctg1", 55, 55, '+', "ctg1_f", 9)
         ctg1HomologyBlock10.annotationBlockLists = {"annot1": BlockList([(1,1)]),
@@ -1602,11 +1599,11 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock11.annotationBlockLists = {"annot1": BlockList([(1,5)]),
                                                    "annot2": BlockList([])}
         ctg1HomologyBlock11.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
-                                                                   "annot2": BlockList([])}
+                                                                    "annot2": BlockList([])}
         ctg1HomologyBlock11.annotationStartBlockLengthsForSampling = {"annot1": [],
-                                                                     "annot2": []}
+                                                                      "annot2": []}
         ctg1HomologyBlock11.annotationStartTotalLengthsForSampling = {"annot1": 0,
-                                                                     "annot2": 0}
+                                                                      "annot2": 0}
 
         # ctg1_Dup_20_24
         # falsely duplicated block
@@ -1619,7 +1616,7 @@ class TestProjection(unittest.TestCase):
                                                                        "annot2": []}
         ctg1DupHomologyBlock.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                        "annot2": 0}
-        ctg1DupHomologyBlock.misAssemblyBlockLists = {"Dup": BlockList([(1,5)])}
+        ctg1DupHomologyBlock.misAssemblyBlockList = BlockList([(1,5,"Dup")])
 
 
         # ctg2_f
@@ -1634,7 +1631,7 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock3 = HomologyBlock("ctg2", 5, 8, '+', "ctg2_f_p1", 2)
         ctg2HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(1,4)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock3.misAssemblyBlockLists = {"Col_Err": BlockList([(1,4)])}
+        ctg2HomologyBlock3.misAssemblyBlockList = BlockList([(1,4,"Col_Err")])
 
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 9, 12, '+', "ctg2_f_p1", 3)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,4)]),
@@ -1644,17 +1641,17 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock5 = HomologyBlock("ctg2", 14, 25, '+', "ctg2_f_p2", 0)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,12)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock5.misAssemblyBlockLists = {"Msj": BlockList([(12,12)])}
+        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(12,12,"Msj")])
 
         ctg2HomologyBlock6 = HomologyBlock("ctg1", 32, 36, '-', "ctg2_f_p2", 1)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(3,5)]),
                                                    "annot2": BlockList([(1,2)])}
-        ctg2HomologyBlock6.misAssemblyBlockLists = {"Msj": BlockList([(1,1), (5,5)])}
+        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj"), (5,5,"Msj")])
 
         ctg2HomologyBlock7 = HomologyBlock("ctg2", 35, 45, '+', "ctg2_f_p2", 2)
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock7.misAssemblyBlockLists = {"Msj": BlockList([(1,1)])}
+        ctg2HomologyBlock7.misAssemblyBlockList = BlockList([(1,1,"Msj")])
 
 
         ctg2HomologyBlock8 = HomologyBlock("ctg2", 46, 47, '+', "ctg2_f_p2", 3)
@@ -1746,8 +1743,7 @@ class TestProjection(unittest.TestCase):
                         self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
                         self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
                         self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
-                        for name, blockList in truthBlock.misAssemblyBlockLists.items():
-                            self.assertTrue(blockList.isEqual(outputBlock.misAssemblyBlockLists[name]), f"mis-assembly block lists are not correct ({name})")
+                        self.assertTrue(truthBlock.misAssemblyBlockList.isEqual(outputBlock.misAssemblyBlockList), f"mis-assembly block lists are not correct ({name})")
 
                     if truthRelation.alignment == None:
                         self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
