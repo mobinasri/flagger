@@ -269,9 +269,9 @@ def main():
     parser.add_argument('--bed', type=str,
                         help='It is a bed file with 7 columns; hap1_contig, hap1_start, hap1_end, hap2_contig, hap2_start, hap2_end, mapper. mapper can be either "minimap2" or "centrolign"')
     parser.add_argument('--hap1', type=str,
-                        help='hap1 fasta file')
+                        help='hap1 fasta file (can be gzip compressed)')
     parser.add_argument('--hap2', type=str,
-                        help='hap2 fasta file')
+                        help='hap2 fasta file (can be gzip compressed)')
     parser.add_argument('--outDir', type=str,
                         help='output directory')
     parser.add_argument('--prefix', type=str, default="montage_mapper",

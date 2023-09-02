@@ -6,6 +6,7 @@ from multiprocessing import Pool
 from copy import deepcopy
 import random
 from Bio import SeqIO
+import gzip
 
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
 
@@ -515,19 +516,33 @@ def parseFasta(fastaPath):
     Parse fasta file and save the sequences in a dictionary
     """
     contigSequences = {}
-    fasta_sequences = SeqIO.parse(open(fastaPath),'fasta')
+
+    if fastaPath.endswith(".gz"):
+        fHandle = gzip.open(fastaPath, "rt")
+    else:
+        fHandle = open(fastaPath, "r")
+
+    fasta_sequences = SeqIO.parse(fHandle,'fasta')
     for fasta in fasta_sequences:
         name, sequence = fasta.id, str(fasta.seq)
         contigSequences[name] = sequence
+    fHandle.close()
     return  contigSequences
 
 def yieldFasta(fastaPath):
     """
     Parse fasta file and yield each name and sequence
     """
-    fasta_sequences = SeqIO.parse(open(fastaPath),'fasta')
+    if fastaPath.endswith(".gz"):
+        fHandle = gzip.open(fastaPath, "rt")
+    else:
+        fHandle = open(fastaPath, "r")
+
+    fasta_sequences = SeqIO.parse(fHandle,'fasta')
     for fasta in fasta_sequences:
         yield fasta.id, str(fasta.seq)
+
+    fHandle.close()
 
 class Alignment:
     """
