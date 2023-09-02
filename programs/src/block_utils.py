@@ -60,6 +60,17 @@ def getCigarList(cigarString):
     cigarList = [ (op, size) for op, size in zip(cigarOps, cigarSizes)]
     return cigarList
 
+def getNumberOfMatchesAndAlignmentLength(cigarString):
+    numberOfMatches = 0
+    alignmentLength = 0
+    for op, size in getCigarList(cigarString):
+        if op in ['M', '=', 'X']:
+            numberOfMatches += size
+            alignmentLength += size
+        elif op == 'D':
+            alignmentLength += size
+    return numberOfMatches, alignmentLength
+
 class BlockList:
     def __init__(self, blocks = None):
         """
@@ -1291,12 +1302,15 @@ def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
         # projection blocks are in query coordinates
         # projectable blocks are in ref coordinates
         for rBlock, qBlock, cigar in zip(projectableBlocks, projectionBlocks, cigarList):
+            cigarString = makeCigarString(cigar)
+            numberOfMatches, alignmentLength = getNumberOfMatchesAndAlignmentLength(cigarString)
             # make a paf line
             pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[1]}"
             pafLine += f"\t{orientation}"
             pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[1]}"
+            pafLine += f"\t{numberOfMatches}\t{alignmentLength}"
             pafLine += "\ttp:A:P" # it is assumed that only primary alignments are used
-            pafLine += f"\tcg:Z:{makeCigarString(cigar)}"
+            pafLine += f"\tcg:Z:{cigarString}"
 
             # make a new alignment based on the current projection
             alignment = Alignment(pafLine)
@@ -1337,12 +1351,15 @@ def subsetAlignmentsToQueryBlocks(alignments, blockListsPerQueryContig):
         # projectable blocks are in query coordinates
         # projection blocks are in ref coordinates
         for qBlock, rBlock, cigar in zip(projectableBlocks, projectionBlocks, cigarList):
+            cigarString = makeCigarString(cigar)
+            numberOfMatches, alignmentLength = getNumberOfMatchesAndAlignmentLength(cigarString)
             # make a paf line
             pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[1]}"
             pafLine += f"\t{orientation}"
             pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[1]}"
+            pafLine += f"\t{numberOfMatches}\t{alignmentLength}"
             pafLine += "\ttp:A:P" # it is assumed that only primary alignments are used
-            pafLine += f"\tcg:Z:{makeCigarString(cigar)}"
+            pafLine += f"\tcg:Z:{cigarString}"
 
             # make a new alignment based on the current projection
             alignment = Alignment(pafLine)
