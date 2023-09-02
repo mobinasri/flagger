@@ -237,7 +237,6 @@ def writeIntervalsToSeparateFastaFiles(intervalPairs, hap1FastaPath, hap2FastaPa
             newSeqName = f"{name}_{s}_{e}"
             with open(f"{outDir}/{newSeqName}.fasta", "w") as f:
                 f.write(f">{newSeqName}\n{newSeq}\n")
-            print(f"newSeqName")
 
     # for haplotype 2
     for name, seq in yieldFasta(hap2FastaPath):
