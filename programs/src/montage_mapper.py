@@ -308,25 +308,21 @@ def main():
         contigLengths[name] = len(seq)
 
     print(f"[{datetime.datetime.now()}] Parsing all requested intervals that should be mapped against each other.", file=sys.stderr)
-    sys.stderr.flush()
 
     intervalPairs = parseIntervalPairsToMap(bedPath)
 
     print(f"[{datetime.datetime.now()}] {len(intervalPairs)} interval pairs are parsed.", file=sys.stderr)
-    sys.stderr.flush()
 
-    print(f'[{datetime.datetime.now()}] Writing the sequence of each interval in a separate fasta file in {os.path.join(outDir, "fasta_tmp")}')
-    sys.stderr.flush()
+    print(f'[{datetime.datetime.now()}] Writing the sequence of each interval in a separate fasta file in {os.path.join(outDir, "fasta_tmp")}', file=sys.stderr)
 
     fastaPathPairs = writeIntervalsToSeparateFastaFiles(intervalPairs, hap1FastaPath, hap2FastaPath,
-                                                        os.path.join(outDir, "fasta_tmp"), file=sys.stderr)
+                                                        os.path.join(outDir, "fasta_tmp"))
 
 
     pafDir = os.path.join(outDir, "paf_temp")
     os.makedirs(pafDir, exist_ok=True)
 
     print(f"[{datetime.datetime.now()}] Running all requested alignments and save each one in a separate paf file in {pafDir}", file=sys.stderr)
-    sys.stderr.flush()
 
     runAllAlignments(fastaPathPairs,
                      pafDir,
@@ -335,7 +331,6 @@ def main():
                      threads=threads)
 
     print(f"[{datetime.datetime.now()}] Parsing all alignments from the paf files in {pafDir}", file=sys.stderr)
-    sys.stderr.flush()
 
     alignments = parseAllPafFiles(pafDir)
 
@@ -352,7 +347,6 @@ def main():
 
     print(f"[{datetime.datetime.now()}] {len(alignments)} alignments are written to {finalPafPath}.", file=sys.stderr)
     print(f"[{datetime.datetime.now()}] Finished!", file=sys.stderr)
-    sys.stderr.flush()
 
 
 if __name__ == "__main__": main()
