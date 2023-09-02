@@ -337,3 +337,5 @@ def main():
     print(f"[{datetime.datetime.now()}] {len()} alignments are written to {finalPafPath}.")
     print(f"[{datetime.datetime.now()}] Finished!")
 
+
+if __name__ == "__main__": main()
