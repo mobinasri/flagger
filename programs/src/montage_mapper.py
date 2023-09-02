@@ -40,7 +40,8 @@ def runAllAlignments(fastaPathPairs, outDir, minimap2Path, centrolignPath, minim
             print(result[0])
             if result[1] == 0:
                 success += 1
-    print(f"[{datetime.datetime.now()}] Successfully mapped [{success}/{len(fastaPathPairs)}] sequence pairs")
+    print(f"[{datetime.datetime.now()}] Successfully mapped [{success}/{len(fastaPathPairs)}] sequence pairs", file=sys.stderr)
+    sys.stderr.flush()
 
 
 
@@ -306,31 +307,42 @@ def main():
     for name, seq in yieldFasta(hap2FastaPath):
         contigLengths[name] = len(seq)
 
-    print(f"[{datetime.datetime.now()}] Parsing all requested intervals that should be mapped against each other.")
+    print(f"[{datetime.datetime.now()}] Parsing all requested intervals that should be mapped against each other.", file=sys.stderr)
+    sys.stderr.flush()
+
     intervalPairs = parseIntervalPairsToMap(bedPath)
-    print(f"[{datetime.datetime.now()}] {len(intervalPairs)} interval pairs are parsed.")
+
+    print(f"[{datetime.datetime.now()}] {len(intervalPairs)} interval pairs are parsed.", file=sys.stderr)
+    sys.stderr.flush()
 
     print(f'[{datetime.datetime.now()}] Writing the sequence of each interval in a separate fasta file in {os.path.join(outDir, "fasta_tmp")}')
+    sys.stderr.flush()
+
     fastaPathPairs = writeIntervalsToSeparateFastaFiles(intervalPairs, hap1FastaPath, hap2FastaPath,
-                                                        os.path.join(outDir, "fasta_tmp"))
+                                                        os.path.join(outDir, "fasta_tmp"), file=sys.stderr)
 
 
     pafDir = os.path.join(outDir, "paf_temp")
     os.makedirs(pafDir, exist_ok=True)
 
-    print(f"[{datetime.datetime.now()}] Running all requested alignments and save each one in a separate paf file in {pafDir}")
+    print(f"[{datetime.datetime.now()}] Running all requested alignments and save each one in a separate paf file in {pafDir}", file=sys.stderr)
+    sys.stderr.flush()
+
     runAllAlignments(fastaPathPairs,
                      pafDir,
                      minimap2Path, centrolignPath,
                      minimap2Params, centrolignParams,
                      threads=threads)
 
-    print(f"[{datetime.datetime.now()}] Parsing all alignments from the paf files in {pafDir}")
+    print(f"[{datetime.datetime.now()}] Parsing all alignments from the paf files in {pafDir}", file=sys.stderr)
+    sys.stderr.flush()
+
     alignments = parseAllPafFiles(pafDir)
 
 
     finalPafPath = os.path.join(outDir, f"{prefix}.paf")
-    print(f"[{datetime.datetime.now()}] Adjusting the coordiantes of the alignments and saving them in {finalPafPath}")
+    print(f"[{datetime.datetime.now()}] Adjusting the coordiantes of the alignments and saving them in {finalPafPath}", file=sys.stderr)
+    sys.stderr.flush()
     for alignment in alignments:
         # adjust the coordinates
         getBackToOriginalCoordinates(alignment, contigLengths)
@@ -338,8 +350,9 @@ def main():
         # append should be true to avoid writing from the beginning of the file
         alignment.writeToPaf(finalPafPath, append=True)
 
-    print(f"[{datetime.datetime.now()}] {len(alignments)} alignments are written to {finalPafPath}.")
-    print(f"[{datetime.datetime.now()}] Finished!")
+    print(f"[{datetime.datetime.now()}] {len(alignments)} alignments are written to {finalPafPath}.", file=sys.stderr)
+    print(f"[{datetime.datetime.now()}] Finished!", file=sys.stderr)
+    sys.stderr.flush()
 
 
 if __name__ == "__main__": main()
