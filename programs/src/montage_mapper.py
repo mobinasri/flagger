@@ -74,9 +74,9 @@ def runMapping(args):
                                     centroalignParams)
 
     if returncode == 0:
-        return f"[{datetime.datetime.now()}] {hap1SeqName} is aligned to {hap2SeqName} by {mapper} and saved in {outputPafPath}", 0
+        return f"[{datetime.datetime.now()}] Mapping is done:\t{hap1SeqName}\t{hap2SeqName}\t{mapper}\t{outputPafPath}", 0
     else:
-        return f"[{datetime.datetime.now()}] {hap1SeqName} could not be aligned to {hap2SeqName} by {mapper}", returncode
+        return f"[{datetime.datetime.now()}] Mapping could not be done:\t{hap2SeqName}\t{hap2SeqName}\t{mapper}", returncode
 
 def runMinimap2(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, params="-x asm5 --eqx"):
     """
