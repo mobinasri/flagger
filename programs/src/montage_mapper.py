@@ -250,10 +250,10 @@ def writeIntervalsToSeparateFastaFiles(intervalPairs, hap1FastaPath, hap2FastaPa
 
     fastaPathPairs = []
     for intervalPair in intervalPairs:
-        hap1SeqName = f'{intervalPair["hap1_contig"]}_{intervalPair["hap1_start"]}_{intervalPair["hap1_end"]}.fasta'
-        hap2SeqName = f'{intervalPair["hap2_contig"]}_{intervalPair["hap2_start"]}_{intervalPair["hap2_end"]}.fasta'
-        hap1FastaPath = os.path.join(outDir, hap1SeqName)
-        hap2FastaPath = os.path.join(outDir, hap2SeqName)
+        hap1SeqName = f'{intervalPair["hap1_contig"]}_{intervalPair["hap1_start"]}_{intervalPair["hap1_end"]}'
+        hap2SeqName = f'{intervalPair["hap2_contig"]}_{intervalPair["hap2_start"]}_{intervalPair["hap2_end"]}'
+        hap1FastaPath = os.path.join(outDir, f"{hap1SeqName}.fasta")
+        hap2FastaPath = os.path.join(outDir, f"{hap2SeqName}.fasta")
         fastaPathPairs.append({"hap1_fasta_path": hap1FastaPath,
                                "hap2_fasta_path": hap2FastaPath,
                                "hap1_seq_name": hap1SeqName,
