@@ -25,13 +25,13 @@ def parseAllPafFiles(pafDir):
                 alignments.append(Alignment(line))
     return alignments
 
-def runAllAlignments(fastaPathPairs, outDir, minimap2Path, centroalignPath, minimap2Params, centroalignParams,
+def runAllAlignments(fastaPathPairs, outDir, minimap2Path, centrolignPath, minimap2Params, centrolignParams,
                      threads=8):
     success = 0
 
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = [
-            executor.submit(runMapping, [x, outDir, minimap2Path, centroalignPath, minimap2Params, centroalignParams])
+            executor.submit(runMapping, [x, outDir, minimap2Path, centrolignPath, minimap2Params, centrolignParams])
             for x in fastaPathPairs]
 
         for future in as_completed(futures):
@@ -52,9 +52,9 @@ def runMapping(args):
     mapper = args[0]["mapper"]
     outDir = args[1]
     minimap2Path = args[2]
-    centroalignPath = args[3]
+    centrolignPath = args[3]
     minimap2Params = args[4]
-    centroalignParams = args[5]
+    centrolignParams = args[5]
 
     outputPafPath = os.path.join(outDir, f"{hap1SeqName}.{hap2SeqName}.{mapper}.paf")
 
@@ -66,12 +66,12 @@ def runMapping(args):
                                  minimap2Path,
                                  minimap2Params)
 
-    if mapper == "centroalign":
-        returncode = runCentroalign(hap1FastaPath,
+    if mapper == "centrolign":
+        returncode = runCentrolign(hap1FastaPath,
                                     hap2FastaPath,
                                     outputPafPath,
-                                    centroalignPath,
-                                    centroalignParams)
+                                    centrolignPath,
+                                    centrolignParams)
 
     if returncode == 0:
         return f"[{datetime.datetime.now()}] Mapping is done:\t{hap1SeqName}\t{hap2SeqName}\t{mapper}\t{outputPafPath}", 0
@@ -92,10 +92,10 @@ def runMinimap2(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, params
     return x.returncode
 
 
-def runCentroalign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, params):
+def runCentrolign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, params):
     """
 
-    :param params: centroalign parameters
+    :param params: centrolign parameters
     :param hap1FastaPath: Path to the fasta file for the first genome (should contain only one sequence)
     :param hap2FastaPath: Path to the fasta file for the second genome (should contain only one sequence)
     :param outputPafPath: Path to the output Paf file
@@ -117,7 +117,7 @@ def runCentroalign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, par
     if hap1SeqName == None or hap2SeqName == None:
         return None
 
-    # concat two sequences in a single fasta file to pass it to centroalign later
+    # concat two sequences in a single fasta file to pass it to centrolign later
     cmdStringConcat = f"cat {hap1FastaPath} {hap2FastaPath}"
     concatFastaPath = os.path.join(os.path.dirname(outputPafPath),
                                    f"{hap1SeqName}_{hap2SeqName}.fasta")
@@ -127,7 +127,7 @@ def runCentroalign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, par
             return x.returncode
 
     # make a newick file with the two sequence names
-    # hap1 name should come first to make it to be used as the reference by centroalign
+    # hap1 name should come first to make it to be used as the reference by centrolign
     treePath = os.path.join(os.path.dirname(outputPafPath),
                             f"{hap1SeqName}_{hap2SeqName}.newick")
     with open(treePath, "w") as f:
@@ -191,7 +191,7 @@ def getBackToOriginalCoordinates(alignment, contigLengths):
 
 def parseIntervalPairsToMap(bedPath):
     """
-    :param bedPath: Path to a bed file with 7 columns; hap1_contig, hap1_start, hap1_end, hap2_contig, hap2_start, hap2_end, mapper. mapper can be either "minimap2" or "centroalign"
+    :param bedPath: Path to a bed file with 7 columns; hap1_contig, hap1_start, hap1_end, hap2_contig, hap2_start, hap2_end, mapper. mapper can be either "minimap2" or "centrolign"
     :return: List of dictionaries where each dictionary contains the 7 attributes in each bed line
     """
 
@@ -267,7 +267,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='This program enables mapping different parts of two genomes with different mappers and outputs a paf file')
     parser.add_argument('--bed', type=str,
-                        help='It is a bed file with 7 columns; hap1_contig, hap1_start, hap1_end, hap2_contig, hap2_start, hap2_end, mapper. mapper can be either "minimap2" or "centroalign"')
+                        help='It is a bed file with 7 columns; hap1_contig, hap1_start, hap1_end, hap2_contig, hap2_start, hap2_end, mapper. mapper can be either "minimap2" or "centrolign"')
     parser.add_argument('--hap1', type=str,
                         help='hap1 fasta file')
     parser.add_argument('--hap2', type=str,
@@ -278,12 +278,12 @@ def main():
                         help='output prefix')
     parser.add_argument('--minimap2Path', type=str,
                         help='path to minimap2 executable')
-    parser.add_argument('--centroalignPath', type=str,
-                        help='path to centroalign executable')
+    parser.add_argument('--centrolignPath', type=str,
+                        help='path to centrolign executable')
     parser.add_argument('--minimap2Params', type=str, default="-x asm5 --eqx",
                         help='minimap2 parameters [Default "-x asm5 --eqx"]')
-    parser.add_argument('--centroalignParams', type=str, default="",
-                        help='centroalign parameters [Default ""]')
+    parser.add_argument('--centrolignParams', type=str, default="",
+                        help='centrolign parameters [Default ""]')
 
     args = parser.parse_args()
     bedPath = args.bed
@@ -292,9 +292,9 @@ def main():
     outDir = args.outDir
     prefix = args.prefix
     minimap2Path = args.minimap2Path
-    centroalignPath = args.centroalignPath
+    centrolignPath = args.centrolignPath
     minimap2Params = args.minimap2Params
-    centroalignParams = args.centroalignParams
+    centrolignParams = args.centrolignParams
 
     # save contig lengths
     contigLengths = {}
@@ -318,8 +318,8 @@ def main():
     print(f"[{datetime.datetime.now()}] Running all requested alignments and save each one in a separate paf file in {pafDir}")
     runAllAlignments(fastaPathPairs,
                      pafDir,
-                     minimap2Path, centroalignPath,
-                     minimap2Params, centroalignParams,
+                     minimap2Path, centrolignPath,
+                     minimap2Params, centrolignParams,
                      threads=8)
 
     print(f"[{datetime.datetime.now()}] Parsing all alignments from the paf files in {pafDir}")
