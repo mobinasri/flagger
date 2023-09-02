@@ -1308,7 +1308,7 @@ def subsetAlignmentsToRefBlocks(alignments, blockListsPerRefContig):
             pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[1]}"
             pafLine += f"\t{orientation}"
             pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[1]}"
-            pafLine += f"\t{numberOfMatches}\t{alignmentLength}"
+            pafLine += f"\t{numberOfMatches}\t{alignmentLength}\t60"
             pafLine += "\ttp:A:P" # it is assumed that only primary alignments are used
             pafLine += f"\tcg:Z:{cigarString}"
 
@@ -1357,7 +1357,7 @@ def subsetAlignmentsToQueryBlocks(alignments, blockListsPerQueryContig):
             pafLine = f"{qContig}\t{contigLengths[qContig]}\t{qBlock[0]-1}\t{qBlock[1]}"
             pafLine += f"\t{orientation}"
             pafLine += f"\t{rContig}\t{contigLengths[rContig]}\t{rBlock[0]-1}\t{rBlock[1]}"
-            pafLine += f"\t{numberOfMatches}\t{alignmentLength}"
+            pafLine += f"\t{numberOfMatches}\t{alignmentLength}\t60"
             pafLine += "\ttp:A:P" # it is assumed that only primary alignments are used
             pafLine += f"\tcg:Z:{cigarString}"
 
