@@ -276,6 +276,8 @@ def main():
                         help='output directory')
     parser.add_argument('--prefix', type=str, default="montage_mapper",
                         help='output prefix')
+    parser.add_argument('--threads', type=int, default=8,
+                        help='number of threads')
     parser.add_argument('--minimap2Path', type=str,
                         help='path to minimap2 executable')
     parser.add_argument('--centrolignPath', type=str,
@@ -295,6 +297,7 @@ def main():
     centrolignPath = args.centrolignPath
     minimap2Params = args.minimap2Params
     centrolignParams = args.centrolignParams
+    threads = args.threads
 
     # save contig lengths
     contigLengths = {}
@@ -320,7 +323,7 @@ def main():
                      pafDir,
                      minimap2Path, centrolignPath,
                      minimap2Params, centrolignParams,
-                     threads=8)
+                     threads=threads)
 
     print(f"[{datetime.datetime.now()}] Parsing all alignments from the paf files in {pafDir}")
     alignments = parseAllPafFiles(pafDir)
