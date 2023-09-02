@@ -569,7 +569,7 @@ class Alignment:
 
     def writeToPaf(self, pafPath, append=True):
         openMode = "a" if append else "w"
-        with fopen(pafPath, openMode) as f:
+        with open(pafPath, openMode) as f:
             status = 'tp:A:P' if self.isPrimary else 'tp:A:S'
             f.write("\t".join([self.contigName, f'{self.contigLength}', f'{self.contigStart}', f'{self.contigEnd}', self.orientation,
                                self.chromName, f'{self.chromLength}', f'{self.chromStart}', f'{self.chromEnd}',

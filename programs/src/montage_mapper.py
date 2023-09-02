@@ -15,7 +15,7 @@ import datetime
 
 
 def parseAllPafFiles(pafDir):
-    pafPaths = [f for f in os.listdir(pafDir) if f.endswith(".paf")]
+    pafPaths = [os.path.join(pafDir, f) for f in os.listdir(pafDir) if f.endswith(".paf")]
     alignments = []
     # iterate over all paf files
     for pafPath in pafPaths:
@@ -130,7 +130,7 @@ def runCentroalign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, par
     # hap1 name should come first to make it to be used as the reference by centroalign
     treePath = os.path.join(os.path.dirname(outputPafPath),
                             f"{hap1SeqName}_{hap2SeqName}.newick")
-    with fopen(treePath, "w") as f:
+    with open(treePath, "w") as f:
         f.write(f"({hap1SeqName}, {hap2SeqName});\n")
 
     cmdStringAlign = f"{programPath} {params} {concatFastaPath} -T {treePath}"
@@ -138,12 +138,13 @@ def runCentroalign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, par
     if x.returncode != 0:
         return x.returncode
 
-    cigarString = x.stdout
+    cigarString = x.stdout.strip().decode('utf-8')
+    print(cigarString)
     numberOfMatches, alignmentLength = getNumberOfMatchesAndAlignmentLength(cigarString)
-    with fopen(outputPafPath, "w") as f:
+    with open(outputPafPath, "w") as f:
         f.write("\t".join([hap2SeqName, f'{hap2SeqLen}', '0', f'{hap2SeqLen}', '+',
-                           hap1SeqName, f'{hap1SeqLen}', 0, f'{hap1SeqLen}',
-                           f'{numberOfMatches}', f'{alignmentLength}', 60,
+                           hap1SeqName, f'{hap1SeqLen}', '0', f'{hap1SeqLen}',
+                           f'{numberOfMatches}', f'{alignmentLength}', '60',
                            'tp:A:P', f'cg:Z:{cigarString}\n']))
 
     return 0
@@ -173,12 +174,12 @@ def getBackToOriginalCoordinates(alignment, contigLengths):
     """
 
     refSeqName = alignment.chromName
-    refOrigName = refSeqName.split("_")[0]
-    refOrigStart = int(refSeqName.split("_")[1])
+    refOrigName = "_".join(refSeqName.split("_")[0:-2])
+    refOrigStart = int(refSeqName.split("_")[-2])
 
     querySeqName = alignment.contigName
-    queryOrigName = querySeqName.split("_")[0]
-    queryOrigStart = int(querySeqName.split("_")[1])
+    queryOrigName = "_".join(querySeqName.split("_")[0:-2])
+    queryOrigStart = int(querySeqName.split("_")[-2])
 
     alignment.chromName = refOrigName
     alignment.contigName = queryOrigName
@@ -312,7 +313,7 @@ def main():
 
 
     pafDir = os.path.join(outDir, "paf_temp")
-    os.makedirs(pafDir)
+    os.makedirs(pafDir, exist_ok=True)
 
     print(f"[{datetime.datetime.now()}] Running all requested alignments and save each one in a separate paf file in {pafDir}")
     runAllAlignments(fastaPathPairs,
@@ -334,7 +335,7 @@ def main():
         # append should be true to avoid writing from the beginning of the file
         alignment.writeToPaf(finalPafPath, append=True)
 
-    print(f"[{datetime.datetime.now()}] {len()} alignments are written to {finalPafPath}.")
+    print(f"[{datetime.datetime.now()}] {len(alignments)} alignments are written to {finalPafPath}.")
     print(f"[{datetime.datetime.now()}] Finished!")
 
 
