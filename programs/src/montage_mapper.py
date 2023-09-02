@@ -121,9 +121,10 @@ def runCentroalign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, par
     cmdStringConcat = f"cat {hap1FastaPath} {hap2FastaPath}"
     concatFastaPath = os.path.join(os.path.dirname(outputPafPath),
                                    f"{hap1SeqName}_{hap2SeqName}.fasta")
-    x = subprocess.run(shlex.split(cmdStringConcat), stdout=concatFastaPath)
-    if x.returncode != 0:
-        return x.returncode
+    with open(concatFastaPath, "w") as concatFastaFile:
+        x = subprocess.run(shlex.split(cmdStringConcat), stdout=concatFastaFile)
+        if x.returncode != 0:
+            return x.returncode
 
     # make a newick file with the two sequence names
     # hap1 name should come first to make it to be used as the reference by centroalign
