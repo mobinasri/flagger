@@ -527,7 +527,7 @@ def yieldFasta(fastaPath):
     """
     fasta_sequences = SeqIO.parse(open(fastaPath),'fasta')
     for fasta in fasta_sequences:
-        return fasta.id, str(fasta.seq)
+        yield fasta.id, str(fasta.seq)
 
 class Alignment:
     """
