@@ -359,6 +359,12 @@ class BlockList:
         else:
             return BlockList(newBlocks)
 
+    def getTotalLength(self):
+        tot = 0
+        for block in self.blocks:
+            tot += block[1] - block[0] + 1
+        return tot
+
     # This function is adapted from ptBlock_merge_blocks_v2() function from Secphase repo v0.4.3
     # https://github.com/mobinasri/secphase/blob/v0.4.3/programs/submodules/ptBlock/ptBlock.c
     def mergeWithOverlapCount(self, inplace):
