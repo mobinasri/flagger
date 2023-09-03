@@ -50,7 +50,6 @@ workflow runPepperMarginDeepVariantScattered{
                 includeSupplementary = includeSupplementary,
                 minMAPQ = minMAPQ,
                 threadCount = nodeThreadCount,
-                memSize = 32,
                 dockerImage = dockerImage,
                 memSize = variantCallingMemory
         }
