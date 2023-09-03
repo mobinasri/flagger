@@ -140,7 +140,6 @@ def runCentrolign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, para
         return x.returncode
 
     cigarString = x.stdout.strip().decode('utf-8')
-    print(cigarString)
     numberOfMatches, alignmentLength = getNumberOfMatchesAndAlignmentLength(cigarString)
     with open(outputPafPath, "w") as f:
         f.write("\t".join([hap2SeqName, f'{hap2SeqLen}', '0', f'{hap2SeqLen}', '+',
