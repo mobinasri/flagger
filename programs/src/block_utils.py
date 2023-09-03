@@ -485,16 +485,21 @@ class BlockList:
             return BlockList(blocksMergedFinalized)
 
     @staticmethod
-    def parseBed(bedPath, saveFourthColumnAsNumeric):
+    def parseBed(bedPath, saveFourthColumnAsNumeric=False, saveAllOtherColumns=False):
         """
         Parse a bed file
         :param bedPath: The path to a bed file
         :param saveFourthColumnAsInt: If each track has a 4th column parse it and save it as the 3rd entry of each block in
                                       BlockList
+        :param saveAllOtherColumns: all columns after the third one will be save in list of strings and this list
+                                    will be save as the third entry of each block
         :return: A dictionary that contains contig names as keys and one BlockList as each value. Each BlockList will
                  contain all the blocks for one contig
         """
 
+        # either saveFourthColumnAsNumeric or saveAllOtherColumns
+        # can be True not both of them
+        assert(not (saveFourthColumnAsNumeric and saveAllOtherColumns))
 
         # create a dictionary whose values are BlockLists
         blockListPerContig = defaultdict(BlockList)
@@ -503,8 +508,10 @@ class BlockList:
         with open(bedPath, "r") as f:
             for line in f:
                 cols = line.strip().split()
-                if len(cols) == 4 and saveFourthColumnAsNumeric == True:
+                if len(cols) > 3 and saveFourthColumnAsNumeric == True:
                     c = float(cols[3])
+                elif len(cols) > 3 and saveAllOtherColumns == True:
+                    c = cols[3:]
                 else:
                     c = 0
                 start = int(cols[1])
