@@ -310,7 +310,7 @@ def main():
 
     totalMisAssembledBasesKb = 0
     for misAssemblyType, lengthKb in totalMisAssembledBasesKbByType.items():
-        print(f"[{datetime.datetime.now()}] Mis-assembly rate ({misAssemblyType}): {totalMisAssembledBasesKb[misAssemblyType]/totalGenomeSizeKb * 100:0.3f} %")
+        print(f"[{datetime.datetime.now()}] Mis-assembly rate ({misAssemblyType}): {totalMisAssembledBasesKbByType[misAssemblyType]/totalGenomeSizeKb * 100:0.3f} %")
         totalMisAssembledBasesKb += lengthKb
     print(f"[{datetime.datetime.now()}] Mis-assembly rate (Total): {totalMisAssembledBasesKb/totalGenomeSizeKb * 100:0.3f} %")
 
