@@ -301,9 +301,9 @@ def main():
                 total_successful += res
                 total_requested += misAssemblyCount
                 if misAssemblyType == "Sw":
-                    totalMisAssembledBasesKbByType[misAssemblyType] += 2 * total_successful * misAssemblySizeKb
+                    totalMisAssembledBasesKbByType[misAssemblyType] += 2 * res * misAssemblySizeKb
                 else:
-                    totalMisAssembledBasesKbByType[misAssemblyType] += 1 * total_successful * misAssemblySizeKb
+                    totalMisAssembledBasesKbByType[misAssemblyType] += 1 * res * misAssemblySizeKb
                 #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
 
     print(f"[{datetime.datetime.now()}] Creating mis-assemblies is Done! ({total_successful}/{total_requested}) mi-assemblies could be created successfully.")
