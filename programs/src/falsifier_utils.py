@@ -36,13 +36,34 @@ class HomologyBlock:
         self.minMarginLength = 10000
         self.containsMisAssembly = False
 
-    def getSequence(self, origCtgSequences):
+    def getSequence(self, origCtgSequences, singleBaseErrorRate):
         origCtgSeq = origCtgSequences[self.origCtg]
         # note that start and end are 1-based closed
         blockSeq = origCtgSeq[self.origStart - 1: self.origEnd]
+
+        # some parts of the block may be "Err"
+        # split block into "Err" and non-"Err" parts since
+        # "Err" parts are going to be changed and contain random
+        # single-base errors
+        blockSeqParts = []
+        preE = 0
+        for s, e, comp in self.misAssemblyBlockList.blocks:
+            if comp == "Err":
+                # add the previous sequence with no "Err" misassembly
+                if preE < s - 1:
+                    blockSeqParts.append(blockSeq[preE:s-1])
+                # generate erroneous sequence and add this to the list
+                erroneousSeq = induceSingleBaseErrors(blockSeq[s-1:e], singleBaseErrorRate)
+                blockSeqParts.append(erroneousSeq)
+                preE = e
+        # add the last block with no "Err" misassembly
+        if preE < len(blockSeq):
+            blockSeqParts.append(blockSeq[preE:])
+
+        finalBlockSeq = "".join(blockSeqParts)
         if self.origStrand == '-':
-            blockSeq = reverseComplement(blockSeq)
-        return blockSeq
+            finalBlockSeq = reverseComplement(finalBlockSeq)
+        return finalBlockSeq
 
     def reverseAllBlockLists(self):
         """
@@ -1118,17 +1139,17 @@ class HomologyRelationChains:
         start, end = self.getRandomIntervalFromRelationBlock(newCtg, annotation, orderIndex, misAssemblyLength)
         return newCtg, orderIndex, start, end
 
-    def getNewCtgSequence(self, newCtg, origCtgSequences):
+    def getNewCtgSequence(self, newCtg, origCtgSequences, singleBaseErrorRate):
         newCtgSeqList = []
         for relation in self.relationChains[newCtg]:
-            blockSeq = relation.block.getSequence(origCtgSequences)
+            blockSeq = relation.block.getSequence(origCtgSequences, singleBaseErrorRate)
             newCtgSeqList.append(blockSeq)
         return  "".join(newCtgSeqList)
 
-    def yeildNewCtgSequences(self, origCtgSequences):
+    def yeildNewCtgSequences(self, origCtgSequences, singleBaseErrorRate):
         newCtgList = sorted(list(self.relationChains.keys()))
         for newCtg in newCtgList:
-            yield newCtg, self.getNewCtgSequence(newCtg, origCtgSequences)
+            yield newCtg, self.getNewCtgSequence(newCtg, origCtgSequences, singleBaseErrorRate)
 
     def getTotalLengthOfLongerBlocks(self, annotation, blockSizes):
         """
@@ -1159,10 +1180,10 @@ class HomologyRelationChains:
             totalLengths[annotation] = self.getTotalLengthOfLongerBlocks(annotation, blockSizes)
         return totalLengths
 
-    def writeNewContigsToFasta(self, origCtgSequences, fastaPath):
+    def writeNewContigsToFasta(self, origCtgSequences, fastaPath, singleBaseErrorRate):
         handle = open(fastaPath, "w")
         writer = FastaWriter(handle)
-        for newCtg, newSeq in self.yeildNewCtgSequences(origCtgSequences):
+        for newCtg, newSeq in self.yeildNewCtgSequences(origCtgSequences, singleBaseErrorRate):
             record = SeqRecord(Seq(newSeq),
                                id = newCtg,
                                description = "")

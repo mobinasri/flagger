@@ -187,6 +187,7 @@ def main():
                         help='Minimum overlap ratio that each misassembly block should have with the related annotation (should be greater than or equal to 0.5) [Default = 0.75]')
     parser.add_argument('--contigSuffix', type=str, default = "_f",
                         help='The suffix to be added to the names of the new contigs (which could be either intact or with mis-assemblies) [Default = "_f"]')
+    parser.add_argument('--singleBaseErrorRate', type=float, default = 0.1, help='The rate of single-base errors that will be induced in "Err" blocks [Default = 0.1]')
     parser.add_argument('--safetyFactor', type=float, default = 4.0, help='The factor for checking the feasibility of inducing the misassmblies with the requested numbers and sizes [Default = 4.0]')
 
 
@@ -205,6 +206,7 @@ def main():
     marginLength = args.marginLength
     contigSuffix = args.contigSuffix
     safetyFactor = args.safetyFactor
+    singleBaseErrorRate = args.singleBaseErrorRate
 
 
     # parse the alignments from paf file
@@ -229,6 +231,8 @@ def main():
     diploidSequences.update(parseFasta(hap2FastaPath))
 
     diploidContigLengths = getContigLengths(diploidSequences)
+
+    totalGenomeSizeKb = sum(diploidContigLengths.values()) / 1e3
 
     annotationBlockLists, annotationNames = parseAnnotationsPerContig(annotationsJsonPath)
 
@@ -275,6 +279,7 @@ def main():
     misAssemblySizesSortedKb = sorted(np.array(misAssemblySizeTable["length_kb"]), reverse=True)
     total_successful = 0
     total_requested = 0
+    totalMisAssembledBasesKbByType = {"Sw":0, "Err":0, "Dup":0, "Col":0}
     for misAssemblySizeKb in misAssemblySizesSortedKb:
         # for each mis-assembly size, the start locations for sampling should be updated
         relationChains.updateAnnotationStartLocationsForSampling(annotationNames,
@@ -295,15 +300,25 @@ def main():
                 print(f"[{datetime.datetime.now()}] ({res}/{misAssemblyCount}) Mis-assemblies could be created successfully:\tannotation = {annotation},\ttype = {misAssemblyType},\tlength = {misAssemblySizeKb} Kb")
                 total_successful += res
                 total_requested += misAssemblyCount
+                if misAssemblyType == "Sw":
+                    totalMisAssembledBasesKbByType[misAssemblyType] += 2 * total_successful * misAssemblySizeKb
+                else:
+                    totalMisAssembledBasesKbByType[misAssemblyType] += 1 * total_successful * misAssemblySizeKb
                 #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
 
     print(f"[{datetime.datetime.now()}] Creating mis-assemblies is Done! ({total_successful}/{total_requested}) mi-assemblies could be created successfully.")
+
+    totalMisAssembledBasesKb = 0
+    for misAssemblyType, lengthKb in totalMisAssembledBasesKbByType.items():
+        print(f"[{datetime.datetime.now()}] Mis-assembly rate ({misAssemblyType}): {totalMisAssembledBasesKb[misAssemblyType]/totalGenomeSizeKb * 100:0.3f} %")
+        totalMisAssembledBasesKb += lengthKb
+    print(f"[{datetime.datetime.now()}] Mis-assembly rate (Total): {totalMisAssembledBasesKb/totalGenomeSizeKb * 100:0.3f} %")
 
 
     os.makedirs(outputDir, exist_ok = True)
     print(f"[{datetime.datetime.now()}] Writing Fasta file for the falsified assembly")
     fastaPath = os.path.join(outputDir,"falsified_asm.fasta")
-    relationChains.writeNewContigsToFasta(diploidSequences, fastaPath)
+    relationChains.writeNewContigsToFasta(diploidSequences, fastaPath, singleBaseErrorRate)
     print(f"[{datetime.datetime.now()}] The falsified assembly is written to {fastaPath}")
 
     for annotation in annotationNames:
