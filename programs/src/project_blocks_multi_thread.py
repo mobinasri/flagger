@@ -2,61 +2,7 @@ import sys
 import argparse
 from collections import defaultdict
 import re
-from block_utils import findProjections, Alignment
-from multiprocessing import Pool
-
-def makeCigarString(cigarList):
-    cigarFlattened = ["".join((str(opSize), op)) for op, opSize in cigarList]
-    return "".join(cigarFlattened)
-
-def runProjection(line, mode, blocks, includeEndingIndel, includePostIndel):
-    # Extract the alignment attributes like the contig name, alignment boundaries, orientation and cigar 
-    alignment = Alignment(line)
-    chromName = alignment.chromName
-    contigName = alignment.contigName
-    if alignment.isPrimary == False:
-        return [chromName, contigName, [], []]
-    # rBlocks contains the projections and 
-    # qBlocks contains the projectable blocks
-    if mode == "asm2ref":
-        if len(blocks[contigName]) == 0: # Continue if there is no block in the contig
-            return [chromName, contigName, [], []]
-                #print(blocks[contigName], contigStart, contigEnd, chrom, chromStart, chromEnd)
-        qBlocks, rBlocks, cigarList = findProjections(mode,
-                                            alignment.cigarList,
-                                            blocks[contigName],
-                                            alignment.chromLength,
-                                            alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
-                                            alignment.contigLength,
-                                            alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
-                                            alignment.orientation,
-                                            includeEndingIndel, includePostIndel)
-    else:
-        if len(blocks[chromName]) == 0: # Continue if there is no block in the chrom
-            return [chromName, contigName, [], []]
-        qBlocks, rBlocks, cigarList = findProjections(mode,
-                                            alignment.cigarList,
-                                            blocks[chromName],
-                                            alignment.chromLength,
-                                            alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
-                                            alignment.contigLength,
-                                            alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
-                                            alignment.orientation,
-                                            includeEndingIndel, includePostIndel)
-    return [chromName, contigName, qBlocks, rBlocks, cigarList]
-
-def runProjectionParallel(pafPath, mode, blocks, includeEndingIndel, includePostIndel, threads):
-    allPafLines = []
-    with open(pafPath,"r") as fPaf:
-        for line in fPaf:
-            allPafLines.append(line)
-    pool = Pool(threads)
-    print("Started projecting")
-    results = pool.starmap(runProjection, [(line, mode, blocks,includeEndingIndel, includePostIndel) for line in allPafLines])
-    pool.close()
-    return results
-
-
+from block_utils import *
 
 def main():
     parser = argparse.ArgumentParser(description='Given the alignments find the projection of a set of assembly blocks onto the reference (\'asm2ref\') or vice versa (\'ref2asm\')')
@@ -87,9 +33,8 @@ def main():
     parser.add_argument('--includeEndingIndel', action='store_true',
                         help='If a projection ended in an indel add that the overlapping indel to the projection')
     parser.add_argument('--includePostIndel', action='store_true',
-                        help='If a projection ended/started right before/after an indel add that indel to the projection \
-                             for + orientation it will add the indel after the right end \
-                             for - orientation it will add the indel before the left end \
+                        help='If a projection ended right before an indel add that indel will be added to the projection \
+                               It will be insertion for ref2asm and deletion for asm2ref \
                              (This option has very limited applications so should not be on usually)')
 
 
@@ -124,7 +69,12 @@ def main():
             info = attrbs[3:] if len(attrbs) > 3 else [""]
             blocks[contigName].append((start, end, info))
 
-    results = runProjectionParallel(pafPath, mode, blocks, includeEndingIndel, includePostIndel, threads)
+    alignments = []
+    with open(pafPath,"r") as fPaf:
+        for line in fPaf:
+            alignments.append(Alignment(line))
+
+    results = runProjectionParallel(alignments, mode, blocks, includeEndingIndel, includePostIndel, threads)
 
     # Read the alignments one by one and for each of them find the projections by calling findProjections
     with open(outputProjection, "w") as fRef, open(outputProjectable, "w") as fQuery:
@@ -135,9 +85,10 @@ def main():
         for res in results:
             chromName = res[0]
             contigName = res[1]
-            qBlocks = res[2]
-            rBlocks = res[3]
-            cigarList = res[4]
+            orientation = res[2]
+            qBlocks = res[3]
+            rBlocks = res[4]
+            cigarList = res[5]
 
 
             if mode == "asm2ref":
