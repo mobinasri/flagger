@@ -1199,12 +1199,12 @@ def runProjection(alignment, mode, blocks, includeEndingIndel, includePostIndel)
     contigName = alignment.contigName
     orientation = alignment.orientation
     if alignment.isPrimary == False:
-        return [chromName, contigName, orientation, [], []]
+        return [chromName, contigName, orientation, [], [], []]
     # rBlocks contains the projections and
     # qBlocks contains the projectable blocks
     if mode == "asm2ref":
         if len(blocks[contigName]) == 0: # Continue if there is no block in the contig
-            return [chromName, contigName, orientation, [], []]
+            return [chromName, contigName, orientation, [], [], []]
             #print(blocks[contigName], contigStart, contigEnd, chrom, chromStart, chromEnd)
         projectableBlocks, projectionBlocks, cigarList = findProjections(mode,
                                                                          alignment.cigarList,
@@ -1217,7 +1217,7 @@ def runProjection(alignment, mode, blocks, includeEndingIndel, includePostIndel)
                                                                          includeEndingIndel, includePostIndel)
     else:
         if len(blocks[chromName]) == 0: # Continue if there is no block in the chrom
-            return [chromName, contigName, orientation, [], []]
+            return [chromName, contigName, orientation, [], [], []]
         projectableBlocks, projectionBlocks, cigarList = findProjections(mode,
                                                                          alignment.cigarList,
                                                                          blocks[chromName],
