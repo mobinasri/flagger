@@ -290,7 +290,7 @@ def main():
         for annotation in annotationNames:
             misAssemblyCounts = misAssemblySizeTable.at[misAssemblySizeKb, annotation]
             for misAssemblyType, misAssemblyCount in  zip(misAssemblyTypes, misAssemblyCounts) :
-                print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
+                #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
                 res = induceMultipleMisAssembliesOfTheSameType(relationChains,
                                                                annotation,
                                                                misAssemblyType,
