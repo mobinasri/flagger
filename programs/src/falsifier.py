@@ -11,15 +11,50 @@ import re
 import os
 import datetime
 
+def induceMultipleMisjoins(relationChains, annotation, misAssemblyCount, misjoinEffectWindowSize):
+    for i in range(misAssemblyCount):
+        iter = 0
+        res = False
+        while iter < 10:
+            if 0 < iter:
+                print(f"[{datetime.datetime.now()}] Retrying inducing the failed mis-assembly ({iter+1}/10 retries)")
+
+
+            newCtg_1, orderIndex_1, loc_1 = relationChains.getRandomMisjoinLocation(annotation, newCtgListToExclude=[])
+            newCtg_2, orderIndex_2, loc_2 = relationChains.getRandomMisjoinLocation(annotation, newCtgListToExclude=[newCtg_1])
+            if newCtg_1 == None or newCtg_2 == None:
+                print(f"[{datetime.datetime.now()}] No more blocks remaining for sampling misjoin (Skipping {misAssemblyCount-i}/{misAssemblyCount}) : annotation = {annotation}, misAssemblyType = {misAssemblyType}")
+                return i
+            print(f"[{datetime.datetime.now()}] Mis-assembly location (misjoin-pair-1):\t {newCtg_1}[{orderIndex_1}]:\t{loc_1}\tlen={relationChains.relationChains[newCtg_1][orderIndex_1].block.origEnd - relationChains.relationChains[newCtg_1][orderIndex_1].block.origStart + 1}")
+            print(f"[{datetime.datetime.now()}] Mis-assembly location (misjoin-pair-2):\t {newCtg_2}[{orderIndex_2}]:\t{loc_2}\tlen={relationChains.relationChains[newCtg_2][orderIndex_2].block.origEnd - relationChains.relationChains[newCtg_2][orderIndex_2].block.origStart + 1}")
+
+            res = relationChains.induceMisjoinMisAssembly(newCtg_1,
+                                                          orderIndex_1,
+                                                          loc_1,
+                                                          newCtg_2,
+                                                          orderIndex_2,
+                                                          loc_2,
+                                                          misjoinEffectWindowSize)
+
+            if res == True:
+                break
+            else:
+                print(f"[{datetime.datetime.now()}] Warning: Mis-assembly could not be induced (because of projection).")
+                iter += 1
+        # if the mis-assembly could not be created after 10 times trying 
+        if res == False:
+            return i
+
+    return misAssemblyCount
 
 def induceMultipleMisAssembliesOfTheSameType(relationChains, annotation, misAssemblyType, misAssemblySize, misAssemblyCount, switchEffectWindowSize):
     assert(misAssemblyType in ["Sw", "Err", "Dup", "Col"])
     for i in range(misAssemblyCount):
         iter = 0
+        res = False
         while iter < 10:
             if 0 < iter:
                 print(f"[{datetime.datetime.now()}] Retrying inducing the failed mis-assembly ({iter+1}/10 retries)")
-            res = False
             newCtg, orderIndex, start, end = relationChains.getRandomMisAssemblyInterval(annotation, misAssemblySize)
             if newCtg == None:
                 print(f"[{datetime.datetime.now()}] No more blocks remaining for sampling (Skipping {misAssemblyCount-i}/{misAssemblyCount}) : annotation = {annotation}, misAssemblyType = {misAssemblyType}, misAssemblySize = {misAssemblySize}")
@@ -69,6 +104,17 @@ def getContigLengths(sequences):
         contigLengths[name] = len(seq)
 
     return contigLengths
+
+def parseNumberOfMisjoins(misjoinJson):
+    # Opening JSON file
+    f = open(misjoinJson)
+
+    # returns JSON object as
+    # a dictionary
+    misjoinCounts = json.load(f)
+
+
+    return misjoinCounts
 
 def parseAnnotationsPerContig(annotationsJson):
     # Opening JSON file
@@ -171,9 +217,13 @@ def main():
                         help='TSV file that contains the length and number of desired misassemblies per annotation,\
                               the first column is "length_kb" which contains the misassembly sizes in Kb. The rest of the columns \
                               should be named based on the annotation names in the json file. Each entry of the annotaion columns \
-                              should be a list of 4 numbers separated by comma like "2,2,2,2"; numbers are for 4 types of misassemblies, \
+                              should be a list of 4 numbers separated by comma like "1,2,2,2"; numbers are for 4 types of misassemblies, \
                               "Switch error", "Erroneous", "Duplication", "Collapsed"')
-    parser.add_argument('--annotations', type=str,
+    parser.add_argument('--misjoinJson', type=str,
+                        help='JSON file that contains the number of misjoins (actually pairs of misjoins) per annotation,\
+                              Each key is an annotation name and each value is the number of pairs of misjoins that \
+                              should be created in the corresponding annotation')
+    parser.add_argument('--annotationsJson', type=str,
                         help='JSON file that contains the annotation names and the paths to the corresponding annotation bed files. The tracks in all the given bed files should not have any overlap.')
     parser.add_argument('--outputDir', type=str, default= "falsifier_outputs",
                         help='Output directory for saving the falsified assembly, the new annotation and mis-assembly coordinates')
@@ -181,13 +231,15 @@ def main():
                         help='Minimum length of the alignments to be used by the program [Default = 500000 (500Kb)]')
     parser.add_argument('--marginLength', type=int, default = 10000,
                         help='Length of the margins at the ends of each unbroken alignment (a contiguous homology relation) where no mis-assembly is permitted to be created [Default = 10000 (10 Kb)]')
-    parser.add_argument('--switchWindowLength', type=int, default = 5000,
-                        help='Each switch error is shown as one/multiple bed tracks around the switching point or misjoin. This parameter defines the length of the window labeled as "Msj" on each side of the misjoins created because of a haplotype switch (should be smaller than --marginLength) [Default = 5000 (5 Kb)]')
+    parser.add_argument('--switchFlagWindowLength', type=int, default = 5000,
+                        help='Each switch error is shown as one/multiple bed tracks around the switching point. This parameter defines the length of the window labeled as "Sw" on each side of switching points created because of haplotype switches (should be smaller than --marginLength) [Default = 5000 (5 Kb)]')
+    parser.add_argument('--misjoinFlagWindowLength', type=int, default = 5000,
+                        help='Each misjoin is shown as one/multiple bed tracks around the misjoin. This parameter defines the length of the window labeled as "Msj" on each side of a misjoin between non-homologous contigs (should be smaller than --marginLength) [Default = 5000 (5 Kb)]')
     parser.add_argument('--minOverlapRatio', type=float, default = 0.75,
                         help='Minimum overlap ratio that each misassembly block should have with the related annotation (should be greater than or equal to 0.5) [Default = 0.75]')
     parser.add_argument('--contigSuffix', type=str, default = "_f",
                         help='The suffix to be added to the names of the new contigs (which could be either intact or with mis-assemblies) [Default = "_f"]')
-    parser.add_argument('--singleBaseErrorRate', type=float, default = 0.1, help='The rate of single-base errors that will be induced in "Err" blocks [Default = 0.1]')
+    parser.add_argument('--singleBaseErrorRate', type=float, default = 0.05, help='The rate of single-base errors that will be induced in "Err" blocks [Default = 0.05]')
     parser.add_argument('--safetyFactor', type=float, default = 4.0, help='The factor for checking the feasibility of inducing the misassmblies with the requested numbers and sizes [Default = 4.0]')
 
 
@@ -199,9 +251,11 @@ def main():
     hap2FastaPath = args.hap2
     outputDir = args.outputDir
     misAssemblyTsvPath = args.misAssemblyTsv
-    annotationsJsonPath = args.annotations
+    misjoinJsonPath = args.misjoinJson
+    annotationsJsonPath = args.annotationsJson
     minAlignmentLength = args.minAlignmentLength
-    switchWindowLength = args.switchWindowLength
+    switchFlagWindowLength = args.switchFlagWindowLength
+    misjoinFlagWindowLength = args.misjoinFlagWindowLength
     minOverlapRatio = args.minOverlapRatio
     marginLength = args.marginLength
     contigSuffix = args.contigSuffix
@@ -273,9 +327,22 @@ def main():
         print(f"[{datetime.datetime.now()}] Feasibilty is NOT PASSED with the safety factor of {safetyFactor}. Please use more contiguous alignments/annotations tracks or request for shorter (or fewer) misassemblies.")
         exit()
 
+    print(f"[{datetime.datetime.now()}] Creating misjoins")
+    numberOfMisjoinsPerAnnotation = parseNumberOfMisjoins(misjoinJsonPath)
+
+    for annotation in annotationNames:
+        if annotation in numberOfMisjoinsPerAnnotation:
+            misAssemblyCount = numberOfMisjoinsPerAnnotation[annotation]
+            res = induceMultipleMisjoins(relationChains,
+                                         annotation,
+                                         misAssemblyCount,
+                                         misjoinFlagWindowLength)
+            print(f"[{datetime.datetime.now()}] ({res}/{misAssemblyCount}) Mis-assemblies could be created successfully:\tannotation = {annotation},\ttype = misjoin")
+
 
 
     misAssemblyTypes = ["Sw", "Err", "Dup", "Col"]
+    # first create large misassemblies since finding intervals for smaller misassemblies is easier
     misAssemblySizesSortedKb = sorted(np.array(misAssemblySizeTable["length_kb"]), reverse=True)
     total_successful = 0
     total_requested = 0
@@ -296,7 +363,7 @@ def main():
                                                                misAssemblyType,
                                                                misAssemblySizeKb * 1000,
                                                                misAssemblyCount,
-                                                               switchWindowLength)
+                                                               switchFlagWindowLength)
                 print(f"[{datetime.datetime.now()}] ({res}/{misAssemblyCount}) Mis-assemblies could be created successfully:\tannotation = {annotation},\ttype = {misAssemblyType},\tlength = {misAssemblySizeKb} Kb")
                 total_successful += res
                 total_requested += misAssemblyCount
