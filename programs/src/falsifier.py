@@ -282,7 +282,7 @@ def main():
     totalMisAssembledBasesKbByType = {"Sw":0, "Err":0, "Dup":0, "Col":0}
     for misAssemblySizeKb in misAssemblySizesSortedKb:
         # for each mis-assembly size, the start locations for sampling should be updated
-        relationChains.updateAnnotationStartLocationsForSampling(annotationNames,
+        relationChains.updateAnnotationBlocksForSampling(annotationNames,
                                                                  misAssemblySizeKb * 1000,
                                                                  minOverlapRatio,
                                                                  marginLength)

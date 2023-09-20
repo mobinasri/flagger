@@ -6,7 +6,19 @@ from project_blocks_multi_thread import makeCigarString
 class TestProjection(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        """Define two alignments one in positive orientation and one in negative"""
+        """Define alignments for testing falsifier functions"""
+        self.alignment1ForMisjoin = Alignment("ctg2\t200\t99\t149\t+\tctg1\t200\t9\t57\t33\t48\t60\tcg:Z:4=1X2I2=1X10D1X2=10I1X1=5D5=1X4=5I3=1X6=\ttp:A:P")
+        self.alignment2ForMisjoin = Alignment("ctg4\t200\t0\t37\t+\tctg3\t200\t0\t34\t31\t34\t60\tcg:Z:3=1X2D10=1X5I10=1I5=1D1X\ttp:A:P")
+        self.annotationBlockListsPerOrigContigForMisjoin = {"ctg1":{"annot1": BlockList([(1, 28),(50, 200)]),
+                                                                    "annot2": BlockList([(29,49)])},
+                                                            "ctg2":{"annot1": BlockList([(1, 105), (150, 200)]),
+                                                                    "annot2": BlockList([(106,149)])},
+                                                            "ctg3":{"annot1": BlockList([(1,4),(101,200)]),
+                                                                    "annot2": BlockList([(5,100)])},
+                                                            "ctg4":{"annot1": BlockList([(1,50)]),
+                                                                    "annot2": BlockList([(51,200)])}
+                                                            }
+        self.contigLengthsForMisjoin = {"ctg1":200, "ctg2":200, "ctg3":200, "ctg4":200}
         self.alignment1 = Alignment("ctg2\t30\t8\t18\t+\tctg1\t30\t6\t15\t8\t9\t60\tcg:Z:1=1X2I3=1D3=\ttp:A:P")
         self.alignment2 = Alignment("ctg2\t30\t21\t27\t-\tctg1\t30\t20\t27\t5\t7\t60\tcg:Z:3=2D1X1I1=\ttp:A:P")
         self.alignments = [self.alignment1, self.alignment2]
@@ -535,7 +547,7 @@ class TestProjection(unittest.TestCase):
         misAssemblyLength = 5
         minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
         minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
-        outputRelationChains.updateAnnotationStartLocationsForSampling(annotations,
+        outputRelationChains.updateAnnotationBlocksForSampling(annotations,
                                                                        misAssemblyLength,
                                                                        minOverlapRatioWithEachAnnotation,
                                                                        minMarginLength)
@@ -822,7 +834,7 @@ class TestProjection(unittest.TestCase):
         misAssemblyLength = 5
         minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
         minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
-        outputRelationChains.updateAnnotationStartLocationsForSampling(annotations,
+        outputRelationChains.updateAnnotationBlocksForSampling(annotations,
                                                                        misAssemblyLength,
                                                                        minOverlapRatioWithEachAnnotation,
                                                                        minMarginLength)
@@ -1106,7 +1118,7 @@ class TestProjection(unittest.TestCase):
         misAssemblyLength = 5
         minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
         minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
-        outputRelationChains.updateAnnotationStartLocationsForSampling(annotations,
+        outputRelationChains.updateAnnotationBlocksForSampling(annotations,
                                                                        misAssemblyLength,
                                                                        minOverlapRatioWithEachAnnotation,
                                                                        minMarginLength)
@@ -1435,7 +1447,7 @@ class TestProjection(unittest.TestCase):
         misAssemblyLength = 5
         minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
         minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
-        outputRelationChains.updateAnnotationStartLocationsForSampling(annotations,
+        outputRelationChains.updateAnnotationBlocksForSampling(annotations,
                                                                        misAssemblyLength,
                                                                        minOverlapRatioWithEachAnnotation,
                                                                        minMarginLength)
@@ -1736,6 +1748,322 @@ class TestProjection(unittest.TestCase):
                         # check total length of sampling blocks per annotation
                         for name, blocksTotalLength in truthBlock.annotationStartTotalLengthsForSampling.items():
                             self.assertEqual(blocksTotalLength, outputBlock.annotationStartTotalLengthsForSampling[name], f"total annotation length for sampling is not correct ({name})")
+
+                        self.assertEqual(truthBlock.origCtg, outputBlock.origCtg, f"origCtg is not correct ({name})")
+                        self.assertEqual(truthBlock.origStart, outputBlock.origStart, f"origStart is not correct ({name})")
+                        self.assertEqual(truthBlock.origEnd, outputBlock.origEnd, f"origEnd is not correct ({name})")
+                        self.assertEqual(truthBlock.origStrand, outputBlock.origStrand, f"origStrand is not correct ({name})")
+                        self.assertEqual(truthBlock.newCtg, outputBlock.newCtg, f"newCtg is not correct ({name})")
+                        self.assertEqual(truthBlock.orderIndex, outputBlock.orderIndex, f"orderIndex is not correct ({name})")
+                        self.assertTrue(truthBlock.misAssemblyBlockList.isEqual(outputBlock.misAssemblyBlockList), f"mis-assembly block lists are not correct ({name})")
+
+                    if truthRelation.alignment == None:
+                        self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
+                    else:
+                        self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
+
+    def testMisjoinWithAnnotationsPositiveAlignment(self):
+        outputRelationChains = HomologyRelationChains([self.alignment1ForMisjoin, self.alignment2ForMisjoin],
+                                                      self.contigLengthsForMisjoin,
+                                                      ["ctg1", "ctg3"],
+                                                      "_f")
+        outputRelationChains.fillAnnotationBlockListsFromOriginalContigs(self.annotationBlockListsPerOrigContigForMisjoin,
+                                                                         self.contigLengthsForMisjoin,
+                                                                         "_f")
+        annotations = ["annot1", "annot2"]
+        misAssemblyLength = 5
+        minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
+        minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
+        outputRelationChains.updateAnnotationBlocksForSampling(annotations,
+                                                               misAssemblyLength,
+                                                               minOverlapRatioWithEachAnnotation,
+                                                               minMarginLength)
+
+
+
+        # make a misjoin
+        orderIndex_1 = 1
+        loc_1 = 18
+        orderIndex_2 = 0
+        loc_2 = 5
+        misjoinEffectWindowLength = 1
+        outputRelationChains.induceMisjoinMisAssembly("ctg1_f",
+                                                     orderIndex_1,
+                                                     loc_1,
+                                                     "ctg3_f",
+                                                     orderIndex_2,
+                                                     loc_2,
+                                                     misjoinEffectWindowLength)
+
+        # ctg1_f
+        ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 9, '+', "ctg1_f", 0)
+        ctg1HomologyBlock1.annotationBlockLists = {"annot1": BlockList([(1, 9)]),
+                                                   "annot2": BlockList([])}
+        ctg1HomologyBlock1.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg1HomologyBlock1.annotationTotalLengthsForSamplingMisjoin = {"annot1": 0,
+                                                                       "annot2": 0}
+
+        ctg1HomologyBlock2 = HomologyBlock("ctg1", 10, 18, '+', "ctg1_f", 1)
+        ctg1HomologyBlock2.annotationBlockLists = {"annot1": BlockList([(1, 9)]),
+                                                   "annot2": BlockList([])}
+        ctg1HomologyBlock2.annotationStartBlockListsForSampling = {"annot1": BlockList([(2,4)]),
+                                                                   "annot2": BlockList([])}
+        ctg1HomologyBlock2.annotationStartBlockLengthsForSampling = {"annot1": [3],
+                                                                     "annot2": []}
+        ctg1HomologyBlock2.annotationStartTotalLengthsForSampling = {"annot1": 3,
+                                                                     "annot2": 0}
+        ctg1HomologyBlock2.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([(2,8)]),
+                                                                     "annot2": BlockList([])}
+        ctg1HomologyBlock2.annotationBlockLengthsForSamplingMisjoin = {"annot1": [7],
+                                                                       "annot2": []}
+        ctg1HomologyBlock2.annotationTotalLengthsForSamplingMisjoin = {"annot1": 7,
+                                                                       "annot2": 0}
+        ctg1HomologyBlock2.misAssemblyBlockList = BlockList([(9,9,"Msj")])
+
+        ctg1HomologyBlock3 = HomologyBlock("ctg1", 19, 57, '+', "ctg1_f", 2)
+        ctg1HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(1,10),(32,39)]),
+                                                   "annot2": BlockList([(11,31)])}
+        ctg1HomologyBlock3.annotationStartBlockListsForSampling = {"annot1": BlockList([(2,8), (30,34)]),
+                                                                   "annot2": BlockList([(9,29)])}
+        ctg1HomologyBlock3.annotationStartBlockLengthsForSampling = {"annot1": [7,5],
+                                                                     "annot2": [21]}
+        ctg1HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 12,
+                                                                     "annot2": 21}
+        ctg1HomologyBlock3.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([(2,10), (32,38)]),
+                                                                   "annot2": BlockList([(11,31)])}
+        ctg1HomologyBlock3.annotationBlockLengthsForSamplingMisjoin = {"annot1": [9,7],
+                                                                     "annot2": [21]}
+        ctg1HomologyBlock3.annotationTotalLengthsForSamplingMisjoin = {"annot1": 16,
+                                                                     "annot2": 21}
+        ctg1HomologyBlock3.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+
+
+
+        ctg1HomologyBlock4 = HomologyBlock("ctg1", 58, 200, '+', "ctg1_f", 2)
+        ctg1HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,143)]),
+                                                   "annot2": BlockList([])}
+        ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg1HomologyBlock4.annotationTotalLengthsForSamplingMisnoin = {"annot1": 0,
+                                                                       "annot2": 0}
+
+        # ctg2_f
+        ctg2HomologyBlock1 = HomologyBlock("ctg2", 1, 99, '+', "ctg2_f_p1", 0)
+        ctg2HomologyBlock1.annotationBlockLists = {"annot1": BlockList([(1,99)]),
+                                                   "annot2": BlockList([])}
+        ctg2HomologyBlock1.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg2HomologyBlock1.annotationTotalLengthsForSamplingMisjoin = {"annot1": 0,
+                                                                       "annot2": 0}
+
+
+        ctg2HomologyBlock2 = HomologyBlock("ctg2", 100, 109, '+', "ctg2_f_p1", 1)
+        ctg2HomologyBlock2.annotationBlockLists = {"annot1": BlockList([(1,6)]),
+                                                   "annot2": BlockList([(7,10)])}
+        ctg2HomologyBlock2.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
+                                                                   "annot2": BlockList([])}
+        ctg2HomologyBlock2.annotationStartBlockLengthsForSampling = {"annot1": [],
+                                                                     "annot2": []}
+        ctg2HomologyBlock2.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg2HomologyBlock2.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([(2,6)]),
+                                                                     "annot2": BlockList([(7,9)])}
+        ctg2HomologyBlock2.annotationBlockLengthsForSamplingMisjoin = {"annot1": [5],
+                                                                       "annot2": [3]}
+        ctg2HomologyBlock2.annotationTotalLengthsForSamplingMisjoin = {"annot1": 5,
+                                                                       "annot2": 3}
+        ctg2HomologyBlock2.misAssemblyBlockList = BlockList([(10,10,"Msj")])
+
+
+        ctg2HomologyBlock3 = HomologyBlock("ctg2", 110, 149, '+', "ctg2_f_p1", 2)
+        ctg2HomologyBlock3.annotationBlockLists = {"annot1": BlockList([]),
+                                                   "annot2": BlockList([(1,40)])}
+        ctg2HomologyBlock3.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
+                                                                   "annot2": BlockList([(2,35)])}
+        ctg2HomologyBlock3.annotationStartBlockLengthsForSampling = {"annot1": [],
+                                                                     "annot2": [34]}
+        ctg2HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 34}
+        ctg2HomologyBlock3.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([]),
+                                                                     "annot2": BlockList([(2,39)])}
+        ctg2HomologyBlock3.annotationBlockLengthsForSamplingMisjoin = {"annot1": [],
+                                                                       "annot2": [38]}
+        ctg2HomologyBlock3.annotationTotalLengthsForSamplingMisjoin = {"annot1": 0,
+                                                                       "annot2": 38}
+        ctg2HomologyBlock3.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+
+
+        ctg2HomologyBlock4 = HomologyBlock("ctg2", 150, 200, '+', "ctg2_f_p1", 3)
+        ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,51)]),
+                                                   "annot2": BlockList([])}
+        ctg2HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg2HomologyBlock4.annotationTotalLengthsForSamplingMisjoin = {"annot1": 0,
+                                                                       "annot2": 0}
+
+        # ctg3
+        ctg3HomologyBlock1 = HomologyBlock("ctg3", 1, 5, '+', "ctg3_f_p1", 0)
+        ctg3HomologyBlock1.annotationBlockLists = {"annot1": BlockList([(1,4)]),
+                                                   "annot2": BlockList([(5,5)])}
+        ctg3HomologyBlock1.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
+                                                                   "annot2": BlockList([])}
+        ctg3HomologyBlock1.annotationStartBlockLengthsForSampling = {"annot1": [],
+                                                                     "annot2": []}
+        ctg3HomologyBlock1.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg3HomologyBlock1.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([(2,4)]),
+                                                                     "annot2": BlockList([])}
+        ctg3HomologyBlock1.annotationBlockLengthsForSamplingMisjoin = {"annot1": [3],
+                                                                       "annot2": []}
+        ctg3HomologyBlock1.annotationTotalLengthsForSamplingMisjoin = {"annot1": 3,
+                                                                       "annot2": 0}
+        ctg3HomologyBlock1.misAssemblyBlockList = BlockList([(5,5,"Msj")])
+
+
+        ctg3HomologyBlock2 = HomologyBlock("ctg3", 6, 34, '+', "ctg3_f_p1", 1)
+        ctg3HomologyBlock2.annotationBlockLists = {"annot1": BlockList([]),
+                                                   "annot2": BlockList([(1,28)])}
+        ctg3HomologyBlock2.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
+                                                                   "annot2": BlockList([(2,23)])}
+        ctg3HomologyBlock2.annotationStartBlockLengthsForSampling = {"annot1": [],
+                                                                     "annot2": [22]}
+        ctg3HomologyBlock2.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 22}
+        ctg3HomologyBlock2.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([]),
+                                                                     "annot2": BlockList([(2,27)])}
+        ctg3HomologyBlock2.annotationBlockLengthsForSamplingMisjoin = {"annot1": [],
+                                                                       "annot2": [22]}
+        ctg3HomologyBlock2.annotationTotalLengthsForSamplingMisjoin = {"annot1": 0,
+                                                                       "annot2": 22}
+        ctg3HomologyBlock2.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+
+
+        ctg3HomologyBlock3 = HomologyBlock("ctg3", 35, 200, '+', "ctg3_f_p1", 2)
+        ctg3HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(67,166)]),
+                                                   "annot2": BlockList([(35,66)])}
+        ctg3HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg3HomologyBlock3.annotationTotalLengthsForSamplingMisjoin = {"annot1": 0,
+                                                                       "annot2": 0}
+
+        # ctg4
+        ctg4HomologyBlock1 = HomologyBlock("ctg4", 1, 4, '+', "ctg4_f_p1", 0)
+        ctg4HomologyBlock1.annotationBlockLists = {"annot1": BlockList([(1,4)]),
+                                                   "annot2": BlockList([])}
+        ctg4HomologyBlock1.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
+                                                                   "annot2": BlockList([])}
+        ctg4HomologyBlock1.annotationStartBlockLengthsForSampling = {"annot1": [],
+                                                                     "annot2": []}
+        ctg4HomologyBlock1.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg4HomologyBlock1.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([(2,3)]),
+                                                                     "annot2": BlockList([])}
+        ctg4HomologyBlock1.annotationBlockLengthsForSamplingMisjoin = {"annot1": [2],
+                                                                       "annot2": []}
+        ctg4HomologyBlock1.annotationTotalLengthsForSamplingMisjoin = {"annot1": 2,
+                                                                       "annot2": 0}
+        ctg4HomologyBlock1.misAssemblyBlockList = BlockList([(4,4,"Msj")])
+
+
+        ctg4HomologyBlock2 = HomologyBlock("ctg4", 5, 37, '+', "ctg4_f_p1", 1)
+        ctg4HomologyBlock2.annotationBlockLists = {"annot1": BlockList([(1,33)]),
+                                                   "annot2": BlockList([])}
+        ctg4HomologyBlock2.annotationStartBlockListsForSampling = {"annot1": BlockList([(2,28)]),
+                                                                   "annot2": BlockList([])}
+        ctg4HomologyBlock2.annotationStartBlockLengthsForSampling = {"annot1": [27],
+                                                                     "annot2": []}
+        ctg4HomologyBlock2.annotationStartTotalLengthsForSampling = {"annot1": 27,
+                                                                     "annot2": 0}
+        ctg4HomologyBlock2.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([(2,32)]),
+                                                                     "annot2": BlockList([])}
+        ctg4HomologyBlock2.annotationBlockLengthsForSamplingMisjoin = {"annot1": [31],
+                                                                       "annot2": []}
+        ctg4HomologyBlock2.annotationTotalLengthsForSamplingMisjoin = {"annot1": 31,
+                                                                       "annot2": 0}
+        ctg4HomologyBlock2.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+
+
+        ctg4HomologyBlock3 = HomologyBlock("ctg4", 38, 200, '+', "ctg4_f_p1", 2)
+        ctg4HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(1,13)]),
+                                                   "annot2": BlockList([(14,163)])}
+        ctg4HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                                     "annot2": 0}
+        ctg4HomologyBlock3.annotationTotalLengthsForSamplingMisjoin = {"annot1": 0,
+                                                                       "annot2": 0}
+
+
+
+        qBlocks = [ctg2HomologyBlock1, ctg2HomologyBlock2,
+                   ctg2HomologyBlock3, ctg2HomologyBlock4,
+                   ctg4HomologyBlock1, ctg4HomologyBlock2,
+                   ctg4HomologyBlock3]
+
+        # query blocks will have no sampling blocks in the current implementation
+        for qBlock in qBlocks:
+            qBlock.annotationStartTotalLengthsForSampling = {"annot1": 0,
+                                                             "annot2": 0}
+            qBlock.annotationTotalLengthsForSamplingMisjoin = {"annot1": 0,
+                                                               "annot2": 0}
+
+        truthRelations = defaultdict(list)
+        truthRelations["ctg1_f.Msj_ctg3_f"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
+                                               HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("4=1X2I2=1X1D"), '+'),
+                                               HomologyRelation(ctg3HomologyBlock2, ctg4HomologyBlock2, getCigarList("3=1X1D"), '+'),
+                                               HomologyRelation(ctg3HomologyBlock3, None, None, '-')]
+
+        # the relations before the collapsed block
+        truthRelations["ctg3_f.Msj_ctg1_f"] = [HomologyRelation(ctg3HomologyBlock1, ctg4HomologyBlock1, getCigarList("1D10=1X5I10=1I5=1D1X"), '+'),
+                                               HomologyRelation(ctg1HomologyBlock3, ctg2HomologyBlock3, getCigarList("9D1X2=10I1X1=5D5=1X4=5I3=1X6="), '+'),
+                                               HomologyRelation(ctg1HomologyBlock4, None, None, None)]
+
+        # the relations after the collapsed block
+        truthRelations["ctg2_f"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
+                                    HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
+                                    HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock3, None, None),
+                                    HomologyRelation(ctg2HomologyBlock4, None, None, None)]
+
+        truthRelations["ctg4_f"] = [HomologyRelation(ctg4HomologyBlock1, ctg3HomologyBlock1, None, None),
+                                    HomologyRelation(ctg4HomologyBlock2, ctg3HomologyBlock2, None, None),
+                                    HomologyRelation(ctg4HomologyBlock3, None, None, None)]
+
+        outputRelations = outputRelationChains.relationChains
+        for ctgName in ["ctg1_f.Msj_ctg3_f", "ctg3_f.Msj_ctg1_f", "ctg2_f", "ctg4_f"]:
+
+            self.assertTrue(ctgName in outputRelations, "Contig does not exist")
+            self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
+
+            for i in range(len(truthRelations[ctgName])):
+                truthRelation = truthRelations[ctgName][i]
+                outputRelation = outputRelations[ctgName][i]
+
+                for truthBlock, outputBlock, name in zip([truthRelation.block, truthRelation.homologousBlock], [outputRelation.block, outputRelation.homologousBlock], ["block", "homologous block"] ):
+                    if truthBlock == None:
+                        self.assertTrue(outputBlock == None, f"the block is not None ({name})")
+                    else:
+                        # check annotation blocks
+                        for name, blockList in truthBlock.annotationBlockLists.items():
+                            self.assertTrue(blockList.isEqual(outputBlock.annotationBlockLists[name]), f"annotation list is not correct ({name})")
+                        # check start location blocks for sampling per annotation
+                        for name, blockList in truthBlock.annotationStartBlockListsForSampling.items():
+                            self.assertTrue(blockList.isEqual(outputBlock.annotationStartBlockListsForSampling[name]), f"annotation list for sampling is not correct ({name})")
+                        # check lengths of the sampling blocks per annotation
+                        for name, blocksLengthList in truthBlock.annotationStartBlockLengthsForSampling.items():
+                            self.assertListEqual(blocksLengthList, outputBlock.annotationStartBlockLengthsForSampling[name], f"annotation length list for sampling is not correct ({name})")
+                        # check total length of sampling blocks per annotation
+                        for name, blocksTotalLength in truthBlock.annotationStartTotalLengthsForSampling.items():
+                            self.assertEqual(blocksTotalLength, outputBlock.annotationStartTotalLengthsForSampling[name], f"total annotation length for sampling is not correct ({name})")
+
+                        # check start location blocks for sampling misjoin per annotation
+                        for name, blockList in truthBlock.annotationBlockListsForSamplingMisjoin.items():
+                            self.assertTrue(blockList.isEqual(outputBlock.annotationBlockListsForSamplingMisjoin[name]), f"annotation list for sampling misjoin is not correct ({name})")
+                        # check lengths of the sampling misjoin blocks per annotation
+                        for name, blocksLengthList in truthBlock.annotationBlockLengthsForSamplingMisjoin.items():
+                            self.assertListEqual(blocksLengthList, outputBlock.annotationBlockLengthsForSamplingMisjoin[name], f"annotation length list for sampling misjoin is not correct ({name})")
+                        # check total length of sampling misjoin blocks per annotation
+                        for name, blocksTotalLength in truthBlock.annotationTotalLengthsForSamplingMisjoin.items():
+                            self.assertEqual(blocksTotalLength, outputBlock.annotationTotalLengthsForSamplingMisjoin[name], f"total annotation length for sampling misjoin is not correct ({name})")
+
 
                         self.assertEqual(truthBlock.origCtg, outputBlock.origCtg, f"origCtg is not correct ({name})")
                         self.assertEqual(truthBlock.origStart, outputBlock.origStart, f"origStart is not correct ({name})")
