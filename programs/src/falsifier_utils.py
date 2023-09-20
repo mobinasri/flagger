@@ -488,8 +488,8 @@ class HomologyRelation:
         """
         assert(self.block.origStrand == '+')
         assert(self.homologousBlock.origStrand == '+')
-        assert(1 < start)
-        assert(end < self.alignment.chromLength)
+        assert(1 < loc)
+        assert(loc < self.alignment.chromLength)
 
         forwardBlocks = [(1, loc, ""), (loc+1, self.alignment.chromLength, "")]
         includeEndingIndel = True
@@ -901,7 +901,7 @@ class HomologyRelationChains:
                                         - part 1: From index 0 to lastOrderIndexOnLeft inclusively
                                         - part 2: From index lastOrderIndexOnLeft + 1 till the end inclusively
         """
-        z = re.findall("(?<=_f_p)[0-9.]+$", newCtg)
+        z = re.findall("(?<=\.p)[0-9.]+$", newCtg)
         if len(z) == 1:
             newCtgLeft = newCtg + "_1"
             newCtgRight = newCtg + "_2"
