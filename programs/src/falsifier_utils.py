@@ -757,85 +757,85 @@ class HomologyRelationChains:
 
         ### Adding misassembly blocks expected to be represented in read alignments ####
 
-        # add misassembly with "Msj" label to both ends of the middle reference block
+        # add misassembly with "Sw" label to both ends of the middle reference block
         rBlockPart2Length = rBlockPart2.origEnd - rBlockPart2.origStart + 1
         if rBlockPart2Length <= 2.5 * switchEffectWindowLength:
-            rBlockPart2.addMisAssemblyBlockList(BlockList([(1, rBlockPart2Length, "Msj")]))
+            rBlockPart2.addMisAssemblyBlockList(BlockList([(1, rBlockPart2Length, "Sw")]))
         else:
-            rBlockPart2.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj"),
+            rBlockPart2.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Sw"),
                                                            (rBlockPart2Length - switchEffectWindowLength + 1,
                                                             rBlockPart2Length,
-                                                            "Msj")]))
+                                                            "Sw")]))
         rBlockPart2.containsMisAssembly= True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
         rBlockPart2.clearAnnotationBlocksForSampling()
 
-        # add misassembly with "Msj" label to both ends of the middle query block
+        # add misassembly with "Sw" label to both ends of the middle query block
         qBlockPart2Length = qBlockPart2.origEnd - qBlockPart2.origStart + 1
         if qBlockPart2Length <= 2.5 * switchEffectWindowLength:
-            qBlockPart2.addMisAssemblyBlockList(BlockList([(1, qBlockPart2Length, "Msj")]))
+            qBlockPart2.addMisAssemblyBlockList(BlockList([(1, qBlockPart2Length, "Sw")]))
         else:
-            qBlockPart2.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj"),
+            qBlockPart2.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Sw"),
                                                            (qBlockPart2Length - switchEffectWindowLength + 1,
                                                             qBlockPart2Length,
-                                                            "Msj")]))
+                                                            "Sw")]))
         qBlockPart2.containsMisAssembly= True
         # blocks with misassembly cannot be used for creating
         # another misassmbley later
         qBlockPart2.clearAnnotationBlocksForSampling()
 
 
-        # add misassembly with the "Msj" label to the end part of the left reference block
+        # add misassembly with the "Sw" label to the end part of the left reference block
         rBlockPart1 = ref2querySplitRelations[0].block
         rBlockPart1Length = rBlockPart1.origEnd - rBlockPart1.origStart + 1
         if rBlockPart1Length <= switchEffectWindowLength:
-            rBlockPart1.addMisAssemblyBlockList(BlockList([(1, rBlockPart1Length, "Msj")]))
+            rBlockPart1.addMisAssemblyBlockList(BlockList([(1, rBlockPart1Length, "Sw")]))
         else:
             rBlockPart1.addMisAssemblyBlockList(BlockList([(rBlockPart1Length - switchEffectWindowLength + 1,
                                                             rBlockPart1Length,
-                                                            "Msj")]))
+                                                            "Sw")]))
 
 
-        # add misassembly with the "Msj" label to the beginning part of the right reference block
+        # add misassembly with the "Sw" label to the beginning part of the right reference block
         rBlockPart3 = ref2querySplitRelations[2].block
         rBlockPart3Length = rBlockPart3.origEnd - rBlockPart3.origStart + 1
         if rBlockPart3Length <= switchEffectWindowLength:
-            rBlockPart3.addMisAssemblyBlockList(BlockList([(1, rBlockPart3Length, "Msj")]))
+            rBlockPart3.addMisAssemblyBlockList(BlockList([(1, rBlockPart3Length, "Sw")]))
         else:
-            rBlockPart3.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj")]))
+            rBlockPart3.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Sw")]))
 
 
-        # add misassembly with the "Msj" label to the left query block
+        # add misassembly with the "Sw" label to the left query block
         # it will be added to the end if orientation was positive
         # it will be added to the beginning if orientation was negative
         qBlockPart1 = ref2querySplitRelations[0].homologousBlock
         qBlockPart1Length = qBlockPart1.origEnd - qBlockPart1.origStart + 1
         if qBlockPart1Length <= switchEffectWindowLength:
-            qBlockPart1.addMisAssemblyBlockList(BlockList([(1, qBlockPart1Length, "Msj")]))
+            qBlockPart1.addMisAssemblyBlockList(BlockList([(1, qBlockPart1Length, "Sw")]))
         else:
             if relationToSplit.alignment.orientation == '+':
                 qBlockPart1.addMisAssemblyBlockList(BlockList([(qBlockPart1Length - switchEffectWindowLength + 1,
                                                                 qBlockPart1Length,
-                                                                "Msj")]))
+                                                                "Sw")]))
             else: # '-'
-                qBlockPart1.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj")]))
+                qBlockPart1.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Sw")]))
 
 
-        # add misassembly with the "Msj" label to the right query block
+        # add misassembly with the "Sw" label to the right query block
         # it will be added to the beginning if orientation was positive
         # it will be added to the end if orientation was negative
         qBlockPart3 = ref2querySplitRelations[2].homologousBlock
         qBlockPart3Length = qBlockPart3.origEnd - qBlockPart3.origStart + 1
         if qBlockPart3Length <= switchEffectWindowLength:
-            qBlockPart3.addMisAssemblyBlockList(BlockList([(1, qBlockPart3Length, "Msj")]))
+            qBlockPart3.addMisAssemblyBlockList(BlockList([(1, qBlockPart3Length, "Sw")]))
         else:
             if relationToSplit.alignment.orientation == '+':
-                qBlockPart3.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Msj")]))
+                qBlockPart3.addMisAssemblyBlockList(BlockList([(1, switchEffectWindowLength, "Sw")]))
             else: # '-'
                 qBlockPart3.addMisAssemblyBlockList(BlockList([(qBlockPart3Length - switchEffectWindowLength + 1,
                                                                 qBlockPart3Length,
-                                                                "Msj")]))
+                                                                "Sw")]))
 
 
 
@@ -1547,19 +1547,26 @@ class HomologyRelationChains:
     def getTotalSamplingMisjoinLength(self, newCtg, annotation):
         return sum(self.getListOfSamplingMisjoinLengths(newCtg, annotation))
 
-    def getWeightedRandomNewCtgForSamplingMisjoin(self, annotation):
+    def getWeightedRandomNewCtgForSamplingMisjoin(self, annotation, newCtgListToExclude):
         """
         Given the annotation name select one new contig randomly by taking the
         total length of sampling (for misjoin) regions as the sampling weight for each new contig
 
         :param annotation: The annotation name
+        :param newCtgListToExclude: a list of new contigs to exclude from the sampling process
         :return: The randomly selected new contig
         """
         #print(annotation, self.newCtgAnnotationWeightsForSampling)
-        if sum(self.newCtgAnnotationWeightsForSamplingMisjoin[annotation]) == 0:
+        newCtgIndicesToExlucde = [self.newCtgToIndexForSampling[c] for c in newCtgListToExclude]
+        weights = np.array(self.newCtgAnnotationWeightsForSamplingMisjoin[annotation])
+        newCtgList = np.array(self.newCtgListForSampling)
+        # exclude contigs
+        weights = np.delete(weights, newCtgIndicesToExlucde)
+        newCtgList = np.delete(newCtgList, newCtgIndicesToExlucde)
+        if sum(weights) == 0:
             return None
-        selectedNewCtg = random.choices(self.newCtgListForSampling,
-                                        weights=self.newCtgAnnotationWeightsForSamplingMisjoin[annotation],
+        selectedNewCtg = random.choices(newCtgList,
+                                        weights=weights,
                                         k=1)[0]
         return selectedNewCtg
 
@@ -1589,15 +1596,16 @@ class HomologyRelationChains:
         loc = block.sampleMisjoinLocation(annotation)
         return loc
 
-    def getRandomMisjoinLocation(self, annotation):
+    def getRandomMisjoinLocation(self, annotation, newCtgListToExclude):
         """
         This method can be called to obtain a random location for inducing a misjoin
         overlapping with the annotation of interest
 
         :param annotation: The annotation name
+        :param newCtgListToExclude: a list of new contigs to exclude from the sampling process
         :return: a randomly selected new contig name, index of relation, and location
         """
-        newCtg = self.getWeightedRandomNewCtgForSamplingMisjoin(annotation)
+        newCtg = self.getWeightedRandomNewCtgForSamplingMisjoin(annotation, newCtgListToExclude)
         if newCtg == None:
             return None, None, None, None
         orderIndex = self.getWeightedRandomOrderIndexForSamplingMisjoin(newCtg, annotation)
