@@ -1601,7 +1601,7 @@ class HomologyRelationChains:
             newCtgSeqList.append(blockSeq)
         return  "".join(newCtgSeqList)
 
-    def yeildNewCtgSequences(self, origCtgSequences, singleBaseErrorRate):
+    def yieldNewCtgSequences(self, origCtgSequences, singleBaseErrorRate):
         newCtgList = sorted(list(self.relationChains.keys()))
         for newCtg in newCtgList:
             yield newCtg, self.getNewCtgSequence(newCtg, origCtgSequences, singleBaseErrorRate)
@@ -1638,7 +1638,7 @@ class HomologyRelationChains:
     def writeNewContigsToFasta(self, origCtgSequences, fastaPath, singleBaseErrorRate):
         handle = open(fastaPath, "w")
         writer = FastaWriter(handle)
-        for newCtg, newSeq in self.yeildNewCtgSequences(origCtgSequences, singleBaseErrorRate):
+        for newCtg, newSeq in self.yieldNewCtgSequences(origCtgSequences, singleBaseErrorRate):
             record = SeqRecord(Seq(newSeq),
                                id = newCtg,
                                description = "")

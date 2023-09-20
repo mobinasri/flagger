@@ -2118,7 +2118,7 @@ class TestProjection(unittest.TestCase):
                           "ctg2_f.p_2": "ATTGTAGTATGT",
                           "ctg1.Dup_20_24": "ATATA"}
 
-        for newCtg, newSeq in outputRelationChains.yeildNewCtgSequences(self.contigSequencesForAlignment3, singleBaseErrorRate=0.0):
+        for newCtg, newSeq in outputRelationChains.yieldNewCtgSequences(self.contigSequencesForAlignment3, singleBaseErrorRate=0.0):
             self.assertEqual(truthSequences[newCtg], newSeq, f"sequence of {newCtg} is not correct")
 
 
@@ -2162,7 +2162,7 @@ class TestProjection(unittest.TestCase):
                           "ctg2_f.p_2": "TGGTCTCGGTATTAGTAGTAATATCCGATTGTATAGTGTTACTCACTGTGT",
                           "ctg1.Dup_20_24": "ATATA"}
 
-        for newCtg, newSeq in outputRelationChains.yeildNewCtgSequences(self.contigSequencesForAlignment4, singleBaseErrorRate=0.0):
+        for newCtg, newSeq in outputRelationChains.yieldNewCtgSequences(self.contigSequencesForAlignment4, singleBaseErrorRate=0.0):
             self.assertEqual(truthSequences[newCtg], newSeq, f"sequence of {newCtg} is not correct")
 
 
