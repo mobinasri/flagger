@@ -163,10 +163,14 @@ class HomologyBlock:
         wholeBlockMarginFromLeft = self.minMarginLength
         # The margin of the whole block to be excluded from sampling
         # (from right side)
-        wholeBlockMarginFromRight = self.misAssemblyLength + self.minMarginLength
+        wholeBlockMarginFromRight = self.misAssemblyLength + self.minMarginLength - 1
 
         wholeBlockWithoutMargins = BlockList([(1, self.origEnd - self.origStart + 1)]).truncateFromLeft(wholeBlockMarginFromLeft, inplace=False)
-        wholeBlockWithoutMargins.truncateFromRight(wholeBlockMarginFromRight - 1, inplace=True)
+        wholeBlockWithoutMargins.truncateFromRight(wholeBlockMarginFromRight, inplace=True)
+
+        # margins for misjoin are more inclusive on the right side
+        wholeBlockWithoutMarginsForMisjoin = BlockList([(1, self.origEnd - self.origStart + 1)]).truncateFromLeft(wholeBlockMarginFromLeft, inplace=False)
+        wholeBlockWithoutMarginsForMisjoin.truncateFromRight(self.minMarginLength, inplace=True)
 
         for name in self.annotationBlockLists:
             ###############################################################
@@ -206,9 +210,9 @@ class HomologyBlock:
             self.annotationBlockListsForSamplingMisjoin[name] = self.annotationBlockLists[name].copy()
 
             # truncate the blocks to make sure they do not have overlap with the margins
-            self.annotationBlockListsForSamplingMisjoin[name].intersect(wholeBlockWithoutMargins, inplace=True)
+            self.annotationBlockListsForSamplingMisjoin[name].intersect(wholeBlockWithoutMarginsForMisjoin, inplace=True)
             self.annotationBlockLengthsForSamplingMisjoin[name] = [i[1] - i[0] + 1 for i in self.annotationBlockListsForSamplingMisjoin[name].blocks]
-            self.annotationTotalLengthsForSamplingMisjoin[name] = sum(self.annotationStartBlockLengthsForSampling[name])
+            self.annotationTotalLengthsForSamplingMisjoin[name] = sum(self.annotationBlockLengthsForSamplingMisjoin[name])
 
 
     def sampleMisjoinLocation(self, name):
@@ -941,7 +945,7 @@ class HomologyRelationChains:
         if blockLength <= misAssemblyLength:
             block.addMisAssemblyBlockList(BlockList([(1, blockLength, misAssemblyType)]))
         else:
-            block.addMisAssemblyBlockList(BlockList([(misAssemblyLength - blockLength, misAssemblyLength, misAssemblyType)]))
+            block.addMisAssemblyBlockList(BlockList([(blockLength - misAssemblyLength + 1, blockLength, misAssemblyType)]))
 
 
     def induceMisjoinMisAssembly(self, newCtg_1, orderIndex_1, loc_1, newCtg_2, orderIndex_2, loc_2, misjoinEffectWindowLength):
@@ -1037,7 +1041,7 @@ class HomologyRelationChains:
             self.relationChains[otherHapNewCtg_1].insert(relation.block.orderIndex, relation)
 
         # shift the indices of all the blocks after the last added relation by one
-        for relation in self.relationChains[otherHapNewCtg_1][otherHapOrderIndex_1 + 1:]:
+        for relation in self.relationChains[otherHapNewCtg_1][otherHapOrderIndex_1 + 2:]:
             relation.block.orderIndex += 1
 
         # insert split relations to relation chain of the "otherHapNewCtg_2"
@@ -1045,16 +1049,17 @@ class HomologyRelationChains:
             self.relationChains[otherHapNewCtg_2].insert(relation.block.orderIndex, relation)
 
         # shift the indices of all the blocks after the last added relation by one
-        for relation in self.relationChains[otherHapNewCtg_2][otherHapOrderIndex_2 + 1:]:
+        for relation in self.relationChains[otherHapNewCtg_2][otherHapOrderIndex_2 + 2:]:
             relation.block.orderIndex += 1
 
         # create two misjoins by swapping the links between ref2query relations
+        # the old relation is already popped out above
         relationsPrePart1_1 = self.relationChains[newCtg_1][:orderIndex_1]
-        relationsPostPart2_1 = self.relationChains[newCtg_1][orderIndex_1 + 1:]
+        relationsPostPart2_1 = self.relationChains[newCtg_1][orderIndex_1:]
 
 
         relationsPrePart1_2 = self.relationChains[newCtg_2][:orderIndex_2]
-        relationsPostPart2_2 = self.relationChains[newCtg_2][orderIndex_2 + 1:]
+        relationsPostPart2_2 = self.relationChains[newCtg_2][orderIndex_2:]
 
         newRelations_1 = relationsPrePart1_1
         newRelations_1.extend([relationPart1_1, relationPart2_2])
@@ -1081,6 +1086,13 @@ class HomologyRelationChains:
 
         del self.relationChains[newCtg_2]
         self.relationChains[newCtgRenamed_2] = newRelations_2
+
+        # rename newCtg attributes
+        for relation in self.relationChains[newCtgRenamed_1]:
+            relation.block.newCtg = newCtgRenamed_1
+
+        for relation in self.relationChains[newCtgRenamed_2]:
+            relation.block.newCtg = newCtgRenamed_2
 
         # get indices of previous contigs
         # to set sampling weights to zero
