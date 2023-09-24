@@ -1,5 +1,11 @@
 #include "common.h"
 
+char* copyString(char* str){
+    char* copy  = (char*) malloc(strlen(str) + 1);
+    strcpy(copy, str);
+    return copy;
+}
+
 char* get_timestamp() {
     static char timestamp[TIMESTAMP_SIZE + 1];  // static variable to hold the timestamp string
     time_t t = time(NULL);

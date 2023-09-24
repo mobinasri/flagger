@@ -13,6 +13,8 @@ char* get_timestamp();
 
 bool file_exists (char *filename);
 
+char* copyString(char* str);
+
 typedef struct Splitter{
 	char* str;
 	int offset;
