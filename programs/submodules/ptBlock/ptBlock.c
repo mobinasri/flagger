@@ -228,14 +228,14 @@ bool ptBlock_is_equal_stHash(stHash* blocks_per_contig_1, stHash* blocks_per_con
     while ((contig_name = stHash_getNext(it_1)) != NULL) {
         blocks_1 = stHash_search(blocks_per_contig_1, contig_name);
         blocks_2 = stHash_search(blocks_per_contig_2, contig_name);
-        is_equal &&= ptBlock_is_equal_stList(blocks_1, blocks_2);
+        is_equal &= ptBlock_is_equal_stList(blocks_1, blocks_2);
     }
     // check if all blocks in table 2 is in table 1
     stHashIterator *it_2 = stHash_getIterator(blocks_per_contig_2);
     while ((contig_name = stHash_getNext(it_2)) != NULL) {
         blocks_1 = stHash_search(blocks_per_contig_1, contig_name);
         blocks_2 = stHash_search(blocks_per_contig_2, contig_name);
-        is_equal &&= ptBlock_is_equal_stList(blocks_1, blocks_2);
+        is_equal &= ptBlock_is_equal_stList(blocks_1, blocks_2);
     }
     stHash_destructIterator(it_1);
     stHash_destructIterator(it_2);
@@ -279,7 +279,7 @@ ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char** ctg_na
             // call "ptBlockItrPerContig_next" recursively
             block_iter->ctg_index += 1;
             block_iter->block_index = 0;
-            block = ptBlockItrPerContig_next(block_iter, ctg_name_ptr)
+            block = ptBlockItrPerContig_next(block_iter, ctg_name_ptr);
         }else{
             // if there is still block for the current contig
             // get the block and increase the block index
@@ -320,7 +320,9 @@ stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number){
                                                             (void (*)(void *)) stList_destruct);
         while ((start + batch_size - batch_filled_size - 1) >= block->rfe) {
             // create block and add to the batch table
-            ptBlock *block = ptBlock_construct(start, block->rfe);
+            ptBlock *block = ptBlock_construct(start, block->rfe,
+                                               -1, -1,
+                                               -1, -1);
             ptBlock_add_block_to_stList_table(batch_blocks_per_contig, block, ctg_name);
             batch_filled_size += block->rfe - start + 1;
             // go to next block
@@ -329,7 +331,9 @@ stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number){
             start = block->rfs;
         }
         if ((block != NULL) && (batch_filled_size < batch_size)) {
-            ptBlock *block = ptBlock_construct(start, start + batch_size - batch_filled_size - 1);
+            ptBlock *block = ptBlock_construct(start, start + batch_size - batch_filled_size - 1,
+                                               -1, -1,
+                                               -1, -1);
             ptBlock_add_block_to_stList_table(batch_blocks_per_contig, block, ctg_name);
             start += batch_size - batch_filled_size;
         }
