@@ -390,6 +390,21 @@ stHash *ptBlock_parse_bed(char *bed_path) {
     return blocks_per_contig;
 }
 
+void ptBlock_print_blocks_stHash(stHash* blocks_per_contig){
+    char* ctg_name;
+    stHashIterator *it = stHash_getIterator(blocks_per_contig);
+    while ((ctg_name = stHash_getNext(it)) != NULL) {
+        stList* blocks = stHash_search(blocks_per_contig, ctg_name);
+        for(int i=0; i < stList_length(blocks); i++){
+            ptBlock* block = stList_get(blocks, i);
+            printf("%s\t%d\t%d\n",ctg_name, block->rfs, block->rfe + 1);
+        }
+    }
+    stHash_destructIterator(it);
+}
+
+
+
 void ptBlock_sort_stHash_by_rfs(stHash *blocks_per_contig) {
     char *contig_name;
     stList *blocks;
