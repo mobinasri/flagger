@@ -261,17 +261,17 @@ ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig){
 }
 
 
-ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char** ctg_name_ptr){
+ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char* ctg_name){
     ptBlock* block;
     if(stList_length(block_iter->ctg_list) - 1 < block_iter->ctg_index){
         // if all blocks are iterated already
         // set contig_name to null and also return null as the next block
-        strcpy(*ctg_name_ptr, '\0');
+        ctg_name[0] = '\0';
         block = NULL;
     }else{
-        char* ctg_name = stList_get(block_iter->ctg_list, block_iter->ctg_index);
+        char* ctg_name_new = stList_get(block_iter->ctg_list, block_iter->ctg_index);
         // update contig name
-        strcpy(*ctg_name_ptr, ctg_name);
+        strcpy(ctg_name, ctg_name_new);
         stList* blocks = stHash_search(block_iter->blocks_per_contig, ctg_name);
         if(stList_length(blocks) - 1 < block_iter->block_index) {
             // if the blocks for this contig is finished
@@ -279,7 +279,7 @@ ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char** ctg_na
             // call "ptBlockItrPerContig_next" recursively
             block_iter->ctg_index += 1;
             block_iter->block_index = 0;
-            block = ptBlockItrPerContig_next(block_iter, ctg_name_ptr);
+            block = ptBlockItrPerContig_next(block_iter, ctg_name);
         }else{
             // if there is still block for the current contig
             // get the block and increase the block index
@@ -308,33 +308,40 @@ void ptBlock_add_block_to_stList_table(stHash* blocks_per_contig, ptBlock* block
 stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number){
     stList* batches = stList_construct3(0, stHash_destruct);
     int total_size = ptBlock_get_total_length_by_rf(blocks_per_contig);
-    int batch_size = ceil(total_size / split_number);
+    // ceil is used here so the last batch might be smaller than other batches
+    int batch_size = ceil((double)total_size / split_number);
     int batch_filled_size = 0;
+    // make a block iterator
     ptBlockItrPerContig *block_iter = ptBlockItrPerContig_construct(blocks_per_contig);
     char ctg_name[200];
-    ptBlock *block = ptBlockItrPerContig_next(block_iter, &ctg_name);
+    // get the first block 
+    ptBlock *block = ptBlockItrPerContig_next(block_iter, ctg_name);
     int start = block->rfs;
     for (int i =0 ;  i < split_number; i++) {
+	// start filling the new batch
         batch_filled_size = 0;
         stHash *batch_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, free,
                                                             (void (*)(void *)) stList_destruct);
         while ((start + batch_size - batch_filled_size - 1) >= block->rfe) {
             // create block and add to the batch table
-            ptBlock *block = ptBlock_construct(start, block->rfe,
-                                               -1, -1,
-                                               -1, -1);
-            ptBlock_add_block_to_stList_table(batch_blocks_per_contig, block, ctg_name);
+            ptBlock *block_to_add = ptBlock_construct(start, block->rfe,
+                                                      -1, -1,
+                                                      -1, -1);
+            ptBlock_add_block_to_stList_table(batch_blocks_per_contig, block_to_add, ctg_name);
             batch_filled_size += block->rfe - start + 1;
             // go to next block
-            block = ptBlockItrPerContig_next(block_iter, &ctg_name);
+            block = ptBlockItrPerContig_next(block_iter, ctg_name);
             if (block == NULL) break;
+	    // a new block is taken from iterator so start should be equal to block->rfs
             start = block->rfs;
         }
         if ((block != NULL) && (batch_filled_size < batch_size)) {
-            ptBlock *block = ptBlock_construct(start, start + batch_size - batch_filled_size - 1,
-                                               -1, -1,
-                                               -1, -1);
-            ptBlock_add_block_to_stList_table(batch_blocks_per_contig, block, ctg_name);
+	    // only a part of the current block will be in the current batch
+            ptBlock *block_to_add = ptBlock_construct(start, start + batch_size - batch_filled_size - 1,
+                                                      -1, -1,
+                                                      -1, -1);
+            ptBlock_add_block_to_stList_table(batch_blocks_per_contig, block_to_add, ctg_name);
+	    // update start location of this block for the next batch
             start += batch_size - batch_filled_size;
         }
         // add the new batch
