@@ -208,10 +208,10 @@ ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig);
 /* Return the next block and update the contig name
  *
  * @param block_iter        the block iterator
- * @param ctg_name_ptr      a reference to the contig name (to be able to update in place)
+ * @param ctg_name          contig name (to be able to update in place)
  * @return block            ptBlock of the next block
  */
-ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char** ctg_name_ptr);
+ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char* ctg_name_ptr);
 
 
 /* Destruct a ptBlockItrPerContig structure

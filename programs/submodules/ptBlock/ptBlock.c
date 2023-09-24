@@ -255,6 +255,7 @@ ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig){
     while ((contig_name = stHash_getNext(it)) != NULL) {
         stList_append(block_iter->ctg_list, copyString(contig_name));
     }
+    stList_sort(block_iter->ctg_list, (int (*)(const void *, const void *))strcmp);
     block_iter->ctg_index = 0;
     block_iter->block_index = 0;
     return block_iter;
