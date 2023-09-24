@@ -269,10 +269,10 @@ ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char** ctg_na
         strcpy(*ctg_name_ptr, '\0');
         block = NULL;
     }else{
-        char* ctg_name = block_iter->ctg_list[block_iter->ctg_index];
+        char* ctg_name = stList_get(block_iter->ctg_list, block_iter->ctg_index);
         // update contig name
         strcpy(*ctg_name_ptr, ctg_name);
-        stList* blocks = stHash_search(blocks_per_contig, contig_name);
+        stList* blocks = stHash_search(blocks_per_contig, ctg_name);
         if(stList_length(blocks) - 1 < block_iter->block_index) {
             // if the blocks for this contig is finished
             // go to the next contig and reset the block index
@@ -283,7 +283,7 @@ ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char** ctg_na
         }else{
             // if there is still block for the current contig
             // get the block and increase the block index
-            ptBlock* block = stList_get(blocks, block_iter->block_index);
+            block = stList_get(blocks, block_iter->block_index);
             block_iter->block_index += 1;
         }
     }
@@ -308,7 +308,7 @@ void ptBlock_add_block_to_stList_table(stHash* blocks_per_contig, ptBlock* block
 stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number){
     stList* batches = stList_construct3(0, stHash_destruct);
     int total_size = ptBlock_get_total_length_by_rf(blocks_per_contig);
-    int batch_size = int(totalSize / split_number) + 1;
+    int batch_size = ceil(totalSize / split_number);
     int batch_filled_size = 0;
     ptBlockItrPerContig *block_iter = ptBlockItrPerContig_construct(blocks_per_contig);
     char ctg_name[200];
