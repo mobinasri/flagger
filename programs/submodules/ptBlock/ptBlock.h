@@ -160,6 +160,33 @@ void ptBlock_sort_stHash_by_rfs(stHash *blocks_per_contig);
 stHash *ptBlock_parse_bed(char *bed_path);
 
 
+/* Compare two ptBlock structures
+ *
+ * @param block_1       the first block
+ * @param block_2       the second block
+ * @return              true if the ref/read coordinates of the two blocks were exactly the same
+ */
+bool ptBlock_is_equal(ptBlock* block_1, ptBlock* block_2);
+
+
+/* Compare two lists of ptBlock structures
+ *
+ * @param blocks_1      the first list of blocks
+ * @param blocks_2      the second list of blocks
+ * @return              true if the ref/read coordinates of the two block lists were exactly the same
+ */
+bool ptBlock_is_equal_stList(stList* blocks_1, stList* blocks_2);
+
+
+/* Compare two stHash tables of blocks
+ *
+ * @param blocks_1      the first table of blocks
+ * @param blocks_2      the second table of blocks
+ * @return              true if the contig names and ref/read coordinates of the blocks in the two tables were exactly the same
+ */
+bool ptBlock_is_equal_stHash(stHash* blocks_per_contig_1, stHash* blocks_per_contig_2);
+
+
 // Functions for block iterator
 
 

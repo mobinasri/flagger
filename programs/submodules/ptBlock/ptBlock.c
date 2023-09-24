@@ -181,6 +181,68 @@ int ptBlock_cmp_sqs(const void *a, const void *b) {
     return b1->sqs - b2->sqs;
 }
 
+
+bool ptBlock_is_equal(ptBlock* block_1, ptBlock* block_2){
+
+    if((block_1 == NULL) && (block_2 == NULL)){ // if both are NULL
+        return true;
+    }else if((block_1 == NULL) || (block_2 == NULL)){ // if only one block is NULL
+        return false;
+    }
+
+    bool is_equal = true;
+    is_equal &= (block_1->rfs == block_2->rfs);
+    is_equal &= (block_1->rfe == block_2->rfe);
+    is_equal &= (block_1->sqs == block_2->sqs);
+    is_equal &= (block_1->sqe == block_2->sqe);
+    is_equal &= (block_1->rds_f == block_2->rds_f);
+    is_equal &= (block_1->rde_f == block_2->rde_f);
+    return is_equal;
+}
+
+
+bool ptBlock_is_equal_stList(stList* blocks_1, stList* blocks_2){
+    if((blocks_1 == NULL) && (blocks_2 == NULL)){ // if both are NULL
+        return true;
+    }else if((blocks_1 == NULL) || (blocks_2 == NULL)){ // if only one block list is NULL
+        return false;
+    }
+    if(stList_length(blocks_1) != stList_length(blocks_2)) return false;
+    for(int i=0; i < stList_length(blocks_1); i++){
+        ptBlock* block_1 = stList_get(blocks_1, i);
+        ptBlock* block_2 = stList_get(blocks_2, i);
+        if(ptBlock_is_equal(block_1, block_2) == false) return false;
+    }
+    return true;
+}
+
+
+bool ptBlock_is_equal_stHash(stHash* blocks_per_contig_1, stHash* blocks_per_contig_2){
+    bool is_equal = true;
+    char* contig_name;
+    stList* blocks_1;
+    stList* blocks_2;
+
+    // check if all blocks in table 1 is in table 2
+    stHashIterator *it_1 = stHash_getIterator(blocks_per_contig_1);
+    while ((contig_name = stHash_getNext(it_1)) != NULL) {
+        blocks_1 = stHash_search(blocks_per_contig_1, contig_name);
+        blocks_2 = stHash_search(blocks_per_contig_2, contig_name);
+        is_equal &&= ptBlock_is_equal_stList(blocks_1, blocks_2);
+    }
+    // check if all blocks in table 2 is in table 1
+    stHashIterator *it_2 = stHash_getIterator(blocks_per_contig_2);
+    while ((contig_name = stHash_getNext(it_2)) != NULL) {
+        blocks_1 = stHash_search(blocks_per_contig_1, contig_name);
+        blocks_2 = stHash_search(blocks_per_contig_2, contig_name);
+        is_equal &&= ptBlock_is_equal_stList(blocks_1, blocks_2);
+    }
+    stHash_destructIterator(it_1);
+    stHash_destructIterator(it_2);
+    return is_equal;
+}
+
+
 // Functions for block iterator
 
 
@@ -320,6 +382,7 @@ stHash *ptBlock_parse_bed(char *bed_path) {
         blocks = stHash_search(blocks_per_contig, contig_name);
         stList_sort(blocks, ptBlock_cmp_rfs);
     }
+    stHash_destructIterator(it);
     return blocks_per_contig;
 }
 
