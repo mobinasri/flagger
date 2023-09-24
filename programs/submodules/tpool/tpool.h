@@ -18,11 +18,7 @@ struct tpool_work {
 typedef struct tpool_work tpool_work_t;
 
 typedef struct work_arg_t {
-	HMM* model;
-	Chunk* chunk;
-    int chunkIndex;
-    int nChunks;
-    int iter;
+    void* data;
 }work_arg_t;
 
 struct tpool {
