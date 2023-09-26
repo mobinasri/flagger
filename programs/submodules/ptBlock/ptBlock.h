@@ -372,6 +372,14 @@ void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path, bool print_c
 
 int ptBlock_get_total_number(stHash *blocks_per_contig);
 
+int ptBlock_get_total_length(stHash *blocks_per_contig, int (*get_start)(ptBlock *), int (*get_end)(ptBlock *));
+
+int ptBlock_get_total_length_by_rf(stHash *blocks_per_contig);
+
+int ptBlock_get_total_length_by_rd_f(stHash *blocks_per_contig);
+
+int ptBlock_get_total_length_by_sq(stHash *blocks_per_contig);
+
 void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char* contig, stList* blocks_to_add);
 
 stList* ptBlock_copy_stList(stList* blocks);
