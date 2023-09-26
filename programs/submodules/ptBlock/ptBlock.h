@@ -247,8 +247,11 @@ stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
 /* Print all block in the given table. The blocks are printed in BED format. start is 0-based and end is 1-based
  *
  * @param blocks_per_contig     stHash table of blocks (each value is a stList of blocks)
+ * @param print_count           print the count data for each block as the 4th column.
+ *                              The data of each block should be of type (int*)
+ * @param fp                    opened file to write the blocks in (can be stdout/stderr)
  */
-void ptBlock_print_blocks_stHash(stHash* blocks_per_contig);
+void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, FILE* fp);
 
 /**
  * Merge blocks (should be sorted by stList_sort)

@@ -398,14 +398,19 @@ stHash *ptBlock_parse_bed(char *bed_path) {
     return blocks_per_contig;
 }
 
-void ptBlock_print_blocks_stHash(stHash* blocks_per_contig){
+void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, FILE* fp){
     char* ctg_name;
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
     while ((ctg_name = stHash_getNext(it)) != NULL) {
         stList* blocks = stHash_search(blocks_per_contig, ctg_name);
         for(int i=0; i < stList_length(blocks); i++){
             ptBlock* block = stList_get(blocks, i);
-            printf("%s\t%d\t%d\n",ctg_name, block->rfs, block->rfe + 1);
+            if(print_count){
+                int *count_ptr = block->data;
+                fprintf(fp, "%s\t%d\t%d\t%d\n",ctg_name, block->rfs, block->rfe + 1, *count_ptr);
+            }else {
+                fprintf(fp, "%s\t%d\t%d\n", ctg_name, block->rfs, block->rfe + 1);
+            }
         }
     }
     stHash_destructIterator(it);
