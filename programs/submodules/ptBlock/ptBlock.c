@@ -1,4 +1,5 @@
 #include "ptBlock.h"
+#include <zlib.h>
 
 
 ptBlock *ptBlock_construct(int rfs, int rfe, int sqs, int sqe, int rds_f, int rde_f) {
@@ -306,12 +307,13 @@ void ptBlock_add_block_to_stList_table(stHash* blocks_per_contig, ptBlock* block
     stList_append(blocks, block);
 }
 
+
 stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number){
     stList* batches = stList_construct3(0, stHash_destruct);
-    int total_size = ptBlock_get_total_length_by_rf(blocks_per_contig);
+    int64_t total_size = ptBlock_get_total_length_by_rf(blocks_per_contig);
     // ceil is used here so the last batch might be smaller than other batches
-    int batch_size = ceil((double)total_size / split_number);
-    int batch_filled_size = 0;
+    int64_t batch_size = ceil((double)total_size / split_number);
+    int64_t batch_filled_size = 0;
     // make a block iterator
     ptBlockItrPerContig *block_iter = ptBlockItrPerContig_construct(blocks_per_contig);
     char ctg_name[200];
@@ -398,8 +400,9 @@ stHash *ptBlock_parse_bed(char *bed_path) {
     return blocks_per_contig;
 }
 
-void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, FILE* fp){
+void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, void* file_ptr, bool is_compressed){
     char* ctg_name;
+    char line[1000];
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
     while ((ctg_name = stHash_getNext(it)) != NULL) {
         stList* blocks = stHash_search(blocks_per_contig, ctg_name);
@@ -407,10 +410,17 @@ void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, FI
             ptBlock* block = stList_get(blocks, i);
             if(print_count){
                 int *count_ptr = block->data;
-                fprintf(fp, "%s\t%d\t%d\t%d\n",ctg_name, block->rfs, block->rfe + 1, *count_ptr);
+                sprintf(line, "%s\t%d\t%d\t%d\n",ctg_name, block->rfs, block->rfe + 1, *count_ptr);
             }else {
-                fprintf(fp, "%s\t%d\t%d\n", ctg_name, block->rfs, block->rfe + 1);
+                sprintf(line, "%s\t%d\t%d\n", ctg_name, block->rfs, block->rfe + 1);
             }
+	    if(is_compressed){
+	        gzFile* gzFile_ptr = file_ptr;
+		gzprintf(*gzFile_ptr, line);
+	    }else{
+                FILE* fp = file_ptr;
+		fprintf(fp,line);
+	    }
         }
     }
     stHash_destructIterator(it);
@@ -712,8 +722,8 @@ int ptBlock_get_total_number(stHash *blocks_per_contig) {
     return n;
 }
 
-int ptBlock_get_total_length(stHash *blocks_per_contig, int (*get_start)(ptBlock *), int (*get_end)(ptBlock *)) {
-    int total_len = 0;
+int64_t ptBlock_get_total_length(stHash *blocks_per_contig, int (*get_start)(ptBlock *), int (*get_end)(ptBlock *)) {
+    int64_t total_len = 0;
     char *contig_name;
     stList *blocks;
     ptBlock *block;
@@ -728,15 +738,15 @@ int ptBlock_get_total_length(stHash *blocks_per_contig, int (*get_start)(ptBlock
     return total_len;
 }
 
-int ptBlock_get_total_length_by_rf(stHash *blocks_per_contig) {
+int64_t ptBlock_get_total_length_by_rf(stHash *blocks_per_contig) {
     return ptBlock_get_total_length(blocks_per_contig, ptBlock_get_rfs, ptBlock_get_rfe);
 }
 
-int ptBlock_get_total_length_by_rd_f(stHash *blocks_per_contig) {
+int64_t ptBlock_get_total_length_by_rd_f(stHash *blocks_per_contig) {
     return ptBlock_get_total_length(blocks_per_contig, ptBlock_get_rds_f, ptBlock_get_rde_f);
 }
 
-int ptBlock_get_total_length_by_sq(stHash *blocks_per_contig) {
+int64_t ptBlock_get_total_length_by_sq(stHash *blocks_per_contig) {
     return ptBlock_get_total_length(blocks_per_contig, ptBlock_get_sqs, ptBlock_get_sqe);
 }
 

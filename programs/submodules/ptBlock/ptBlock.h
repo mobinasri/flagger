@@ -8,6 +8,8 @@
 #include "sonLib.h"
 #include "stdlib.h"
 #include "ptAlignment.h"
+#include <zlib.h>
+
 
 /*
  * @abstract Structure for saving a block
@@ -250,8 +252,10 @@ stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
  * @param print_count           print the count data for each block as the 4th column.
  *                              The data of each block should be of type (int*)
  * @param fp                    opened file to write the blocks in (can be stdout/stderr)
+ *                              it an also be a POINTER to the output of gzopen() for the compressed mode
+ * @param is_compressed		true if fp is of type gzFile*, false if stderr/stdout/FILE*
  */
-void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, FILE* fp);
+void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, void* fp, bool is_compressed);
 
 /**
  * Merge blocks (should be sorted by stList_sort)
@@ -372,13 +376,13 @@ void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path, bool print_c
 
 int ptBlock_get_total_number(stHash *blocks_per_contig);
 
-int ptBlock_get_total_length(stHash *blocks_per_contig, int (*get_start)(ptBlock *), int (*get_end)(ptBlock *));
+int64_t ptBlock_get_total_length(stHash *blocks_per_contig, int (*get_start)(ptBlock *), int (*get_end)(ptBlock *));
 
-int ptBlock_get_total_length_by_rf(stHash *blocks_per_contig);
+int64_t ptBlock_get_total_length_by_rf(stHash *blocks_per_contig);
 
-int ptBlock_get_total_length_by_rd_f(stHash *blocks_per_contig);
+int64_t ptBlock_get_total_length_by_rd_f(stHash *blocks_per_contig);
 
-int ptBlock_get_total_length_by_sq(stHash *blocks_per_contig);
+int64_t ptBlock_get_total_length_by_sq(stHash *blocks_per_contig);
 
 void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char* contig, stList* blocks_to_add);
 

@@ -25,7 +25,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <zlib.h>
 
 typedef struct ArgumentsCovExt {
     stHash* coverage_blocks_per_contig;
@@ -51,6 +51,7 @@ void update_coverage_blocks_with_alignments(void * arg_){
     // load the bam index
     hts_idx_t * sam_idx = sam_index_load(fp, bam_path);
     char* ctg_name;
+    int c =0;
 
     // iterate over all contigs for this batch
     stHashIterator *it = stHash_getIterator(ref_blocks_per_contig_to_parse);
@@ -64,9 +65,9 @@ void update_coverage_blocks_with_alignments(void * arg_){
             // iterate over all alignments overlapping this block
             hts_itr_t * sam_itr = sam_itr_queryi(sam_idx, tid, block->rfs, block->rfe);
             int bytes_read;
-            while (true) {
+            while (sam_itr != NULL) {
                 bytes_read = sam_itr_next(fp, sam_itr, b);
-                if (bytes_read <= -1) break;
+                if (bytes_read <= -1)break;
                 if (b->core.flag & BAM_FUNMAP) continue; // skip unmapped
                 if ((b->core.flag & BAM_FSECONDARY) > 0) continue; // skip secondary alignments
                 if (b->core.pos < block->rfs) continue; // make sure the alignment starts after block->rfs
@@ -74,10 +75,11 @@ void update_coverage_blocks_with_alignments(void * arg_){
                 // lock the mutex, add the coverage block and unlock the mutex
                 pthread_mutex_lock(mutexPtr);
                 bool init_count_data = true;
+		c += 1;
                 ptBlock_add_alignment(coverage_blocks_per_contig, alignment, init_count_data);
                 pthread_mutex_unlock(mutexPtr);
             }
-            hts_itr_destroy(sam_itr);
+	    if (sam_itr != NULL) hts_itr_destroy(sam_itr);
         }
     }
     stHash_destructIterator(it);
@@ -93,6 +95,7 @@ stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path){
                                                         (void (*)(void *)) stList_destruct);
     samFile *fp = sam_open(bam_path, "r");
     sam_hdr_t *sam_hdr = sam_hdr_read(fp);
+    int64_t total_len = 0;
     for(int i = 0; i < sam_hdr->n_targets; i++){
         char* ctg_name = sam_hdr->target_name[i];
         int ctg_len = sam_hdr->target_len[i];
@@ -102,7 +105,9 @@ stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path){
         stList* block_list = stList_construct3(0, ptBlock_destruct);
         stList_append(block_list, block);
         stHash_insert(blocks_per_contig, copyString(ctg_name), block_list);
+	total_len += ctg_len;
     }
+    printf("[%s] Size of the whole genome = %ld (n=%d)\n", get_timestamp(), total_len, sam_hdr->n_targets);
     sam_hdr_destroy(sam_hdr);
     sam_close(fp);
     return blocks_per_contig;
@@ -111,8 +116,8 @@ stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path){
 stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path, int threads){
     stHash* whole_genome_blocks_per_contig = ptBlock_get_whole_genome_blocks_per_contig(bam_path);
     stList* block_batches = ptBlock_split_into_batches(whole_genome_blocks_per_contig, threads);
-    stHash *coverage_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, free,
-                                                  (void (*)(void *)) stList_destruct);
+    stHash *coverage_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
+                                                           (void (*)(void *)) stList_destruct);
     // create a thread pool
     tpool_t *tm = tpool_create(threads);
     pthread_mutex_t *mutexPtr = malloc(sizeof(pthread_mutex_t));
@@ -121,28 +126,35 @@ stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path, int threads){
         stHash* batch = stList_get(block_batches, i);
         // make the args struct to pass to the function that
         // has to be run in each thread
-        ArgumentsCovExt argsCovExt = malloc(sizeof(ArgumentsCovExt));
+        ArgumentsCovExt *argsCovExt = malloc(sizeof(ArgumentsCovExt));
         argsCovExt->coverage_blocks_per_contig = coverage_blocks_per_contig;
         argsCovExt->ref_blocks_per_contig_to_parse = batch;
         argsCovExt->bam_path = bam_path;
-        argsCovExt->mutexPtr = mutex;
+        argsCovExt->mutexPtr = mutexPtr;
         work_arg_t *arg = malloc(sizeof(work_arg_t));
         arg->data = (void*) argsCovExt;
         // Add a new job to the thread pool
         tpool_add_work(tm,
                        update_coverage_blocks_with_alignments,
                        (void*) arg);
+	fprintf(stderr, "[%s] Created thread for parsing batch %d (length=%ld)\n",get_timestamp(), i, ptBlock_get_total_length_by_rf(batch));
     }
     tpool_wait(tm);
     tpool_destroy(tm);
 
+    fprintf(stderr, "[%s] All batches are parsed.\n", get_timestamp());
+
     pthread_mutex_destroy(mutexPtr);
 
-    stHash_destruct(whole_genome_blocks_per_contig);
-    stHash_destruct(block_batches);
 
-    //TODO: check if counts are added up
+    stHash_destruct(whole_genome_blocks_per_contig);
+    stList_destruct(block_batches);
+
+    fprintf(stderr, "[%s] Started Merging blocks.\n", get_timestamp());
     stHash * coverage_blocks_per_contig_merged = ptBlock_merge_blocks_per_contig_by_rf_v2(coverage_blocks_per_contig);
+    fprintf(stderr, "[%s] Merging is done.\n", get_timestamp());
+
+    // free unmerged blocks
     stHash_destruct(coverage_blocks_per_contig);
 
     return coverage_blocks_per_contig_merged;
@@ -150,12 +162,12 @@ stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path, int threads){
 
 int main(int argc, char *argv[]) {
     int c;
-    int threads;
+    int threads=4;
     char *bam_path;
     char *out_path;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "a:b:o:h"))) {
+    while (~(c = getopt(argc, argv, "i:t:o:h"))) {
         switch (c) {
             case 'i':
                 bam_path = optarg;
@@ -172,16 +184,24 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "\nUsage: %s  -i <BAM_FILE> -t <THREADS> -o <OUT_BED_FILE> \n", program);
                 fprintf(stderr, "Options:\n");
                 fprintf(stderr, "         -i         input bam file (should be indexed)\n");
-                fprintf(stderr, "         -t         number of threads\n");
+                fprintf(stderr, "         -t         number of threads [default: 4]\n");
                 fprintf(stderr, "         -o         output path for coverage bed file\n");
                 return 1;
         }
     }
 
-    stHash* coverage_blocks_per_region = ptBlock_multi_threaded_coverage_extraction(bam_path, threads);
+    stHash* coverage_blocks_per_contig = ptBlock_multi_threaded_coverage_extraction(bam_path, threads);
 
-    FILE* fp = open(out_path, "w+");
-    ptBlock_print_blocks_stHash(coverage_blocks_per_contig, true, fp);
-    fclose(fp);
+    fprintf(stderr, "[%s] Started writing.\n", get_timestamp());
+    //FILE* fp = fopen(out_path, "w");
+    gzFile fp = gzopen(out_path, "w6h");
+    if (fp == Z_NULL) {
+        fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
+    }
+    ptBlock_print_blocks_stHash(coverage_blocks_per_contig, true, &fp, true);
+    //ptBlock_save_in_bed(coverage_blocks_per_contig, out_path, true);
+    //fclose(fp);
+    gzclose(fp);
     stHash_destruct(coverage_blocks_per_contig);
+    fprintf(stderr, "[%s] Done.\n", get_timestamp());
 }
