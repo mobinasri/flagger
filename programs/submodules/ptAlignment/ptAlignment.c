@@ -35,6 +35,7 @@ ptAlignment *ptAlignment_construct(bam1_t *record, sam_hdr_t *sam_hdr) {
     alignment->score = 0.0;
     alignment->conf_blocks = NULL;
     alignment->flank_blocks = NULL;
+    alignment->mapq = record->core.qual;
     ptAlignment_init_coordinates(alignment);
     return alignment;
 }
@@ -45,6 +46,10 @@ void ptAlignment_init_coordinates(ptAlignment *alignment) {
     alignment->rfe = -1;
     alignment->rde_f = -1;
     alignment->rds_f = -1;
+
+    // initialize to 0
+    alignment->r_clip = 0;
+    alignment->l_clip = 0;
 
     bam1_t *b = alignment->record;
     ptCigarIt *cigar_it = ptCigarIt_construct(b, true, true);
@@ -62,6 +67,21 @@ void ptAlignment_init_coordinates(ptAlignment *alignment) {
                 alignment->rds_f = cigar_it->rds_f;
             }
         }
+        //set the size of the left clipping (left w.r.t. ref)
+        if (alignment->rfs == -1 &&
+            (cigar_it->op == BAM_CHARD_CLIP ||
+             cigar_it->op == BAM_CSOFT_CLIP)) {
+            alignment->l_clip += cigar_it->len;
+        }
+
+        //set the size of the right clipping (right w.r.t. ref)
+        if (alignment->rfs != -1 &&
+            (cigar_it->op == BAM_CHARD_CLIP ||
+             cigar_it->op == BAM_CSOFT_CLIP)) {
+            alignment->r_clip += cigar_it->len;
+        }
+
+
         //set the end coordinates of the alignment
         //if the alignment ends with hard or soft clipping
         //alignment->rfs != -1 is to make sure we have reached
