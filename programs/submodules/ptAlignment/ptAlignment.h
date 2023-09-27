@@ -22,6 +22,9 @@
  * @field rfe		end coordinate on reference (0-based inclusive)
  * @field rds_f		start coordinate on read's forward strand (0-based inclusive)
  * @field rde_f		end coordinate on read's forward strand (0-based inclusive)
+ * @field mapq      mapping quality
+ * @field r_clip    size of soft/hard clipping from the right side
+ * @field l_clip    size of soft/hard clipping from the left side
  */
 typedef struct {
     bam1_t* record;
@@ -33,6 +36,9 @@ typedef struct {
     int rfe;
     int rds_f;
     int rde_f;
+    int mapq;
+    int r_clip;
+    int l_clip;
 }ptAlignment;
 
 /**
