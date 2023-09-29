@@ -11,7 +11,7 @@
 #include <zlib.h>
 
 
-/*
+/*! @typedef
  * @abstract Structure for saving a block
  * @field rfs           Start coordinate on reference (0-based inclusive)
  * @field rfe           End coordinate on reference (0-based inclusive)
@@ -38,8 +38,24 @@ typedef struct {
     void (*extend_data)(void *, void *);
 } ptBlock;
 
+/*! @typedef
+ * @abstract Structure for keeping useful information about a block with the same coverage/annotation
+ * @field annotation_flag     a 32-bit flag where each bit represents a single annotation. Therefore it can only
+ *                           keep track of 32 distinct annotations. For example "0...00000100" means the 3rd annotation
+ *                           or "0...00011100" means that this block is completely within three different annotations;
+ *                           3rd, 4th and 5th
+ * @field coverage              The total read depth of coverage in this block
+ * @field coverage_high_mapq    The read depth of coverage for only the alignments with high mapqs (for example >20)
+ * @field coverage_high_clip    The read depth of coverage for only the alignments that are highly clipped (for example >10%)
+ */
+typedef struct CoverageInfo {
+    int32_t annotation_flag;
+    u_int8_t coverage;
+    u_int8_t coverage_high_mapq;
+    u_int8_t coverage_high_clip;
+} CoverageInfo;
 
-/*
+/*! @typedef
  * @abstract Structure for iterating over the blocks saved in a stHash table. Table should have
  *           contig names as keys and a stList of blocks as values
  * @field blocks_per_contig     The stHash table of blocks
@@ -68,7 +84,8 @@ ptBlock *ptBlock_construct_with_count(int rfs, int rfe, int sqs, int sqe, int rd
 
 int ptBlock_get_count(ptBlock* block);
 
-/* Set data and the related functions in a ptBlock structure.
+/**
+ * Set data and the related functions in a ptBlock structure.
  * It also receives three functions
  *  1- free_data for freeing the memory allocated to the data.
  *  2- copy_data for copying data
@@ -95,6 +112,18 @@ void destruct_count_data(void *src_);
 
 
 void *copy_count_data(void *src_);
+
+
+// the three functions for keeping CoverageInfo data in ptBlock structs
+
+void extend_cov_info_data(void *dest_, void *src_);
+
+
+void destruct_cov_info_data(void* src);
+
+
+void *copy_cov_info_data(void* src_);
+
 
 /* Make a copy of a ptBlock structure
  */
@@ -153,7 +182,7 @@ void ptBlock_sort_stHash_by_rfs(stHash *blocks_per_contig);
 /**
  * Parse a bed file and save the tracks in a hash table
  * Each contig/chromosome is saved as a key
- * All blocks in each contig/chromosome are save in a single list as the corresponding value
+ * All blocks in each contig/chromosome are saved in a single list as the corresponding value
  *
  * @param bed_path  Path to a BED file
  * @return  stHash table with contigs as keys and tracks as values
@@ -162,7 +191,8 @@ void ptBlock_sort_stHash_by_rfs(stHash *blocks_per_contig);
 stHash *ptBlock_parse_bed(char *bed_path);
 
 
-/* Compare two ptBlock structures
+/**
+ * Compare two ptBlock structures
  *
  * @param block_1       the first block
  * @param block_2       the second block
@@ -171,7 +201,8 @@ stHash *ptBlock_parse_bed(char *bed_path);
 bool ptBlock_is_equal(ptBlock* block_1, ptBlock* block_2);
 
 
-/* Compare two lists of ptBlock structures
+/**
+ * Compare two lists of ptBlock structures
  *
  * @param blocks_1      the first list of blocks
  * @param blocks_2      the second list of blocks
@@ -180,7 +211,8 @@ bool ptBlock_is_equal(ptBlock* block_1, ptBlock* block_2);
 bool ptBlock_is_equal_stList(stList* blocks_1, stList* blocks_2);
 
 
-/* Compare two stHash tables of blocks
+/**
+ * Compare two stHash tables of blocks
  *
  * @param blocks_1      the first table of blocks
  * @param blocks_2      the second table of blocks
@@ -192,7 +224,8 @@ bool ptBlock_is_equal_stHash(stHash* blocks_per_contig_1, stHash* blocks_per_con
 // Functions for block iterator
 
 
-/* Construct a ptBlockItrPerContig structure
+/**
+ * Construct a ptBlockItrPerContig structure
  *
  * This function creates an iterator that can be used
  * for iterating over the blocks saved in a stHash table
@@ -207,16 +240,18 @@ ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig);
 
 
 
-/* Return the next block and update the contig name
+/**
+ * Return the next block and update the contig name
  *
  * @param block_iter        the block iterator
  * @param ctg_name          contig name (to be able to update in place)
  * @return block            ptBlock of the next block
  */
-ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char* ctg_name_ptr);
+ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char* ctg_name);
 
 
-/* Destruct a ptBlockItrPerContig structure
+/**
+ * Destruct a ptBlockItrPerContig structure
  *
  * This function destructs the block iterator. It will NOT
  * destruct the table of blocks that was used for creating the iterator
@@ -224,7 +259,8 @@ ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char* ctg_nam
 void ptBlockItrPerContig_destruct(ptBlockItrPerContig *blockItr);
 
 
-/* Add a block to the blocks table in which each key is the corresponding contig name
+/**
+ * Add a block to the blocks table in which each key is the corresponding contig name
  * and each value is a stList of blocks
  *
  * @param blocks_per_contig     stHash table of blocks (each value is a stList of blocks)
@@ -234,7 +270,8 @@ void ptBlockItrPerContig_destruct(ptBlockItrPerContig *blockItr);
 void ptBlock_add_block_to_stList_table(stHash* blocks_per_contig, ptBlock* block, char* ctg_name);
 
 
-/* This function recieves a stHash table of blocks and returns a stList of smaller tables. Each 
+/**
+ * This function recieves a stHash table of blocks and returns a stList of smaller tables. Each
  * smaller table is batch that contains roughly 1/split_number of the whole blocks (in bases). 
  * It is useful for parsing alignments from an indexed bam file through multi-threading especially
  * when the process is IO bound.
@@ -246,7 +283,8 @@ void ptBlock_add_block_to_stList_table(stHash* blocks_per_contig, ptBlock* block
  */
 stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
 
-/* Print all block in the given table. The blocks are printed in BED format. start is 0-based and end is 1-based
+/**
+ * Print all block in the given table. The blocks are printed in BED format. start is 0-based and end is 1-based
  *
  * @param blocks_per_contig     stHash table of blocks (each value is a stList of blocks)
  * @param print_count           print the count data for each block as the 4th column.
@@ -369,8 +407,65 @@ stHash *ptBlock_merge_blocks_per_contig_by_rd_f_v2(stHash *blocks_per_contig);
 stHash *ptBlock_merge_blocks_per_contig_by_sq_v2(stHash *blocks_per_contig);
 
 
+/**
+ * Receives an alignment, creates a ptBlock struct based on the reference start and end
+ * coordinates and add this block to the given block table
+ *
+ * @param blocks_per_contig     stHash table of blocks (each value is a stList of blocks)
+ * @param  alignment            the alignment
+ * @param  init_count_data      if true then create a count data for new ptBlock and set its value to 1
+ *
+ */
+void ptBlock_add_alignment(stHash *blocks_per_contig,
+                           ptAlignment *alignment,
+                           bool init_count_data);
 
-void ptBlock_add_alignment(stHash *blocks_per_contig, ptAlignment *alignment, bool init_count_data);
+/**
+ * Receives an alignment, creates a ptBlock struct based on the reference start and end
+ * coordinates and add this block to the given block table. The new ptBlock will have a
+ * CoverageInfo struct as its data. The content of the data is determined based on "min_mapq"
+ * and "min_clipping_ratio"
+ *
+ * @param blocks_per_contig     stHash table of blocks (each value is a stList of blocks)
+ * @param alignment             the alignment
+ * @param min_mapq              the minimum mapq value for determining if the alignment is of high mapq or not
+ * @param min_clipping_ratio    the minimum clipping ratio for determining if the alignment is highly clipped or not
+ *
+ */
+void ptBlock_add_alignment_as_CoverageInfo(stHash *blocks_per_contig,
+                                           ptAlignment *alignment,
+                                           int min_mapq,
+                                           double min_clipping_ratio);
+
+/**
+ * Receives a table of blocks and adds the given data to all blocks. Note that the given data
+ * will be copied once per block before adding.
+ *
+ *
+ * @param blocks_per_contig     stHash table of blocks (each value is a stList of blocks)
+ * @param free_data             function for freeing the memory allocated to the data.
+ * @param copy_data             function for copying data
+ * @param append_data           function for appending new data to what is already saved in the block
+ *
+ */
+void ptBlock_add_data_to_all_blocks_stHash(stHash *blocks_per_contig,
+                                           void* data,
+                                           void (*destruct_data)(void *),
+                                           void *(*copy_data)(void *),
+                                           void (*extend_data)(void *, void *));
+
+
+/**
+ * copy and add all blocks from the source block table to the destination block table
+ *
+ *
+ * @param blocks_per_contig_dest    the destination block table (stHash table with block lists as values)
+ * @param blocks_per_contig_src     the source block table (stHash table with block lists as values)
+ *
+ */
+void ptBlock_extend_block_tables(stHash *blocks_per_contig_dest, stHash *blocks_per_contig_src);
+
+
 
 void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path, bool print_count_data);
 

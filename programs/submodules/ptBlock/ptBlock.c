@@ -91,6 +91,52 @@ void *copy_count_data(void* src_){
     return dest;
 }
 
+void CoverageInfo_construct(int32_t annotation_flag,
+                            u_int8_t coverage,
+                            u_int8_t coverage_high_mapq,
+                            u_int8_t coverage_high_clip){
+    CoverageInfo *cov_info = malloc(sizeof(CoverageInfo));
+    cov_info->annotation_flag = 0;
+    cov_info->coverage = coverage;
+    cov_info->coverage_high_mapq = coverage_high_mapq;
+    cov_info->coverage_high_clip = coverage_high_clip;
+    return cov_info;
+}
+
+void CoverageInfo_construct_from_alignment(ptAlignment *alignment, int min_mapq, double min_clipping_ratio){
+    CoverageInfo *cov_info = malloc(sizeof(CoverageInfo));
+    u_int8_t coverage_high_mapq = min_mapq <= alignment->mapq ? 1 : 0;
+    int max_clip = max(alignment->r_clip, alignment->l_clip);
+    int alignment_len = alignment->rfe - alignment->rfs + 1;
+    u_int8_t coverage_high_clip = min_clipping_ratio <= ((double) max_clip / alignment_len) ? 1 : 0;
+    return CoverageInfo_construct(0, 1, coverage_high_mapq, coverage_high_clip);
+}
+
+void extend_cov_info_data(void *dest_, void *src_){
+    CoverageInfo * dest = dest_;
+    CoverageInfo * src = src_;
+    dest->annotation_flag |= src->annotation_flag;
+    dest->coverage += src->coverage;
+    dest->coverage_high_mapq += src->coverage_high_mapq;
+    dest->coverage_high_clip += src->coverage_high_clip;
+}
+
+
+void destruct_cov_info_data(void* src){
+    free(src);
+}
+
+
+void *copy_cov_info_data(void* src_){
+    CoverageInfo * src = src_;
+    CoverageInfo * dest = malloc(sizeof(CoverageInfo));
+    dest->annotation_flag = src->annotation_flag;
+    dest->coverage = src->coverage;
+    dest->coverage_high_mapq = src->coverage_high_mapq;
+    dest->coverage_high_clip = src->coverage_high_clip;
+    return dest;
+}
+
 ptBlock *ptBlock_copy(ptBlock *block) {
     ptBlock *block_copy = ptBlock_construct(block->rfs,
                                             block->rfe,
@@ -750,6 +796,27 @@ int64_t ptBlock_get_total_length_by_sq(stHash *blocks_per_contig) {
     return ptBlock_get_total_length(blocks_per_contig, ptBlock_get_sqs, ptBlock_get_sqe);
 }
 
+void ptBlock_add_alignment_as_CoverageInfo(stHash *blocks_per_contig,
+                                           ptAlignment *alignment,
+                                           int min_mapq,
+                                           double min_clipping_ratio) {
+    ptBlock *block = ptBlock_construct(alignment->rfs,
+                                       alignment->rfe,
+                                       -1, -1,
+                                       -1, -1);
+    CoverageInfo * cov_info_data = CoverageInfo_construct_from_alignment(alignment,min_mapq, min_clipping_ratio);
+    ptBlock_set_data(block, cov_info_data,
+                     destruct_cov_info_data,
+                     copy_cov_info_data,
+                     extend_cov_info_data);
+    stList *blocks = stHash_search(blocks_per_contig, alignment->contig);
+    if (blocks == NULL) {
+        blocks = stList_construct3(0, ptBlock_destruct);
+        // contig name should be copied prior to inserting as a key
+        stHash_insert(blocks_per_contig, copyString(alignment->contig), blocks);
+    }
+    stList_append(blocks, block);
+}
 
 void ptBlock_add_alignment(stHash *blocks_per_contig, ptAlignment *alignment, bool init_count_data) {
     ptBlock *block = ptBlock_construct(alignment->rfs,
@@ -813,6 +880,32 @@ void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char* contig, stLis
     }
     for (int i =0; i < stList_length(blocks_to_add); i++){
         stList_append(blocks, ptBlock_copy(stList_get(blocks_to_add,i)));
+    }
+}
+
+void ptBlock_extend_block_tables(stHash *blocks_per_contig_dest, stHash *blocks_per_contig_src) {
+    stHashIterator *it = stHash_getIterator(blocks_per_contig_src);
+    char* contig_name;
+    while ((contig_name = stHash_getNext(it)) != NULL) {
+        stList* blocks_to_add = stHash_search(blocks_per_contig_src, contig_name);
+        ptBlock_add_blocks_by_contig(blocks_per_contig_dest, contig_name, ptBlock_copy_stList(blocks_to_add));
+    }
+}
+
+void ptBlock_add_data_to_all_blocks_stHash(stHash *blocks_per_contig,
+                                           void* data,
+                                           void (*destruct_data)(void *),
+                                           void *(*copy_data)(void *),
+                                           void (*extend_data)(void *, void *)){
+    ptBlockItrPerContig * block_iter = ptBlockItrPerContig_construct(blocks_per_contig);
+    char ctg_name[200];
+    ptBlock* block;
+    while ((block = ptBlockItrPerContig_next(block_iter, ctg_name)) != NULL) {
+        ptBlock_set_data(block,
+                         copy_data(data),
+                         destruct_data,
+                         copy_data,
+                         extend_data);
     }
 }
 
