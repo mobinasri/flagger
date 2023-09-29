@@ -26,12 +26,15 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <zlib.h>
+#include "cJSON.h"
 
 typedef struct ArgumentsCovExt {
     stHash* coverage_blocks_per_contig;
     stHash* ref_blocks_per_contig_to_parse;
     char* bam_path;
     pthread_mutex_t *mutexPtr;
+    int min_mapq;
+    double min_clipping_ratio;
 } ArgumentsCovExt;
 
 
@@ -43,6 +46,8 @@ void update_coverage_blocks_with_alignments(void * arg_){
     stHash *ref_blocks_per_contig_to_parse = argsCovExt->ref_blocks_per_contig_to_parse;
     char *bam_path = argsCovExt->bam_path;
     pthread_mutex_t *mutexPtr = argsCovExt->mutexPtr;
+    int min_mapq = argsCovExt->min_mapq;
+    double min_clipping_ratio = argsCovExt->min_clipping_ratio;
 
     //open bam file
     samFile *fp = sam_open(bam_path, "r");
@@ -75,7 +80,10 @@ void update_coverage_blocks_with_alignments(void * arg_){
                 // lock the mutex, add the coverage block and unlock the mutex
                 pthread_mutex_lock(mutexPtr);
                 bool init_count_data = true;
-                ptBlock_add_alignment(coverage_blocks_per_contig, alignment, init_count_data);
+                ptBlock_add_alignment_as_CoverageInfo(coverage_blocks_per_contig,
+                                                      alignment,
+                                                      min_mapq,
+                                                      min_clipping_ratio);
                 pthread_mutex_unlock(mutexPtr);
             }
 	    if (sam_itr != NULL) hts_itr_destroy(sam_itr);
@@ -162,14 +170,54 @@ stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path, int threads){
     return coverage_blocks_per_contig_merged;
 }
 
+
+stList* parse_all_annotations_and_save_in_stList(char* json_path){
+    cJSON *annotation_json = cJSON_Parse(json_path);
+    if (annotation_json == NULL)
+    {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL)
+        {
+            fprintf(stderr, "Error before: %s\n", error_ptr);
+        }
+        return NULL;
+    }
+
+    int annotation_count = cJSON_GetArraySize(annotation_json);
+    stList* block_table_list = stList_construct3(annotation_count, stHash_destruct);
+
+    // iterate over key-values in json
+    // each key is an index
+    // each value is a path to a bed file
+    const cJSON *key = NULL;
+    cJSON_ArrayForEach(key, annotation_json);
+    {
+        cJSON *bed_path_item = cJSON_GetObjectItemCaseSensitive(resolution, key);
+        if (cJSON_IsString(bed_path_item)){
+            char* bed_path = cJSON_GetStringValue(bed_path_item);
+            stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
+            index = atoi(key);
+            printf(stderr, "# %d %s\n", index, bed_path);
+            stList_set(block_table_list, index, annotaion_block_table);
+        }
+    }
+    cJSON_Delete(annotation_json);
+    return block_table_list;
+
+}
+
+
 int main(int argc, char *argv[]) {
     int c;
+    int min_mapq = 20;
+    double min_clipping_ratio = 0.1;
     int threads=4;
     char *bam_path;
     char *out_path;
+    char *json_path;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "i:t:o:h"))) {
+    while (~(c = getopt(argc, argv, "i:t:j:m:r:O:o:h"))) {
         switch (c) {
             case 'i':
                 bam_path = optarg;
@@ -180,21 +228,40 @@ int main(int argc, char *argv[]) {
             case 'o':
                 out_path = optarg;
                 break;
+            case 'j':
+                json_path = optarg;
+                break;
+            case 'm':
+                min_mapq = atoi(optarg);
+                break;
+            case 'r':
+                min_clipping_ratio = atof(optarg);
+                break;
+            case 'O':
+                out_type = optarg;
+                break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
                 fprintf(stderr, "\nUsage: %s  -i <BAM_FILE> -t <THREADS> -o <OUT_BED_FILE> \n", program);
                 fprintf(stderr, "Options:\n");
                 fprintf(stderr, "         -i         input bam file (should be indexed)\n");
+                fprintf(stderr, "         -j         JSON file for the annotation bed files [maximum 32 files can be given and the keys can be any number between 1-32 for example {\"1\":\"/path/to/1.bed\", \"2\":\"/path/to/2.bed\"}]\n");
+                fprintf(stderr, "         -m         minimum mapq for the measuring the coverage of the alignments with high mapq [Default = 20]\n");
+                fprintf(stderr, "         -r         minimum clipping ratio for the measuring the coverage of the highly clipped alignments [Default = 0.1]\n");
                 fprintf(stderr, "         -t         number of threads [default: 4]\n");
-                fprintf(stderr, "         -o         output path for gzip-compressed coverage file (with suffix \".cov.gz\")\n");
+                fprintf(stderr, "         -O         output type [\"b\" for bed, \"bz\" for gzipped bed, \"c\" for cov, \"cz\" for gzipped cov]\n");
+                fprintf(stderr, "         -o         output path \n");
                 return 1;
         }
     }
 
+    // parse annotation bed files
+    stList* annotation_block_table_list = parse_all_annotations_and_save_in_stList(json_path);
+
     stHash* coverage_blocks_per_contig = ptBlock_multi_threaded_coverage_extraction(bam_path, threads);
 
-    fprintf(stderr, "[%s] Started writing.\n", get_timestamp());
+    fprintf(stderr, "[%s] Started writing to %s.\n", get_timestamp(), out_path);
     FILE* fp = fopen(out_path, "w");
     //gzFile fp = gzopen(out_path, "w6h");
     if (fp == NULL) {
