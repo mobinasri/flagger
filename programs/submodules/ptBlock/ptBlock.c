@@ -91,7 +91,7 @@ void *copy_count_data(void* src_){
     return dest;
 }
 
-void CoverageInfo_construct(int32_t annotation_flag,
+CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
                             u_int8_t coverage,
                             u_int8_t coverage_high_mapq,
                             u_int8_t coverage_high_clip){
@@ -103,7 +103,7 @@ void CoverageInfo_construct(int32_t annotation_flag,
     return cov_info;
 }
 
-void CoverageInfo_construct_from_alignment(ptAlignment *alignment, int min_mapq, double min_clipping_ratio){
+CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int min_mapq, double min_clipping_ratio){
     CoverageInfo *cov_info = malloc(sizeof(CoverageInfo));
     u_int8_t coverage_high_mapq = min_mapq <= alignment->mapq ? 1 : 0;
     int max_clip = max(alignment->r_clip, alignment->l_clip);

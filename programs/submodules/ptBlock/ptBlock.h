@@ -114,6 +114,30 @@ void destruct_count_data(void *src_);
 void *copy_count_data(void *src_);
 
 
+/**
+ * Creates an instance of CoverageInfo given the required attributes
+ *
+ * @param annotation_flag       32-bit flag for representing at most 32 different annotations
+ * @param coverage              coverage value for the related block
+ * @param coverage_high_mapq    coverage of the alignments with high mapq for the related block
+ * @param coverage_high_clip    coverage of the highly clipped alignments for the related block
+ */
+CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
+                            u_int8_t coverage,
+                            u_int8_t coverage_high_mapq,
+                            u_int8_t coverage_high_clip);
+
+/**
+ * Receives an alignment, creates a CoverageInfo struct based on the given thresholds on mapq and clipping ratio
+ *
+ *
+ * @param alignment             the alignment
+ * @param min_mapq              the minimum mapq value for determining if the alignment is of high mapq or not
+ * @param min_clipping_ratio    the minimum clipping ratio for determining if the alignment is highly clipped or not
+ *
+ */
+CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int min_mapq, double min_clipping_ratio);
+
 // the three functions for keeping CoverageInfo data in ptBlock structs
 
 void extend_cov_info_data(void *dest_, void *src_);
