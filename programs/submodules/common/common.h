@@ -30,6 +30,8 @@ char* get_timestamp();
 
 bool file_exists (char *filename);
 
+char* read_whole_file(char* file_path, long* length_ptr, char* mode);
+
 char* copyString(char* str);
 
 typedef struct Splitter{
