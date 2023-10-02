@@ -6,6 +6,31 @@ char* copyString(char* str){
     return copy;
 }
 
+char* read_whole_file(char* file_path, long* length_ptr, char* mode){
+    char * buffer = 0;
+    long length;
+    FILE * f = fopen (file_path, mode);
+
+    if (f)
+    {
+      fseek (f, 0, SEEK_END);
+      length = ftell (f);
+      fseek (f, 0, SEEK_SET);
+      buffer = malloc (length);
+      if (buffer)
+      {
+        fread (buffer, 1, length, f);
+      }
+      fclose (f);
+    }
+    else{
+        return NULL;
+        *length_ptr = 0;
+    }
+    *length_ptr = length;
+    return buffer;
+}
+
 char* get_timestamp() {
     static char timestamp[TIMESTAMP_SIZE + 1];  // static variable to hold the timestamp string
     time_t t = time(NULL);
