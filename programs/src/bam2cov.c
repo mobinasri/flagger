@@ -114,7 +114,7 @@ stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path){
         stHash_insert(blocks_per_contig, copyString(ctg_name), block_list);
 	total_len += ctg_len;
     }
-    printf("[%s] Size of the whole genome = %ld (n=%d)\n", get_timestamp(), total_len, sam_hdr->n_targets);
+    fprintf("[%s] Size of the whole genome = %ld (n=%d)\n", get_timestamp(), total_len, sam_hdr->n_targets);
     sam_hdr_destroy(sam_hdr);
     sam_close(fp);
     return blocks_per_contig;
@@ -192,13 +192,13 @@ stList* parse_all_annotations_and_save_in_stList(char* json_path){
     const cJSON *key = NULL;
     cJSON_ArrayForEach(key, annotation_json);
     {
-        cJSON *bed_path_item = cJSON_GetObjectItemCaseSensitive(resolution, key);
+        cJSON *bed_path_item = cJSON_GetObjectItemCaseSensitive(annotation_json, key);
         if (cJSON_IsString(bed_path_item)){
             char* bed_path = cJSON_GetStringValue(bed_path_item);
             stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
-            index = atoi(key);
-            printf(stderr, "# %d %s\n", index, bed_path);
-            stList_set(block_table_list, index, annotaion_block_table);
+            int index = atoi(cJSON_GetStringValue(key));
+            fprintf(stderr, "# %d %s\n", index, bed_path);
+            stList_set(block_table_list, index, annotation_block_table);
         }
     }
     cJSON_Delete(annotation_json);
@@ -215,6 +215,7 @@ int main(int argc, char *argv[]) {
     char *bam_path;
     char *out_path;
     char *json_path;
+    char *out_type;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
     while (~(c = getopt(argc, argv, "i:t:j:m:r:O:o:h"))) {
@@ -262,14 +263,24 @@ int main(int argc, char *argv[]) {
     stHash* coverage_blocks_per_contig = ptBlock_multi_threaded_coverage_extraction(bam_path, threads);
 
     fprintf(stderr, "[%s] Started writing to %s.\n", get_timestamp(), out_path);
-    FILE* fp = fopen(out_path, "w");
-    //gzFile fp = gzopen(out_path, "w6h");
-    if (fp == NULL) {
-        fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
+    if ((strcmp(out_type, "c") == 0) || (strcmp(out_type, "cz") == 0)){
+	    fprintf(stderr, "cov and gzipped cov are not supported for now");
+	    return -1;
+    }else if (strcmp(out_type, "b") == 0){ // uncompressed BED
+        FILE* fp = fopen(out_path, "w");
+        if (fp == NULL) {
+            fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
+        }
+        ptBlock_print_blocks_stHash(coverage_blocks_per_contig, true, fp, false);
+        fclose(fp);
+    }else if (strcmp(out_type, "bz") == 0){ // gzip-compressed BED
+        gzFile fp = gzopen(out_path, "w6h");
+        if (fp == NULL) {
+            fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
+        }
+        ptBlock_print_blocks_stHash(coverage_blocks_per_contig, true, fp, true);
+        gzclose(fp);
     }
-    ptBlock_print_blocks_stHash(coverage_blocks_per_contig, true, fp, false);
-    fclose(fp);
-    //gzclose(fp);
     stHash_destruct(coverage_blocks_per_contig);
     fprintf(stderr, "[%s] Done.\n", get_timestamp());
 }
