@@ -172,7 +172,9 @@ stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path, int threads){
 
 
 stList* parse_all_annotations_and_save_in_stList(char* json_path){
-    cJSON *annotation_json = cJSON_Parse(json_path);
+    int buffer_size = 0;
+    char* json_buffer = read_whole_file(json_path, &buffer_size, "r");
+    cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
     if (annotation_json == NULL)
     {
         const char *error_ptr = cJSON_GetErrorPtr();

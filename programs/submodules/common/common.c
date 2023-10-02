@@ -23,6 +23,10 @@ char* read_whole_file(char* file_path, long* length_ptr, char* mode){
       }
       fclose (f);
     }
+    else{
+        return NULL;
+        *length_ptr = 0;
+    }
     *length_ptr = length;
     return buffer;
 }
