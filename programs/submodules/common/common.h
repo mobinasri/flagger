@@ -5,6 +5,7 @@
 #include <sys/stat.h>   // stat
 #include <stdbool.h>    // bool type
 #include <assert.h>
+#include <stdio.h>
 #include <time.h>
 
 #define ARRAY_SIZE(arr) (sizeof((arr)) / sizeof((arr)[0]))
