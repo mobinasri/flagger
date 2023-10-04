@@ -27,7 +27,7 @@ workflow verkko_wf {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB
         }
@@ -39,7 +39,7 @@ workflow verkko_wf {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB
         }
@@ -74,7 +74,7 @@ task verkko {
         String? extra_args
 
         Int threadCount = 80
-        Int memSizeGB   = 240
+        Int memSize   = 240
         Int diskSizeGB  = 2500
     }
     
@@ -85,7 +85,7 @@ task verkko {
         pat_hapmer_tar: "Meryl Hapmer DB as tar file."
         extra_args: "For human assemblies, recommend using: --cns-run 32 0 48 --ali-run 12 32 48 --ovb-run 8 20 48 "
         threadCount: "This WDL requests N2 custom instance types, do not request more than 80 threads."
-        memSizeGB: "recommend a ration of 2x-4x of CPU value"
+        memSize: "recommend a ration of 2x-4x of CPU value"
     }
 
 
@@ -140,7 +140,7 @@ task verkko {
         ## Run Verkko
         verkko \
             -d assembly \
-            --local-memory ~{memSizeGB} \
+            --local-memory ~{memSize} \
             --local-cpus ~{threadCount} \
             --hifi hifi/* \
             --nano ont/* \
@@ -165,7 +165,7 @@ task verkko {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         cpuPlatform: "Intel Cascade Lake"
         disks: "local-disk " + diskSizeGB + " SSD"

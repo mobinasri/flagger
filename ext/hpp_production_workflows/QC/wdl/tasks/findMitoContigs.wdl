@@ -39,7 +39,7 @@ task blastFasta {
         String parent
         File inputFastaGZ
         
-        Int memSizeGB = 4
+        Int memSize = 4
         Int diskSizeGB = 64
         String dockerImage = "ncbi/blast:latest"
     }
@@ -82,7 +82,7 @@ task blastFasta {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
         preemptible: 1
@@ -97,7 +97,7 @@ task parseBlastOutput {
         String parent
         File blastOutput
 
-        Int memSizeGB = 4
+        Int memSize = 4
         Int diskSizeGB = 64
         String dockerImage = "juklucas/parse_mito_blast:latest"
     }
@@ -123,7 +123,7 @@ task parseBlastOutput {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
         preemptible: 1

@@ -43,7 +43,7 @@ workflow longReadAlignmentScattered {
                 readFile=readFile,
                 referenceFasta=referenceFasta,
                 fastqOptions = fastqOptions,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=extractReadsDiskSize,
                 dockerImage="mobinasri/bio_base:v0.3.0"

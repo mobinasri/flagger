@@ -96,7 +96,7 @@ task consolidate {
         File merquryResults
         File yakResults
         # runtime configurations
-        Int memSizeGB=8
+        Int memSize=8
         Int threadCount=8
         Int diskSizeGB=256
         String dockerImage="tpesout/hpp_base:latest"
@@ -149,7 +149,7 @@ task consolidate {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
     }

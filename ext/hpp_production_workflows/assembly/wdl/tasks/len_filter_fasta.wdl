@@ -19,7 +19,7 @@ task filter_fasta {
 
         Int min_size   = 100000
 
-        Int memSizeGB  = 4
+        Int memSize  = 4
         Int diskSizeGB = 64
         String dockerImage = "quay.io/biocontainers/seqkit:0.15.0--0"
     }
@@ -46,7 +46,7 @@ task filter_fasta {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
         preemptible: 1

@@ -20,7 +20,7 @@ task maskAssembly {
         
         File? adapterBed 
 
-        Int memSizeGB = 4
+        Int memSize = 4
         Int diskSizeGB = 64
         String dockerImage = "biocontainers/bedtools:v2.27.1dfsg-4-deb_cv1"
     }
@@ -78,7 +78,7 @@ task maskAssembly {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
         preemptible: 1

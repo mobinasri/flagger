@@ -19,7 +19,7 @@ task renameContigsAddMT {
         
         File? mitoAssembly
 
-        Int memSizeGB = 4
+        Int memSize = 4
         Int diskSizeGB = 64
         String dockerImage = "biocontainers/samtools:v1.9-4-deb_cv1"
     }
@@ -62,7 +62,7 @@ task renameContigsAddMT {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
         preemptible: 1

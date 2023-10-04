@@ -16,7 +16,7 @@ workflow RunDownSampling{
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage="tpesout/hpp_base:latest"
@@ -41,7 +41,7 @@ workflow RunDownSampling{
                 samplingRate = downsampledCoverage / sum.sum,
                 suffix = "${downsampledCoverage}X",
                 refLength = refLength,
-                memSizeGB=8,
+                memSize=8,
                 threadCount=8,
                 diskSizeGB= fileExtractionDiskSizeGB
         }
@@ -71,7 +71,7 @@ task sum {
   >>>
   runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -111,7 +111,7 @@ task getCoverage {
         FILE_NAME=$(basename ~{readFastq})
         PREFIX=${FILE_NAME%.*}
 
-        ln -s ~{readFastq} ${PREFIX}.fq
+        ln ~{readFastq} ${PREFIX}.fq
         samtools faidx ${PREFIX}.fq
         cat ${PREFIX}.fq.fai | awk -vrefLength=~{refLength} '{totalBases+=$2}END{printf "%.2f\n",totalBases/refLength}' > coverage.txt
 
@@ -119,7 +119,7 @@ task getCoverage {
 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -138,7 +138,7 @@ task downsample {
         String suffix
         Float refLength
         # runtime configurations
-        Int memSizeGB=4
+        Int memSize=4
         Int threadCount=8
         Int diskSizeGB=256
         Int preemptible=2
@@ -170,7 +170,7 @@ task downsample {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible : preemptible

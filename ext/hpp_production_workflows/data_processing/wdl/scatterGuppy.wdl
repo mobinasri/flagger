@@ -79,7 +79,7 @@ task splitFast5s {
         String dockerImage = "jiminpark/guppy-wdl:latest" 
 
         Int preempts = 3
-        Int memSizeGB = 8
+        Int memSize = 8
         Int extraDisk = 5
         Int threadCount = 2
     }
@@ -123,7 +123,7 @@ task splitFast5s {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -147,7 +147,7 @@ task guppyGPU {
         String? additionalArgs
 
         Int preempts = 3
-        Int memSizeGB = 64
+        Int memSize = 64
         Int threadCount = 12
         Int extraDisk = 5
         Int gpuCount = 1
@@ -212,7 +212,7 @@ task guppyGPU {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         gpuCount: gpuCount
@@ -236,7 +236,7 @@ task concatenateBam {
         String dockerImage = "tpesout/megalodon:latest"
 
         Int preempts = 3
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 3
         Int diskSizeGB = 500
     }
@@ -250,7 +250,7 @@ task concatenateBam {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -269,7 +269,7 @@ task concatenateFastq {
 
         # runtime
         Int preempts = 3
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 3
         Int diskSizeGB = 500
     }
@@ -283,7 +283,7 @@ task concatenateFastq {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -302,7 +302,7 @@ task concatenateSummary {
 
         # runtime
         Int preempts = 3
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 3
         Int diskSizeGB = 50
     }
@@ -318,7 +318,7 @@ task concatenateSummary {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

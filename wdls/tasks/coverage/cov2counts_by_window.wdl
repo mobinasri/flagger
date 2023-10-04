@@ -19,7 +19,7 @@ task cov2countsByWindow {
         Int memSize=8
         Int threadCount=8
         Int diskSize=64
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
@@ -71,7 +71,7 @@ task cov2countsByWindow {
     >>> 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

@@ -24,7 +24,7 @@ workflow runReadStats {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -99,7 +99,7 @@ workflow runReadStats {
 task indexReads {
     input {
         File readFile
-        Int memSizeGB = 4
+        Int memSize = 4
         Int threadCount = 4
         Int diskSizeGB = 64
         String dockerImage = "humanpangenomics/fai_read_stats:latest"
@@ -132,7 +132,7 @@ task indexReads {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -146,7 +146,7 @@ task readStats {
         File indexFile
         Int histogramMinLength = 0
         Int histogramMaxLength = 0
-        Int memSizeGB = 2
+        Int memSize = 2
         Int threadCount = 2
         Int diskSizeGB = 64
         String dockerImage = "humanpangenomics/fai_read_stats:latest"
@@ -196,7 +196,7 @@ task readStats {
 	}
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -209,7 +209,7 @@ task consolidateReadStats {
         Array[File] readStatsTarballs
         Array[File] readStatsReports
         String identifier="sample"
-        Int memSizeGB = 4
+        Int memSize = 4
         Int threadCount = 4
         Int diskSizeGB = 64
         String dockerImage = "humanpangenomics/fai_read_stats:latest"
@@ -250,7 +250,7 @@ task consolidateReadStats {
 	}
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -263,7 +263,7 @@ task concatFais {
     input {
         Array[File] indexFiles
         String identifier="sample"
-        Int memSizeGB = 4
+        Int memSize = 4
         Int threadCount = 1
         Int diskSizeGB = 64
         String dockerImage = "humanpangenomics/fai_read_stats:latest"
@@ -292,7 +292,7 @@ task concatFais {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

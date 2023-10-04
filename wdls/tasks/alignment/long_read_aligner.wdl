@@ -23,7 +23,7 @@ workflow longReadAlignment {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=extractReadsDiskSize,
                 dockerImage="tpesout/hpp_base:latest"
@@ -141,7 +141,7 @@ task alignmentBam{
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -213,7 +213,7 @@ task alignmentPaf{
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

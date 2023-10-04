@@ -116,7 +116,7 @@ task contaminationEuk {
         File assemblyFasta
         File? eukContaminationDatabase
         String eukExtraArguments=""
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 8
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -181,7 +181,7 @@ task contaminationEuk {
 		File outputEuk = glob("*.contam_in_euks.tsv")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -195,7 +195,7 @@ task contaminationMito {
         File assemblyFasta
         File? mitoContaminationDatabase
         String mitoExtraArguments=""
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 8
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -260,7 +260,7 @@ task contaminationMito {
 		File outputMito = glob("*.mito.tsv")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -274,7 +274,7 @@ task contaminationPlastids {
         File assemblyFasta
         File? plastidsContaminationDatabase
         String plastidsExtraArguments=""
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 8
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -339,7 +339,7 @@ task contaminationPlastids {
 		File outputPlastids = glob("*.plastids.tsv")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -355,7 +355,7 @@ task contaminationRRNA {
         Int chunkSize = 500000
         Int chunkOverlap = 5000
         String rrnaExtraArguments=""
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 8
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -436,7 +436,7 @@ task contaminationRRNA {
 		File outputRRNA = glob("*.rrna.tsv")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -448,7 +448,7 @@ task contaminationRRNA {
 task contaminationWindowmasker {
     input {
         File assemblyFasta
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 8
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -485,7 +485,7 @@ task contaminationWindowmasker {
 		File outputWindowmasker = glob("*.masked.fa")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -498,7 +498,7 @@ task contaminationRefseq {
         File? assemblyWindowmaskedFasta
         File? refseqContaminationDatabase
         String refseqExtraArguments=""
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 8
         Int diskSizeGB = 128
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -564,7 +564,7 @@ task contaminationRefseq {
 		File outputRefseq = glob("*.refseq.*.tsv")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -581,7 +581,7 @@ task contaminationVecscreen {
         String vecscreenExtraArguments=""
         Int chunkSize = 1000000
         Int chunkOverlap = 10000
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 8
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -643,7 +643,7 @@ task contaminationVecscreen {
 		File outputVecscreen = glob("*.vecscreen.tsv")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -663,7 +663,7 @@ task mergeContaminationResults {
         Array[File] refseqOuts
         File? rrnaOut
         File? vecscreenOut
-        Int memSizeGB = 2
+        Int memSize = 2
         Int threadCount = 1
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -734,7 +734,7 @@ task mergeContaminationResults {
 		File outputSummary = glob("*.contamination.txt")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -756,7 +756,7 @@ task createContaminationBed {
         File? vecscreenOut
         Int bedtoolsMergeDistance = 0
         Float discardContigCoverageThreshold = 0.95
-        Int memSizeGB = 2
+        Int memSize = 2
         Int threadCount = 1
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_contamination:latest"
@@ -859,7 +859,7 @@ task createContaminationBed {
 		File contaminationContigs = glob("*.contamination_contigs.txt")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

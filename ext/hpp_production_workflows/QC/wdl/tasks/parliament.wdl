@@ -23,7 +23,7 @@ task Parliament{
     String? otherArgs = "--breakdancer --breakseq --manta --cnvnator --lumpy --delly_deletion --genotype --svviz_only_validated_candidates"
 
     String dockerImage = "dnanexus/parliament2@sha256:9076e0cb48f1b0703178778865a6f95df48a165fbea8d107517d36b23970a3d3" # latest
-    Int memSizeGB = 128
+    Int memSize = 128
     Int threadCount = 64
     Int diskSizeGB = 128
   }
@@ -75,7 +75,7 @@ task Parliament{
     File vcfOut = "~{prefix}.combined.genotyped.vcf"
   }
   runtime{
-    memory: memSizeGB + " GB"
+    memory: memSize
     cpu: threadCount
     disks: "local-disk " + diskSizeGB + " SSD"
     docker: dockerImage

@@ -15,7 +15,7 @@ task pdfGenerator{
         Int memSize=16
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
@@ -43,7 +43,7 @@ task pdfGenerator{
     >>> 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

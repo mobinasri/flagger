@@ -21,7 +21,7 @@ task minigraphMap {
         String args = ""
         
         Int threadCount = 8
-        Int memSizeGB   = 64
+        Int memSize   = 64
         Int diskSizeGB  = 64
         String dockerImage = "humanpangenomics/hpp_minigraph:latest"
     }
@@ -56,7 +56,7 @@ task minigraphMap {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

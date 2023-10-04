@@ -37,8 +37,8 @@ task view {
         BAM_FILENAME=$(basename ~{bamFile})
         BAM_PREFIX=${BAM_FILENAME%.bam}
 
-        ln -s ~{bamFile} ${BAM_PREFIX}.bam
-        ln -s ~{baiFile} ${BAM_PREFIX}.bam.bai
+        ln ~{bamFile} ${BAM_PREFIX}.bam
+        ln ~{baiFile} ${BAM_PREFIX}.bam.bai
 
         mkdir output
         samtools view -@8 -h -b ~{options} ${BAM_PREFIX}.bam ~{location} > output/${BAM_PREFIX}.~{prefix}.bam
@@ -46,7 +46,7 @@ task view {
     >>> 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

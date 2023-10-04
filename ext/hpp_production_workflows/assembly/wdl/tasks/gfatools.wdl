@@ -15,7 +15,7 @@ task phasedGFAs2Fasta {
         File maternalGfa
         String childID
         # runtime configurations
-        Int memSizeGB=32
+        Int memSize=32
         Int threadCount=8
         Int diskSizeGB=128
         Int preemptible=1
@@ -41,7 +41,7 @@ task phasedGFAs2Fasta {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible: preemptible

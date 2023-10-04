@@ -29,7 +29,7 @@ workflow verkko_wf {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB
         }
@@ -41,7 +41,7 @@ workflow verkko_wf {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB
         }
@@ -111,7 +111,7 @@ task configure_overlap {
         String name     = "assembly"
 
         Int threadCount = 24
-        Int memSizeGB   = 64
+        Int memSize   = 64
         Int diskSizeGB  = 2500
         Int preemptible = 1
     }
@@ -136,7 +136,7 @@ task configure_overlap {
         ## Run up until, but including, configure overlaps
         verkko \
             -d assembly \
-            --local-memory ~{memSizeGB} \
+            --local-memory ~{memSize} \
             --local-cpus ~{threadCount} \
             --snakeopts "-U configureOverlaps" \
             --hifi hifi/* 
@@ -144,7 +144,7 @@ task configure_overlap {
         ## Run until, but including, countKmers (it's not triggered by previous job)
         verkko \
             -d assembly \
-            --local-memory ~{memSizeGB} \
+            --local-memory ~{memSize} \
             --local-cpus ~{threadCount} \
             --snakeopts "-U countKmers" \
             --hifi hifi/* 
@@ -168,7 +168,7 @@ task configure_overlap {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         cpuPlatform: "Intel Cascade Lake"
         disks: "local-disk " + diskSizeGB + " SSD"
@@ -187,7 +187,7 @@ task overlap {
         # String? extra_args
 
         Int threadCount = 8
-        Int memSizeGB   = 24
+        Int memSize   = 24
         Int diskSizeGB  = 250
         Int preemptible = 2
     }
@@ -241,7 +241,7 @@ task overlap {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         cpuPlatform: "Intel Cascade Lake"
         disks: "local-disk " + diskSizeGB + " SSD"
@@ -261,7 +261,7 @@ task create_graph {
         # String? extra_args
 
         Int threadCount = 80
-        Int memSizeGB   = 400
+        Int memSize   = 400
         Int diskSizeGB  = 2500
         Int preemptible = 1
     }
@@ -311,7 +311,7 @@ task create_graph {
 
         verkko \
             -d assembly \
-            --local-memory ~{memSizeGB} \
+            --local-memory ~{memSize} \
             --local-cpus ~{threadCount} \
             --red-run 8 32 4 \
             --snakeopts "-U indexGraph" \
@@ -320,7 +320,7 @@ task create_graph {
 
         verkko \
             -d assembly \
-            --local-memory ~{memSizeGB} \
+            --local-memory ~{memSize} \
             --local-cpus ~{threadCount} \
             --red-run 8 32 4 \
             --snakeopts "-U splitONT" \
@@ -346,7 +346,7 @@ task create_graph {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         cpuPlatform: "Intel Cascade Lake"
         disks: "local-disk " + diskSizeGB + " SSD"
@@ -361,7 +361,7 @@ task graph_aligner {
         String aln_job_id
 
         Int threadCount = 12
-        Int memSizeGB   = 32
+        Int memSize   = 32
         Int diskSizeGB  = 1000
         Int preemptible = 1
     }
@@ -410,7 +410,7 @@ task graph_aligner {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         cpuPlatform: "Intel Cascade Lake"
         disks: "local-disk " + diskSizeGB + " SSD"
@@ -432,7 +432,7 @@ task complete_asm {
         # String? extra_args
 
         Int threadCount = 64
-        Int memSizeGB   = 400
+        Int memSize   = 400
         Int diskSizeGB  = 2500
         Int preemptible = 1
     }
@@ -499,7 +499,7 @@ task complete_asm {
         ## Call Verkko 
         verkko \
             -d assembly \
-            --local-memory ~{memSizeGB} \
+            --local-memory ~{memSize} \
             --local-cpus ~{threadCount} \
             --cns-run 32 0 48 \
             --hifi hifi/* \
@@ -525,7 +525,7 @@ task complete_asm {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         cpuPlatform: "Intel Cascade Lake"
         disks: "local-disk " + diskSizeGB + " SSD"

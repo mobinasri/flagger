@@ -19,10 +19,10 @@ task correctBam {
         Boolean flagRemoveMultiplePrimary = false
         Boolean flagRemoveSupplementary = false
         # runtime configurations
-        Int memSize = 8
-        Int threadCount = 8
-        Int diskSize = ceil(2 * size(bam, "GB")) + 64
-        String dockerImage="mobinasri/secphase:v0.4.3"
+        Int memSize=8
+        Int threadCount=8
+        Int diskSize=ceil(2 * size(bam, "GB")) + 64
+        String dockerImage="mobinasri/secphase:v0.3.0"
         Int preemptible=2
     }
     command <<<
@@ -77,7 +77,7 @@ task correctBam {
     >>> 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

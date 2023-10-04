@@ -5,9 +5,6 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <stdbool.h>
 
 #define ARRAY_SIZE(arr) (sizeof((arr)) / sizeof((arr)[0]))
 #define TIMESTAMP_SIZE 40
@@ -35,9 +32,6 @@ typedef struct Splitter{
 	char* token;
 	char delimiter;
 } Splitter;
-
-
-bool file_exists (char *filename);
 
 char* get_timestamp();
 

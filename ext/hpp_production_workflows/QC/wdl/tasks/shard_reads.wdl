@@ -8,7 +8,7 @@ task shardReads {
     input {
         File readFile
         Int linesPerFile = 256000000
-        Int memSizeGB = 4
+        Int memSize = 4
         Int threadCount = 1
         Int diskSizeGB = 128
         String dockerImage = "tpesout/hpp_base:latest"
@@ -58,7 +58,7 @@ task shardReads {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

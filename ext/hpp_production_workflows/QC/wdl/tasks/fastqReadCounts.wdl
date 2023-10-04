@@ -16,7 +16,7 @@ task countFastqReads {
     input {
         Array[File] inputFastq
 
-        Int memSizeGB = 4
+        Int memSize = 4
         Int diskSizeGB = 128
         String dockerImage = "biocontainers/samtools:v1.9-4-deb_cv1"
     }
@@ -45,7 +45,7 @@ task countFastqReads {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
         preemptible: 1

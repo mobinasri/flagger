@@ -60,7 +60,7 @@ task ntsm_count {
         File? cram_reference
         Int count_kmer_size = 19
 
-        Int memSizeGB   = 4
+        Int memSize   = 4
         Int threadCount = 4
         Int addldisk    = 10
         Int preempts    = 2
@@ -138,7 +138,7 @@ task ntsm_count {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + final_disk_dize + " SSD"
         docker: "humanpangenomics/ntsm:latest"
@@ -154,7 +154,7 @@ task ntsm_eval {
         String read_1_type
         String read_2_type
 
-        Int memSizeGB   = 4
+        Int memSize   = 4
         Int threadCount = 4
         Int diskSize    = 32
         Int preempts    = 2
@@ -177,7 +177,7 @@ task ntsm_eval {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         docker: "humanpangenomics/ntsm:latest"

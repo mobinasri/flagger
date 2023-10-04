@@ -30,7 +30,7 @@ task primrose {
     input {
         File input_bam
 
-        Int memSizeGB   = 64
+        Int memSize   = 64
         Int threadCount = 8
         Int addlDisk    = 50        
         Int preempts    = 3
@@ -59,7 +59,7 @@ task primrose {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + final_disk_dize + " SSD"
         docker: "humanpangenomics/primrose@sha256:93ed60851f6a43e46e20b4075b0fea146e8ecc0b86d00b6800b987f0253fcd2e"

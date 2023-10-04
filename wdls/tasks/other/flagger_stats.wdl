@@ -24,7 +24,7 @@ task flaggerStats {
         Int memSize=4
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
@@ -39,7 +39,7 @@ task flaggerStats {
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
 
-        ln -s ~{fastaGz} asm.fa.gz
+        ln ~{fastaGz} asm.fa.gz
         gunzip -c asm.fa.gz > asm.fa
         # ignore Ns
         python3 /home/scripts/get_contig_coords.py --inputFasta asm.fa | bedtools sort -i - > asm.bed
@@ -99,7 +99,7 @@ task flaggerStats {
     >>> 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

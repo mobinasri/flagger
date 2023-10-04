@@ -16,7 +16,7 @@ task sumFastqReads {
     input {
         Array[File] inputFastq
 
-        Int memSizeGB = 4
+        Int memSize = 4
         Int diskSizeGB = 128
 
         ## Must give container with gawk (not mawk which uses 4-byte integers)
@@ -47,7 +47,7 @@ task sumFastqReads {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
         preemptible: 1

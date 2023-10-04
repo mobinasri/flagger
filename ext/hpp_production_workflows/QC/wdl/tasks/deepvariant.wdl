@@ -22,7 +22,7 @@ task DeepVariant{
         String modelType = "HYBRID_PACBIO_ILLUMINA"
         String? callRegions
 
-        Int memSizeGB = 128
+        Int memSize = 128
         Int threadCount = 64
         Int diskSizeGB = 128
         String dockerImage = "google/deepvariant@sha256:440074e9cf854e20e3e05eab0a4fbbc32652c1f0d71b2aacbbd35da47f84faae" # 1.2.0
@@ -88,7 +88,7 @@ task DeepVariant{
     }
 
     runtime{
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

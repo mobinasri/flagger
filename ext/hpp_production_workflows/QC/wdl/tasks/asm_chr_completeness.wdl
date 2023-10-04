@@ -28,7 +28,7 @@ task calc_completeness {
         File asm_fasta
         String name
 
-        Int memSizeGB   = 24
+        Int memSize   = 24
         Int threadCount = 16
         Int diskSize    = 100
         Int preempts    = 2
@@ -75,7 +75,7 @@ task calc_completeness {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         docker: "quay.io/biocontainers/mashmap:2.0--h543ed2d_4"

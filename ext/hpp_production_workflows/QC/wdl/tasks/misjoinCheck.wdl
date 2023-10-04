@@ -20,7 +20,7 @@ task paftoolsMisjoinCheck {
         String outputFileTag = "misjoin_summary"
         String args = "-ec"
         
-        Int memSizeGB   = 4
+        Int memSize   = 4
         Int diskSizeGB  = 32
         String dockerImage = "humanpangenomics/hpp_paftools:latest"
     }
@@ -42,7 +42,7 @@ task paftoolsMisjoinCheck {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
         preemptible: 1

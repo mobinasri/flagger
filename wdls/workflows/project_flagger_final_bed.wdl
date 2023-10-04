@@ -113,7 +113,7 @@ task extractComps{
 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -158,7 +158,7 @@ task getHapBed {
 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -201,7 +201,7 @@ task extractBeds {
 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -222,7 +222,7 @@ task mergeBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
 
@@ -239,7 +239,7 @@ task mergeBeds {
         set -o xtrace
 
         mkdir input output
-        ln -s ~{sep=" " beds} input
+        ln ~{sep=" " beds} input
         for comp in  ~{sep=" " comps}
         do
             BED_COMP=input/$(ls input | grep "${comp}.")
@@ -256,7 +256,7 @@ task mergeBeds {
 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

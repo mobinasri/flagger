@@ -22,7 +22,7 @@ task Jasmine{
         Int? specReads = 3
         
         String dockerImage = "quay.io/biocontainers/jasminesv@sha256:1b591512db1dbe32b34a09cebb285f0293683e3effb7f299a68cbad2ae14c955" # 1.1.4
-        Int memSizeGB = 128
+        Int memSize = 128
         Int threadCount = 64
         Int diskSizeGB = 128
 
@@ -57,7 +57,7 @@ task Jasmine{
         File vcfOut = glob("*.vcf")[0]
     }
     runtime{
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

@@ -29,7 +29,7 @@ task extractReads {
         File? referenceFasta
         String excludeString="" # exclude lines with this string from fastq
         String fastqOptions = ""
-        Int memSizeGB = 4
+        Int memSize = 4
         Int threadCount = 8
         Int diskSizeGB = 128
         String dockerImage = "mobinasri/bio_base:dev-v0.1"
@@ -68,7 +68,7 @@ task extractReads {
         elif [[ "$SUFFIX" == "gz" ]] ; then
             gunzip -k -c ~{readFile} > output/${PREFIX}
         elif [[ "$SUFFIX" == "fastq" ]] || [[ "$SUFFIX" == "fq" ]] ; then
-            cp ~{readFile} output/${PREFIX}.fq
+            ln ~{readFile} output/${PREFIX}.fq
         elif [[ "$SUFFIX" != "fastq" ]] && [[ "$SUFFIX" != "fq" ]] && [[ "$SUFFIX" != "fasta" ]] && [[ "$SUFFIX" != "fa" ]] ; then
             echo "Unsupported file type: ${SUFFIX}"
             exit 1
@@ -98,7 +98,7 @@ task extractReads {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

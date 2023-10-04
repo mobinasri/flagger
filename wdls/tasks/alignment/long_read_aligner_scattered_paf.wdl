@@ -27,7 +27,7 @@ workflow longReadAlignmentSplit {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=extractReadsDiskSize,
                 dockerImage="tpesout/hpp_base:latest"

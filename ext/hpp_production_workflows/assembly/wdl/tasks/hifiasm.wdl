@@ -14,7 +14,7 @@ workflow runTrioHifiasm{
         String? hifiasmExtraOptions
         File? inputBinFilesTarGz
         File? referenceFasta
-        Int memSizeGB
+        Int memSize
         Int threadCount
         Int preemptible
         Int fileExtractionDiskSizeGB = 256
@@ -27,7 +27,7 @@ workflow runTrioHifiasm{
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -52,7 +52,7 @@ workflow runTrioHifiasm{
             childID=childID,
             extraOptions=hifiasmExtraOptions,
             inputBinFilesTarGz=inputBinFilesTarGz,
-            memSizeGB=memSizeGB,
+            memSize=memSize,
             threadCount=threadCount,
             diskSizeGB= floor(childReadSize.value * 2.5),
             preemptible=preemptible,
@@ -97,7 +97,7 @@ task trioHifiasm {
         File? inputBinFilesTarGz
         File? referenceFasta
         # runtime configurations
-        Int memSizeGB
+        Int memSize
         Int threadCount
         Int diskSizeGB
         Int preemptible
@@ -157,7 +157,7 @@ task trioHifiasm {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible : preemptible

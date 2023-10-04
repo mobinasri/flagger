@@ -12,7 +12,7 @@ task asmgene {
         File? genesToReferencePaf
         # runtime configurations
         Int threadCount = 32
-        Int memSizeGB = 64
+        Int memSize = 64
         Int diskSizeGB = 32
         String dockerImage = "tpesout/hpp_minimap2:latest"
     }
@@ -51,7 +51,7 @@ task asmgene {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible: 1

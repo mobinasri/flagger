@@ -20,7 +20,7 @@ task Iris{
         String? IrisOut = "IRISOutputDir"
         
         String dockerImage = "quay.io/biocontainers/irissv@sha256:e854b554b11377b9b47f32d1c33b13d84b9fde2c5b99045d946f1e01568ec6a1" # 1.0.4--hdfd78af_2
-        Int memSizeGB = 128
+        Int memSize = 128
         Int threadCount = 64
         Int diskSizeGB = 128
 
@@ -48,7 +48,7 @@ task Iris{
         File vcfOut = glob("*iris.vcf")[0]
     }
     runtime{
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

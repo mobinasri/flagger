@@ -17,7 +17,7 @@ workflow trioHifiasmAssembly {
         File? referenceFasta
         # runtime configurations for running hifiasm
         Int threadCount=48
-        Int memSizeGB=256
+        Int memSize=256
         Int preemptible=1
     }
 
@@ -45,7 +45,7 @@ workflow trioHifiasmAssembly {
             childID = childID,
             hifiasmExtraOptions = hifiasmExtraOptions,
             inputBinFilesTarGz = inputBinFilesTarGz,
-            memSizeGB = memSizeGB,
+            memSize = memSize,
             threadCount = threadCount,
             preemptible = preemptible
     }

@@ -21,7 +21,7 @@ task hapDotPy{
 
         Boolean passOnly = true
 
-        Int memSizeGB = 24
+        Int memSize = 24
         Int threadCount = 8
         Int diskSizeGB = 128
         String dockerImage = "jmcdani20/hap.py@sha256:0812d37e7210011e407914deb3da2094ec8258077b21d3211e694e5ca303b489" # v0.3.12
@@ -76,7 +76,7 @@ task hapDotPy{
     }
 
     runtime{
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

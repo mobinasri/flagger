@@ -28,7 +28,7 @@ workflow runAdjustMapq{
     call extractReads as extractReadsPat {
         input:
             readFile=phaseBam.patBam,
-            memSizeGB=4,
+            memSize=4,
             threadCount=4,
             diskSizeGB=512
     }
@@ -54,7 +54,7 @@ workflow runAdjustMapq{
     call extractReads as extractReadsMat {
         input:
             readFile=phaseBam.matBam,
-            memSizeGB=4,
+            memSize=4,
             threadCount=4,
             diskSizeGB=512
     }
@@ -95,7 +95,7 @@ task getLowMapq {
         Int memSize=4
         Int threadCount=2
         Int diskSize=512
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
@@ -117,7 +117,7 @@ task getLowMapq {
     >>> 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -157,7 +157,7 @@ task phaseBam {
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -200,7 +200,7 @@ task getMapqTable {
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -215,7 +215,7 @@ task extractReads {
     input {
         File readFile
         File? referenceFasta
-        Int memSizeGB = 4
+        Int memSize = 4
         Int threadCount = 8
         Int diskSizeGB = 128
         String dockerImage = "mobinasri/bio_base:v0.1"
@@ -256,7 +256,7 @@ task extractReads {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

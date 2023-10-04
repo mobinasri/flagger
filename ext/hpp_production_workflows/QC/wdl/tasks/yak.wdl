@@ -24,7 +24,7 @@ workflow runYakAssemblyStats {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -35,7 +35,7 @@ workflow runYakAssemblyStats {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -46,7 +46,7 @@ workflow runYakAssemblyStats {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -117,7 +117,7 @@ task yakCount {
         String sampleName
         Int bloomSize=37
         # runtime configurations
-        Int memSizeGB=128
+        Int memSize=128
         Int threadCount=16
         Int diskSizeGB=256
         String dockerImage="juklucas/hpp_yak:latest"
@@ -140,7 +140,7 @@ task yakCount {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible: 1
@@ -162,7 +162,7 @@ task yakAssemblyStats {
         String genomeSize = "3.2g"
         String minSequenceLength = "100k"
         # runtime configurations
-        Int memSizeGB = 128
+        Int memSize = 128
         Int threadCount = 32
         Int diskSizeGB = 256
         String dockerImage = "juklucas/hpp_yak:latest"
@@ -207,7 +207,7 @@ task yakAssemblyStats {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible: 1

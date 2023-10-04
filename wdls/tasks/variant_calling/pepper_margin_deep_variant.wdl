@@ -46,7 +46,7 @@ task removeMultiplePrimary{
         Int memSize=8
         Int threadCount=8
         Int diskSize=2 * ceil(size(bam, "GB")) + 64
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=3
         String zones="us-west2-a"
     }
@@ -74,7 +74,7 @@ task removeMultiplePrimary{
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -117,11 +117,11 @@ task pmdv{
         
         BAM_NAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_NAME%%.bam}
-        ln -s ~{bam} ${BAM_PREFIX}.bam
+        ln ~{bam} ${BAM_PREFIX}.bam
 
         if [ -n "~{bamIndex}" ]
         then
-            ln -s ~{bamIndex} ${BAM_PREFIX}.bam.bai
+            ln ~{bamIndex} ${BAM_PREFIX}.bam.bai
         else
             samtools index ${BAM_PREFIX}.bam
         fi
@@ -152,7 +152,7 @@ task pmdv{
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

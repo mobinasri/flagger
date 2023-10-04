@@ -9,7 +9,7 @@ task quast {
         File assemblyFasta
         File? referenceFasta
         String extraArguments="--large"
-        Int memSizeGB = 64
+        Int memSize = 64
         Int threadCount = 16
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_quast:latest"
@@ -76,7 +76,7 @@ task quast {
 		File outputSummary = glob("*.quast/report.txt")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

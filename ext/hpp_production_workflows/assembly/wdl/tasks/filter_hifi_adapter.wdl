@@ -18,7 +18,7 @@ workflow filterReads{
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage="tpesout/hpp_base:latest"
@@ -62,7 +62,7 @@ task filterHiFiAdapter {
     input{
         File readFastq
         # runtime configurations
-        Int memSizeGB=32
+        Int memSize=32
         Int threadCount=16
         Int diskSizeGB=128
         Int preemptible=1
@@ -84,7 +84,7 @@ task filterHiFiAdapter {
         cd data
         FILENAME=$(basename -- "~{readFastq}")
         PREFIX="${FILENAME%.*}"
-        ln -s ~{readFastq} ${PREFIX}.fastq
+        ln ~{readFastq} ${PREFIX}.fastq
         wc -l ${PREFIX}.fastq | awk '{print $1/4}' > ${PREFIX}.countReads
         bash ${HIFI_ADAPTER_FILTER_BASH} -t ~{threadCount}
         OUTPUTSIZE=`du -s -BG *.filt.fastq | sed 's/G.*//'`
@@ -93,7 +93,7 @@ task filterHiFiAdapter {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible: preemptible
@@ -113,7 +113,7 @@ task cutadapt {
         File readFastq
         Int removeLastLines # added since deepconsensus fastq files had some redundant lines (3 lines)
         # runtime configurations
-        Int memSizeGB=32
+        Int memSize=32
         Int threadCount=16
         Int diskSizeGB=512
         Int preemptible=1
@@ -145,7 +145,7 @@ task cutadapt {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible: preemptible

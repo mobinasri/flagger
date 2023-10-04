@@ -21,7 +21,7 @@ workflow runMash {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -90,7 +90,7 @@ task mashSketch {
         Int kmerSize=21
         Int sketchSize=10000
         String extraArgs="-r -m 1"
-        Int memSizeGB = 2
+        Int memSize = 2
         Int threadCount = 2
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_mash:latest"
@@ -120,7 +120,7 @@ task mashSketch {
 		File sketch = glob("*.msh")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -133,7 +133,7 @@ task mashPaste {
     input {
         Array[File] sketches
         String identifier
-        Int memSizeGB = 2
+        Int memSize = 2
         Int threadCount = 2
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_mash:latest"
@@ -163,7 +163,7 @@ task mashPaste {
 		File paste = glob("*.msh")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -177,7 +177,7 @@ task mashDistPlot {
         File querySketch
         File referenceSketch
         String extraArguments=""
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 4
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_mash:latest"
@@ -221,7 +221,7 @@ task mashDistPlot {
 		File plot = glob("*.png")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -234,7 +234,7 @@ task mashScreen {
     input {
         File readFile
         String extraArguments=""
-        Int memSizeGB = 24
+        Int memSize = 24
         Int threadCount = 16
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_mash:latest"
@@ -261,7 +261,7 @@ task mashScreen {
 		File screenOut = glob("*.mash_screen.tsv")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -274,7 +274,7 @@ task consolodateMashData {
     input {
         Array[File] screenResults
         String sampleName
-        Int memSizeGB = 4
+        Int memSize = 4
         Int threadCount = 4
         Int diskSizeGB = 64
         String dockerImage = "tpesout/hpp_mash:latest"
@@ -305,7 +305,7 @@ task consolodateMashData {
 		File mashOut = glob("*.tar.gz")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

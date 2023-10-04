@@ -58,7 +58,7 @@ task splitBamContigWise{
         Int memSize=32
         Int threadCount
         Int diskSize=2 * ceil(size(bam, "GB")) + 64
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -83,8 +83,8 @@ task splitBamContigWise{
         ## hard link the bam and bai files to the working directory
         BAM_NAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_NAME%%.bam}
-        ln -s ~{bam}  ${BAM_PREFIX}.bam
-        ln -s ~{bamIndex}  ${BAM_PREFIX}.bam.bai
+        ln -f ~{bam} > ${BAM_PREFIX}.bam
+        ln -f ~{bamIndex} > ${BAM_PREFIX}.bam.bai
 
         ## make a bed file that covers the whole assembly
         cat ${ASSEMBLY_PREFIX}.fa.fai | awk '{print $1"\t"0"\t"$2}' > ${ASSEMBLY_PREFIX}.bed
@@ -99,7 +99,7 @@ task splitBamContigWise{
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -119,7 +119,7 @@ task increaseMapq{
         Int memSize=4
         Int threadCount=2
         Int diskSize=64
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -144,7 +144,7 @@ task increaseMapq{
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

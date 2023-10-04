@@ -345,6 +345,4 @@ void *ptVariant_destruct_stList(void *vars_);
 
 stList *ptVariant_subset_stList(stList *variants, stHash *blocks_per_contig);
 
-stHash *ptVariant_copy_stHash_blocks_per_contig(stHash *blocks_per_contig);
-
 #endif /* PT_VARIANT_H */

@@ -29,7 +29,7 @@ workflow runMeryl {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -40,7 +40,7 @@ workflow runMeryl {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -51,7 +51,7 @@ workflow runMeryl {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=fileExtractionDiskSizeGB,
                 dockerImage=dockerImage
@@ -99,7 +99,7 @@ workflow runMeryl {
                 kmerSize=kmerSize,
                 compress=compress,
                 threadCount=merylCountThreadCount,
-                memSizeGB=merylCountMemSizeGB,
+                memSize=merylCountMemSizeGB,
                 diskSizeGB=sampleReadSizeMax.value * 4,
                 dockerImage=dockerImage
         }
@@ -111,7 +111,7 @@ workflow runMeryl {
                 kmerSize=kmerSize,
                 compress=compress,
                 threadCount=merylCountThreadCount,
-                memSizeGB=merylCountMemSizeGB,
+                memSize=merylCountMemSizeGB,
                 diskSizeGB=maternalReadSizeMax.value * 4,
                 dockerImage=dockerImage
         }
@@ -123,7 +123,7 @@ workflow runMeryl {
                 kmerSize=kmerSize,
                 compress=compress,
                 threadCount=merylCountThreadCount,
-                memSizeGB=merylCountMemSizeGB,
+                memSize=merylCountMemSizeGB,
                 diskSizeGB=paternalReadSizeMax.value * 4,
                 dockerImage=dockerImage
         }
@@ -135,7 +135,7 @@ workflow runMeryl {
             merylCountFiles=sampleMerylCount.merylDb,
             identifier="sample",
             threadCount=merylUnionSumThreadCount,
-            memSizeGB=merylUnionSumMemSizeGB,
+            memSize=merylUnionSumMemSizeGB,
             diskSizeGB=sampleReadSize.value * 4,
             dockerImage=dockerImage
     }
@@ -144,7 +144,7 @@ workflow runMeryl {
             merylCountFiles=maternalMerylCount.merylDb,
             identifier="maternal",
             threadCount=merylUnionSumThreadCount,
-            memSizeGB=merylUnionSumMemSizeGB,
+            memSize=merylUnionSumMemSizeGB,
             diskSizeGB=maternalReadSize.value * 4,
             dockerImage=dockerImage
     }
@@ -153,7 +153,7 @@ workflow runMeryl {
             merylCountFiles=paternalMerylCount.merylDb,
             identifier="paternal",
             threadCount=merylUnionSumThreadCount,
-            memSizeGB=merylUnionSumMemSizeGB,
+            memSize=merylUnionSumMemSizeGB,
             diskSizeGB=paternalReadSize.value * 4,
             dockerImage=dockerImage
     }
@@ -164,7 +164,7 @@ workflow runMeryl {
             maternalMerylDB=maternalMerylUnionSum.merylDb,
             paternalMerylDB=paternalMerylUnionSum.merylDb,
             threadCount=merylHapmerThreadCount,
-            memSizeGB=merylHapmerMemSizeGB,
+            memSize=merylHapmerMemSizeGB,
             diskSizeGB=allReadSize.value * 2,
             dockerImage=dockerImage
     }
@@ -183,7 +183,7 @@ task merylCount {
         File readFile
         Int kmerSize=21
         Boolean compress = false
-        Int memSizeGB = 42
+        Int memSize = 42
         Int threadCount = 64
         Int diskSizeGB = 64
         String dockerImage = "juklucas/hpp_merqury:latest"
@@ -206,7 +206,7 @@ task merylCount {
 
         # generate meryl db for each read
         ID=`basename ~{readFile} | sed 's/.gz$//' | sed 's/.f[aq]\(st[aq]\)*$//'`
-        meryl ~{compress_arg} k=~{kmerSize} threads=~{threadCount} memory=$((~{memSizeGB}-10)) count output $ID.meryl ~{readFile}
+        meryl ~{compress_arg} k=~{kmerSize} threads=~{threadCount} memory=$((~{memSize}-10)) count output $ID.meryl ~{readFile}
 
         # package
         tar cvf $ID.meryl.tar $ID.meryl
@@ -218,7 +218,7 @@ task merylCount {
 		File merylDb = glob("*.meryl.tar")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -231,7 +231,7 @@ task merylUnionSum {
     input {
         Array[File] merylCountFiles
         String identifier
-        Int memSizeGB = 32
+        Int memSize = 32
         Int threadCount = 32
         Int diskSizeGB = 64
         String dockerImage = "juklucas/hpp_merqury:latest"
@@ -272,7 +272,7 @@ task merylUnionSum {
 		File merylDb = identifier + ".meryl.tar"
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -286,7 +286,7 @@ task merylHapmer {
         File maternalMerylDB
         File paternalMerylDB
         File sampleMerylDB
-        Int memSizeGB = 24
+        Int memSize = 24
         Int threadCount = 32
         Int diskSizeGB = 64
         String dockerImage = "juklucas/hpp_merqury:latest"
@@ -334,7 +334,7 @@ task merylHapmer {
 		File hapmerImages = "hapmers_img.tar.gz"
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

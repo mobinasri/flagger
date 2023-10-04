@@ -11,7 +11,7 @@ task dipcall {
         File referenceFasta
         Boolean isMaleSample
         Boolean referenceIsHS38 = true
-        Int memSizeGB = 64
+        Int memSize = 64
         Int threadCount = 16
         Int diskSizeGB = 64
         String dockerImage = "humanpangenomics/hpp_dipcall_v0.3:latest"
@@ -108,7 +108,7 @@ task dipcall {
 		File outputBED = glob("*.dipcall.bed")[0]
 	}
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

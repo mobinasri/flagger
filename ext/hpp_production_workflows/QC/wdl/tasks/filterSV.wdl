@@ -18,7 +18,7 @@ task Filter{
         String? outputFileTag
         
         String dockerImage = "kishwars/t2t_polishing@sha256:418486a1e88c48555ad4f7158c0a9923762182e7c9cd883342ffe0a161d89de6" # 0.1
-        Int memSizeGB = 128
+        Int memSize = 128
         Int threadCount = 64
         Int diskSizeGB = 128
     }
@@ -43,7 +43,7 @@ task Filter{
         File vcfOut = glob("*filtered.vcf")[0]
     }
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage

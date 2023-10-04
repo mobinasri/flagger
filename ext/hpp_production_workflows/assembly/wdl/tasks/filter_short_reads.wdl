@@ -15,7 +15,7 @@ workflow FilterShortReads {
             input:
                 readFile=readFile,
                 referenceFasta=referenceFasta,
-                memSizeGB=4,
+                memSize=4,
                 threadCount=4,
                 diskSizeGB=512,
                 dockerImage="tpesout/hpp_base:latest"
@@ -40,7 +40,7 @@ task filterShortReads {
         File readFastq
         Int minReadLength
         # runtime configurations
-        Int memSizeGB=8
+        Int memSize=8
         Int threadCount=4
         Int diskSizeGB=512
         Int preemptible=1
@@ -64,7 +64,7 @@ task filterShortReads {
 
     runtime {
         docker: dockerImage
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         preemptible: preemptible

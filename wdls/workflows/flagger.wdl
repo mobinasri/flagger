@@ -97,12 +97,12 @@ workflow runFlagger{
             windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz,
             windowsText = cov2countsByWindow.windowsText
     }
-    call pdf_generator_t.pdfGenerator {
-        input:
-            windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz,
-            genomeProbTable = fitModel.probabilityTable,
-            isDiploid = isDiploid
-    }
+#    call pdf_generator_t.pdfGenerator {
+#        input:
+#            windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz,
+#            genomeProbTable = fitModel.probabilityTable,
+#            isDiploid = isDiploid
+#    }
     call combineBeds as combineWindowBased{
         input:
             outputPrefix = "window_corrected",
@@ -147,7 +147,7 @@ workflow runFlagger{
 
     output {
         File miscFilesTarGz = gatherFiles.outputTarGz
-        File pdf = pdfGenerator.pdf
+        # File pdf = pdfGenerator.pdf
         File finalBed = getFinalBed.finalBed 
     }
 }
@@ -160,7 +160,7 @@ task gatherFiles {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
@@ -176,7 +176,7 @@ task gatherFiles {
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -194,7 +194,7 @@ task String2Float {
         echo ~{str} > file.txt
     >>>
     runtime {
-        docker: "mobinasri/flagger:v0.3.2"
+        docker: "mobinasri/flagger:v0.3.1"
         memory: "1 GB"
         cpu: 1
         disks: "local-disk 1 SSD"
@@ -214,7 +214,7 @@ task combineBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
@@ -250,7 +250,7 @@ task combineBeds {
     >>> 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -272,7 +272,7 @@ task dupCorrectBeds {
         Int memSize=16
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
 
@@ -326,7 +326,7 @@ task dupCorrectBeds {
 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -346,7 +346,7 @@ task filterBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
 
@@ -394,24 +394,14 @@ task filterBeds {
             bedtools subtract -sorted -a initial/${PREFIX}.filtered.${c}.bed -b filtered/${PREFIX}.filtered.unknown.bed > filtered/${PREFIX}.filtered.${c}.bed
         done
 
-        mkdir gt_1k
-        for c in error duplicated collapsed unknown
-        do
-            cat filtered/${PREFIX}.filtered.$c.bed | awk '$3-$2 < ~{minBlockLength}' >> hap.tmp.bed
-            cat filtered/${PREFIX}.filtered.$c.bed | awk '$3-$2 >= ~{minBlockLength}' > gt_1k/${PREFIX}.filtered.$c.bed
-        done
-        cat hap.tmp.bed filtered/${PREFIX}.filtered.haploid.bed | sort -k1,1 -k2,2n | bedtools merge -i - > gt_1k/${PREFIX}.filtered.haploid.bed
-
-
-
-        tar -cf ${PREFIX}.beds.filtered.tar gt_1k
+        tar -cf ${PREFIX}.beds.filtered.tar filtered
         gzip ${PREFIX}.beds.filtered.tar
         
     >>>
 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -429,7 +419,7 @@ task mergeHsatBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
@@ -470,7 +460,7 @@ task mergeHsatBeds {
 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
@@ -489,7 +479,7 @@ task getFinalBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.3.1"
         Int preemptible=2
     }
     command <<<
@@ -513,7 +503,7 @@ task getFinalBed {
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

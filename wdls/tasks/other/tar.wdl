@@ -27,13 +27,13 @@ task tarGz {
         set -o xtrace
         
         mkdir ~{tarGzName}
-        cp ~{sep=" " files} ~{tarGzName}
+        ln ~{sep=" " files} ~{tarGzName}
         tar -cf ~{tarGzName}.tar ~{tarGzName}
         gzip ~{tarGzName}.tar
     >>> 
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

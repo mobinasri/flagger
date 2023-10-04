@@ -8,9 +8,9 @@ workflow FlaggerEndToEndNoVariantCallingNoRef{
     input{
         File assemblyFastaGz
         File readAlignmentBam
-        String secphaseDockerImage = "mobinasri/secphase:v0.4.3"
+        String secphaseDockerImage = "mobinasri/secphase:v0.3.0"
         String secphaseOptions
-        String secphaseVersion = "v0.4.3"
+        String secphaseVersion = "v0.3.0"
         Float maxReadDivergence
         String sampleName
         String suffix
@@ -52,8 +52,5 @@ workflow FlaggerEndToEndNoVariantCallingNoRef{
         File finalBed = flagger.finalBed
         File miscFilesTarGz = flagger.miscFilesTarGz
         File pdf = flagger.pdf
-
-        # secphase log
-        File secphaseOutLog = secphase.outLog
     }
 }

@@ -20,7 +20,8 @@ workflow runDeepVariant{
             includeSupplementary = includeSupplementary,
             minMAPQ = minMAPQ,
             threadCount=64,
-            memSize=256
+            memSize=256,
+            diskSize= 2 * ceil(size(bam, "GB")) + 64
     }
     output{
         File vcfGz = deepVariant.vcfGz
@@ -41,7 +42,7 @@ task deepVariant{
         # runtime configurations
         Int memSize=32
         Int threadCount=16
-        Int diskSize = 2 * ceil(size(bam, "GB")) + 64
+        Int diskSize=64
         String dockerImage="google/deepvariant:latest"
         Int preemptible=2
         String zones="us-west2-a"
@@ -61,9 +62,9 @@ task deepVariant{
         ## hard link the bam file to the working directory and produce its index file
         BAM_NAME=$(basename ~{bam})
         BAM_PREFIX=${BAM_NAME%%.bam}
-        ln -s ~{bam}  ${BAM_PREFIX}.bam
+        ln -f ~{bam} > ${BAM_PREFIX}.bam
         if [ -n "~{bamIndex}" ]; then
-            ln -s ~{bamIndex} ${BAM_PREFIX}.bam.bai
+            ln -f ~{bamIndex} > ${BAM_PREFIX}.bam.bai
         else       
             samtools index -@~{threadCount} ${BAM_PREFIX}.bam
         fi
@@ -100,7 +101,7 @@ task deepVariant{
     >>>
     runtime {
         docker: dockerImage
-        memory: memSize + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible

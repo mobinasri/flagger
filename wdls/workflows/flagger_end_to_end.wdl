@@ -13,8 +13,8 @@ workflow FlaggerEndToEnd{
         File readAlignmentBam
         File hap1ToRefBam
         File hap2ToRefBam
-        String secphaseDockerImage = "mobinasri/secphase:v0.4.3"
-        String secphaseVersion = "v0.4.3"
+        String secphaseDockerImage = "mobinasri/secphase:v0.3.0"
+        String secphaseVersion = "v0.3.0"
         String secphaseOptions
         Float maxReadDivergence
         String variantCaller 
@@ -128,11 +128,11 @@ workflow FlaggerEndToEnd{
         # flagger outputs for all alignments
         File finalBed = flagger.finalBed
         File miscFilesTarGz = flagger.miscFilesTarGz
-        File pdf = flagger.pdf
+        #File pdf = flagger.pdf
 
         # flagger outputs after removing alt alignments
         File altRemovedMiscFilesTarGz = flagger_alt_removed.miscFilesTarGz
-        File altRemovedPdf = flagger_alt_removed.pdf
+        #File altRemovedPdf = flagger_alt_removed.pdf
         File altRemovedFinalBed = flagger_alt_removed.finalBed
 
         # flagger statistics stratified by long contigs, centeromere, SD and sex
@@ -143,8 +143,5 @@ workflow FlaggerEndToEnd{
         # after removing alt alignments
         File altRemovedStatsTsv = stats_alt_removed.flaggerStatsTsv
         File altRemovedStatsPercOnlyTsv = stats_alt_removed.flaggerStatsPercOnlyTsv
-
-        # secphase log
-        File secphaseOutLog = secphase.outLog
     }
 }

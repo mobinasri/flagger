@@ -29,7 +29,7 @@ task pepperMarginDeepVariant {
         String readTypeFlag = "ont_r9_guppy5_sup"
         String? extraArgs
 
-        Int memSizeGB = 128
+        Int memSize = 128
         Int threadCount = 64
         Int diskSizeGB = 128
         String dockerImage = "kishwars/pepper_deepvariant@sha256:70908591ad67e8567a6e4551119b2cfc33d957ad39701c8af51b36b516214645" # r0.8
@@ -97,7 +97,7 @@ task pepperMarginDeepVariant {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
@@ -114,7 +114,7 @@ task bcftoolsFilter {
         String applyFilters  = "PASS"
         String exludeTypes   = ""
 
-        Int memSizeGB = 8
+        Int memSize = 8
         Int threadCount = 4
         Int diskSizeGB = 50
         String dockerImage = "kishwars/pepper_deepvariant@sha256:70908591ad67e8567a6e4551119b2cfc33d957ad39701c8af51b36b516214645" # r0.8
@@ -166,7 +166,7 @@ task bcftoolsFilter {
     }
 
     runtime {
-        memory: memSizeGB + " GB"
+        memory: memSize
         cpu: threadCount
         disks: "local-disk " + diskSizeGB + " SSD"
         docker: dockerImage
