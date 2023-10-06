@@ -7,6 +7,7 @@
 #include "common.h"
 #include "sonLib.h"
 #include "stdlib.h"
+#include "stdio.h"
 #include "ptAlignment.h"
 #include <zlib.h>
 
@@ -113,6 +114,8 @@ void destruct_count_data(void *src_);
 
 void *copy_count_data(void *src_);
 
+// the function for representing the count data as a string
+char *get_string_count_data(void* src_);
 
 /**
  * Creates an instance of CoverageInfo given the required attributes
@@ -148,6 +151,13 @@ void destruct_cov_info_data(void* src);
 
 void *copy_cov_info_data(void* src_);
 
+// the functions for converting coverage info into a single string
+
+// format 1 is useful for debugging purposes
+char *get_string_cov_info_data_format_1(void* src_);
+
+// format 2 is compatible for HMM-Flagger
+char *get_string_cov_info_data_format_2(void* src_);
 
 /* Make a copy of a ptBlock structure
  */
@@ -311,13 +321,18 @@ stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
  * Print all block in the given table. The blocks are printed in BED format. start is 0-based and end is 1-based
  *
  * @param blocks_per_contig     stHash table of blocks (each value is a stList of blocks)
- * @param print_count           print the count data for each block as the 4th column.
- *                              The data of each block should be of type (int*)
- * @param fp                    opened file to write the blocks in (can be stdout/stderr)
- *                              it an also be a POINTER to the output of gzopen() for the compressed mode
- * @param is_compressed		true if fp is of type gzFile*, false if stderr/stdout/FILE*
+ * @param get_string_function   a function that takes the additional data ("data" attribute) saved in
+ *                              the ptBlock struct and converts it to a string.
+ *                              If it is set to NULL then only coordinates
+ *                              will be printed with no additional data.
+ * @param fp                    opened file to write the blocks in (can be also stdout/stderr)
+ *                              it can also be a POINTER to the output of gzopen() for the compressed mode
+ * @param is_compressed		    true if fp is of type gzFile*, false if stderr/stdout/FILE*
  */
-void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, void* fp, bool is_compressed);
+void ptBlock_print_blocks_stHash(stHash* blocks_per_contig,
+                                 char * (*get_string_function)(void *),
+                                 void* fp,
+                                 bool is_compressed);
 
 /**
  * Merge blocks (should be sorted by stList_sort)
