@@ -174,6 +174,7 @@ stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path, int threads){
 stList* parse_all_annotations_and_save_in_stList(char* json_path){
     int buffer_size = 0;
     char* json_buffer = read_whole_file(json_path, &buffer_size, "r");
+    fwrite(json_buffer,1,buffer_size,stderr);
     cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
     if (annotation_json == NULL)
     {
@@ -191,19 +192,20 @@ stList* parse_all_annotations_and_save_in_stList(char* json_path){
     // iterate over key-values in json
     // each key is an index
     // each value is a path to a bed file
-    const cJSON *key = NULL;
-    cJSON_ArrayForEach(key, annotation_json);
+    cJSON *element = NULL;
+    cJSON_ArrayForEach(element, annotation_json)
     {
-        cJSON *bed_path_item = cJSON_GetObjectItemCaseSensitive(annotation_json, key);
-        if (cJSON_IsString(bed_path_item)){
-            char* bed_path = cJSON_GetStringValue(bed_path_item);
+	if (cJSON_IsString(element)){
+	    fprintf(stderr, "Parsing  %s:%s\n", element->string, cJSON_GetStringValue(element));
+            char* bed_path = cJSON_GetStringValue(element);
             stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
-            int index = atoi(cJSON_GetStringValue(key));
-            fprintf(stderr, "# %d %s\n", index, bed_path);
+            int index = atoi(element->string) - 1; // given index is 1-based
             stList_set(block_table_list, index, annotation_block_table);
         }
     }
     cJSON_Delete(annotation_json);
+    fprintf(stderr, "length=%d\n",stList_length(block_table_list));
+    ptBlock_print_blocks_stHash(stList_get(block_table_list, 0), false, stderr, false);
     return block_table_list;
 
 }
