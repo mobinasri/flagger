@@ -91,6 +91,13 @@ void *copy_count_data(void* src_){
     return dest;
 }
 
+char *get_string_count_data(void* src_){
+    int* src = src_;
+    char str[10];
+    sprintf(str, "%d", *src);
+    return str;
+}
+
 CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
                             u_int8_t coverage,
                             u_int8_t coverage_high_mapq,
@@ -135,6 +142,30 @@ void *copy_cov_info_data(void* src_){
     dest->coverage_high_mapq = src->coverage_high_mapq;
     dest->coverage_high_clip = src->coverage_high_clip;
     return dest;
+}
+
+char *get_string_cov_info_data_format_1(void* src_){
+    CoverageInfo * src = src_;
+    char str[150];
+    sprintf(str,
+            "annot=%d, cov=%d, cov_mapq=%d, cov_clip=%d",
+            src->annotation_flag,
+            src->coverage,
+            src->coverage_high_mapq,
+            src->coverage_high_clip);
+    return str;
+}
+
+char *get_string_cov_info_data_format_2(void* src_){
+    CoverageInfo * src = src_;
+    char str[150];
+    sprintf(str,
+            "%d\t%d\t%d\t%d",
+            src->coverage,
+            src->coverage_high_mapq,
+            src->coverage_high_clip,
+            src->annotation_flag);
+    return str;
 }
 
 ptBlock *ptBlock_copy(ptBlock *block) {
@@ -446,7 +477,10 @@ stHash *ptBlock_parse_bed(char *bed_path) {
     return blocks_per_contig;
 }
 
-void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, void* file_ptr, bool is_compressed){
+void ptBlock_print_blocks_stHash(stHash* blocks_per_contig,
+                                 char * (*get_string_function)(void *),
+                                 void* file_ptr,
+                                 bool is_compressed){
     char* ctg_name;
     char line[1000];
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
@@ -454,11 +488,19 @@ void ptBlock_print_blocks_stHash(stHash* blocks_per_contig, bool print_count, vo
         stList* blocks = stHash_search(blocks_per_contig, ctg_name);
         for(int i=0; i < stList_length(blocks); i++){
             ptBlock* block = stList_get(blocks, i);
-            if(print_count){
-                int *count_ptr = block->data;
-                sprintf(line, "%s\t%d\t%d\t%d\n",ctg_name, block->rfs, block->rfe + 1, *count_ptr);
+            if(get_string_function != NULL){
+                sprintf(line,
+                        "%s\t%d\t%d\t%s\n",
+                        ctg_name,
+                        block->rfs,
+                        block->rfe + 1,
+                        get_string_function((void *) block->data));
             }else {
-                sprintf(line, "%s\t%d\t%d\n", ctg_name, block->rfs, block->rfe + 1);
+                sprintf(line,
+                        "%s\t%d\t%d\n",
+                        ctg_name,
+                        block->rfs,
+                        block->rfe + 1);
             }
 	    if(is_compressed){
 	        gzFile* gzFile_ptr = file_ptr;
