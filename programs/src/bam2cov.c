@@ -64,7 +64,7 @@ stList* parse_all_annotations_and_save_in_stList(char* json_path){
     }
     cJSON_Delete(annotation_json);
     fprintf(stderr, "[%s] Number of parsed annotations = %d\n", get_timestamp(), stList_length(block_table_list));
-    ptBlock_print_blocks_stHash(stList_get(block_table_list, 0), false, stderr, false);
+    //ptBlock_print_blocks_stHash_in_bed(stList_get(block_table_list, 0), false, stderr, false);
     return block_table_list;
 
 }
@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
                                                                               min_mapq,
                                                                               min_clipping_ratio);
     // print len/number stats for the coverage block table
-    fprintf(stderr, "[%s] Created block table with coverage data : tot_len=%ld, number=%ld\n", 
+    fprintf(stderr, "[%s] Created block table with coverage data : tot_len=%ld, number=%ld\n", get_timestamp(),
 		    ptBlock_get_total_length_by_rf(coverage_block_table), 
 		    ptBlock_get_total_number(coverage_block_table));
 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
     // this is useful to save the blocks with no coverage
     stHash* whole_genome_block_table = ptBlock_get_whole_genome_blocks_per_contig(bam_path);
     // print len/number stats for the whole genome block table
-    fprintf(stderr, "[%s] Created block table for whole genome  : tot_len=%ld, number=%ld\n", 
+    fprintf(stderr, "[%s] Created block table for whole genome  : tot_len=%ld, number=%ld\n", get_timestamp(),
 		    ptBlock_get_total_length_by_rf(whole_genome_block_table), 
 		    ptBlock_get_total_number(whole_genome_block_table));
 
@@ -179,14 +179,14 @@ int main(int argc, char *argv[]) {
                                           extend_cov_info_data);
 
     // print len/number stats for the whole genome block table
-    fprintf(stderr, "[%s] Created block table for whole genome  : tot_len=%ld, number=%ld\n", 
+    fprintf(stderr, "[%s] Created block table for whole genome  : tot_len=%ld, number=%ld\n", get_timestamp(),
 		    ptBlock_get_total_length_by_rf(whole_genome_block_table), 
 		    ptBlock_get_total_number(whole_genome_block_table));
 
 
     // add annotation and coverage blocks to the whole genome blocks in place
     ptBlock_extend_block_tables(whole_genome_block_table, coverage_block_table);
-    fprintf(stderr, "[%s]  Added 0-coverage whole genome blocks to coverage block tables : tot_len=%ld, number=%ld\n", 
+    fprintf(stderr, "[%s] Added 0-coverage whole genome blocks to coverage block tables : tot_len=%ld, number=%ld\n", get_timestamp(), 
 		    ptBlock_get_total_length_by_rf(whole_genome_block_table), 
 		    ptBlock_get_total_number(whole_genome_block_table));
     for(int i=0; i < stList_length(annotation_block_table_list); i++){
@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
         }
         ptBlock_print_blocks_stHash_in_cov(final_block_table,
                                            get_string_cov_info_data_format_2,
-                                           fp,
+                                           &fp,
                                            true,
                                            ctg_to_len);
         gzclose(fp);
@@ -260,7 +260,7 @@ int main(int argc, char *argv[]) {
         }
         ptBlock_print_blocks_stHash_in_bed(final_block_table,
                                            get_string_cov_info_data_format_1,
-                                           fp,
+                                           &fp,
                                            true);
         gzclose(fp);
     }else{

@@ -10,7 +10,7 @@
 #include "stdio.h"
 #include "ptAlignment.h"
 #include <zlib.h>
-
+#include "tpool.h"
 
 /*! @typedef
  * @abstract Structure for saving a block

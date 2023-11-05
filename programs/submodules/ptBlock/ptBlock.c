@@ -516,7 +516,7 @@ void ptBlock_print_blocks_stHash_in_bed(stHash* blocks_per_contig,
 
 void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
                                         char * (*get_string_function)(void *),
-                                        void* _file_ptr,
+                                        void* file_ptr,
                                         bool is_compressed,
                                         stHash* ctg_to_len){
 
