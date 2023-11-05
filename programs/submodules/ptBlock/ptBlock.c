@@ -103,7 +103,7 @@ CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
                             u_int8_t coverage_high_mapq,
                             u_int8_t coverage_high_clip){
     CoverageInfo *cov_info = malloc(sizeof(CoverageInfo));
-    cov_info->annotation_flag = 0;
+    cov_info->annotation_flag = annotation_flag;
     cov_info->coverage = coverage;
     cov_info->coverage_high_mapq = coverage_high_mapq;
     cov_info->coverage_high_clip = coverage_high_clip;
@@ -146,7 +146,7 @@ void *copy_cov_info_data(void* src_){
 
 char *get_string_cov_info_data_format_1(void* src_){
     CoverageInfo * src = src_;
-    char str[150];
+    char *str = malloc(150);
     sprintf(str,
             "annot=%d, cov=%d, cov_mapq=%d, cov_clip=%d",
             src->annotation_flag,
@@ -158,7 +158,7 @@ char *get_string_cov_info_data_format_1(void* src_){
 
 char *get_string_cov_info_data_format_2(void* src_){
     CoverageInfo * src = src_;
-    char str[150];
+    char *str = malloc(150);
     sprintf(str,
             "%d\t%d\t%d\t%d",
             src->coverage,
@@ -772,7 +772,7 @@ stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
         // merge blocks
         merged_blocks = ptBlock_merge_blocks_v2(blocks, get_start, get_end, set_start, set_end);
         // add merged blocks to the new table
-        stHash_insert(merged_blocks_per_contig, contig_name, merged_blocks);
+        stHash_insert(merged_blocks_per_contig, copyString(contig_name), merged_blocks);
     }
     return merged_blocks_per_contig;
 }
