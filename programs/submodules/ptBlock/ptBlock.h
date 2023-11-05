@@ -329,10 +329,29 @@ stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
  *                              it can also be a POINTER to the output of gzopen() for the compressed mode
  * @param is_compressed		    true if fp is of type gzFile*, false if stderr/stdout/FILE*
  */
-void ptBlock_print_blocks_stHash(stHash* blocks_per_contig,
-                                 char * (*get_string_function)(void *),
-                                 void* fp,
-                                 bool is_compressed);
+void ptBlock_print_blocks_stHash_in_bed(stHash* blocks_per_contig,
+                                        char * (*get_string_function)(void *),
+                                        void* fp,
+                                        bool is_compressed);
+
+/**
+ * Print all block in the given table. The blocks are printed in COV format. start is 1-based and end is 1-based
+ *
+ * @param blocks_per_contig     stHash table of blocks (each value is a stList of blocks)
+ * @param get_string_function   a function that takes the additional data ("data" attribute) saved in
+ *                              the ptBlock struct and converts it to a string.
+ *                              If it is set to NULL then only coordinates
+ *                              will be printed with no additional data.
+ * @param fp                    opened file to write the blocks in (can be also stdout/stderr)
+ *                              it can also be a POINTER to the output of gzopen() for the compressed mode
+ * @param is_compressed		    true if fp is of type gzFile*, false if stderr/stdout/FILE*
+ * @param ctg_to_len            stHash table to convert contig name to contig length (each value is of type int*)
+ */
+void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
+                                        char * (*get_string_function)(void *),
+                                        void* fp,
+                                        bool is_compressed,
+                                        stHash* ctg_to_len);
 
 /**
  * Merge blocks (should be sorted by stList_sort)
@@ -521,6 +540,34 @@ int64_t ptBlock_get_total_length_by_sq(stHash *blocks_per_contig);
 void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char* contig, stList* blocks_to_add);
 
 stList* ptBlock_copy_stList(stList* blocks);
+
+// takes the path to a bam file
+// returns a stHash table from contig name to length
+stHash* ptBlock_get_contig_length_stHash_from_bam(char* bam_path);
+
+
+// functions and structs for extracting coverage information from bam/sam file
+
+
+typedef struct ArgumentsCovExt {
+    stHash* coverage_blocks_per_contig;
+    stHash* ref_blocks_per_contig_to_parse;
+    char* bam_path;
+    pthread_mutex_t *mutexPtr;
+    int min_mapq;
+    double min_clipping_ratio;
+} ArgumentsCovExt;
+
+// parse bam file and create a stHash table of blocks
+// coverage information is saved in a CoverageInfo object
+// available as the "data" attribute of each resulting block
+stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path,
+                                                   int threads,
+                                                   int min_mapq,
+                                                   double min_clipping_ratio);
+
+// make a block table that covers the whole reference sequences
+stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path);
 
 #endif /* PT_BLOCK_H */
 
