@@ -45,6 +45,95 @@ def induceSingleBaseErrors(seq, errorRate):
     return "".join(erroneousSeq)
 
 
+def removeClippingFromCigarList(cigarList):
+    s = 0
+    e = len(cigarList)
+    # get first index with no clipping
+    if cigarList[0][0] == 'H' or cigarList[0][0] == 'S':
+        s = 1
+    if cigarList[1][0] == 'S':
+        s = 2
+    # get last index with no clipping
+    if cigarList[-1][0] == 'H' or cigarList[-1][0] == 'S':
+        e = len(cigarList) - 1
+    if cigarList[-2][0] == 'S':
+        e = len(cigarList) - 2
+    return cigarList[s:e]
+
+def getLeftHardClip(cigarList):
+    leftMostOp, leftMostSize = cigarList[0]
+    if leftMostOp == 'H':
+        return leftMostSize
+    else:
+        return 0
+
+def getRightHardClip(cigarList):
+    rightMostOp, rightMostSize = cigarList[-1]
+    if rightMostOp == 'H':
+        return rightMostSize
+    else:
+        return 0
+
+# coors is like a BED track (0-based closed, 0-based open)
+# this function is useful when we have SAM/BAM instead of PAF
+def convertQueryToContigCoordinates(coors, alignment):
+    orientation = alignment.orientation
+    rightHardClip = alignment.rightHardClip
+    leftHardClip = alignment.leftHardClip
+    queryLength = alignment.contigLength - rightHardClip - leftHardClip
+    blockLen = coors[1] - coors[0]
+    if orientation == '+':
+        contigStart = leftHardClip + coors[0]
+    else:
+        contigStart = queryLength + rightHardClip - coors[1]
+    contigEnd = contigStart + blockLen
+    return contigStart, contigEnd
+
+
+def convertQueryToContigCoordinatesList(coorsList, alignment):
+    newCoorsList = []
+    for coors in coorsList:
+        newCoors = convertQueryToContigCoordinates(coors, alignment)
+        newCoorsList.append(newCoors)
+    return newCoorsList
+
+
+# coors is like a BED track (0-based closed, 0-based open)
+# this function is useful when we have SAM/BAM instead of PAF
+def convertContigToQueryCoordinates(coors, alignment):
+    orientation = alignment.orientation
+    rightHardClip = alignment.rightHardClip
+    leftHardClip = alignment.leftHardClip
+    queryLength = alignment.contigLength - rightHardClip - leftHardClip
+    blockLen = coors[1] - coors[0]
+    if orientation == '+':
+        queryStart = coors[0] - leftHardClip
+    else:
+        queryStart = queryLength + leftHardClip - coors[1]
+    queryEnd = queryStart + blockLen
+    return queryStart, queryEnd
+
+
+def convertContigToQueryCoordinatesList(coorsList, alignment):
+    newCoorsList = []
+    for coors in coorsList:
+        newCoors = convertContigToQueryCoordinates(coors, alignment)
+        newCoorsList.append(newCoors)
+    return newCoorsList
+
+
+def createCigarListCompatibleWithPysam(cigarList):
+    opToIndex = {'M': 0,
+                 'I': 1,
+                 'D': 2,
+                 'N': 3,
+                 'S': 4,
+                 'H': 5,
+                 'P': 6,
+                 '=': 7,
+                 'X': 8,
+                 'B': 9}
+    return [(opToIndex[opType], opLen) for opType, opLen in cigarList]
 
 def getCigarList(cigarString):
     """
@@ -566,7 +655,7 @@ class Alignment:
     """
 
     def __init__(self, paf_line):
-
+        if paf_line is None: self.createEmptyAlignment()
         cols = paf_line.strip().split()
         self.contigName = cols[0]
         self.contigLength = int(cols[1])
@@ -587,6 +676,8 @@ class Alignment:
         afterCg = paf_line.strip().split("cg:Z:")[1]
         cigarString = afterCg.split()[0]
         self.cigarList = getCigarList(cigarString)
+        self.leftHardClip = 0 # there is no hard clip in paf format
+        self.rightHardClip = 0
         if "NM:i:" in paf_line:
             # The edit distance starts after "NM:i:"
             afterNM = paf_line.strip().split("NM:i:")[1]
@@ -594,6 +685,43 @@ class Alignment:
             self.editDistance = int(editString)
         else:
             self.editDistance = None
+    def createEmptyAlignment(self):
+        self.contigName = None
+        self.contigLength = None
+        self.contigStart = None
+        self.contigEnd = None
+        self.orientation = None
+        self.chromName = None
+        self.chromStart = None
+        self.chromEnd = None
+        self.chromLength = None
+        self.isPrimary = None
+        self.cigarList = None
+        self.editDistance = None
+        self.leftHardClip = None
+        self.rightHardClip = None
+
+    @staticmethod
+    def createFromPysamRecord(record):
+        alignment = Alignment(None)
+        alignment.orientation = '+' if record.is_forward else '-'
+        cigarListOrig = getCigarList(record.cigarstring)
+        alignment.rightHardClip = getRightHardClip(cigarListOrig)
+        alignment.leftHardClip = getLeftHardClip(cigarListOrig)
+        alignment.contigName = record.query_name
+        alignment.contigLength = record.query_length + alignment.leftHardClip + alignment.rightHardClip
+        queryStart = record.query_alignment_start # 0-based closed
+        queryEnd = record.query_alignment_end + 1 # 0-based closed -> +1 -> open
+        alignment.contigStart, alignment.contigEnd = convertQueryToContigCoordinates(
+            (queryStart, queryEnd), alignment
+        )
+        alignment.chromName = record.reference_name
+        alignment.chromStart = record.reference_start # 0-based closed
+        alignment.chromEnd = record.reference_end + 1 # 0-based closed -> +1 -> open
+        alignment.isPrimary = (not record.is_secondary) and (not record.is_unmapped)
+        alignment.cigarList = removeClippingFromCigarList(cigarListOrig)
+        return alignment
+
 
     def writeToPaf(self, pafPath, append=True):
         openMode = "a" if append else "w"
