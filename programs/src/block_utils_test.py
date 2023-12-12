@@ -423,6 +423,48 @@ class TestProjection(unittest.TestCase):
             self.assertEqual(t.contigEnd, a.contigEnd, "Incorrect contig end")
             self.assertEqual(t.orientation, a.orientation, "Incorrect orientation")
             self.assertListEqual(t.cigarList, a.cigarList, "Incorrect CIGAR")
+    
+    def testBlockListPerContigSplit_1(self):
+        blockListPerContig = {"contig1": BlockList(),
+                              "contig2": BlockList([(1,10), (41, 55)]),
+                              "contig3": BlockList([(16,50)])}
+        outParts = BlockList.split(blockListPerContig=blockListPerContig,
+                                   numberOfParts=4)
+        part1 = {"contig2": BlockList([(1, 10), (41,45)])}
+        part2 = {"contig2": BlockList([(46, 55)]),
+                 "contig3": BlockList([(16, 20)])}
+        part3 = {"contig3": BlockList([(21, 35)])}
+        part4 = {"contig3": BlockList([(36, 50)])}
+
+        truthParts = [part1, part2, part3, part4]
+
+        self.assertEqual(len(truthParts), len(outParts))
+        for truthPart, outPart in zip(truthParts, outParts):
+            self.assertCountEqual(list(truthPart.keys()), list(outPart.keys()))
+            for contig, truthBlockList in truthPart.items():
+                self.assertTrue(truthBlockList.isEqual(outPart[contig]))
+
+    def testBlockListPerContigSplit_2(self):
+        blockListPerContig = {"contig1": BlockList(),
+                              "contig2": BlockList([(1,10), (41, 55)]),
+                              "contig3": BlockList([(16,51)]),
+                              "contig4": BlockList()}
+        outParts = BlockList.split(blockListPerContig=blockListPerContig,
+                                   numberOfParts=4)
+        part1 = {"contig2": BlockList([(1, 10), (41,46)])}
+        part2 = {"contig2": BlockList([(47, 55)]),
+                 "contig3": BlockList([(16, 22)])}
+        part3 = {"contig3": BlockList([(23, 38)])}
+        part4 = {"contig3": BlockList([(39, 51)])}
+
+        truthParts = [part1, part2, part3, part4]
+
+        self.assertEqual(len(truthParts), len(outParts))
+        for truthPart, outPart in zip(truthParts, outParts):
+            self.assertCountEqual(list(truthPart.keys()), list(outPart.keys()))
+            for contig, truthBlockList in truthPart.items():
+                self.assertTrue(truthBlockList.isEqual(outPart[contig]))
+
 def main():
     unittest.main(verbosity=2)
 

@@ -7,8 +7,16 @@ from copy import deepcopy
 import random
 from Bio import SeqIO
 import gzip
+import math
 
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
+
+def countQueryBases(cigarList):
+    count = 0
+    for op, size in cigarList:
+        if op == 'M' or op == 'X' or op == 'I' or op == '=' or op == 'S':
+            count += size
+    return count
 
 def reverseComplement(seq):
     comp={'A':'T',
@@ -74,19 +82,19 @@ def getRightHardClip(cigarList):
     else:
         return 0
 
-# coors is like a BED track (0-based closed, 0-based open)
+# coors : (1-based closed, 1-based closed)
 # this function is useful when we have SAM/BAM instead of PAF
 def convertQueryToContigCoordinates(coors, alignment):
     orientation = alignment.orientation
     rightHardClip = alignment.rightHardClip
     leftHardClip = alignment.leftHardClip
     queryLength = alignment.contigLength - rightHardClip - leftHardClip
-    blockLen = coors[1] - coors[0]
+    blockLen = coors[1] - coors[0] + 1
     if orientation == '+':
         contigStart = leftHardClip + coors[0]
     else:
-        contigStart = queryLength + rightHardClip - coors[1]
-    contigEnd = contigStart + blockLen
+        contigStart = queryLength + rightHardClip - coors[1] + 1
+    contigEnd = contigStart + blockLen - 1
     return contigStart, contigEnd
 
 
@@ -98,19 +106,19 @@ def convertQueryToContigCoordinatesList(coorsList, alignment):
     return newCoorsList
 
 
-# coors is like a BED track (0-based closed, 0-based open)
+# coors: (1-based closed, 1-based closed)
 # this function is useful when we have SAM/BAM instead of PAF
 def convertContigToQueryCoordinates(coors, alignment):
     orientation = alignment.orientation
     rightHardClip = alignment.rightHardClip
     leftHardClip = alignment.leftHardClip
     queryLength = alignment.contigLength - rightHardClip - leftHardClip
-    blockLen = coors[1] - coors[0]
+    blockLen = coors[1] - coors[0] + 1
     if orientation == '+':
         queryStart = coors[0] - leftHardClip
     else:
-        queryStart = queryLength + leftHardClip - coors[1]
-    queryEnd = queryStart + blockLen
+        queryStart = queryLength + leftHardClip - coors[1] + 1
+    queryEnd = queryStart + blockLen - 1
     return queryStart, queryEnd
 
 
@@ -146,7 +154,7 @@ def getCigarList(cigarString):
     cigarOps = re.compile("[0-9]+").split(cigarString)[1:]
     # H (hard clipping) or S (Soft clipping) are not included since in the PAF format 
     # the start and end positions are shifted instead of adding H or S to the cigar string
-    cigarSizes = [int(size) for size in re.compile("M|I|D|X|=").split(cigarString)[:-1]]
+    cigarSizes = [int(size) for size in re.compile("S|H|M|I|D|X|=").split(cigarString)[:-1]]
     cigarList = [ (op, size) for op, size in zip(cigarOps, cigarSizes)]
     return cigarList
 
@@ -603,7 +611,7 @@ class BlockList:
                     c = cols[3:]
                 else:
                     c = 0
-                start = int(cols[1])
+                start = int(cols[1]) + 1
                 end = int(cols[2])
                 contig = cols[0]
                 blockListPerContig[contig].append((start, end, c))
@@ -611,6 +619,78 @@ class BlockList:
         for contig, blockList in blockListPerContig.items():
             blockList.sort()
         return blockListPerContig
+        
+    @staticmethod
+    def getTotalLengthBlockListsPerContig(blockListPerContig):
+        total = 0
+        for contig, blockList in blockListPerContig.items():
+            total += blockList.getTotalLength()
+        return total
+
+    @staticmethod
+    def getNextIndicesBlockListPerContig(blockListPerContig, contigList, contigIndex, blockIndex):
+        if len(contigList) - 1  <= contigIndex:
+            return None, None # ran out of blocks/contigs
+        elif contigIndex == -1 or \
+                len(blockListPerContig[contigList[contigIndex]].blocks) - 1 <= blockIndex:
+            i = 1
+            # this while loop is to handle the case if we had contigs with empty blocks
+            while contigIndex + i < len(contigList):
+                if 0 < len(blockListPerContig[contigList[contigIndex + i]].blocks):
+                    return contigIndex + i, 0 # go to the next first block in another contig
+                i += 1
+        else:
+            return contigIndex, blockIndex + 1 # go to the next block in the same contig
+        return None, None
+
+    @staticmethod
+    def split(blockListPerContig, numberOfParts):
+        """ Each blocList in blockListPerContig has to be sorted """
+
+        def _add_new_block(blockListPerContig, contig, block):
+            if contig not in blockListPerContig:
+                blockListPerContig[contig] = BlockList()
+            blockListPerContig[contig].append(block)
+
+
+        contigList = list(blockListPerContig.keys())
+        contigIndex, blockIndex = BlockList.getNextIndicesBlockListPerContig(blockListPerContig=blockListPerContig,
+                                                                             contigList=contigList,
+                                                                             contigIndex=-1,
+                                                                             blockIndex=-1)
+        currContig = contigList[contigIndex]
+        totalSize = BlockList.getTotalLengthBlockListsPerContig(blockListPerContig)
+        intervalSize = int(math.ceil(totalSize / numberOfParts))
+        currBlock = blockListPerContig[contigList[contigIndex]].blocks[blockIndex]
+        startPoint = currBlock[0]
+        parts = []
+        for i in range(numberOfParts):
+            remainingLengthForPart = intervalSize
+            blockListPerContigOnePart = {}
+            parts.append(blockListPerContigOnePart)
+            while (startPoint + remainingLengthForPart - 1) >= currBlock[1]:
+                _add_new_block(blockListPerContig = blockListPerContigOnePart,
+                               contig = currContig,
+                               block = (startPoint, currBlock[1]))
+                remainingLengthForPart -= (currBlock[1] - startPoint + 1)
+                contigIndex, blockIndex = BlockList.getNextIndicesBlockListPerContig(blockListPerContig,
+                                                                                     contigList,
+                                                                                     contigIndex,
+                                                                                     blockIndex)
+                if blockIndex is None or contigIndex is None:
+                    break
+                currContig = contigList[contigIndex]
+                currBlock = blockListPerContig[currContig].blocks[blockIndex]
+                startPoint =  currBlock[0]
+            if blockIndex is None or contigIndex is None:
+                break
+            if 0 < remainingLengthForPart:
+                _add_new_block(blockListPerContig = blockListPerContigOnePart,
+                               contig = currContig,
+                               block = (startPoint, startPoint + remainingLengthForPart - 1))
+                startPoint = startPoint + remainingLengthForPart
+        return parts
+
 
 
 def parseFasta(fastaPath):
@@ -655,36 +735,38 @@ class Alignment:
     """
 
     def __init__(self, paf_line):
-        if paf_line is None: self.createEmptyAlignment()
-        cols = paf_line.strip().split()
-        self.contigName = cols[0]
-        self.contigLength = int(cols[1])
-        self.contigStart = int(cols[2]) # 0-based closed
-        self.contigEnd = int(cols[3]) # 0-based open
-        self.orientation = cols[4]
-        self.chromName = cols[5]
-        self.chromLength = int(cols[6])
-        self.chromStart = int(cols[7]) # 0-based closed
-        self.chromEnd = int(cols[8]) # 0-based open
-        self.numberOfMatches = int(cols[9])
-        self.alignmentLength = int(cols[10])
-        self.mappingQuality = int(cols[11])
-        self.isPrimary = False
-        if "tp:A:P" in paf_line:
-            self.isPrimary = True
-        # The cigar string starts after "cg:Z:"
-        afterCg = paf_line.strip().split("cg:Z:")[1]
-        cigarString = afterCg.split()[0]
-        self.cigarList = getCigarList(cigarString)
-        self.leftHardClip = 0 # there is no hard clip in paf format
-        self.rightHardClip = 0
-        if "NM:i:" in paf_line:
-            # The edit distance starts after "NM:i:"
-            afterNM = paf_line.strip().split("NM:i:")[1]
-            editString = afterNM.split()[0]
-            self.editDistance = int(editString)
+        if paf_line is None: 
+            self.createEmptyAlignment()
         else:
-            self.editDistance = None
+            cols = paf_line.strip().split()
+            self.contigName = cols[0]
+            self.contigLength = int(cols[1])
+            self.contigStart = int(cols[2]) # 0-based closed
+            self.contigEnd = int(cols[3]) # 0-based open
+            self.orientation = cols[4]
+            self.chromName = cols[5]
+            self.chromLength = int(cols[6])
+            self.chromStart = int(cols[7]) # 0-based closed
+            self.chromEnd = int(cols[8]) # 0-based open
+            self.numberOfMatches = int(cols[9])
+            self.alignmentLength = int(cols[10])
+            self.mappingQuality = int(cols[11])
+            self.isPrimary = False
+            if "tp:A:P" in paf_line:
+                self.isPrimary = True
+            # The cigar string starts after "cg:Z:"
+            afterCg = paf_line.strip().split("cg:Z:")[1]
+            cigarString = afterCg.split()[0]
+            self.cigarList = getCigarList(cigarString)
+            self.leftHardClip = 0 # there is no hard clip in paf format
+            self.rightHardClip = 0
+            if "NM:i:" in paf_line:
+                # The edit distance starts after "NM:i:"
+                afterNM = paf_line.strip().split("NM:i:")[1]
+                editString = afterNM.split()[0]
+                self.editDistance = int(editString)
+            else:
+                self.editDistance = None
     def createEmptyAlignment(self):
         self.contigName = None
         self.contigLength = None
@@ -702,22 +784,26 @@ class Alignment:
         self.rightHardClip = None
 
     @staticmethod
-    def createFromPysamRecord(record):
+    def createFromPysamRecord(record, header):
         alignment = Alignment(None)
         alignment.orientation = '+' if record.is_forward else '-'
         cigarListOrig = getCigarList(record.cigarstring)
         alignment.rightHardClip = getRightHardClip(cigarListOrig)
         alignment.leftHardClip = getLeftHardClip(cigarListOrig)
         alignment.contigName = record.query_name
+        #print(record.query_length , alignment.leftHardClip , alignment.rightHardClip)
         alignment.contigLength = record.query_length + alignment.leftHardClip + alignment.rightHardClip
-        queryStart = record.query_alignment_start # 0-based closed
-        queryEnd = record.query_alignment_end + 1 # 0-based closed -> +1 -> open
+        #print(alignment.contigLength)
+        queryStart = record.query_alignment_start + 1 # 0-based closed -> +1 -> 1-based closed 
+        queryEnd = record.query_alignment_end # 1-based closed
         alignment.contigStart, alignment.contigEnd = convertQueryToContigCoordinates(
             (queryStart, queryEnd), alignment
         )
+        alignment.contigStart -= 1 # 1-based closed -> -1 -> 0-based closed
         alignment.chromName = record.reference_name
         alignment.chromStart = record.reference_start # 0-based closed
-        alignment.chromEnd = record.reference_end + 1 # 0-based closed -> +1 -> open
+        alignment.chromEnd = record.reference_end # 1-based closed
+        alignment.chromLength = header.get_reference_length(alignment.chromName)
         alignment.isPrimary = (not record.is_secondary) and (not record.is_unmapped)
         alignment.cigarList = removeClippingFromCigarList(cigarListOrig)
         return alignment
@@ -740,6 +826,7 @@ def reverseInterval(interval, contigLength):
     """
     #print(interval[0], interval[1])
     assert (interval[0] <= interval[1])
+    #print(contigLength, interval)
     return (contigLength - interval[1] + 1, contigLength - interval[0] + 1)
 
 def reverseBlocks(blocks, contigLength):
