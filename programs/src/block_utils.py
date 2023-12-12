@@ -117,7 +117,7 @@ def convertContigToQueryCoordinates(coors, alignment):
     if orientation == '+':
         queryStart = coors[0] - leftHardClip
     else:
-        queryStart = queryLength + leftHardClip - coors[1] + 1
+        queryStart = queryLength + rightHardClip - coors[1] + 1
     queryEnd = queryStart + blockLen - 1
     return queryStart, queryEnd
 

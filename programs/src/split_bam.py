@@ -56,7 +56,7 @@ class PysamIteratorForBlockList:
             if contigName is None: # there is no more block to iterate over
                 raise StopIteration()
             self.inputPysamIterator = self.inputPysamAlignmentFile.fetch(contigName, start, end)
-            self.__next__()
+            return self.__next__()
 
 def getPysamTags(pysamRecord, tagNames):
     """ Return a list of only the requested tags """
@@ -88,7 +88,7 @@ def writeSplitAlignments(inputPysamRecord,
         if queryBlock[0] <= queryBlock[1]:
             splitPySamRecord = pysam.AlignedSegment()
             splitPySamRecord.query_name = inputPysamRecord.query_name + "_split_" + str(splitIndex)
-            splitPySamRecord.query_sequence = inputPysamRecord.query[queryBlock[0] - 1: queryBlock[1]]
+            splitPySamRecord.query_sequence = inputPysamRecord.query_sequence[queryBlock[0] - 1: queryBlock[1]]
             splitPySamRecord.flag = inputPysamRecord.flag
             splitPySamRecord.reference_id = inputPysamRecord.reference_id
             splitPySamRecord.reference_start = refBlock[0] - 1 # make it 0-based closed
