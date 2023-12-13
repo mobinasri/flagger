@@ -165,10 +165,11 @@ def splitAlignmentsInRegionOneShard(args):
         # dictionary. This dictionary has to be updated once we parsed 
         # a read
         with lock:
-            if inputPysamRecord.query_name in shared_reads_dict: 
+            read_pos = inputPysamRecord.query_name + '_' + str(inputPysamRecord.reference_id) + '_' + str(inputPysamRecord.reference_start)
+            if read_pos  in shared_reads_dict: 
                 continue
             else:
-                shared_reads_dict[inputPysamRecord.query_name] = 1
+                shared_reads_dict[read_pos] = 1
         splitOneAlignment(inputPysamRecord = inputPysamRecord,
                           header=inputPysamAlignmentFile.header,
                           outputPysamAlignmentFile=outputPysamAlignmentFile,
