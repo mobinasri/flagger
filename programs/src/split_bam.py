@@ -286,7 +286,7 @@ def main():
 
     print(f"[{datetime.datetime.now()}] Started merging files.")
     outputSamPath = mergeSamFiles(outputSamPath, sortedSamPathList, suffix=None)
-    print(f"[{datetime.datetime.now()}] Merged file (but unsorted): {unsortedSamPath}")
+    print(f"[{datetime.datetime.now()}] Merged file {outputSamPath}")
 
     print(f"[{datetime.datetime.now()}] Started removing temporary sorted shard sam files.")
     # remove shard sam files
