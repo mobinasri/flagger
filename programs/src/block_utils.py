@@ -56,6 +56,15 @@ def induceSingleBaseErrors(seq, errorRate):
 def removeClippingFromCigarList(cigarList):
     s = 0
     e = len(cigarList)
+    if len(cigarList) == 0:
+        return []
+    # if the whole cigar is only '=' or 'M' or 'X'
+    if len(cigarList) == 1:
+        op = cigarList[0][0]
+        if op == 'M' or op == '=' or op == 'X':
+            return cigarList[s:e]
+        else:
+            return []
     # get first index with no clipping
     if cigarList[0][0] == 'H' or cigarList[0][0] == 'S':
         s = 1
