@@ -222,6 +222,15 @@ def mergeSamFiles(outputSamPath, samPathList, suffix):
     pysam.merge(*mergeParameters)
     return outputSamPath
 
+
+def sortSamFiles(samPathList):
+    sortedSamPathList=[]
+    for samPath in samPathList:
+        sortedSamPath = os.path.splitext(samPath)[0] + ".sorted"  + os.path.splitext(samPath)[1]
+        pysam.sort('-@', '-8', '-o', sortedSamPath, samPath)
+        sortedSamPathList.append(sortedSamPath)
+    return sortedSamPathList
+
 def main():
     parser = argparse.ArgumentParser(description='Split the records in BAM file based on the given BED file and create a new BAM file with split records ')
     parser.add_argument('--input', type=str,
@@ -264,20 +273,25 @@ def main():
                                            tagsToKeep = ['HP'],
                                            threads = threads)
     print(f"[{datetime.datetime.now()}] Split alignments are written in {len(shardSamPathList)} shard files: {shardSamPathList}")
-    
-    print(f"[{datetime.datetime.now()}] Started merging files.")
-    unsortedSamPath = mergeSamFiles(outputSamPath, shardSamPathList, suffix=".unsorted")
-    print(f"[{datetime.datetime.now()}] Merged file (but unsorted): {unsortedSamPath}")
+
 
     print(f"[{datetime.datetime.now()}] Started sorting.")
-    pysam.sort('-@', '8', '-o', outputSamPath, unsortedSamPath)
+    sortedSamPathList = sortSamFiles(shardSamPathList)
     print(f"[{datetime.datetime.now()}] Sorting is done.")
 
-    print(f"[{datetime.datetime.now()}] Started removing temporary sam files.")
+    print(f"[{datetime.datetime.now()}] Started removing temporary shard sam files.")
     # remove shard sam files
     for samPath in shardSamPathList:
         os.unlink(samPath)
-    os.unlink(unsortedSamPath)
+
+    print(f"[{datetime.datetime.now()}] Started merging files.")
+    outputSamPath = mergeSamFiles(outputSamPath, sortedSamPathList, suffix=None)
+    print(f"[{datetime.datetime.now()}] Merged file (but unsorted): {unsortedSamPath}")
+
+    print(f"[{datetime.datetime.now()}] Started removing temporary sorted shard sam files.")
+    # remove shard sam files
+    for samPath in sortedSamPathList:
+        os.unlink(samPath)
 
     print(f"[{datetime.datetime.now()}] Done! Output SAM file : ", outputSamPath)
 
