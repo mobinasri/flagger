@@ -68,12 +68,12 @@ def removeClippingFromCigarList(cigarList):
     # get first index with no clipping
     if cigarList[0][0] == 'H' or cigarList[0][0] == 'S':
         s = 1
-    if cigarList[1][0] == 'S':
+    if cigarList[1][0] == 'S' and 2 < len(cigarList):
         s = 2
     # get last index with no clipping
     if cigarList[-1][0] == 'H' or cigarList[-1][0] == 'S':
         e = len(cigarList) - 1
-    if cigarList[-2][0] == 'S':
+    if cigarList[-2][0] == 'S' and 2 < len(cigarList):
         e = len(cigarList) - 2
     return cigarList[s:e]
 
