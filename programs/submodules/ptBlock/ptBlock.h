@@ -535,7 +535,7 @@ void ptBlock_extend_block_tables(stHash *blocks_per_contig_dest, stHash *blocks_
 
 void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path, bool print_count_data);
 
-int ptBlock_get_total_number(stHash *blocks_per_contig);
+int64_t ptBlock_get_total_number(stHash *blocks_per_contig);
 
 int64_t ptBlock_get_total_length(stHash *blocks_per_contig, int (*get_start)(ptBlock *), int (*get_end)(ptBlock *));
 

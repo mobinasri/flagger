@@ -883,8 +883,8 @@ stHash *ptBlock_merge_blocks_per_contig_by_sq_v2(stHash *blocks_per_contig) {
                                            ptBlock_set_sqe);
 }
 
-int ptBlock_get_total_number(stHash *blocks_per_contig) {
-    int n = 0;
+int64_t ptBlock_get_total_number(stHash *blocks_per_contig) {
+    int64_t n = 0;
     char *contig_name;
     stList *blocks;
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
