@@ -11,6 +11,7 @@
 #include "ptAlignment.h"
 #include <zlib.h>
 #include "tpool.h"
+#include "ptBlock.h"
 
 /*! @typedef
  * @abstract Structure for saving a block
@@ -129,6 +130,12 @@ CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
                             u_int8_t coverage,
                             u_int8_t coverage_high_mapq,
                             u_int8_t coverage_high_clip);
+
+CoverageInfo *CoverageInfo_copy(CoverageInfo *coverageInfo);
+CoverageInfo **CoverageInfo_copy1DArray(CoverageInfo **coverageInfo);
+void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray);
+void CoverageInfo_destruct(CoverageInfo *coverageInfo){
+
 
 /**
  * Receives an alignment, creates a CoverageInfo struct based on the given thresholds on mapq and clipping ratio
@@ -569,5 +576,17 @@ stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path,
 // make a block table that covers the whole reference sequences
 stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path);
 
+int get_annotation_index(stList* annotation_names, char* annotation_name);
+stList *parse_annotation_names_and_save_in_stList(char* json_path);
+
+// parse bam file and create a stHash table of blocks
+// this function calls "ptBlock_multi_threaded_coverage_extraction"
+// and it adds the blocks with 0 coverage and also fills the annotation
+// fields based on the bed files whose paths are given in a json file
+stHash* ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(char* bam_path,
+                                                                                     char* json_path,
+                                                                                     int threads,
+                                                                                     int min_mapq,
+                                                                                     double min_clipping_ratio);
 #endif /* PT_BLOCK_H */
 
