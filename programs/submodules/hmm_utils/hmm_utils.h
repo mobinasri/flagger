@@ -1,12 +1,9 @@
-//
-// Created by mobin on 1/8/24.
-//
+#ifndef HMM_UTILS_H
+#define HMM_UTILS_H
+
 #include <stdint.h>
 #include "data_types.h"
 #include "ptBlock.h"
-
-#ifndef EMISSION_DIST_H
-#define EMISSION_DIST_H
 
 #define EXP_TRUNC_POINT_COV_FRACTION 0.2
 #define NUMBER_OF_STATES 5
@@ -205,4 +202,4 @@ double Transition_getTerminationProb(Transition *transition, StateType state);
 double Transition_getStartProb(Transition *transition, StateType state);
 bool Transition_isStateValid(Transition *transition, StateType state, CoverageInfo *coverageInfo);
 
-#endif //FLAGGER_EMISSION_DIST_H
+#endif //HMM_UTILS_H
