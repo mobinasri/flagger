@@ -95,7 +95,7 @@ void *copy_count_data(void* src_){
 
 char *get_string_count_data(void* src_){
     int* src = src_;
-    char str[10];
+    char* str = malloc(10);
     sprintf(str, "%d", *src);
     return str;
 }
@@ -120,7 +120,7 @@ CoverageInfo *CoverageInfo_copy(CoverageInfo *src){
 }
 
 CoverageInfo **CoverageInfo_copy1DArray(CoverageInfo **src, int len){
-    CoverageInfo **dest = (CoverageInfo **) malloc(len * sizeof(coverageInfo*));
+    CoverageInfo **dest = (CoverageInfo **) malloc(len * sizeof(CoverageInfo *));
     for(int i=0; i < len; i++){
         dest[i] = CoverageInfo_copy(src[i]);
     }
