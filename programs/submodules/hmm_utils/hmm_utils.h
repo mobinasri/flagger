@@ -2,8 +2,8 @@
 // Created by mobin on 1/8/24.
 //
 #include <stdint.h>
-#include "../data_types/data_types.h"
-#include "../ptBlock/ptBlock.h"
+#include "data_types.h"
+#include "ptBlock.h"
 
 #ifndef EMISSION_DIST_H
 #define EMISSION_DIST_H

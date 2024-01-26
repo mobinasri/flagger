@@ -8,8 +8,8 @@
 #include "math.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "../common/common.h"
-#include "../ptBlock/ptBlock.h"
+#include "common.h"
+#include "ptBlock.h"
 #include "stdbool.h"
 
 
