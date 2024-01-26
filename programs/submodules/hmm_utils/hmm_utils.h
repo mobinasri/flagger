@@ -150,7 +150,10 @@ EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
                                                          int numberOfDists);
 EmissionDist *EmissionDistSeries_getEmissionDist(EmissionDistSeries* emissionDistSeries, int distIndex);
 void EmissionDistSeries_destruct(EmissionDistSeries* emissionDistSeries);
-double *EmissionDistSeries_getAllProbs(EmissionDistSeries* emissionDistSeries, uint8_t x);
+double *EmissionDistSeries_getAllProbs(EmissionDistSeries* emissionDistSeries,
+                                       uint8_t x,
+                                       uint8_t preX,
+                                       double alpha);
 double EmissionDistSeries_getProb(EmissionDistSeries* emissionDistSeries,
                                   int distIndex,
                                   uint8_t x,
@@ -166,7 +169,7 @@ typedef struct TransitionRequirements{
 TransitionRequirements *TransitionRequirements_construct(double minHighlyClippedRatio, double maxHighMapqRatio);
 void TransitionRequirements_destruct(TransitionRequirements *transitionRequirements);
 
-typedef bool (*ValidityFunction)(StateType , CoverageInfo*);
+typedef bool (*ValidityFunction)(StateType , CoverageInfo*, TransitionRequirements *requirements);
 
 bool ValidityFunction_checkDupByMapq(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements);
 bool ValidityFunction_checkMsjByClipping(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements);
@@ -178,7 +181,7 @@ typedef struct TransitionCountData{
 } TransitionCountData;
 
 TransitionCountData *TransitionCountData_construct(int numberOfStates);
-void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char* pathToMatrix);
+void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char* pathToMatrix, int dim, int dim);
 TransitionCountData *TransitionCountData_destruct(TransitionCountData *transitionCountData);
 
 

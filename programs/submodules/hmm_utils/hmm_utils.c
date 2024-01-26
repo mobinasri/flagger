@@ -144,7 +144,7 @@ ParameterBinding **ParameterBinding_getDefault1DArrayForTruncExpGaussian(int num
     ParameterBinding **parameterBinding1DArray = ParameterBinding_getDefault1DArrayForGaussian(numberOfCollapsedComps);
     ParameterBinding_destruct(parameterBinding1DArray[STATE_ERR]);
 
-    int numberOfParams = 1
+    int numberOfParams = 1;
     double *coefsPerParam = Double_construct1DArray(numberOfParams);
 
     coefsPerParam[TRUNC_EXP_MEAN] = 0.0; // zero means no binding
@@ -236,7 +236,7 @@ NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numb
     // Allocating and initializing mixture weights
     nb->weights = malloc(numberOfComps * sizeof(double));
     nb->numberOfComps = numberOfComps;
-    Double_fillArray(nb->weights, numberOfComps, 1.0 / numberOfComps);
+    Double_fill1DArray(nb->weights, numberOfComps, 1.0 / numberOfComps);
     return nb;
 }
 
@@ -303,7 +303,7 @@ double NegativeBinomial_getVar(double theta, double r) {
  */
 double NegativeBinomial_getProb(NegativeBinomial *nb, uint8_t x) {
     double *compProbs = NegativeBinomial_getComponentProbs(nb, x);
-    double totProb = Double_sumArray(compProbs, nb->numberOfComps);
+    double totProb = Double_sum1DArray(compProbs, nb->numberOfComps);
     free(compProbs);
     return totProb;
 }
@@ -357,7 +357,7 @@ Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps) {
     // Allocating and initializing mixture weights
     gaussian->weights = malloc(numberOfComps * sizeof(double));
     gaussian->numberOfComps = numberOfComps;
-    Double_fillArray(gaussian->weights, 1.0 / numberOfComps);
+    Double_fill1DArray(gaussian->weights, 1.0 / numberOfComps);
     return gaussian;
 }
 
@@ -401,8 +401,8 @@ Gaussian *Gaussian_constructByMean(double *mean, double factor, int numberOfComp
  */
 
 double Gaussian_getProb(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha) {
-    double *probs = Gaussian_getComponentProbs(gaussian, x);
-    double totProb = Double_sumArray(probs, gaussian->numberOfComps);
+    double *probs = Gaussian_getComponentProbs(gaussian, x, preX, alpha);
+    double totProb = Double_sum1DArray(probs, gaussian->numberOfComps);
     free(probs);
     return totProb;
 }
@@ -498,7 +498,7 @@ double TruncExponential_estimateLambda(TruncExponential *truncExponential, Count
     double yd = TruncExponential_getLogLikelihoodByParams(d, truncExponential->truncPoint, countData); // f(d)
     for (int k = 0; k < n - 1; k++) {
         if (yc > yd) {
-            b = d
+            b = d;
             d = c;
             yd = yc;
             h = invphi * h;
@@ -569,26 +569,26 @@ EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
 
     void *dist;
     // different model types contain different emission distributions
-    if (modelType == ModelType::MODEL_TRUNC_EXP_GAUSSIAN){
+    if (modelType == MODEL_TRUNC_EXP_GAUSSIAN){
         // For MODEL_TRUNC_EXP_GAUSSIAN  the first component is modeled by a truncated exponential distribution
-        dist = TruncExponential_construct(1.0, mean[STATE_HAP][0] * EXP_TRUNC_POINT_COV_FRACTION);
+        dist = TruncExponential_construct(1.0, means[STATE_HAP][0] * EXP_TRUNC_POINT_COV_FRACTION);
         emissionDistSeries->emissionDists[STATE_ERR] = EmissionDist_construct(dist, DIST_TRUNC_EXPONENTIAL);
         // Remaining components are modeled by Gaussian distributions
         // Initialize the emission parameters of each state with the given vector
         for (int s = 1; s < numberOfDists; s++) {
-            dist = Gaussian_constructByMean(means[s] * meanScale, numberOfCompsPerDist[s]);
+            dist = Gaussian_constructByMean(means[s] * meanScale, 1.0, numberOfCompsPerDist[s]);
             emissionDistSeries->emissionDists[s] = EmissionDist_construct(dist, DIST_GAUSSIAN);
         }
     } else if (modelType == MODEL_GAUSSIAN) {
         // Constructing the emission Gaussian and set their parameters
         // emit[r][c] is pointing to Gaussian of the c-th component of the r-th class
         for (int s = 0; s < numberOfDists; s++) {
-            dist = Gaussian_constructByMean(means[s] * meanScale, numberOfCompsPerDist[s]);
+            dist = Gaussian_constructByMean(means[s] * meanScale, 1.0,numberOfCompsPerDist[s]);
             emissionDistSeries->emissionDists[s] = EmissionDist_construct(dist, DIST_GAUSSIAN);
         }
     } else if (modelType == MODEL_NEGATIVE_BINOMIAL) {
         for (int s = 0; s < numberOfDists; s++) {
-            dist = NegativeBinomial_constructByMean(means[s] * meanScale, numberOfCompsPerDist[s]);
+            dist = NegativeBinomial_constructByMean(means[s] * meanScale, 1.0, numberOfCompsPerDist[s]);
             emissionDistSeries->emissionDists[s] = EmissionDist_construct(dist, DIST_NEGATIVE_BINOMIAL);
         }
     }
@@ -618,10 +618,13 @@ void EmissionDistSeries_destruct(EmissionDistSeries* emissionDistSeries){
     free(emissionDistSeries);
 }
 
-double *EmissionDistSeries_getAllProbs(EmissionDistSeries* emissionDistSeries, uint8_t x){
+double *EmissionDistSeries_getAllProbs(EmissionDistSeries* emissionDistSeries,
+                                       uint8_t x,
+                                       uint8_t preX,
+                                       double alpha){
     double *probs = malloc(emissionDistSeries->numberOfDists * sizeof(double));
     for(int s=0; s < emissionDistSeries->numberOfDists; s++){
-        probs[s] = EmissionDist_getProb(emissionDistSeries->emissionDists[s], x);
+        probs[s] = EmissionDist_getProb(emissionDistSeries->emissionDists[s], x, preX, alpha);
     }
     return probs;
 }
@@ -652,9 +655,9 @@ TransitionCountData *TransitionCountData_construct(int numberOfStates){
     transitionCountData->pseudoCountMatrix = MatrixDouble_construct0(numberOfStates + 1, numberOfStates + 1);
     transitionCountData->numberOfStates = numberOfStates;
 }
-void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char* pathToMatrix){
+void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char* pathToMatrix, int dim){
     MatrixDouble_destruct(transitionCountData->pseudoCountMatrix);
-    transitionCountData->pseudoCountMatrix = MatrixDouble_parseFromFile(pathToMatrix);
+    transitionCountData->pseudoCountMatrix = MatrixDouble_parseFromFile(pathToMatrix, dim ,dim);
 }
 
 TransitionCountData *TransitionCountData_destruct(TransitionCountData *transitionCountData){
@@ -729,7 +732,7 @@ void Transition_addValidityFunction(Transition *transition, ValidityFunction val
 bool ValidityFunction_checkDupByMapq(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements){
     double highMapqRatio = coverageInfo->coverage_high_mapq / coverageInfo->coverage;
     if ((state == STATE_DUP) && (highMapqRatio > requirements->maxHighMapqRatio)){
-        return false:
+        return false;
     }
     return true;
 }
@@ -737,7 +740,7 @@ bool ValidityFunction_checkDupByMapq(StateType state, CoverageInfo *coverageInfo
 bool ValidityFunction_checkMsjByClipping(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements){
     double highlyClippedRatio = coverageInfo->coverage_high_clip / coverageInfo->coverage;
     if ((state == STATE_MSJ) && (highlyClippedRatio < requirements->minHighlyClippedRatio)){
-        return false:
+        return false;
     }
     return true;
 }
@@ -768,7 +771,7 @@ double Transition_getProbConditional(Transition *transition, StateType preState,
     double totProbValid = 0.0;
     for(int s=0; s < transition->numberOfStates + 1; s++){
         if (Transition_isStateValid(transition, s, coverageInfo)) {
-            totProbValid += Transition_getProb(transition, preState, s)
+            totProbValid += Transition_getProb(transition, preState, s);
         }
     }
     double prob = Transition_getProb(transition, preState, state);
@@ -780,10 +783,10 @@ double Transition_getProbConditional(Transition *transition, StateType preState,
 }
 
 double Exponential_getPdf(double x, double lam) {
-    if x < 0.0{
-        return 0.0
+    if (x < 0.0){
+        return 0.0;
     }else{
-        return lam * exp(-lam * x)
+        return lam * exp(-lam * x);
     }
 }
 
@@ -792,6 +795,6 @@ double log_trunc_exp_pdf(double x, double lam, double b) {
         return -DBL_MAX;
     }
     else{
-        return exp_pdf((double) x, lam) / (1.0 - exp(-lam * b))
+        return Exponential_getPdf((double) x, lam) / (1.0 - exp(-lam * b));
     }
 }
