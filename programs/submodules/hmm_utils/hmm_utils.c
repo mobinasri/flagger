@@ -234,7 +234,7 @@ NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numb
     memcpy(nb->mean, mean, numberOfComps * sizeof(double));
     memcpy(nb->var, var, numberOfComps * sizeof(double));
     // Allocating and initializing mixture weights
-    nb->weights = malloc(n * sizeof(double));
+    nb->weights = malloc(numberOfComps * sizeof(double));
     nb->numberOfComps = numberOfComps;
     Double_fillArray(nb->weights, numberOfComps, 1.0 / numberOfComps);
     return nb;
