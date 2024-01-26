@@ -134,7 +134,7 @@ CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
 
 CoverageInfo *CoverageInfo_copy(CoverageInfo *coverageInfo);
 CoverageInfo **CoverageInfo_copy1DArray(CoverageInfo **coverageInfo);
-void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray);
+void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray, int len);
 void CoverageInfo_destruct(CoverageInfo *coverageInfo);
 
 
