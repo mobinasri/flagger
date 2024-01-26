@@ -1354,7 +1354,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
     for (int i = 0; i < stList_length(annotation_block_table_list); i++) {
         ptBlock_extend_block_tables(whole_genome_block_table, stList_get(annotation_block_table_list, i));
     }
-    fprintf(stderr, "[%s] Added annotation blocks to coverage block tables: \n", get_timestamp(),
+    fprintf(stderr, "[%s] Added annotation blocks to coverage block tables: tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(whole_genome_block_table),
             ptBlock_get_total_number(whole_genome_block_table));
 

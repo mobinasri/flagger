@@ -12,6 +12,7 @@
 #include <zlib.h>
 #include "tpool.h"
 #include "ptBlock.h"
+#include "cJSON.h"
 
 /*! @typedef
  * @abstract Structure for saving a block
