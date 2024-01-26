@@ -1,9 +1,32 @@
 #include "common.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+
+int getFirstIndexWithNonZeroBitFromRight(int32_t a){
+    int n=0;
+    for(;n < 32; n++){
+        if ((a >> n) & 1){
+            return n;
+        }
+    }
+    return -1;
+}
 
 char* copyString(char* str){
     char* copy  = (char*) malloc(strlen(str) + 1);
     strcpy(copy, str);
     return copy;
+}
+
+void removeSpacesInPlace(char* s) {
+    //https://stackoverflow.com/questions/1726302/remove-spaces-from-a-string-in-c
+    char* d = s;
+    do {
+        while (*d == ' ') {
+            ++d;
+        }
+    } while (*s++ = *d++);
 }
 
 char* read_whole_file(char* file_path, long* length_ptr, char* mode){
@@ -53,6 +76,139 @@ int min(int a, int b) {
 int max(int a, int b) {
     return b < a ? a : b;
 }
+
+double *Double_construct1DArray(int length){
+    double *array = malloc(length * sizeof(double));
+    Double_fillArray(array, length, 0.0);
+    return array;
+}
+
+double **Double_construct2DArray(int length1, int length2){
+    double **array = malloc(length1 * sizeof(double*));
+    for(int i = 0; i < length1; i++) {
+        array[i] = Double_construct1DArray(length2);
+    }
+    return array;
+}
+
+void Double_destruct1DArray(double *array){
+    free(array);
+}
+
+void Double_destruct2DArray(double **array, int length1){
+    for(int i = 0; i < length1; i++) {
+        Double_destruct1DArray(array[i]);
+    }
+    free(array);
+}
+
+
+void Double_fill1DArray(double *array, int length, double value){
+    for (int i = 0; i < length; i++) {
+        array[i] = value;
+    }
+}
+
+void Double_fill2DArray(double **array, int length1, int length2, double value){
+    for (int i = 0; i < length1; i++) {
+        Double_fill1DArray(array[i], length2, value);
+    }
+}
+
+double Double_sum1DArray(double *array, int length){
+    double sum = 0.0;
+    for (int i = 0; i < length; i++) {
+        sum += array[i];
+    }
+}
+
+double Double_sum2DArray(double **array, int length1, int length2){
+    double sum = 0.0;
+    for (int i = 0; i < length1; i++) {
+        sum += Double_sum1DArray(array[i], length2);
+    }
+}
+
+double *Double_copy1DArray(double *src, int length){
+    double *dest = Double_construct1DArray(length);
+    memset(src, dest, length * sizeof(double));
+    return dest;
+}
+
+double **Double_copy2DArray(double **src, int length1, int length2){
+    double **dest = malloc(length1 * sizeof(double*));
+    for (int i = 0; i < length1; i++) {
+        dest[i] = Double_copy1DArray(src[i], length2);
+    }
+    return dest;
+}
+
+int *Int_construct1DArray(int length){
+    int *array = malloc(length * sizeof(int));
+    Int_fill1DArray(array, length, 0);
+    return array;
+}
+
+int **Int_construct2DArray(int length1, int length2){
+    int **array = malloc(length1 * sizeof(int*));
+    for(int i=0; i < length1; i++) {
+        array[i] = Int_construct1DArray(length2);
+    }
+    return array;
+}
+
+void Int_fill1DArray(int *array, int length, int value){
+    for (int i = 0; i < length; i++) {
+        array[i] = value;
+    }
+}
+
+void Int_fill2DArray(int **array, int length1, int length2, int value){
+    for (int i = 0; i < length1; i++) {
+        Int_fill1DArray(array[i], length2, value);
+    }
+}
+
+int Int_sum1DArray(int *array, int length){
+    int sum = 0;
+    for (int i = 0; i < length; i++) {
+        sum += array[i];
+    }
+    return sum;
+}
+
+int Int_sum2DArray(int **array, int length1, int length2){
+    int sum = 0;
+    for (int i = 0; i < length1; i++) {
+        sum += Int_sum1DArray(array[i], length2)
+    }
+    return sum;
+}
+
+void Int_destruct1DArray(int *array){
+    free(array);
+}
+
+void Int_destruct2DArray(int **array, int length1){
+    for (int i = 0; i < length1; i++) {
+        Int_destruct1DArray(array[i]);
+    }
+}
+
+int *Int_copy1DArray(int *src, int length){
+    int *dest = Int_construct1DArray(length);
+    memset(src, dest, length * sizeof(int));
+    return dest;
+}
+
+int **Int_copy2DArray(int **src, int length1, int length2){
+    int **dest = malloc(length1 * sizeof(int*));
+    for (int i = 0; i < length1; i++) {
+        dest[i] = Int_copy1DArray(src[i], length2);
+    }
+    return dest;
+}
+
 
 uint8_t maxCharArray(uint8_t *a, int len) {
     assert(len > 0);
@@ -120,4 +276,34 @@ char *Splitter_getToken(Splitter *splitter) {
         splitter->token = NULL;
     }
     return splitter->token;
+}
+
+int *Splitter_getIntArray(char *str, char delimiter, int *arraySize){
+    Splitter *splitter = Splitter_construct(str, delimiter);
+    char *token;
+    int i = 0;
+    int *intArray = NULL;
+    while ((token = Splitter_getToken(splitter)) != NULL) {
+        intArray = (int*) realloc(intArray, (i + 1) * sizeof(int));
+        intArray[i] = atoi(token);
+        i++;
+    }
+    Splitter_destruct(splitter);
+    *arraySize = i;
+    return intArray;
+}
+
+double *Splitter_getDoubleArray(char *str, char delimiter, double *arraySize){
+    Splitter *splitter = Splitter_construct(str, delimiter);
+    char *token;
+    int i = 0;
+    double *doubleArray = NULL;
+    while ((token = Splitter_getToken(splitter)) != NULL) {
+        doubleArray = (double*) realloc(doubleArray, (i + 1) * sizeof(double));
+        doubleArray[i] = atof(token);
+        i++;
+    }
+    Splitter_destruct(splitter);
+    *arraySize = i;
+    return doubleArray;
 }
