@@ -1222,6 +1222,7 @@ stList *parse_annotation_names_and_save_in_stList(char* json_path){
         return NULL;
     }
 
+    int annotation_count = cJSON_GetArraySize(annotation_json);
     stList* annotation_names = stList_construct3(annotation_count, free);
 
     // iterate over key-values in json
