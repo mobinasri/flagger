@@ -78,8 +78,8 @@ int max(int a, int b) {
 }
 
 double *Double_construct1DArray(int length){
-    double *array = malloc(length * sizeof(double));
-    Double_fillArray(array, length, 0.0);
+    double *array = (double*) malloc(length * sizeof(double));
+    Double_fill1DArray(array, length, 0.0);
     return array;
 }
 
@@ -131,7 +131,7 @@ double Double_sum2DArray(double **array, int length1, int length2){
 
 double *Double_copy1DArray(double *src, int length){
     double *dest = Double_construct1DArray(length);
-    memset(src, dest, length * sizeof(double));
+    memcpy(src, dest, length * sizeof(double));
     return dest;
 }
 
@@ -180,7 +180,7 @@ int Int_sum1DArray(int *array, int length){
 int Int_sum2DArray(int **array, int length1, int length2){
     int sum = 0;
     for (int i = 0; i < length1; i++) {
-        sum += Int_sum1DArray(array[i], length2)
+        sum += Int_sum1DArray(array[i], length2);
     }
     return sum;
 }
@@ -197,7 +197,7 @@ void Int_destruct2DArray(int **array, int length1){
 
 int *Int_copy1DArray(int *src, int length){
     int *dest = Int_construct1DArray(length);
-    memset(src, dest, length * sizeof(int));
+    memcpy(src, dest, length * sizeof(int));
     return dest;
 }
 
