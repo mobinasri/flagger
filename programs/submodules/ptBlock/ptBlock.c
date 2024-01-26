@@ -1,4 +1,6 @@
 #include "ptBlock.h"
+#include "stdlib.h"
+#include "stdio.h"
 #include <zlib.h>
 
 
@@ -129,7 +131,7 @@ void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray, int len){
     for(int i=0; i < len; i++){
         CoverageInfo_destruct(coverageInfo1DArray[i]);
     }
-    free(coverageInfo1DArray)
+    free(coverageInfo1DArray);
 }
 
 void CoverageInfo_destruct(CoverageInfo *coverageInfo){
@@ -1202,7 +1204,7 @@ int get_annotation_index(stList* annotation_names, char* annotation_name){
             return i;
         }
     }
-    return i;
+    return -1;
 }
 
 stList *parse_annotation_names_and_save_in_stList(char* json_path){
