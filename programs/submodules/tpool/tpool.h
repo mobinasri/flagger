@@ -1,7 +1,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <pthread.h>
-#include "hmm.h"
 
 #ifndef __THREAD_POOL_H__
 #define __THREAD_POOL_H__
