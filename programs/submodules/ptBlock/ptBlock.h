@@ -133,7 +133,7 @@ CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
                             u_int8_t coverage_high_clip);
 
 CoverageInfo *CoverageInfo_copy(CoverageInfo *coverageInfo);
-CoverageInfo **CoverageInfo_copy1DArray(CoverageInfo **coverageInfo);
+CoverageInfo **CoverageInfo_copy1DArray(CoverageInfo **coverageInfo, int len);
 void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray, int len);
 void CoverageInfo_destruct(CoverageInfo *coverageInfo);
 
