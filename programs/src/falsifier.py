@@ -12,6 +12,7 @@ import os
 import datetime
 
 def induceMultipleMisjoins(relationChains, annotation, misAssemblyCount, misjoinEffectWindowSize):
+    misAssemblyType = "Misjoin"
     for i in range(misAssemblyCount):
         iter = 0
         res = False
@@ -21,8 +22,11 @@ def induceMultipleMisjoins(relationChains, annotation, misAssemblyCount, misjoin
 
 
             newCtg_1, orderIndex_1, loc_1 = relationChains.getRandomMisjoinLocation(annotation, newCtgListToExclude=[])
+            if newCtg_1 == None:
+                print(f"[{datetime.datetime.now()}] No more blocks remaining for sampling misjoin (Skipping {misAssemblyCount-i}/{misAssemblyCount}) : annotation = {annotation}, misAssemblyType = {misAssemblyType}")
+                return i
             newCtg_2, orderIndex_2, loc_2 = relationChains.getRandomMisjoinLocation(annotation, newCtgListToExclude=[newCtg_1])
-            if newCtg_1 == None or newCtg_2 == None:
+            if newCtg_2 == None:
                 print(f"[{datetime.datetime.now()}] No more blocks remaining for sampling misjoin (Skipping {misAssemblyCount-i}/{misAssemblyCount}) : annotation = {annotation}, misAssemblyType = {misAssemblyType}")
                 return i
             print(f"[{datetime.datetime.now()}] Mis-assembly location (misjoin-pair-1):\t {newCtg_1}[{orderIndex_1}]:\t{loc_1}\tlen={relationChains.relationChains[newCtg_1][orderIndex_1].block.origEnd - relationChains.relationChains[newCtg_1][orderIndex_1].block.origStart + 1}")
@@ -286,6 +290,7 @@ def main():
 
     diploidContigLengths = getContigLengths(diploidSequences)
 
+    print(diploidContigLengths)
     totalGenomeSizeKb = sum(diploidContigLengths.values()) / 1e3
 
     annotationBlockLists, annotationNames = parseAnnotationsPerContig(annotationsJsonPath)
@@ -308,7 +313,7 @@ def main():
     # get the alignments that shows 1-to-1 correspondence between hap1 and hap2
     uniqueAlignments = subsetAlignmentsToQueryBlocks(hap1UniqueAlignments, hap2UniqueBlocksPerContig)
 
-
+    print(uniqueAlignments[1:10])
     # make relation chains for the whole diploid assembly
     relationChains = HomologyRelationChains(uniqueAlignments,
                                             diploidContigLengths,
@@ -327,6 +332,13 @@ def main():
         print(f"[{datetime.datetime.now()}] Feasibilty is NOT PASSED with the safety factor of {safetyFactor}. Please use more contiguous alignments/annotations tracks or request for shorter (or fewer) misassemblies.")
         exit()
 
+
+    # update sampling locations for misjoins
+    # misassembly length is set to zero since it does not matter
+    relationChains.updateAnnotationBlocksForSampling(annotationNames,
+                                                     0,
+                                                     minOverlapRatio,
+                                                     marginLength)
     print(f"[{datetime.datetime.now()}] Creating misjoins")
     numberOfMisjoinsPerAnnotation = parseNumberOfMisjoins(misjoinJsonPath)
 

@@ -641,6 +641,7 @@ class HomologyRelationChains:
         relationFreeIntervals = {}
         for origCtg, origCtgLen in contigLengths.items():
             #BlockList receives 1-based coordinates
+            print(origCtg + newCtgSuffix)
             relationFreeIntervals[origCtg + newCtgSuffix] = BlockList([(1, origCtgLen)])
 
         relationChains = defaultdict(list)
@@ -660,6 +661,8 @@ class HomologyRelationChains:
             # update relation-free intervals
             # to create void relations from them
             # after the alignments are all iterated
+            print(ref2queryRelation.block.newCtg)
+            print(query2refRelation.block.newCtg)
             relationFreeIntervals[ref2queryRelation.block.newCtg].subtract(BlockList([(alignment.chromStart + 1, alignment.chromEnd)]), inplace=True)
             relationFreeIntervals[query2refRelation.block.newCtg].subtract(BlockList([(alignment.contigStart + 1, alignment.contigEnd)]), inplace=True)
 
@@ -1607,7 +1610,7 @@ class HomologyRelationChains:
         """
         newCtg = self.getWeightedRandomNewCtgForSamplingMisjoin(annotation, newCtgListToExclude)
         if newCtg == None:
-            return None, None, None, None
+            return None, None, None
         orderIndex = self.getWeightedRandomOrderIndexForSamplingMisjoin(newCtg, annotation)
         loc = self.getRandomLocationFromRelationBlock(newCtg, annotation, orderIndex)
         return newCtg, orderIndex, loc
