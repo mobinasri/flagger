@@ -1238,6 +1238,36 @@ stList *parse_annotation_names_and_save_in_stList(char* json_path){
     return annotation_names;
 }
 
+stList *parse_annotation_paths_and_save_in_stList(char* json_path){
+    int buffer_size = 0;
+    char* json_buffer = read_whole_file(json_path, &buffer_size, "r");
+    fwrite(json_buffer,1,buffer_size,stderr);
+    cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
+    if (annotation_json == NULL)
+    {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL)
+        {
+            fprintf(stderr, "Error before: %s\n", error_ptr);
+        }
+        return NULL;
+    }
+
+    stList* annotation_paths = stList_construct3(0, free);
+
+    // iterate over key-values in json
+    // each key is an index
+    // each value is a path to a bed file
+    cJSON *element = NULL;
+    cJSON_ArrayForEach(element, annotation_json){
+        char* annotation_path = cJSON_GetStringValue(element);
+        stList_append(annotation_paths, annotation_path);
+    }
+    cJSON_Delete(annotation_json);
+    return annotation_paths;
+}
+
+
 stList* parse_all_annotations_and_save_in_stList(char* json_path){
     int buffer_size = 0;
     char* json_buffer = read_whole_file(json_path, &buffer_size, "r");

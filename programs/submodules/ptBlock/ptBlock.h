@@ -579,7 +579,7 @@ stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path);
 
 int get_annotation_index(stList* annotation_names, char* annotation_name);
 stList *parse_annotation_names_and_save_in_stList(char* json_path);
-
+stList *parse_annotation_paths_and_save_in_stList(char* json_path);
 
 void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list);
 stList* parse_all_annotations_and_save_in_stList(char* json_path);
