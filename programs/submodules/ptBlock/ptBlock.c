@@ -1229,8 +1229,7 @@ stList *parse_annotation_names_and_save_in_stList(char* json_path){
     // each key is an index
     // each value is a path to a bed file
     cJSON *element = NULL;
-    cJSON_ArrayForEach(element, annotation_json)
-    {
+    cJSON_ArrayForEach(element, annotation_json){
         char* annotation_name = malloc((strlen(element->string) + 1) * sizeof(char));
         strcpy(annotation_name, element->string);
         stList_append(annotation_names, annotation_name);
