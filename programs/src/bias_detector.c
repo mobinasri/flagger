@@ -28,6 +28,7 @@ CountData** createCountDataPerAnnotation(stHash *final_block_table, int numberOf
             ptBlock *block = stList_get(blocks, i);
             CoverageInfo *covInfo = (CoverageInfo *) block->data;
             int annotationIndex = getFirstIndexWithNonZeroBitFromRight(covInfo->annotation_flag);
+	    if (annotationIndex < 0) continue;
             int count = block->rfe - block->rfs + 1;
             int value = covInfo->coverage;
             CountData_increment(countDataPerAnnotation[annotationIndex], value, (double) count);
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]) {
     char *baseline_annot_name;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "i:t:j:h"))) {
+    while (~(c = getopt(argc, argv, "i:t:j:b:h"))) {
         switch (c) {
             case 'i':
                 bam_path = optarg;
@@ -89,27 +90,34 @@ int main(int argc, char *argv[]) {
             min_mapq,
             min_clipping_ratio
             );
-
-    stList *annotation_names = parse_annotation_names_and_save_in_stList(json_path);
-    int numberOfAnnotations = stList_length(annotation_names);
-    int baselineIndex = get_annotation_index(annotation_names, baseline_annot_name);
+    
+    stList *annotationPaths = parse_annotation_paths_and_save_in_stList(json_path);
+    stList *annotationNames = parse_annotation_names_and_save_in_stList(json_path);
+    int numberOfAnnotations = stList_length(annotationNames);
+    int baselineIndex = get_annotation_index(annotationNames, baseline_annot_name);
 
     CountData** countDataPerAnnotation = createCountDataPerAnnotation(final_block_table, numberOfAnnotations);
     int* mostFrequentCoverages = getMostFrequentCoveragesPerAnnotation(countDataPerAnnotation, numberOfAnnotations);
     int baselineCoverage = mostFrequentCoverages[baselineIndex];
 
+
+    fprintf(stderr, "Printing coverage table in stdout ...\n");    
+    fprintf(stdout, "annotation\tmost_freq_cov\tcov_diff_normalized\n");
     for(int annotIndex=0; annotIndex < numberOfAnnotations; annotIndex++){
-        char* annotation = stList_get(annotation_names, annotIndex);
-        double coverageDiffRatio = abs((double) mostFrequentCoverages[annotIndex]  - baselineCoverage) / baselineCoverage;
-        fprintf(stdout, "[%s]\tmod_cov=%d\tcov_diff_ratio = %.3f\n",
-                annotation,
+        char* annotationName = stList_get(annotationNames, annotIndex);
+        char* annotationPath = stList_get(annotationPaths, annotIndex);
+        double coverageDiffNormalized = ((double) mostFrequentCoverages[annotIndex]  - baselineCoverage) / baselineCoverage;
+        fprintf(stdout, "%s\t%d\t%+.3f\t%s\n",
+                annotationName,
                 mostFrequentCoverages[annotIndex],
-                coverageDiffRatio);
+                coverageDiffNormalized,
+		annotationPath);
     }
 
     CountData_destruct1DArray(countDataPerAnnotation, numberOfAnnotations);
     free(mostFrequentCoverages);
-    stList_destruct(annotation_names);
+    stList_destruct(annotationNames);
+    stList_destruct(annotationPaths);
     stHash_destruct(final_block_table);
     fprintf(stderr, "[%s] Done.\n", get_timestamp());
 }
