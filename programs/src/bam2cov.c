@@ -82,11 +82,11 @@ int main(int argc, char *argv[]) {
     }
 
     //merge and create the final block table
-    stHash * final_block_table = ptBlock_multi_threaded_coverage_extraction_with_annotation(bam_path,
-                                                                                            json_path,
-                                                                                            threads,
-                                                                                            min_mapq,
-                                                                                            min_clipping_ratio);
+    stHash * final_block_table = ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(bam_path,
+                                                                                                            json_path,
+                                                                                                            threads,
+                                                                                                            min_mapq,
+                                                                                                            min_clipping_ratio);
 
     // get the table from contig name to contig length
     // it is only used once the output type is either .cov or .cov.gz
