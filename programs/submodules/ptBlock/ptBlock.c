@@ -1223,7 +1223,7 @@ stList *parse_annotation_names_and_save_in_stList(char* json_path){
     }
 
     int annotation_count = cJSON_GetArraySize(annotation_json);
-    stList* annotation_names = stList_construct3(annotation_count, free);
+    stList* annotation_names = stList_construct3(0, free);
 
     // iterate over key-values in json
     // each key is an index
@@ -1254,7 +1254,7 @@ stList* parse_all_annotations_and_save_in_stList(char* json_path){
     }
 
     int annotation_count = cJSON_GetArraySize(annotation_json);
-    stList* block_table_list = stList_construct3(annotation_count, stHash_destruct);
+    stList* block_table_list = stList_construct3(0, stHash_destruct);
 
     // iterate over key-values in json
     // each key is an index
@@ -1266,13 +1266,14 @@ stList* parse_all_annotations_and_save_in_stList(char* json_path){
             char* bed_path = cJSON_GetStringValue(element);
             stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
             fprintf(stderr, "[%s] Parsed  annotation %s:%s\n", get_timestamp(), element->string, cJSON_GetStringValue(element));
-            int index = atoi(element->string) - 1; // given index is 1-based
-            stList_set(block_table_list, index, annotation_block_table);
+            stList_append(block_table_list, annotation_block_table);
         }
     }
     cJSON_Delete(annotation_json);
     fprintf(stderr, "[%s] Number of parsed annotations = %d\n", get_timestamp(), stList_length(block_table_list));
-    //ptBlock_print_blocks_stHash_in_bed(stList_get(block_table_list, 0), false, stderr, false);
+    for(int i=0;i < stList_length(block_table_list);i++){
+    	ptBlock_print_blocks_stHash_in_bed(stList_get(block_table_list, i), NULL, stderr, false);
+    }
     return block_table_list;
 
 }
