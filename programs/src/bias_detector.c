@@ -54,9 +54,10 @@ int main(int argc, char *argv[]) {
     char *bam_path;
     char *json_path;
     char *baseline_annot_name;
+    double cov_diff_normalized_threshold = 0.2;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "i:t:j:b:h"))) {
+    while (~(c = getopt(argc, argv, "i:t:j:b:d:h"))) {
         switch (c) {
             case 'i':
                 bam_path = optarg;
@@ -70,6 +71,8 @@ int main(int argc, char *argv[]) {
             case 'b':
                 baseline_annot_name = optarg;
                 break;
+            case 'd':
+		cov_diff_normalized_threshold = atof(optarg);
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
@@ -79,6 +82,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "         -j         JSON file for the annotation bed files [maximum 32 files can be given and the keys can any string {\"hsat1\":\"/path/to/hsat1.bed\", \"bsat\":\"/path/to/bsat.bed\"}]\n");
                 fprintf(stderr, "         -t         number of threads [default: 4]\n");
                 fprintf(stderr, "         -b         name of the baseline annotation\n");
+		fprintf(stderr, "         -d         threshold for reporting an annotation as biased or not  (It is being applied on the coverage deviation normalized by the baseline coverage) [default:0.2]\n");
                 return 1;
         }
     }
@@ -102,13 +106,14 @@ int main(int argc, char *argv[]) {
 
 
     fprintf(stderr, "Printing coverage table in stdout ...\n");    
-    fprintf(stdout, "annotation\tmost_freq_cov\tcov_diff_normalized\n");
+    fprintf(stdout, "annotation\tstatus\tmost_freq_cov\tcov_diff_normalized\tpath\n");
     for(int annotIndex=0; annotIndex < numberOfAnnotations; annotIndex++){
         char* annotationName = stList_get(annotationNames, annotIndex);
         char* annotationPath = stList_get(annotationPaths, annotIndex);
         double coverageDiffNormalized = ((double) mostFrequentCoverages[annotIndex]  - baselineCoverage) / baselineCoverage;
-        fprintf(stdout, "%s\t%d\t%+.3f\t%s\n",
+        fprintf(stdout, "%s\t%s\t%d\t%+.3f\t%s\n",
                 annotationName,
+		cov_diff_normalized_threshold < coverageDiffNormalized ? "biased" : "not_biased",
                 mostFrequentCoverages[annotIndex],
                 coverageDiffNormalized,
 		annotationPath);
