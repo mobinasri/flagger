@@ -21,8 +21,9 @@
 CountData** createCountDataPerAnnotation(stHash *final_block_table, int numberOfAnnotations){
     CountData** countDataPerAnnotation = CountData_construct1DArray(MAX_COVERAGE_VALUE, numberOfAnnotations);
     stHashIterator *it = stHash_getIterator(final_block_table);
+    char *contig_name;
     while ((contig_name = stHash_getNext(it)) != NULL) {
-        blocks = stHash_search(final_block_table, contig_name);
+        stList* blocks = stHash_search(final_block_table, contig_name);
         for (int i = 0; i < stList_length(blocks); i++) {
             ptBlock *block = stList_get(blocks, i);
             CoverageInfo *covInfo = (CoverageInfo *) block->data;

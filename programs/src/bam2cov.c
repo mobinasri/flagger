@@ -30,67 +30,6 @@
 #include "stdlib.h"
 
 
-stList* parse_all_annotations_and_save_in_stList(char* json_path){
-    int buffer_size = 0;
-    char* json_buffer = read_whole_file(json_path, &buffer_size, "r");
-    fwrite(json_buffer,1,buffer_size,stderr);
-    cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
-    if (annotation_json == NULL)
-    {
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL)
-        {
-            fprintf(stderr, "Error before: %s\n", error_ptr);
-        }
-        return NULL;
-    }
-
-    int annotation_count = cJSON_GetArraySize(annotation_json);
-    stList* block_table_list = stList_construct3(annotation_count, stHash_destruct);
-
-    // iterate over key-values in json
-    // each key is an index
-    // each value is a path to a bed file
-    cJSON *element = NULL;
-    cJSON_ArrayForEach(element, annotation_json)
-    {
-	if (cJSON_IsString(element)){
-            char* bed_path = cJSON_GetStringValue(element);
-            stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
-	    fprintf(stderr, "[%s] Parsed  annotation %s:%s\n", get_timestamp(), element->string, cJSON_GetStringValue(element));
-            int index = atoi(element->string) - 1; // given index is 1-based
-            stList_set(block_table_list, index, annotation_block_table);
-        }
-    }
-    cJSON_Delete(annotation_json);
-    fprintf(stderr, "[%s] Number of parsed annotations = %d\n", get_timestamp(), stList_length(block_table_list));
-    //ptBlock_print_blocks_stHash_in_bed(stList_get(block_table_list, 0), false, stderr, false);
-    return block_table_list;
-
-}
-
-// annotation block tables need to have a CoverageInfo object as their "data"
-// this CoverageInfo will have zero values for the coverage related attributes
-// the annotation flag is set based on the order of the annotation blocks in the 
-// given stList as the input
-// The data augmentation is happening in place
-void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list){
-    for(int i=0; i < stList_length(block_table_list); i++){
-        stHash * block_per_contig = stList_get(block_table_list, i);
-        // Each annotation has an associated flag represented by a bit-vector
-        // the size of the bit-vector is 32, so it can be saved in an int32_t variable
-        // for example for i=0 -> flag = 1 and for i=6 -> flag= 64
-        int32_t annotation_flag = 1 << i;
-        CoverageInfo * cov_info = CoverageInfo_construct(annotation_flag, 0, 0, 0);
-        // The cov_info object created above will be copied and added as "data" to all blocks
-        // for the current annotation. This process is happening in place
-        ptBlock_add_data_to_all_blocks_stHash(block_per_contig,
-                                              cov_info,
-                                              destruct_cov_info_data,
-                                              copy_cov_info_data,
-                                              extend_cov_info_data);
-    }
-}
 
 int main(int argc, char *argv[]) {
     int c;

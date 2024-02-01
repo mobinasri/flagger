@@ -70,7 +70,7 @@ typedef struct CountData{
 CountData *CountData_construct(uint8_t length);
 CountData **CountData_construct1DArray(uint8_t length, int arrayLength);
 void CountData_destruct1DArray(CountData **countData1DArray, int arrayLength);
-void CountData_increment(uint8_t value, double count);
+void CountData_increment(CountData * countData, uint8_t value, double count);
 void CountData_reset(CountData* countData);
 int CountData_getMostFrequentValue(CountData * countData);
 void CountData_destruct(CountData* countData);
@@ -145,7 +145,6 @@ typedef struct EmissionDistSeries {
 
 EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
                                                          double **means,  // [numberOfDists] x [maxMixtures]
-                                                         double meanScale,
                                                          int *numberOfCompsPerDist,
                                                          int numberOfDists);
 EmissionDist *EmissionDistSeries_getEmissionDist(EmissionDistSeries* emissionDistSeries, int distIndex);
@@ -181,7 +180,7 @@ typedef struct TransitionCountData{
 } TransitionCountData;
 
 TransitionCountData *TransitionCountData_construct(int numberOfStates);
-void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char* pathToMatrix, int dim, int dim);
+void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char* pathToMatrix, int dim);
 TransitionCountData *TransitionCountData_destruct(TransitionCountData *transitionCountData);
 
 

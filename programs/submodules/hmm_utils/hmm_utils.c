@@ -357,7 +357,7 @@ Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps) {
     // Allocating and initializing mixture weights
     gaussian->weights = malloc(numberOfComps * sizeof(double));
     gaussian->numberOfComps = numberOfComps;
-    Double_fill1DArray(gaussian->weights, 1.0 / numberOfComps);
+    Double_fill1DArray(gaussian->weights, numberOfComps, 1.0 / numberOfComps);
     return gaussian;
 }
 
@@ -423,7 +423,7 @@ double *Gaussian_getComponentProbs(Gaussian *gaussian, uint8_t x, uint8_t preX, 
     // iterate over mixture components
     for (int m = 0; m < gaussian->numberOfComps; m++) {
         mean = (1 - alpha) * gaussian->mean[m] + alpha * preX;
-        var = gaussian->var[m]
+        var = gaussian->var[m];
         w = gaussian->weights[m];
         // adjust the mean value based on the previous observation and alpha (dependency factor)
         probs[m] = w / (sqrt(var * 2 * PI)) * exp(-0.5 * pow((x - mean), 2) / var);
@@ -558,7 +558,6 @@ double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX,
 
 EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
                                                          double **means,  // [numberOfDists] x [maxMixtures]
-                                                         double meanScale,
                                                          int *numberOfCompsPerDist,
                                                          int numberOfDists){
     // Constructing the emission objects and setting their parameters
@@ -576,19 +575,19 @@ EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
         // Remaining components are modeled by Gaussian distributions
         // Initialize the emission parameters of each state with the given vector
         for (int s = 1; s < numberOfDists; s++) {
-            dist = Gaussian_constructByMean(means[s] * meanScale, 1.0, numberOfCompsPerDist[s]);
+            dist = Gaussian_constructByMean(means[s], 1.0, numberOfCompsPerDist[s]);
             emissionDistSeries->emissionDists[s] = EmissionDist_construct(dist, DIST_GAUSSIAN);
         }
     } else if (modelType == MODEL_GAUSSIAN) {
         // Constructing the emission Gaussian and set their parameters
         // emit[r][c] is pointing to Gaussian of the c-th component of the r-th class
         for (int s = 0; s < numberOfDists; s++) {
-            dist = Gaussian_constructByMean(means[s] * meanScale, 1.0,numberOfCompsPerDist[s]);
+            dist = Gaussian_constructByMean(means[s], 1.0,numberOfCompsPerDist[s]);
             emissionDistSeries->emissionDists[s] = EmissionDist_construct(dist, DIST_GAUSSIAN);
         }
     } else if (modelType == MODEL_NEGATIVE_BINOMIAL) {
         for (int s = 0; s < numberOfDists; s++) {
-            dist = NegativeBinomial_constructByMean(means[s] * meanScale, 1.0, numberOfCompsPerDist[s]);
+            dist = NegativeBinomial_constructByMean(means[s], 1.0, numberOfCompsPerDist[s]);
             emissionDistSeries->emissionDists[s] = EmissionDist_construct(dist, DIST_NEGATIVE_BINOMIAL);
         }
     }
@@ -723,7 +722,7 @@ void Transition_addRequirements(Transition *transition, TransitionRequirements *
 }
 
 void Transition_addValidityFunction(Transition *transition, ValidityFunction validityFunction){
-    transition->validityFunctions = realloc((transition->numberOfValidityFunctions + 1) * sizeof(ValidityFunction));
+    transition->validityFunctions = realloc(transition->validityFunctions, (transition->numberOfValidityFunctions + 1) * sizeof(ValidityFunction));
     transition->validityFunctions[transition->numberOfValidityFunctions] = validityFunction;
     transition->numberOfValidityFunctions += 1;
 }
