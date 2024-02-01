@@ -1271,9 +1271,9 @@ stList* parse_all_annotations_and_save_in_stList(char* json_path){
     }
     cJSON_Delete(annotation_json);
     fprintf(stderr, "[%s] Number of parsed annotations = %d\n", get_timestamp(), stList_length(block_table_list));
-    for(int i=0;i < stList_length(block_table_list);i++){
-    	ptBlock_print_blocks_stHash_in_bed(stList_get(block_table_list, i), NULL, stderr, false);
-    }
+    //for(int i=0;i < stList_length(block_table_list);i++){
+    //    ptBlock_print_blocks_stHash_in_bed(stList_get(block_table_list, i), NULL, stderr, false);
+    //}
     return block_table_list;
 
 }
