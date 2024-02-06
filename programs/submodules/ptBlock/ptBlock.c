@@ -1081,6 +1081,7 @@ void _update_coverage_blocks_with_alignments(void * arg_){
     hts_idx_t * sam_idx = sam_index_load(fp, bam_path);
     char* ctg_name;
 
+    int count_parsed_reads = 0;
     // iterate over all contigs for this batch
     stHashIterator *it = stHash_getIterator(ref_blocks_per_contig_to_parse);
     while ((ctg_name = stHash_getNext(it)) != NULL) {
@@ -1108,11 +1109,17 @@ void _update_coverage_blocks_with_alignments(void * arg_){
                                                       alignment,
                                                       min_mapq,
                                                       min_clipping_ratio);
+		count_parsed_reads += 1;
+		// log after parsing every 10k reads
+		if(count_parsed_reads % 10000 == 0){
+			fprintf(stderr, "[%s][%s:%d-%d] Parsed %d reads.", get_timestamp(), ctg_name, block->rfs, block->rfe+1, count_parsed_reads);
+		}
                 pthread_mutex_unlock(mutexPtr);
             }
             if (sam_itr != NULL) hts_itr_destroy(sam_itr);
         }
     }
+    free(argsCovExt);
     stHash_destructIterator(it);
     hts_idx_destroy(sam_idx);
     sam_hdr_destroy(sam_hdr);
