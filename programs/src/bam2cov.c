@@ -41,8 +41,9 @@ int main(int argc, char *argv[]) {
     char *json_path;
     char *out_type;
     char *program;
+    bool output_only_tot_and_high_mapq = false;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "i:t:j:m:r:O:o:h"))) {
+    while (~(c = getopt(argc, argv, "i:t:j:m:r:O:o:xh"))) {
         switch (c) {
             case 'i':
                 bam_path = optarg;
@@ -65,16 +66,20 @@ int main(int argc, char *argv[]) {
             case 'O':
                 out_type = optarg;
                 break;
+            case 'x':
+		output_only_tot_and_high_mapq = true;
+		break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
-                fprintf(stderr, "\nUsage: %s  -i <BAM_FILE> -t <THREADS> -o <OUT_BED_FILE> \n", program);
+                fprintf(stderr, "\nUsage: %s  -i <BAM_FILE> -j <JSON_FILE> -t <THREADS> -O <'b'|'bz'|'c'|'cz'> -o <OUT_BED_OR_COV_FILE> \n", program);
                 fprintf(stderr, "Options:\n");
                 fprintf(stderr, "         -i         input bam file (should be indexed)\n");
-                fprintf(stderr, "         -j         JSON file for the annotation bed files [maximum 32 files can be given and the keys can be any number between 1-32 for example {\"1\":\"/path/to/1.bed\", \"2\":\"/path/to/2.bed\"}]\n");
+                fprintf(stderr, "         -j         JSON file for the annotation bed files. At least one BED file should be in this json and it can be a BED file covering the whole genome/assembly [maximum 32 files can be given and the keys can be any number between 1-32 for example {\"1\":\"/path/to/1.bed\", \"2\":\"/path/to/2.bed\"}]\n");
                 fprintf(stderr, "         -m         minimum mapq for the measuring the coverage of the alignments with high mapq [Default = 20]\n");
                 fprintf(stderr, "         -r         minimum clipping ratio for the measuring the coverage of the highly clipped alignments [Default = 0.1]\n");
-                fprintf(stderr, "         -t         number of threads [default: 4]\n");
+                fprintf(stderr, "         -x         if this parameter is enabled and -O is cz or c then the output cov file will contain only total and high mapq coverage values with no highly clipped or annotation index. This option is added for compatibility with the original implementation of Flagger.\n");
+		fprintf(stderr, "         -t         number of threads [default: 4]\n");
                 fprintf(stderr, "         -O         output type [\"b\" for bed, \"bz\" for gzipped bed, \"c\" for cov, \"cz\" for gzipped cov]\n");
                 fprintf(stderr, "         -o         output path \n");
                 return 1;
@@ -98,22 +103,38 @@ int main(int argc, char *argv[]) {
         if (fp == NULL) {
             fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
         }
-        ptBlock_print_blocks_stHash_in_cov(final_block_table,
-                                           get_string_cov_info_data_format_2,
-                                           fp,
-                                           false,
-                                           ctg_to_len);
+	if (output_only_tot_and_high_mapq){
+            ptBlock_print_blocks_stHash_in_cov(final_block_table,
+                                               get_string_cov_info_data_format_3,
+                                               fp,
+                                               false,
+                                               ctg_to_len);
+	}else{
+	    ptBlock_print_blocks_stHash_in_cov(final_block_table,
+                                               get_string_cov_info_data_format_2,
+                                               fp,
+                                               false,
+                                               ctg_to_len);
+	}
         fclose(fp);
     }else if(strcmp(out_type, "cz") == 0){ // gzip-compressed cov
         gzFile fp = gzopen(out_path, "w6h");
         if (fp == NULL) {
             fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
         }
-        ptBlock_print_blocks_stHash_in_cov(final_block_table,
-                                           get_string_cov_info_data_format_2,
-                                           &fp,
-                                           true,
-                                           ctg_to_len);
+	if (output_only_tot_and_high_mapq){
+            ptBlock_print_blocks_stHash_in_cov(final_block_table,
+                                               get_string_cov_info_data_format_3,
+                                               &fp,
+                                               true,
+                                               ctg_to_len);
+	}else{
+            ptBlock_print_blocks_stHash_in_cov(final_block_table,
+                                               get_string_cov_info_data_format_2,
+                                               &fp,
+                                               true,
+                                               ctg_to_len);
+	}
         gzclose(fp);
     }else if (strcmp(out_type, "b") == 0){ // uncompressed BED
         FILE* fp = fopen(out_path, "w");

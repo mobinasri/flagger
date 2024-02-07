@@ -167,6 +167,10 @@ char *get_string_cov_info_data_format_1(void* src_);
 // format 2 is compatible for HMM-Flagger
 char *get_string_cov_info_data_format_2(void* src_);
 
+// format 3 is compatible for the original implementation of Flagger
+char *get_string_cov_info_data_format_3(void* src_);
+
+
 /* Make a copy of a ptBlock structure
  */
 ptBlock *ptBlock_copy(ptBlock *block);

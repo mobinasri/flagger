@@ -195,6 +195,17 @@ char *get_string_cov_info_data_format_2(void* src_){
     return str;
 }
 
+char *get_string_cov_info_data_format_3(void* src_){
+    CoverageInfo * src = src_;
+    char *str = malloc(150);
+    sprintf(str,
+            "%d\t%d",
+            src->coverage,
+            src->coverage_high_mapq);
+    return str;
+}
+
+
 ptBlock *ptBlock_copy(ptBlock *block) {
     ptBlock *block_copy = ptBlock_construct(block->rfs,
                                             block->rfe,
