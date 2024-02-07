@@ -139,7 +139,6 @@ void CoverageInfo_destruct(CoverageInfo *coverageInfo){
 }
 
 CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int min_mapq, double min_clipping_ratio){
-    CoverageInfo *cov_info = malloc(sizeof(CoverageInfo));
     u_int8_t coverage_high_mapq = min_mapq <= alignment->mapq ? 1 : 0;
     int max_clip = max(alignment->r_clip, alignment->l_clip);
     int alignment_len = alignment->rfe - alignment->rfs + 1;
@@ -1110,11 +1109,12 @@ void _update_coverage_blocks_with_alignments(void * arg_){
                                                       min_mapq,
                                                       min_clipping_ratio);
 		count_parsed_reads += 1;
-		// log after parsing every 10k reads
-		if(count_parsed_reads % 10000 == 0){
-			fprintf(stderr, "[%s][%s:%d-%d] Parsed %d reads.", get_timestamp(), ctg_name, block->rfs, block->rfe+1, count_parsed_reads);
+		// log after parsing every 100k reads
+		if(count_parsed_reads % 100000 == 0){
+			fprintf(stderr, "[%s][%s:%d-%d] Parsed %d reads.\n", get_timestamp(), ctg_name, block->rfs, block->rfe+1, count_parsed_reads);
 		}
                 pthread_mutex_unlock(mutexPtr);
+		ptAlignment_destruct(alignment);
             }
             if (sam_itr != NULL) hts_itr_destroy(sam_itr);
         }
