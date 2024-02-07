@@ -204,16 +204,28 @@ void CountData_reset(CountData* countData){
     countData->totalCount = 0;
 }
 
-int CountData_getMostFrequentValue(CountData *countData){
+int CountData_getMostFrequentValue(CountData *countData, int minValue, int maxValue){
     int value = -1;
     double maxCount = -1.0;
-    for(int i=0; i < countData->countsLength; i++){
+    for(int i=minValue; i < min(maxValue, countData->countsLength); i++){
         if(maxCount <= countData->counts[i]){
             value = i;
             maxCount = countData->counts[i];
         }
     }
     return value;
+}
+
+int CountData_getMaxCount(CountData *countData, int minValue, int maxValue){
+    int value = -1;
+    double maxCount = -1.0;
+    for(int i=minValue; i < min(maxValue, countData->countsLength); i++){
+        if(maxCount <= countData->counts[i]){
+            value = i;
+            maxCount = countData->counts[i];
+        }
+    }
+    return maxCount;
 }
 
 void CountData_destruct(CountData* countData){

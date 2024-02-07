@@ -72,7 +72,8 @@ CountData **CountData_construct1DArray(uint8_t length, int arrayLength);
 void CountData_destruct1DArray(CountData **countData1DArray, int arrayLength);
 void CountData_increment(CountData * countData, uint8_t value, double count);
 void CountData_reset(CountData* countData);
-int CountData_getMostFrequentValue(CountData * countData);
+int CountData_getMostFrequentValue(CountData * countData, int minValue, int maxValue);
+int CountData_getMaxCount(CountData *countData, int minValue, int maxValue);
 void CountData_destruct(CountData* countData);
 
 
