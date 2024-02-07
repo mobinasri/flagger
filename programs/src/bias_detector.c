@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     char *bam_path;
     char *json_path;
     char *baseline_annot_name;
-    double cov_diff_normalized_threshold = 0.2;
+    double cov_diff_normalized_threshold = 0.15;
     int lowest_coverage = 5;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "         -j         JSON file for the annotation bed files [maximum 32 files can be given and the keys can any string {\"hsat1\":\"/path/to/hsat1.bed\", \"bsat\":\"/path/to/bsat.bed\"}]\n");
                 fprintf(stderr, "         -t         number of threads [default: 4]\n");
                 fprintf(stderr, "         -b         name of the baseline annotation\n");
-		fprintf(stderr, "         -d         threshold for reporting an annotation as biased or not  (It is being applied on the coverage deviation normalized by the baseline coverage) [default:0.2]\n");
+		fprintf(stderr, "         -d         threshold for reporting an annotation as biased or not  (It is being applied on the coverage deviation normalized by the baseline coverage) [default:0.15]\n");
 		fprintf(stderr, "         -e         the most frequent coverage will selected from among the coverages greater than or equal to the value of this parameter [default:5]\n");
                 return 1;
         }
