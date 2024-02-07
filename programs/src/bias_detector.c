@@ -128,10 +128,11 @@ int main(int argc, char *argv[]) {
         char* annotationName = stList_get(annotationNames, annotIndex);
         char* annotationPath = stList_get(annotationPaths, annotIndex);
         double coverageDiffNormalized = ((double) mostFrequentCoverages[annotIndex]  - baselineCoverage) / baselineCoverage;
+	double coverageDiffNormalizedAbs = coverageDiffNormalized < 0 ? -1 * coverageDiffNormalized : coverageDiffNormalized;
 	int maxCount = maxCounts[annotIndex];
         fprintf(stdout, "%s\t%s\t%d\t%+.3f\t%s\n",
                 annotationName,
-		(cov_diff_normalized_threshold < coverageDiffNormalized) && (maxCount > 1000) ? "biased" : "not_biased",
+		(cov_diff_normalized_threshold < coverageDiffNormalizedAbs) && (maxCount > 10000) ? "biased" : "not_biased",
                 mostFrequentCoverages[annotIndex],
                 coverageDiffNormalized,
 		annotationPath);
