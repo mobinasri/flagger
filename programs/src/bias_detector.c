@@ -37,14 +37,24 @@ CountData** createCountDataPerAnnotation(stHash *final_block_table, int numberOf
     return countDataPerAnnotation;
 }
 
-int* getMostFrequentCoveragesPerAnnotation(CountData** countDataPerAnnotation, int numberOfAnnotations){
+int* getMostFrequentCoveragesPerAnnotation(CountData** countDataPerAnnotation, int numberOfAnnotations, int lowest_coverage){
     int *mostFrequentCoverages = malloc(numberOfAnnotations * sizeof(int));
     for (int annotationIndex = 0; annotationIndex < numberOfAnnotations; annotationIndex++) {
-        int mostFreqCoverage = CountData_getMostFrequentValue(countDataPerAnnotation[annotationIndex]);
+        int mostFreqCoverage = CountData_getMostFrequentValue(countDataPerAnnotation[annotationIndex], lowest_coverage, MAX_COVERAGE_VALUE);
         mostFrequentCoverages[annotationIndex] = mostFreqCoverage;
     }
     return mostFrequentCoverages;
 }
+
+int* getMaxCountsPerAnnotation(CountData** countDataPerAnnotation, int numberOfAnnotations, int lowest_coverage){
+    int *maxCounts = malloc(numberOfAnnotations * sizeof(int));
+    for (int annotationIndex = 0; annotationIndex < numberOfAnnotations; annotationIndex++) {
+        int maxCount = CountData_getMaxCount(countDataPerAnnotation[annotationIndex], lowest_coverage, MAX_COVERAGE_VALUE);
+        maxCounts[annotationIndex] = maxCount;
+    }
+    return maxCounts;
+}
+
 
 int main(int argc, char *argv[]) {
     int c;
@@ -55,9 +65,10 @@ int main(int argc, char *argv[]) {
     char *json_path;
     char *baseline_annot_name;
     double cov_diff_normalized_threshold = 0.2;
+    int lowest_coverage = 5;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "i:t:j:b:d:h"))) {
+    while (~(c = getopt(argc, argv, "i:t:j:b:d:e:h"))) {
         switch (c) {
             case 'i':
                 bam_path = optarg;
@@ -73,6 +84,10 @@ int main(int argc, char *argv[]) {
                 break;
             case 'd':
 		cov_diff_normalized_threshold = atof(optarg);
+		break;
+            case 'e':
+		lowest_coverage = atoi(optarg);
+		break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
@@ -83,6 +98,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "         -t         number of threads [default: 4]\n");
                 fprintf(stderr, "         -b         name of the baseline annotation\n");
 		fprintf(stderr, "         -d         threshold for reporting an annotation as biased or not  (It is being applied on the coverage deviation normalized by the baseline coverage) [default:0.2]\n");
+		fprintf(stderr, "         -e         the most frequent coverage will selected from among the coverages greater than or equal to the value of this parameter [default:5]\n");
                 return 1;
         }
     }
@@ -101,7 +117,8 @@ int main(int argc, char *argv[]) {
     int baselineIndex = get_annotation_index(annotationNames, baseline_annot_name);
 
     CountData** countDataPerAnnotation = createCountDataPerAnnotation(final_block_table, numberOfAnnotations);
-    int* mostFrequentCoverages = getMostFrequentCoveragesPerAnnotation(countDataPerAnnotation, numberOfAnnotations);
+    int* mostFrequentCoverages = getMostFrequentCoveragesPerAnnotation(countDataPerAnnotation, numberOfAnnotations, lowest_coverage);
+    int* maxCounts = getMaxCountsPerAnnotation(countDataPerAnnotation, numberOfAnnotations, lowest_coverage);
     int baselineCoverage = mostFrequentCoverages[baselineIndex];
 
 
@@ -111,9 +128,10 @@ int main(int argc, char *argv[]) {
         char* annotationName = stList_get(annotationNames, annotIndex);
         char* annotationPath = stList_get(annotationPaths, annotIndex);
         double coverageDiffNormalized = ((double) mostFrequentCoverages[annotIndex]  - baselineCoverage) / baselineCoverage;
+	int maxCount = maxCounts[annotIndex];
         fprintf(stdout, "%s\t%s\t%d\t%+.3f\t%s\n",
                 annotationName,
-		cov_diff_normalized_threshold < coverageDiffNormalized ? "biased" : "not_biased",
+		(cov_diff_normalized_threshold < coverageDiffNormalized) && (maxCount > 1000) ? "biased" : "not_biased",
                 mostFrequentCoverages[annotIndex],
                 coverageDiffNormalized,
 		annotationPath);
