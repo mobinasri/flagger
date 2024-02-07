@@ -88,6 +88,8 @@ def runMinimap2(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, params
     :param outputPafPath: Path to the output Paf file
     """
 
+    if os.path.isfile(outputPafPath):
+        return 0
     cmdString = f"{programPath} -c {params} {hap1FastaPath} {hap2FastaPath} -o {outputPafPath}"
     x = subprocess.run(shlex.split(cmdString), capture_output=True)
     return x.returncode
@@ -101,6 +103,9 @@ def runCentrolign(hap1FastaPath, hap2FastaPath, outputPafPath, programPath, para
     :param hap2FastaPath: Path to the fasta file for the second genome (should contain only one sequence)
     :param outputPafPath: Path to the output Paf file
     """
+
+    if os.path.isfile(outputPafPath):
+        return 0
 
     # extract names of the given sequences
     hap1SeqName = None
