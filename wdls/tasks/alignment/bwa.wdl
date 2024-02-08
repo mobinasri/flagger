@@ -50,7 +50,6 @@ task buildBwaIndex{
         Int diskSize=64
         String dockerImage="quay.io/masri2019/hpp_bwa:latest"
         Int preemptible=2
-        String zones
     }
     command <<<
         # Set the exit code of a pipeline to that of the rightmost command
@@ -85,7 +84,6 @@ task buildBwaIndex{
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
-        zones: zones
     }
 
     output {
@@ -123,9 +121,9 @@ task BwaAlignment{
         tar -xf ~{indexTar} --strip-components 1
 
         # bwa alignment
-        bwa mem ~{bwaParams} -t~{threadCount} asm.fa ~{readFastq} | samtools view -b -h > ${outputName}.bam
-        samtools sort -@~{threadCount} -o ${outputName}.sorted.bam ${outputName}.bam
-        samtools index ${outputName}.sorted.bam
+        bwa mem ~{bwaParams} -t~{threadCount} asm.fa ~{readFastq} | samtools view -b -h > ~{outputName}.bam
+        samtools sort -@~{threadCount} -o ~{outputName}.sorted.bam ~{outputName}.bam
+        samtools index ~{outputName}.sorted.bam
     >>>
 
     runtime {
