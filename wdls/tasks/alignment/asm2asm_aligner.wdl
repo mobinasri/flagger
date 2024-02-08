@@ -33,6 +33,7 @@ workflow asm2asmAlignment {
             refAssembly = refAssemblyFastaGz,
             readFastq_or_queryAssembly = queryAssemblyFastaGzProcessed,
             kmerSize = 19,
+            dockerImage="mobinasri/flagger:v0.3.3",
             zones = zones
     }
     output {
