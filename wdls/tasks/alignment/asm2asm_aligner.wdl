@@ -34,10 +34,16 @@ workflow asm2asmAlignment {
             readFastq_or_queryAssembly = queryAssemblyFastaGzProcessed,
             kmerSize = 19,
             dockerImage="mobinasri/long_read_aligner:v0.3.3",
+            diskSize = 64,
             zones = zones
+    }
+    call aligner_t.indexBam{
+        input:
+            bam = alignmentBam.sortedBamFile
     }
     output {
         File sortedBamFile = alignmentBam.sortedBamFile
+        File sortedBamIndexFile = indexBam.bamIndex
     }
 }
 

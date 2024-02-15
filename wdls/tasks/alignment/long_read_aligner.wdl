@@ -64,6 +64,42 @@ workflow longReadAlignment {
 
 }
 
+task indexBam{
+    input{
+        String bam 
+        # runtime configurations
+        Int memSize=16
+        Int threadCount=8
+        Int diskSize=ceil(size(bam, "GB")) + 32
+        String dockerImage="mobinasri/long_read_aligner:v0.3.0"
+        Int preemptible=2
+        String zones="us-west2-a"
+    }
+    command <<<
+        set -o pipefail
+        set -e
+        set -u
+        set -o xtrace
+
+        BAM_FILENAME=$(basename ~{bam})
+        BAM_PREFIX=${BAM_FILENAME%%.bam}
+
+        ln -s ~{bam} ${BAM_PREFIX}.bam
+        samtools index ${BAM_PREFIX}.bam
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+        zones: zones
+    }
+    output {
+        File bamIndex = glob("*.bai")[0]
+    }
+}
+
 task alignmentBam{
     input{
         String aligner
