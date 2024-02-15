@@ -9,9 +9,9 @@ workflow runProjectBlocksForFlagger{
     input{
         File hap1AssemblyBam
         File hap2AssemblyBam
-        File refSuffix
+        File? refSuffix
         Array[File] refBiasedBlocksBedArray
-        Array[File] biasedBlocksNameStringArray
+        Array[File]? biasedBlocksNameStringArray
         File refSexBed
         File refSDBed
         File refCntrBed
@@ -41,23 +41,24 @@ workflow runProjectBlocksForFlagger{
     }
 
     # Project ref biased blocks to hap1 and hap2 assemblies separately
-    scatter (blocksBed_suffix in zip(refBiasedBlocksBedArray, biasedBlocksNameStringArray)){
+    scatter (bed in refBiasedBlocksBedArray) {
+        String bed_suffix = basename(bed, ".txt")
         call project_blocks_t.project as projectHap1{
             input:
-                blocksBed = blocksBed_suffix.left,
+                blocksBed = bed,
                 asm2refPaf = bam2pafHap1.pafFile,
                 sampleName = sampleName,
-                suffix = "${blocksBed_suffix.right}.hap1",
+                suffix = "hap1.${bed_suffix}",
                 mode = "ref2asm",
                 mergingMargin = mergingMargin,
                 isAssemblySplit = isAssemblySplit
         }
         call project_blocks_t.project as projectHap2{
             input:
-                blocksBed = blocksBed_suffix.left,
+                blocksBed = bed,
                 asm2refPaf = bam2pafHap2.pafFile,
                 sampleName = sampleName,
-                suffix = "${blocksBed_suffix.right}.hap2",
+                suffix = "hap2.${bed_suffix}",
                 mode = "ref2asm",
                 mergingMargin = mergingMargin,
                 isAssemblySplit = isAssemblySplit
