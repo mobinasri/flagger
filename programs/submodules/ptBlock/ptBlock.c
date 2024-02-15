@@ -195,15 +195,24 @@ char *get_string_cov_info_data_format_2(void* src_){
     return str;
 }
 
-char *get_string_cov_info_data_format_3(void* src_){
+char *get_string_cov_info_data_format_only_total(void* src_){
     CoverageInfo * src = src_;
-    char *str = malloc(150);
+    char *str = malloc(50);
     sprintf(str,
-            "%d\t%d",
-            src->coverage,
+            "%d",
+            src->coverage);
+    return str;
+}
+
+char *get_string_cov_info_data_format_only_high_mapq(void* src_){
+    CoverageInfo * src = src_;
+    char *str = malloc(50);
+    sprintf(str,
+            "%d",
             src->coverage_high_mapq);
     return str;
 }
+
 
 
 ptBlock *ptBlock_copy(ptBlock *block) {
