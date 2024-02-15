@@ -61,8 +61,6 @@ task biasDetector {
         cat bias_table.tsv
         mkdir -p output
         
-        touch output/factors.txt
-        touch output/bed_files.txt
         tail -n +2 bias_table.tsv | while read line; do \
             BIAS_STATUS=$(echo "${line}" | awk '{print $2}')
             if [ ${BIAS_STATUS} == "biased" ]; then
@@ -72,8 +70,10 @@ task biasDetector {
                 # save paths to the selected bed files in a text file; one path per line
                 BED_FILE=$(echo ${line} | awk '{print $5}')
                 BED_FILENAME="$(basename ${BED_FILE})"
+                BED_PREFIX=${BED_FILENAME%.bed}
                 cp ${BED_FILE} output/${BED_FILENAME}
                 echo "output/${BED_FILENAME}" >> output/bed_files.txt
+                echo "${BED_PREFIX}" >> output/names.txt
             fi
         done
           
@@ -88,5 +88,6 @@ task biasDetector {
     output {
         Array[File] biasedRegionBedArray  = read_lines("output/bed_files.txt")
         Array[Float] biasedRegionFactorArray = read_lines("output/factors.txt")
+        Array[String] biasedRegionNameArray = read_lines("output/names.txt")
     }
 }
