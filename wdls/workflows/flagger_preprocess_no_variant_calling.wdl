@@ -27,22 +27,26 @@ workflow runFlaggerPreprocess{
 
     
     ## Calculate coverage for the corrected bam file (without filtering)
-    call bam_coverage_t.bamCoverage as bam2cov_corrected{
+    call bam_coverage_t.bamCoverageFast as bam2cov_corrected{
         input:
             bam = correctBam.correctedBam,
+            bai = correctBam.correctedBamIndex,
+            output_format = "only_total",
             minMAPQ = 0,
             assemblyFastaGz = assemblyFastaGz
     }
     
 
-    ## Calculate coverage of reads with high mapqs (20<) for the 
+    ## Calculate coverage of reads with high mapqs (> 20) for the 
     ## corrected bam file (without filtering)
     ##
     ## This coverage will be used for checking the false duplications
     ## in the 2nd phase of the FLAGGER pipeline
-    call bam_coverage_t.bamCoverage as bam2cov_corrected_highMapq{
+    call bam_coverage_t.bamCoverageFast as bam2cov_corrected_highMapq{
         input:
             bam = correctBam.correctedBam,
+            bai = correctBam.correctedBamIndex,
+            output_format = "only_high_mapq",
             minMAPQ = 20,
             assemblyFastaGz = assemblyFastaGz
     }

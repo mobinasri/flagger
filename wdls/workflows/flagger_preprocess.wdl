@@ -83,7 +83,7 @@ workflow runFlaggerPreprocess{
     }
     
     ## Calculate coverage for the corrected bam file (without filtering)
-    call bam_coverage_t.bamCoverage as bam2cov_corrected{
+    call bam_coverage_t.bamCoverageFast as bam2cov_corrected{
         input:
             bam = correctBam.correctedBam,
             minMAPQ = 0,
@@ -92,7 +92,7 @@ workflow runFlaggerPreprocess{
     
     ## Calculate coverage for the corrected bam file in which the 
     ## reads with alternative alleles are removed
-    call bam_coverage_t.bamCoverage as bam2cov_altRemoved{
+    call bam_coverage_t.bamCoverageFast as bam2cov_altRemoved{
         input:
             bam = filterAltReads.filteredBam,
             minMAPQ = 0,
@@ -104,7 +104,7 @@ workflow runFlaggerPreprocess{
     ##
     ## This coverage will be used for checking the false duplications
     ## in the 2nd phase of the FLAGGER pipeline
-    call bam_coverage_t.bamCoverage as bam2cov_corrected_highMapq{
+    call bam_coverage_t.bamCoverageFast as bam2cov_corrected_highMapq{
         input:
             bam = correctBam.correctedBam,
             minMAPQ = 20,
@@ -117,7 +117,7 @@ workflow runFlaggerPreprocess{
     ##
     ## This coverage will be used for checking the false duplications
     ## in the 2nd phase of the FLAGGER pipeline
-    call bam_coverage_t.bamCoverage as bam2cov_altRemoved_highMapq{
+    call bam_coverage_t.bamCoverageFast as bam2cov_altRemoved_highMapq{
         input:
             bam = filterAltReads.filteredBam,
             minMAPQ = 20,
