@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
-RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y build-essential git zlib1g-dev wget libbz2-dev pkg-config libncurses5-dev libncursesw5-dev liblzma-dev libcurl4-openssl-dev pigz python python3 python3-dev curl libssl-dev
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y build-essential git zlib1g-dev wget libbz2-dev pkg-config libncurses5-dev libncursesw5-dev liblzma-dev libcurl4-openssl-dev pigz python python3 python3-dev curl libssl-dev zip unzip vim
 
 RUN mkdir /home/apps
 
@@ -84,9 +84,6 @@ ENV PATH="/home/apps/bcftools-1.19:$PATH"
 
 # copy pre-compiled jvarkit
 COPY ./jvarkit/jvarkit.jar /home/apps/jvarkit/dist/jvarkit.jar
-
-# install some additional tools
-RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y zip unzip vim
 
 ## UCSC convention is to work in /data
 RUN mkdir -p /data
