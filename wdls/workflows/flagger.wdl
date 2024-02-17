@@ -31,7 +31,9 @@ workflow runFlagger{
         File highMapqCoverageGz
         File fai
         Float covFloat # the coverage with the highest frequency (most of the time same as mean coverage)
-        Boolean isDiploid=false # This is only used for pdf generation and separating the pages for each haplotype
+        Boolean sortPdfPagesByHaplotype=false # This is only used for pdf generation and separating the pages for each haplotype
+        String hap1ContigPattern = ""
+        String hap2ContigPattern = ""
         Int windowSize = 5000000 # Size of windows for spliting assembly and calculating coverage dist
         String sampleName
         String suffix = "flagger"
@@ -101,7 +103,9 @@ workflow runFlagger{
         input:
             windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz,
             genomeProbTable = fitModel.probabilityTable,
-            isDiploid = isDiploid
+            sortPdfPagesByHaplotype = sortPdfPagesByHaplotype,
+            hap1ContigPattern = hap1ContigPattern,
+            hap2ContigPattern = hap2ContigPattern
     }
     call combineBeds as combineWindowBased{
         input:
