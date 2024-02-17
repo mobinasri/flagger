@@ -85,6 +85,8 @@ ENV PATH="/home/apps/bcftools-1.19:$PATH"
 # copy pre-compiled jvarkit
 COPY ./jvarkit/jvarkit.jar /home/apps/jvarkit/dist/jvarkit.jar
 
+# install some additional tools
+RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y zip unzip vim
 
 ## UCSC convention is to work in /data
 RUN mkdir -p /data
