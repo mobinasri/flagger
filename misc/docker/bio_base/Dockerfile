@@ -32,7 +32,7 @@ RUN cd /home/apps && \
     tar -xzvf cmake-3.28.3.tar.gz && \
     cd cmake-3.28.3 && \
     ./bootstrap && \
-    make && \
+    make -j 8 && \
     make install
 
 # install samtools
