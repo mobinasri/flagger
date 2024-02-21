@@ -1,5 +1,3 @@
-#ifndef COMMON_H
-#define COMMON_H
 #include <stdint.h>
 #include <string.h>
 #include <sys/stat.h>   // stat
@@ -7,6 +5,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
+
+#ifndef COMMON_H
+#define COMMON_H
 
 #define ARRAY_SIZE(arr) (sizeof((arr)) / sizeof((arr)[0]))
 #define TIMESTAMP_SIZE 40
@@ -68,6 +69,11 @@ double Double_sum1DArray(double *array, int length);
 double Double_sum2DArray(double **array, int length1, int length2);
 double *Double_copy1DArray(double *src, int length);
 double **Double_copy2DArray(double **src, int length1, int length2);
+void Double_multiply1DArray(double *array, int length, double factor);
+void Double_multiply2DArray(double **array, int length1, int length2, double factor);
+double Double_getMaxValue1DArray(double *array, int length);
+double Double_getMaxValue2DArray(double **array, int length1, int length2);
+
 
 int *Int_construct1DArray(int length);
 int **Int_construct2DArray(int length1, int length2);
@@ -79,7 +85,10 @@ int Int_sum1DArray(int *array, int length);
 int Int_sum2DArray(int **array, int length1, int length2);
 int *Int_copy1DArray(int *src, int length);
 int **Int_copy2DArray(int **src, int length1, int length2);
-
+void Int_multiply1DArray(int *array, int length, int factor);
+void Int_multiply2DArray(int **array, int length1, int length2, int factor);
+int Int_getMaxValue1DArray(int *array, int length);
+int Int_getMaxValue2DArray(int **array, int length1, int length2);
 
 uint8_t maxCharArray(uint8_t* a, int len);
 

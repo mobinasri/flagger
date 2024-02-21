@@ -120,6 +120,7 @@ double Double_sum1DArray(double *array, int length){
     for (int i = 0; i < length; i++) {
         sum += array[i];
     }
+    return sum;
 }
 
 double Double_sum2DArray(double **array, int length1, int length2){
@@ -127,6 +128,7 @@ double Double_sum2DArray(double **array, int length1, int length2){
     for (int i = 0; i < length1; i++) {
         sum += Double_sum1DArray(array[i], length2);
     }
+    return sum;
 }
 
 double *Double_copy1DArray(double *src, int length){
@@ -142,6 +144,43 @@ double **Double_copy2DArray(double **src, int length1, int length2){
     }
     return dest;
 }
+
+
+void Double_multiply1DArray(double *array, int length, double factor){
+    for (int i = 0; i < length; i++) {
+        array[i] *= factor;
+    }
+}
+
+void Double_multiply2DArray(double **array, int length1, int length2, double factor){
+    for (int i = 0; i < length1; i++) {
+        Double_multiply1DArray(array[i], length2, factor);
+    }
+}
+
+double Double_getMaxValue1DArray(double *array, int length){
+    assert(length > 0);
+    double maxValue = array[0];
+    for(int i=0; i < length; i++){
+        if (maxValue < array[i]){
+            maxValue = array[i];
+        }
+    }
+    return maxValue;
+}
+double Double_getMaxValue2DArray(double **array, int length1, int length2){
+    assert(length1 > 0 && length2 > 0);
+    double maxValue = array[0][0];
+    for(int i=0; i < length1; i++){
+        double maxInRow = Double_getMaxValue1DArray(array[i], length2);
+        if (maxValue < maxInRow){
+            maxValue = maxInRow;
+        }
+    }
+    return maxValue;
+}
+
+
 
 int *Int_construct1DArray(int length){
     int *array = malloc(length * sizeof(int));
@@ -209,6 +248,41 @@ int **Int_copy2DArray(int **src, int length1, int length2){
     return dest;
 }
 
+void Int_multiply1DArray(int *array, int length, int factor){
+    for (int i = 0; i < length; i++) {
+        array[i] *= factor;
+    }
+}
+
+void Int_multiply2DArray(int **array, int length1, int length2, int factor){
+    for (int i = 0; i < length1; i++) {
+        Int_multiply1DArray(array[i], length2, factor);
+    }
+}
+
+int Int_getMaxValue1DArray(int *array, int length){
+    assert(length > 0);
+    int maxValue = array[0];
+    for(int i=0; i < length; i++){
+        if (maxValue < array[i]){
+            maxValue = array[i];
+        }
+    }
+    return maxValue;
+}
+int Double_getMaxValue2DArray(int **array, int length1, int length2){
+    assert(length1 > 0 && length2 > 0);
+    int maxValue = array[0][0];
+    for(int i=0; i < length1; i++){
+        int maxInRow = Int_getMaxValue1DArray(array[i], length2);
+        if (maxValue < maxInRow){
+            maxValue = maxInRow;
+        }
+    }
+    return maxValue;
+}
+
+
 
 uint8_t maxCharArray(uint8_t *a, int len) {
     assert(len > 0);
@@ -253,6 +327,7 @@ Splitter *Splitter_construct(char *str, char delimiter) {
     splitter->token = malloc((strlen(str) + 1) * sizeof(char));
     splitter->delimiter = delimiter;
     splitter->offset = 0;
+    return  splitter;
 }
 
 void Splitter_destruct(Splitter *splitter) {
