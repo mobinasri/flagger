@@ -5,18 +5,86 @@
 #include "hmm_utils.h"
 #include <string.h>
 #include <stdint.h>
+#include <assert.h>
 #include "math.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "common.h"
 #include "ptBlock.h"
 #include "stdbool.h"
+#include "common.h"
+#include "digamma.h"
+
+
+//////////////////////////////////////
+//// ParameterEstimator Functions ////
+/////////////////////////////////////
+
+
+
+ParameterEstimator *ParameterEstimator_construct(EmissionDist * emissionDist, int numberOfComps){
+    ParameterEstimator *parameterEstimator = malloc(1 * sizeof(ParameterEstimator));
+    parameterEstimator->numeratorPerComp = Double_construct1DArray(numberOfComps);
+    parameterEstimator->denominatorPerComp = Double_construct1DArray(numberOfComps);
+    parameterEstimator->numberOfComps = numberOfComps;
+    parameterEstimator->emissionDist = emissionDist;
+    parameterEstimator->mutexPtr = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(parameterEstimator->mutexPtr, NULL);
+    return parameterEstimator;
+}
+
+void ParameterEstimator_increment(ParameterEstimator *parameterEstimator, double numerator, double denominator, int compIndex){
+    pthread_mutex_lock(parameterEstimator->mutexPtr);
+    parameterEstimator->numeratorPerComp[compIndex] += numerator;
+    parameterEstimator->denominatorPerComp[compIndex] += denominator;
+    pthread_mutex_unlock(parameterEstimator->mutexPtr);
+}
+
+void ParameterEstimator_incrementDenominatorForAllComps(ParameterEstimator *parameterEstimator, double numerator, double denominator, int compIndex){
+    pthread_mutex_lock(parameterEstimator->mutexPtr);
+    parameterEstimator->numeratorPerComp[compIndex] += numerator;
+    for(int i=0; i < parameterEstimator->numberOfComps; i++) {
+        parameterEstimator->denominatorPerComp[i] += denominator;
+    }
+    pthread_mutex_unlock(parameterEstimator->mutexPtr);
+}
+
+double ParameterEstimator_getEstimation(ParameterEstimator *parameterEstimator, int compIndex){
+    if(parameterEstimator->denominatorPerComp[compIndex] == 0){
+        printf(stderr, "Warning: the denominator is zero for comp=%d, so the estimation will be returned as zero\n");
+        return 0.0;
+    }
+    double est;
+    if (parameterEstimator->emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        est = TruncExponential_estimateLambda((TruncExponential *) parameterEstimator->emissionDist->dist,
+                                              parameterEstimator,
+                                              1e-4);
+    }else {
+        est = parameterEstimator->numeratorPerComp[compIndex] / parameterEstimator->denominatorPerComp[compIndex];
+    }
+    return est;
+}
+
+void ParameterEstimator_destruct(ParameterEstimator *parameterEstimator){
+    Double_destruct1DArray(parameterEstimator->numeratorPerComp);
+    Double_destruct1DArray(parameterEstimator->denominatorPerComp);
+    free(parameterEstimator->mutexPtr);
+    free(parameterEstimator);
+}
+
+
+
+
+/////////////////////////////////////
+//// ParameterBinding Functions ////
+////////////////////////////////////
+
+
 
 
 ParameterBinding *ParameterBinding_construct(double **coefs, int numberOfParams, int numberOfComps){
     ParameterBinding *parameterBinding = malloc(1 * sizeof(ParameterBinding));
     parameterBinding->coefs = Double_copy2DArray(coefs, numberOfParams, numberOfComps);
-    parameterBinding->numberOfComps = numberOfParams;
+    parameterBinding->numberOfComps = numberOfComps;
     parameterBinding->numberOfParams = numberOfParams;
     return parameterBinding;
 }
@@ -32,6 +100,8 @@ ParameterBinding *ParameterBinding_constructSequenceByStep(double* firstCoefsPer
             parameterBinding->coefs[p][c] = firstCoefsPerParam[p] + (double) c * stepsPerParam[p];
         }
     }
+    parameterBinding->numberOfComps = numberOfComps;
+    parameterBinding->numberOfParams = numberOfParams;
     return parameterBinding;
 }
 
@@ -56,92 +126,116 @@ void ParameterBinding_destruct(ParameterBinding* parameterBinding){
 }
 
 
-ParameterBinding **ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfCollapsedComps){
+ParameterBinding **ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfCollapsedComps, bool excludeMisjoin){
     if(modelType == MODEL_GAUSSIAN){
-        return ParameterBinding_getDefault1DArrayForGaussian(numberOfCollapsedComps);
+        return ParameterBinding_getDefault1DArrayForGaussian(numberOfCollapsedComps, excludeMisjoin);
     }else if (modelType == MODEL_TRUNC_EXP_GAUSSIAN){
-        return ParameterBinding_getDefault1DArrayForTruncExpGaussian(numberOfCollapsedComps);
+        return ParameterBinding_getDefault1DArrayForTruncExpGaussian(numberOfCollapsedComps, excludeMisjoin);
     }else if (modelType == MODEL_NEGATIVE_BINOMIAL){
-        return ParameterBinding_getDefault1DArrayForNegativeBinomial(numberOfCollapsedComps);
+        return ParameterBinding_getDefault1DArrayForNegativeBinomial(numberOfCollapsedComps, excludeMisjoin);
     }
 }
 
-ParameterBinding **ParameterBinding_getDefault1DArrayForGaussian(int numberOfCollapsedComps){
-    int numberOfParams = 2; // mean and var
-    ParameterBinding ** parameterBinding1DArray = malloc(NUMBER_OF_STATES * sizeof(ParameterBinding*));
+ParameterBinding **ParameterBinding_getDefault1DArrayForGaussian(int numberOfCollapsedComps, bool excludeMisjoin) {
+    int numberOfParams = 3; // mean and var
+    int numberOfStates = excludeMisjoin ? NUMBER_OF_STATES - 1 : NUMBER_OF_STATES;
+    ParameterBinding **parameterBinding1DArray = malloc(numberOfStates * sizeof(ParameterBinding *));
 
     // create one array and fill them for each state separately
     double *coefsPerParam = Double_construct1DArray(numberOfParams);
 
     coefsPerParam[GAUSSIAN_MEAN] = ERR_COMP_BINDING_COEF;
     coefsPerParam[GAUSSIAN_VAR] = ERR_COMP_BINDING_COEF;
+    coefsPerParam[GAUSSIAN_WEIGHT] = 0.0;
     parameterBinding1DArray[STATE_ERR] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
 
     coefsPerParam[GAUSSIAN_MEAN] = 0.5;
     coefsPerParam[GAUSSIAN_VAR] = 0.5;
+    coefsPerParam[GAUSSIAN_WEIGHT] = 0.0;
     parameterBinding1DArray[STATE_DUP] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
 
     coefsPerParam[GAUSSIAN_MEAN] = 1.0;
     coefsPerParam[GAUSSIAN_VAR] = 1.0;
+    coefsPerParam[GAUSSIAN_WEIGHT] = 0.0;
     parameterBinding1DArray[STATE_HAP] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
 
-    coefsPerParam[GAUSSIAN_MEAN] = 1.0;
-    coefsPerParam[GAUSSIAN_VAR] = 1.0;
-    parameterBinding1DArray[STATE_MSJ] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
-
     double *stepsPerParam = Double_construct1DArray(numberOfParams);
+
     coefsPerParam[GAUSSIAN_MEAN] = 2.0;
     coefsPerParam[GAUSSIAN_VAR] = 2.0;
+    coefsPerParam[GAUSSIAN_WEIGHT] = 0.0;
+
     stepsPerParam[GAUSSIAN_MEAN] = 1.0;
     stepsPerParam[GAUSSIAN_VAR] = 1.0;
+    stepsPerParam[GAUSSIAN_WEIGHT] = 0.0;
     parameterBinding1DArray[STATE_COL] = ParameterBinding_constructSequenceByStep(coefsPerParam,
                                                                                   stepsPerParam,
                                                                                   numberOfParams,
                                                                                   numberOfCollapsedComps);
+
+    if (! excludeMisjoin) {
+        coefsPerParam[GAUSSIAN_MEAN] = 1.0;
+        coefsPerParam[GAUSSIAN_VAR] = 1.0;
+        coefsPerParam[GAUSSIAN_WEIGHT] = 0.0;
+        parameterBinding1DArray[STATE_MSJ] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
+    }
+
     Double_destruct1DArray(coefsPerParam);
     Double_destruct1DArray(stepsPerParam);
     return parameterBinding1DArray;
 }
 
-ParameterBinding **ParameterBinding_getDefault1DArrayForNegativeBinomial(int numberOfCollapsedComps){
-    int numberOfParams = 2; // mean and var
-    ParameterBinding **parameterBinding1DArray = malloc(NUMBER_OF_STATES * sizeof(ParameterBinding*));
+ParameterBinding **ParameterBinding_getDefault1DArrayForNegativeBinomial(int numberOfCollapsedComps, bool excludeMisjoin){
+    int numberOfParams = 3; // theta and lambda
+    int numberOfStates = excludeMisjoin ? NUMBER_OF_STATES - 1 : NUMBER_OF_STATES;
+    ParameterBinding **parameterBinding1DArray = malloc(numberOfStates * sizeof(ParameterBinding *));
 
     // create one array and fill them for each state separately
     double *coefsPerParam = Double_construct1DArray(numberOfParams);
 
-    coefsPerParam[NB_MEAN] = ERR_COMP_BINDING_COEF;
-    coefsPerParam[NB_VAR] = ERR_COMP_BINDING_COEF;
+    coefsPerParam[NB_THETA] = 0;
+    coefsPerParam[NB_LAMBDA] = ERR_COMP_BINDING_COEF;
+    coefsPerParam[NB_WEIGHT] = 0;
     parameterBinding1DArray[STATE_ERR] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
 
-    coefsPerParam[NB_MEAN] = 0.5;
-    coefsPerParam[NB_VAR] = 0.5;
+    coefsPerParam[NB_THETA] = 0;
+    coefsPerParam[NB_LAMBDA] = 0.5;
+    coefsPerParam[NB_WEIGHT] = 0;
     parameterBinding1DArray[STATE_DUP] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
 
-    coefsPerParam[NB_MEAN] = 1.0;
-    coefsPerParam[NB_VAR] = 1.0;
+    coefsPerParam[NB_THETA] = 0;
+    coefsPerParam[NB_LAMBDA] = 1.0;
+    coefsPerParam[NB_WEIGHT] = 0;
     parameterBinding1DArray[STATE_HAP] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
 
-    coefsPerParam[NB_MEAN] = 1.0;
-    coefsPerParam[NB_VAR] = 1.0;
-    parameterBinding1DArray[STATE_MSJ] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
-
     double *stepsPerParam = Double_construct1DArray(numberOfParams);
-    coefsPerParam[NB_MEAN] = 2.0;
-    coefsPerParam[NB_VAR] = 2.0;
-    stepsPerParam[NB_MEAN] = 1.0;
-    stepsPerParam[NB_VAR] = 1.0;
+
+    coefsPerParam[NB_THETA] = 0;
+    coefsPerParam[NB_LAMBDA] = 2.0;
+    coefsPerParam[NB_WEIGHT] = 0;
+
+    stepsPerParam[NB_THETA] = 0;
+    stepsPerParam[NB_LAMBDA] = 1.0;
+    stepsPerParam[NB_WEIGHT] = 0;
     parameterBinding1DArray[STATE_COL] = ParameterBinding_constructSequenceByStep(coefsPerParam,
                                                                                   stepsPerParam,
                                                                                   numberOfParams,
                                                                                   numberOfCollapsedComps);
+
+    if (! excludeMisjoin) {
+        coefsPerParam[NB_THETA] = 0;
+        coefsPerParam[NB_LAMBDA] = 1.0;
+        coefsPerParam[NB_WEIGHT] = 0;
+        parameterBinding1DArray[STATE_MSJ] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
+    }
+
     Double_destruct1DArray(coefsPerParam);
     Double_destruct1DArray(stepsPerParam);
     return parameterBinding1DArray;
 }
 
-ParameterBinding **ParameterBinding_getDefault1DArrayForTruncExpGaussian(int numberOfCollapsedComps){
-    ParameterBinding **parameterBinding1DArray = ParameterBinding_getDefault1DArrayForGaussian(numberOfCollapsedComps);
+ParameterBinding **ParameterBinding_getDefault1DArrayForTruncExpGaussian(int numberOfCollapsedComps, bool excludeMisjoin){
+    ParameterBinding **parameterBinding1DArray = ParameterBinding_getDefault1DArrayForGaussian(numberOfCollapsedComps, excludeMisjoin);
     ParameterBinding_destruct(parameterBinding1DArray[STATE_ERR]);
 
     int numberOfParams = 1;
@@ -161,6 +255,15 @@ void ParameterBinding_destruct1DArray(ParameterBinding **parameterBinding1DArray
     }
     free(parameterBinding1DArray);
 }
+
+
+
+
+/////////////////////////////
+//// CountData Functions ////
+/////////////////////////////
+
+
 
 
 CountData *CountData_construct(uint8_t length){
@@ -233,6 +336,17 @@ void CountData_destruct(CountData* countData){
     free(countData);
 }
 
+
+
+
+////////////////////////////////////
+//// NegativeBinomial Functions ////
+////////////////////////////////////
+
+
+
+
+
 /**
  * Constructs a Negative Binomial object containing the parameters for all of its mixture components
  *
@@ -243,13 +357,36 @@ void CountData_destruct(CountData* countData){
  */
 NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numberOfComps) {
     NegativeBinomial *nb = malloc(1 * sizeof(NegativeBinomial));
-    memcpy(nb->mean, mean, numberOfComps * sizeof(double));
-    memcpy(nb->var, var, numberOfComps * sizeof(double));
+    nb->theta = Double_construct1DArray(numberOfComps);
+    nb->lambda = Double_construct1DArray(numberOfComps);
+    for(int comp=0;comp < numberOfComps; comp++){
+        nb->theta[comp] = NegativeBinomial_getTheta(mean[comp], var[comp]);
+        nb->lambda[comp] = NegativeBinomial_getLambda(mean[comp], var[comp]);
+    }
     // Allocating and initializing mixture weights
-    nb->weights = malloc(numberOfComps * sizeof(double));
-    nb->numberOfComps = numberOfComps;
+    nb->weights = Double_construct1DArray(numberOfComps);
     Double_fill1DArray(nb->weights, numberOfComps, 1.0 / numberOfComps);
+    nb->numberOfComps = numberOfComps;
+    NegativeBinomial_fillDigammaTable(nb);
+    // wrap nb in EmissionDist for initializing estimator
+    nb->thetaEstimator = NULL;
+    nb->lambdaEstimator = NULL;
+    nb->weightsEstimator = NULL;
     return nb;
+}
+
+void NegativeBinomial_fillDigammaTable(NegativeBinomial *nb) {
+    nb->digammaTable = Double_construct2DArray(nb->numberOfComps, MAX_COVERAGE_VALUE + 1);
+    for (int comp = 0; comp < nb->numberOfComps; comp++) {
+        double r = NegativeBinomial_getR(nb->theta[comp], nb->lambda[comp]);
+        double digammal_0 = digammal(r); // digamma(r + x) for x = 0
+        nb->digammaTable[comp][0] = digammal_0;
+        for (int x = 1; x <= MAX_COVERAGE_VALUE; x++) {
+            // digamma(1 + z) = digamma(z) + 1 / z
+            // or digamma(r + x) = digamma(r + x - 1) + 1 / (r + x - 1)
+            nb->digammaTable[comp][x] = nb->digammaTable[comp][x - 1] + 1.0 / (r + x - 1);
+        }
+    }
 }
 
 
@@ -259,9 +396,12 @@ NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numb
  * @param nb
  */
 void NegativeBinomial_destruct(NegativeBinomial *nb) {
-    free(nb->mean);
-    free(nb->var);
+    free(nb->theta);
+    free(nb->lambda);
     free(nb->weights);
+    ParameterEstimator_destruct(nb->thetaEstimator);
+    ParameterEstimator_destruct(nb->lambdaEstimator);
+    ParameterEstimator_destruct(nb->weightsEstimator);
     free(nb);
 }
 
@@ -290,18 +430,25 @@ double NegativeBinomial_getTheta(double mean, double var) {
     return theta;
 }
 
-double NegativeBinomial_getR(double mean, double var) {
+double NegativeBinomial_getLambda(double mean, double var) {
     double r = pow(mean, 2) / (var - mean);
+    double lambda = -1 * r * log(NegativeBinomial_getTheta(mean, var));
+    return lambda;
+}
+
+double NegativeBinomial_getR(double theta, double lambda) {
+    double r = -1 * lambda / log(theta);
     return r;
 }
 
-
-double NegativeBinomial_getMean(double theta, double r) {
+double NegativeBinomial_getMean(double theta, double lambda) {
+    double r = -1 * lambda / log(theta);
     double mean = r * (1 - theta) / theta;
     return mean;
 }
 
-double NegativeBinomial_getVar(double theta, double r) {
+double NegativeBinomial_getVar(double theta, double lambda) {
+    double r = -1 * lambda / log(theta);
     double var = r * (1 - theta) / pow(theta, 2);
     return var;
 }
@@ -334,22 +481,82 @@ double *NegativeBinomial_getComponentProbs(NegativeBinomial *nb, uint8_t x) {
     double r;
     double *probs = malloc(nb->numberOfComps * sizeof(double));
     // iterate over mixture components
-    for (int m = 0; m < nb->numberOfComps; m++) {
-        theta = NegativeBinomial_getTheta(nb->mean[m], nb->var[m]);
-        r = NegativeBinomial_getR(nb->mean[m], nb->var[m]);
-        w = nb->weights[m];
-        probs[m] = w * exp(lgamma(r + x) - lgamma(r) - lgamma(x + 1) + r * log(theta) +
+    for (int comp = 0; comp < nb->numberOfComps; comp++) {
+        theta = nb->theta[comp];
+        r = NegativeBinomial_getR(nb->theta[comp], nb->lambda[comp]);
+        w = nb->weights[comp];
+        probs[comp] = w * exp(lgamma(r + x) - lgamma(r) - lgamma(x + 1) + r * log(theta) +
                            (double) x * log(1 - theta));
-        if (probs[m] != probs[m]) {
+        if (probs[comp] != probs[comp]){
             fprintf(stderr, "prob is NAN\n");
             exit(EXIT_FAILURE);
         }
-        if (probs[m] < 1e-40) {
-            probs[m] = 1e-40;
+        if (probs[comp] < 1e-40) {
+            probs[comp] = 1e-40;
         }
     }
     return probs;
 }
+
+
+ParameterEstimator *NegativeBinomial_getEstimator(NegativeBinomial *nb, NegativeBinomialParameterType parameterType){
+    if (parameterType == NB_THETA){
+        return nb->thetaEstimator;
+    }else if (parameterType == NB_LAMBDA){
+        return nb->lambdaEstimator;
+    }else if(parameterType == NB_WEIGHT){
+        return nb->weightsEstimator;
+    }
+}
+
+
+
+void NegativeBinomial_updateEstimator(NegativeBinomial *nb,
+                                         uint8_t x,
+                                         double count){
+    double *componentProbs = NegativeBinomial_getComponentProbs(nb, x);
+    double totProb = Double_sum1DArray(componentProbs, nb->numberOfComps);
+    for (int comp = 0; comp < nb->numberOfComps; comp++) {
+        double theta = nb->theta[comp];
+        double r = NegativeBinomial_getR(nb->theta[comp], nb->lambda[comp]);
+        double beta = -1 * theta / (1 - theta) - 1 / log(theta);
+        double w = count * componentProbs[comp] / totProb;
+        //w2 = em->f[i][c] * em->b[i][c] * em->scales[i] / terminateProb;
+        // Update sufficient stats for estimating mean vectors
+        double delta = r * (nb->digammaTable[comp][x] - nb->digammaTable[comp][0]);
+        ParameterEstimator_increment(nb->lambdaEstimator,
+                                     w * delta,
+                                     w,
+                                     comp);
+        ParameterEstimator_increment(nb->thetaEstimator,
+                                     w * delta * beta,
+                                     w * delta * beta + w * (x - delta),
+                                     comp);
+        ParameterEstimator_incrementDenominatorForAllComps(nb->weightsEstimator,
+                                                           w,
+                                                           w,
+                                                           comp);
+    }
+    free(componentProbs);
+}
+
+void NegativeBinomial_updateParameter(NegativeBinomial *nb, NegativeBinomialParameterType parameterType, int compIndex, double value){
+    if (parameterType == NB_THETA){
+        nb->theta[compIndex] = value;
+    }else if (parameterType == NB_LAMBDA){
+        nb->lambda[compIndex] = value;
+    }else if (parameterType == NB_WEIGHT){
+        nb->weights[compIndex] = value;
+    }
+}
+
+
+
+
+/////////////////////////////
+//// Gaussian Functions ////
+////////////////////////////
+
 
 
 
@@ -364,12 +571,18 @@ double *NegativeBinomial_getComponentProbs(NegativeBinomial *nb, uint8_t x) {
  */
 Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps) {
     Gaussian *gaussian = malloc(1 * sizeof(Gaussian));
+    gaussian->mean = Double_construct1DArray(numberOfComps);
+    gaussian->var = Double_construct1DArray(numberOfComps);
     memcpy(gaussian->mean, mean, numberOfComps * sizeof(double));
     memcpy(gaussian->var, var, numberOfComps * sizeof(double));
     // Allocating and initializing mixture weights
-    gaussian->weights = malloc(numberOfComps * sizeof(double));
-    gaussian->numberOfComps = numberOfComps;
+    gaussian->weights = Double_construct1DArray(numberOfComps);
     Double_fill1DArray(gaussian->weights, numberOfComps, 1.0 / numberOfComps);
+    gaussian->numberOfComps = numberOfComps;
+    // wrap gaussian in EmissionDist for initializing estimators
+    gaussian->meanEstimator = NULL;
+    gaussian->varEstimator = NULL;
+    gaussian->weightsEstimator = NULL;
     return gaussian;
 }
 
@@ -382,6 +595,9 @@ void Gaussian_destruct(Gaussian *gaussian) {
     free(gaussian->mean);
     free(gaussian->var);
     free(gaussian->weights);
+    ParameterEstimator_destruct(gaussian->meanEstimator);
+    ParameterEstimator_destruct(gaussian->varEstimator);
+    ParameterEstimator_destruct(gaussian->weightsEstimator);
     free(gaussian);
 }
 
@@ -396,8 +612,8 @@ void Gaussian_destruct(Gaussian *gaussian) {
  */
 Gaussian *Gaussian_constructByMean(double *mean, double factor, int numberOfComps){
     double *var = malloc(numberOfComps * sizeof(double));
-    for (int m = 0; m < numberOfComps; m++) {
-        var[m] = mean[m] * factor;
+    for (int comp = 0; comp < numberOfComps; comp++) {
+        var[comp] = mean[comp] * factor;
     }
     Gaussian *gaussian = Gaussian_construct(mean, var, numberOfComps);
     free(var);
@@ -433,24 +649,80 @@ double *Gaussian_getComponentProbs(Gaussian *gaussian, uint8_t x, uint8_t preX, 
     double w;
     double *probs = malloc(gaussian->numberOfComps * sizeof(double));
     // iterate over mixture components
-    for (int m = 0; m < gaussian->numberOfComps; m++) {
-        mean = (1 - alpha) * gaussian->mean[m] + alpha * preX;
-        var = gaussian->var[m];
-        w = gaussian->weights[m];
+    for (int comp = 0;  comp < gaussian->numberOfComps; comp++) {
+        mean = (1 - alpha) * gaussian->mean[comp] + alpha * preX;
+        var = gaussian->var[comp];
+        w = gaussian->weights[comp];
         // adjust the mean value based on the previous observation and alpha (dependency factor)
-        probs[m] = w / (sqrt(var * 2 * PI)) * exp(-0.5 * pow((x - mean), 2) / var);
-        if (probs[m] != probs[m]) {
+        probs[comp] = w / (sqrt(var * 2 * PI)) * exp(-0.5 * pow((x - mean), 2) / var);
+        if (probs[comp] != probs[comp]) {
             double u = -0.5 * pow((x - mean), 2) / var;
             fprintf(stderr, "[Error] prob is NAN exp(%.2e) mean=%.2e, var=%.2e\n", u, mean, var);
             exit(EXIT_FAILURE);
         }
-        if (probs[m] < 1e-40) {
+        if (probs[comp] < 1e-40) {
             fprintf(stderr, "[Warning] prob is lower than 1e-40. It is set to 1e-40\n");
-            probs[m] = 1e-40;
+            probs[comp] = 1e-40;
         }
     }
     return probs;
 }
+
+ParameterEstimator *Gaussian_getEstimator(Gaussian *gaussian, GaussianParameterType parameterType){
+    if (parameterType == GAUSSIAN_MEAN){
+        return gaussian->meanEstimator;
+    }else if (parameterType == GAUSSIAN_VAR){
+        return gaussian->varEstimator;
+    }else if(parameterType == GAUSSIAN_WEIGHT){
+        return gaussian->weightsEstimator;
+    }
+}
+
+
+void Gaussian_updateEstimator(Gaussian *gaussian,
+                                 uint8_t x,
+                                 uint8_t preX,
+                                 double alpha,
+                                 double count){
+    double x_adjusted = (x - alpha * preX) / (1 - alpha);
+    double *componentProbs = Gaussian_getComponentProbs(gaussian, x, preX, alpha);
+    double totProb = Double_sum1DArray(componentProbs, gaussian->numberOfComps);
+    for (int c = 0; c < gaussian->numberOfComps; c++) {
+        double w = count * componentProbs[c] / totProb;
+        ParameterEstimator_increment(gaussian->meanEstimator,
+                                     w * x_adjusted,
+                                     w,
+                                     c);
+        double z = x_adjusted - gaussian->mean[c];
+        ParameterEstimator_increment(gaussian->varEstimator,
+                                     w * z * z,
+                                     w,
+                                     c);
+        ParameterEstimator_incrementDenominatorForAllComps(gaussian->weightsEstimator,
+                                                           w,
+                                                           w,
+                                                           c);
+    }
+    free(componentProbs);
+}
+
+
+void Gaussian_updateParameter(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex, double value){
+    if (parameterType == GAUSSIAN_MEAN){
+        gaussian->mean[compIndex] = value;
+    }else if (parameterType == GAUSSIAN_VAR){
+        gaussian->var[compIndex] = value;
+    }else if(parameterType == GAUSSIAN_WEIGHT){
+        gaussian->weights[compIndex] = value;
+    }
+}
+
+
+
+////////////////////////////////////
+//// TruncExponential Functions ////
+////////////////////////////////////
+
 
 
 
@@ -458,10 +730,12 @@ TruncExponential *TruncExponential_construct(double lambda, double truncPoint){
     TruncExponential *truncExponential = malloc(sizeof(TruncExponential));
     truncExponential->lambda = lambda;
     truncExponential->truncPoint = truncPoint;
+    truncExponential->lambdaEstimator = NULL; // wrap TruncExponential in EmissionDist for initializing estimator
     return truncExponential;
 }
 
 void TruncExponential_destruct(TruncExponential* truncExponential){
+    ParameterEstimator_destruct(truncExponential->lambdaEstimator);
     free(truncExponential);
 }
 
@@ -471,17 +745,17 @@ double TruncExponential_getProb(TruncExponential* truncExponential, uint8_t x) {
     return lam * exp(-lam * x) / (1 - exp(-lam * b));
 }
 
-double TruncExponential_getLogLikelihoodByParams(double lambda, double truncPoint, CountData *countData) {
-    double num = countData->sum;
-    double denom = countData->totalCount;
+double TruncExponential_getLogLikelihoodByParams(double lambda, double truncPoint, ParameterEstimator *lambdaEstimator) {
+    double num = lambdaEstimator->numeratorPerComp[0];
+    double denom = lambdaEstimator->denominatorPerComp[0];
     double lam = lambda;
     double b = truncPoint;
     return denom * log(lam) - denom * log(1.0 - exp(-lam * b)) - num * lam;
 }
 
-double TruncExponential_getLogLikelihood(TruncExponential *truncExponential, CountData *countData) {
-    double num = countData->sum;
-    double denom = countData->totalCount;
+double TruncExponential_getLogLikelihood(TruncExponential *truncExponential, ParameterEstimator *lambdaEstimator) {
+    double num = lambdaEstimator->numeratorPerComp[0];
+    double denom = lambdaEstimator->denominatorPerComp[0];
     double lam = truncExponential->lambda;
     double b = truncExponential->truncPoint;
     return denom * log(lam) - denom * log(1.0 - exp(-lam * b)) - num * lam;
@@ -490,7 +764,7 @@ double TruncExponential_getLogLikelihood(TruncExponential *truncExponential, Cou
 // taken from Jordan's script
 // which is originally adapted from https://en.wikipedia.org/wiki/Golden-section_search
 // tol = 1e-6
-double TruncExponential_estimateLambda(TruncExponential *truncExponential, CountData *countData, double tol) {
+double TruncExponential_estimateLambda(TruncExponential *truncExponential, ParameterEstimator *lambdaEstimator, double tol) {
     double a = 0.0;
     double b = truncExponential->truncPoint;
 
@@ -506,8 +780,8 @@ double TruncExponential_estimateLambda(TruncExponential *truncExponential, Count
 
     double c = a + invphi2 * h;
     double d = a + invphi * h;
-    double yc = TruncExponential_getLogLikelihoodByParams(c, truncExponential->truncPoint, countData); // f(c)
-    double yd = TruncExponential_getLogLikelihoodByParams(d, truncExponential->truncPoint, countData); // f(d)
+    double yc = TruncExponential_getLogLikelihoodByParams(c, truncExponential->truncPoint, lambdaEstimator); // f(c)
+    double yd = TruncExponential_getLogLikelihoodByParams(d, truncExponential->truncPoint, lambdaEstimator); // f(d)
     for (int k = 0; k < n - 1; k++) {
         if (yc > yd) {
             b = d;
@@ -515,14 +789,14 @@ double TruncExponential_estimateLambda(TruncExponential *truncExponential, Count
             yd = yc;
             h = invphi * h;
             c = a + invphi2 * h;
-            yc = TruncExponential_getLogLikelihoodByParams(c, truncExponential->truncPoint, countData); // f(c)
+            yc = TruncExponential_getLogLikelihoodByParams(c, truncExponential->truncPoint, lambdaEstimator); // f(c)
         } else {
             a = c;
             c = d;
             yc = yd;
             h = invphi * h;
             d = a + invphi * h;
-            yd = TruncExponential_getLogLikelihoodByParams(d, truncExponential->truncPoint, countData); //f(d)
+            yd = TruncExponential_getLogLikelihoodByParams(d, truncExponential->truncPoint, lambdaEstimator); //f(d)
         }
     }
 
@@ -534,13 +808,122 @@ double TruncExponential_estimateLambda(TruncExponential *truncExponential, Count
 }
 
 
+ParameterEstimator *TruncExponential_getEstimator(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType){
+    if (parameterType == TRUNC_EXP_MEAN) {
+        return truncExponential->lambdaEstimator;
+    }
+}
+
+
+void TruncExponential_updateEstimator(TruncExponential *truncExponential,
+                                         uint8_t x,
+                                         double count){
+    ParameterEstimator_increment(truncExponential->lambdaEstimator,
+                                 count * x,
+                                 count,
+                                 0);
+}
+
+void TruncExponential_updateParameter(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType, double value){
+    if (parameterType == TRUNC_EXP_MEAN){
+        truncExponential->lambda = value;
+    }
+}
+
+
+
+
+/////////////////////////////////
+//// EmissionDist Functions ////
+////////////////////////////////
+
+
+
+
 EmissionDist *EmissionDist_construct(void* dist, DistType distType){
     EmissionDist *emissionDist = malloc(1 * sizeof(EmissionDist));
     emissionDist->dist = dist;
     emissionDist->distType = distType;
+    EmissionDist_initParameterEstimators(emissionDist);
     return emissionDist;
 }
 
+void EmissionDist_initParameterEstimators(EmissionDist *emissionDist){
+    if(emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        TruncExponential *truncExponential = (TruncExponential *) emissionDist->dist;
+        truncExponential->lambdaEstimator = ParameterEstimator_construct(emissionDist, 1);
+    }else if(emissionDist->distType == DIST_GAUSSIAN){
+        Gaussian *gaussian = (Gaussian *) emissionDist->dist;
+        gaussian->meanEstimator = ParameterEstimator_construct(emissionDist, gaussian->numberOfComps);
+        gaussian->varEstimator = ParameterEstimator_construct(emissionDist, gaussian->numberOfComps);
+        gaussian->weightsEstimator = ParameterEstimator_construct(emissionDist, gaussian->numberOfComps);
+    }else if(emissionDist->distType == DIST_NEGATIVE_BINOMIAL){
+        NegativeBinomial *nb = (NegativeBinomial*) emissionDist->dist;
+        nb->thetaEstimator = ParameterEstimator_construct(emissionDist, nb->numberOfComps);
+        nb->lambdaEstimator = ParameterEstimator_construct(emissionDist, nb->numberOfComps);
+        nb->weightsEstimator = ParameterEstimator_construct(emissionDist, nb->numberOfComps);
+    }
+}
+
+
+int EmissionDist_getNumberOfComps(EmissionDist* emissionDist){
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        return 1;
+    }
+    else if (emissionDist->distType == DIST_GAUSSIAN){
+        Gaussian* gaussian = (Gaussian *) emissionDist->dist;
+        return gaussian->numberOfComps;
+    }
+    else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL){
+        NegativeBinomial * nb = (NegativeBinomial *) emissionDist->dist;
+        return nb->numberOfComps;
+    }
+}
+
+ParameterEstimator *EmissionDist_getEstimator(EmissionDist* emissionDist, void *parameterTypePtr){
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        TruncatedExponentialParameterType *parameterTypeTruncExpPtr = parameterTypePtr;
+        return TruncExponential_getEstimator((TruncExponential *) emissionDist->dist,
+                                             *parameterTypeTruncExpPtr);
+    }
+    else if (emissionDist->distType == DIST_GAUSSIAN){
+        GaussianParameterType *parameterTypeGaussianPtr = parameterTypePtr;
+        return Gaussian_getEstimator((Gaussian *) emissionDist->dist,
+                                     *parameterTypeGaussianPtr);
+    }
+    else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL){
+        NegativeBinomialParameterType *parameterTypeNBPtr = *parameterTypePtr;
+        return NegativeBinomial_getEstimator((NegativeBinomial *) emissionDist->dist,
+                                             *parameterTypeNBPtr);
+    }else {
+        return NULL;
+    }
+}
+
+ParameterEstimator *EmissionDist_updateParameter(EmissionDist* emissionDist, void *parameterTypePtr, int compIndex, double value){
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        TruncatedExponentialParameterType *parameterTypeTruncExpPtr = parameterTypePtr;
+        return TruncExponential_updateParameter((TruncExponential *) emissionDist->dist,
+                                                *parameterTypeTruncExpPtr,
+                                                value);
+    }
+    else if (emissionDist->distType == DIST_GAUSSIAN){
+        GaussianParameterType *parameterTypeGaussianPtr = parameterTypePtr;
+        return Gaussian_updateParameter((Gaussian *) emissionDist->dist,
+                                        *parameterTypeGaussianPtr,
+                                        compIndex,
+                                        value);
+    }
+    else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL){
+        NegativeBinomialParameterType *parameterTypeNBPtr = *parameterTypePtr;
+        return NegativeBinomial_updateParameter((NegativeBinomial *) emissionDist->dist,
+                                                *parameterTypeNBPtr,
+                                                compIndex,
+                                                value);
+    }else {
+        return NULL;
+    }
+}
 
 void EmissionDist_destruct(EmissionDist* emissionDist){
     if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
@@ -566,6 +949,27 @@ double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX,
         return NegativeBinomial_getProb((NegativeBinomial *) emissionDist->dist, x);
     }
 }
+
+double EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double count) {
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        return TruncExponential_updateEstimator((TruncExponential *) emissionDist->dist, x, count);
+    }
+    else if (emissionDist->distType == DIST_GAUSSIAN){
+        return Gaussian_updateEstimator((Gaussian *) emissionDist->dist, x, preX, alpha, count);
+    }
+    else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL){
+        return NegativeBinomial_updateEstimator((NegativeBinomial *) emissionDist->dist, x, count);
+    }
+}
+
+
+
+//////////////////////////////////////
+//// EmissionDistSeries Functions ////
+//////////////////////////////////////
+
+
+
 
 
 EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
@@ -648,6 +1052,103 @@ double EmissionDistSeries_getProb(EmissionDistSeries* emissionDistSeries,
     return EmissionDist_getProb(emissionDistSeries->emissionDists[distIndex], x, preX, alpha);
 }
 
+
+void EmissionDistSeries_updateEstimators(EmissionDistSeries *emissionDistSeries, uint8_t x, uint8_t preX, double alpha, double count) {
+    for(int distIndex=0; distIndex < emissionDistSeries->numberOfDists, distIndex++){
+        EmissionDist *emissionDist = emissionDistSeries[distIndex];
+        EmissionDist_updateEstimator(emissionDist, x, preX, alpha, count);
+    }
+}
+
+
+ParameterEstimator *EmissionDistSeries_getBoundParameterEstimator(EmissionDistSeries *emissionDistSeries, DistType distType, void *parameterTypePtr) {
+    EmissionDist *mockEmissionDist = EmissionDist_construct(NULL, DIST_UNDEFINED);
+    ParameterEstimator *boundParameterEstimator = ParameterEstimator_construct(mockEmissionDist, 1);
+    int paramIndex = *paramTypePtr;
+    for (int distIndex = 0; distIndex < emissionDistSeries->numberOfDists; distIndex++) {
+        EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
+        if (emissionDist->distType != distType){
+            continue;
+        }
+        ParameterBinding *parameterBinding = emissionDistSeries->parameterBindingPerDist[distIndex];
+        ParameterEstimator *parameterEstimator = EmissionDist_getEstimator(emissionDist, parameterTypePtr);
+        for (int comp = 0; comp < parameterBinding->numberOfComps; comp++) {
+            double factor = parameterBinding->coefs[paramIndex][comp];
+            if (0 <= factor) {
+                ParameterEstimator_increment(boundParameterEstimator,
+                                             parameterEstimator->numeratorPerComp[comp] / factor,
+                                             parameterEstimator->denominatorPerComp[comp],
+                                             0);
+            }
+        }
+    }
+    return boundParameterEstimator;
+}
+
+void EmissionDistSeries_estimateOneParameterType(EmissionDistSeries *emissionDistSeries, DistType distType, void *parameterTypePtr) {
+    ParameterEstimator *parameterEstimatorBound = EmissionDistSeries_getBoundParameterEstimator(emissionDistSeries, distType, parameterTypePtr);
+    double boundEstimation = ParameterEstimator_getEstimation(parameterEstimatorBound,
+                                                              0);
+    int paramIndex = *paramTypePtr;
+    for(int distIndex=0; distIndex < emissionDistSeries->numberOfDists; distIndex++){
+        EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
+        if (emissionDist->distType != distType){
+            continue;
+        }
+        ParameterBinding *parameterBinding = emissionDistSeries->parameterBindingPerDist[distIndex];
+        for(int comp=0; comp < parameterBinding->numberOfComps; comp++) {
+            double factor = parameterBinding->coefs[paramIndex][comp];
+            double estimation;
+            if (0 <=  factor) {
+                estimation = boundEstimation * factor;
+            }else{
+                ParameterEstimator *parameterEstimator = EmissionDist_getEstimator(emissionDist, parameterTypePtr);
+                estimation = ParameterEstimator_getEstimation(parameterEstimator, comp,);
+            }
+            EmissionDist_updateParameter(emissionDist,
+                                         parameterTypePtr,
+                                         comp,
+                                         estimation);
+        }
+    }
+}
+
+void EmissionDistSeries_estimateParameters(EmissionDistSeries *emissionDistSeries){
+    if(emissionDistSeries->modelType == MODEL_GAUSSIAN || emissionDistSeries->modelType == MODEL_TRUNC_EXP_GAUSSIAN){
+        GaussianParameterType *parameterTypeArrayGaussian = malloc(3 * sizeof(GaussianParameterType));
+        parameterTypeArrayGaussian[0] = GAUSSIAN_MEAN;
+        parameterTypeArrayGaussian[1] = GAUSSIAN_VAR;
+        parameterTypeArrayGaussian[2] = GAUSSIAN_WEIGHT;
+        for (int i=0; i < 3; i++) {
+            EmissionDistSeries_estimateOneParameter(emissionDistSeries, DIST_GAUSSIAN, &parameterTypeArrayGaussian[i]);
+        }
+        free(parameterTypeArrayGaussian);
+        if(emissionDistSeries->modelType == MODEL_TRUNC_EXP_GAUSSIAN){
+            TruncatedExponentialParameterType *parameterTypeArrayTruncExp = malloc(1 * sizeof(TruncatedExponentialParameterType));
+            parameterTypeArrayTruncExp[0] = TRUNC_EXP_MEAN;
+            EmissionDistSeries_estimateParameter(emissionDistSeries, DIST_TRUNC_EXPONENTIAL, &parameterTypeArrayTruncExp[0]);
+            free(parameterTypeArrayTruncExp);
+        }
+    }else if(emissionDistSeries->modelType == MODEL_NEGATIVE_BINOMIAL){
+        NegativeBinomialParameterType *parameterTypeArrayNB = malloc(3 * sizeof(NegativeBinomialParameterType));
+        parameterTypeArrayNB[0] = NB_THETA;
+        parameterTypeArrayNB[1] = NB_LAMBDA;
+        parameterTypeArrayNB[2] = NB_WEIGHT;
+        for (int i=0; i < 3; i++) {
+            EmissionDistSeries_estimateParameter(emissionDistSeries, DIST_NEGATIVE_BINOMIAL, &parameterTypeArrayNB[i]);
+        }
+        free(parameterTypeArrayNB);
+    }
+}
+
+
+
+//////////////////////////////////////////
+//// TransitionRequirements Functions ////
+/////////////////////////////////////////
+
+
+
 TransitionRequirements *TransitionRequirements_construct(double minHighlyClippedRatio, double maxHighMapqRatio){
     TransitionRequirements *transitionRequirements = malloc(sizeof(TransitionRequirements));
     transitionRequirements->minHighlyClippedRatio = minHighlyClippedRatio;
@@ -660,13 +1161,36 @@ void TransitionRequirements_destruct(TransitionRequirements *transitionRequireme
 }
 
 
+
+
+////////////////////////////////////////
+//// TransitionCountData Functions ////
+///////////////////////////////////////
+
+
+
+
 TransitionCountData *TransitionCountData_construct(int numberOfStates){
     TransitionCountData *transitionCountData = malloc(sizeof(TransitionCountData));
     transitionCountData->countMatrix = MatrixDouble_construct0(numberOfStates + 1, numberOfStates + 1);
     transitionCountData->pseudoCountMatrix = MatrixDouble_construct0(numberOfStates + 1, numberOfStates + 1);
     transitionCountData->numberOfStates = numberOfStates;
+    transitionCountData->mutexPtr = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(transitionCountData->mutexPtr, NULL);
 }
+
+void TransitionCountData_increment(TransitionCountData *transitionCountData, double count, StateType preState, StateType state){
+    pthread_mutex_lock(transitionCountData->mutexPtr);
+    transitionCountData->countMatrix->data[preState][state] += count;
+    pthread_mutex_unlock(transitionCountData->mutexPtr);
+}
+
+void TransitionCountData_resetCountMatrix(TransitionCountData *transitionCountData){
+    MatrixDouble_setValue(transitionCountData->countMatrix, 0.0);
+}
+
 void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char* pathToMatrix, int dim){
+    assert(dim == (transitionCountData->numberOfStates + 1))
     MatrixDouble_destruct(transitionCountData->pseudoCountMatrix);
     transitionCountData->pseudoCountMatrix = MatrixDouble_parseFromFile(pathToMatrix, dim ,dim);
 }
@@ -674,8 +1198,16 @@ void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitio
 TransitionCountData *TransitionCountData_destruct(TransitionCountData *transitionCountData){
     free(transitionCountData->countMatrix);
     free(transitionCountData->pseudoCountMatrix);
+    free(transitionCountData->mutexPtr);
     free(transitionCountData);
 }
+
+
+
+
+//////////////////////////////
+//// Transition Functions ////
+//////////////////////////////
 
 
 
@@ -738,6 +1270,15 @@ void Transition_addValidityFunction(Transition *transition, ValidityFunction val
     transition->validityFunctions[transition->numberOfValidityFunctions] = validityFunction;
     transition->numberOfValidityFunctions += 1;
 }
+
+
+
+
+/////////////////////////////
+//// Validity Functions ////
+////////////////////////////
+
+
 
 
 bool ValidityFunction_checkDupByMapq(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements){
