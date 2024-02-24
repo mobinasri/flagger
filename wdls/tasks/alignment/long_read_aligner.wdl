@@ -138,18 +138,26 @@ task alignmentBam{
         # Sort fasta based on contig names
         seqkit sort -nN asm.fa > asm.sorted.fa	
 
-        fileBasename=$(basename ~{readFastq_or_queryAssembly})
+        REF_FILENAME=$(basename ~{refAssembly})
+        REF_FILENAME_NO_GZ=${QUERY_FILENAME%.gz}
+        REF_PREFIX=${REF_FILENAME_NO_GZ%.*}
 
+        QUERY_FILENAME=$(basename ~{readFastq_or_queryAssembly})
+        QUERY_FILENAME_NO_GZ=${QUERY_FILENAME%.gz}
+        QUERY_PREFIX=${QUERY_FILENAME_NO_GZ%.*}
+        
+        ALIGNMENT_PREFIX="${QUERY_PREFIX}.to_${REF_PREFIX}"
+        
         if [[ ~{aligner} == "winnowmap" ]]; then
             # Run meryl for winnowmap
             meryl count k=~{kmerSize} output merylDB asm.sorted.fa
             meryl print greater-than distinct=0.9998 merylDB > repetitive_k~{kmerSize}.txt
 
             # run winnowmap
-            winnowmap -W repetitive_k~{kmerSize}.txt -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${fileBasename%.*.*}.bam
+            winnowmap -W repetitive_k~{kmerSize}.txt -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${ALIGNMENT_PREFIX}.bam
         elif [[ ~{aligner} == "minimap2" ]] ; then
             # Run minimap2
-            minimap2 -k ~{kmerSize} -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${fileBasename%.*.*}.bam
+            minimap2 -k ~{kmerSize} -a -x ~{preset} ~{options} -t~{threadCount} asm.sorted.fa ~{readFastq_or_queryAssembly} | samtools view -h -b > ${ALIGNMENT_PREFIX}.bam
         elif [[ ~{aligner} == "veritymap" ]] ; then
             # Run veritymap
             python3 ${VERITY_MAP_PY} --reads ~{readFastq_or_queryAssembly} -o output -t~{threadCount} -d ~{preset} ~{options} asm.sorted.fa
@@ -158,7 +166,7 @@ task alignmentBam{
             SAM_PATH=$(ls output/*.sam)
             SAM_FILENAME=$(basename ${SAM_PATH})
             SAM_PREFIX=${SAM_FILENAME%%.sam}
-            samtools view -hb output/${SAM_PREFIX}.sam > ${fileBasename%.*.*}.bam
+            samtools view -hb output/${SAM_PREFIX}.sam > ${ALIGNMENT_PREFIX}.bam
             # To save some space
             rm -rf output/${SAM_PREFIX}.sam
 
@@ -168,11 +176,11 @@ task alignmentBam{
         fi
         
         if [ -z ~{suffix} ]; then
-            OUTPUT_FILE=${fileBasename%.*.*}.sorted.bam
+            OUTPUT_FILE=${ALIGNMENT_PREFIX}.sorted.bam
         else
-            OUTPUT_FILE=${fileBasename%.*.*}.~{suffix}.sorted.bam  
+            OUTPUT_FILE=${ALIGNMENT_PREFIX}.~{suffix}.sorted.bam  
         fi
-        samtools sort -@~{threadCount} -o ${OUTPUT_FILE} ${fileBasename%.*.*}.bam
+        samtools sort -@~{threadCount} -o ${OUTPUT_FILE} ${ALIGNMENT_PREFIX}.bam
         du -s -BG ${OUTPUT_FILE} | sed 's/G.*//' > outputsize.txt
     >>>
     runtime {
