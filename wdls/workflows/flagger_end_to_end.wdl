@@ -22,6 +22,7 @@ workflow FlaggerEndToEnd{
         hap1AssemblyFastaGz: "Path to gzip-compressed fasta file of the 1st haplotype."
         hap2AssemblyFastaGz: "Path to gzip-compressed fasta file of the 2nd haplotype."
         readAlignmentBam: "Path to sorted read alignment bam."
+        readAlignmentBai: "Path to bam index for read alignment"
         maxReadDivergence: "Alignments with gap-compressed ratio higher than this will be filtered in the pre-process step. (Default: 0.1)"
         potentialBiasesBedArray: "Array of bed files each of which contains regions with potential coverage bias for example one bed file can contain HSat2 regions in haplotype 1. (Default: [])"
         sexBed: "Optional bed file containing regions assigned to X/Y chromosomes. (can be either in ref or asm coordinates)"
@@ -42,6 +43,7 @@ workflow FlaggerEndToEnd{
         File hap1AssemblyFastaGz
         File hap2AssemblyFastaGz
         File readAlignmentBam
+        File readAlignmentBai
         Float maxReadDivergence = 0.1
 
         Array[File] potentialBiasesBedArray = []
@@ -169,6 +171,7 @@ workflow FlaggerEndToEnd{
             input:
                 bedArray = potentialBiasesBedArrayInAsmCoor,
                 inputBam = readAlignmentBam,
+                inputBai = readAlignmentBai,
                 assemblyFastaGz = createDipAsm.diploidAssemblyFastaGz,
         }
     }
