@@ -9,9 +9,7 @@ workflow runProjectBlocksForFlagger{
     input{
         File hap1AssemblyBam
         File hap2AssemblyBam
-        File? refSuffix
         Array[File] refBiasedBlocksBedArray
-        Array[File]? biasedBlocksNameStringArray
         File refSexBed
         File refSDBed
         File refCntrBed
