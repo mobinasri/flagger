@@ -73,17 +73,17 @@ task project {
             then
                 mv output/output.tmp.bed output/${OUTPUT_FILENAME}
             else
-                bedtools merge -d ~{mergingMargin} -i output/output.tmp.bed > output/${OUTPUT_FILENAME}
+                cat output/output.tmp.bed | cut -f1-3 | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
             fi
         else
             # Convert bed coordinates to the originial one if assembly was split before alignment
             python3 /home/programs/src/convert_bed_coors.py projection.bed > projection_orig_coors.bed
-            bedtools sort -i projection_orig_coors.bed > output/output.tmp.bed 
+            bedtools sort -i projection_orig_coors.bed > output/output.tmp.bed
             if [[ ~{mergeOutput} == "false" ]]
             then
                 mv output/output.tmp.bed output/${OUTPUT_FILENAME}
             else
-                bedtools merge -d ~{mergingMargin} -i output/output.tmp.bed > output/${OUTPUT_FILENAME}
+                cat output/output.tmp.bed | cut -f1-3 | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
             fi
         fi
 

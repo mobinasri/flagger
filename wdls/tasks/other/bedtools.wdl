@@ -146,7 +146,7 @@ task merge {
         if [ -z "~{bed}" ];then
             touch output/~{outputPrefix}.bed
         else
-            bedtools sort -i ~{bed} | bedtools merge -d ~{margin} -i - > output/~{outputPrefix}.bed
+            bedtools sort -i ~{bed} | cut -f1-3 | bedtools merge -d ~{margin} -i - > output/~{outputPrefix}.bed
         fi
     >>>
     runtime {

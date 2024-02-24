@@ -41,8 +41,8 @@ task biasDetector {
         samtools faidx asm.fa
         cat asm.fa.fai | awk '{print $1"\t"0"\t"$2}' | bedtools sort -i - > asm.bed
 
-        # make a bed file to be used a the baseline bed file
-        cat ~{sep=" " bedArray} | bedtools sort -i - | bedtools merge -i - > all_given_beds.bed
+        # make a bed file to be used as the baseline bed file
+        cat ~{sep=" " bedArray} | cut -f1-3 | bedtools sort -i - | bedtools merge -i - > all_given_beds.bed
         bedtools subtract -a asm.bed -b all_given_beds.bed > baseline.bed
        
         # make a json file pointing to all bed files
@@ -60,7 +60,10 @@ task biasDetector {
 
         cat bias_table.tsv
         mkdir -p output
-        
+       
+        touch output/factors.txt
+        touch output/bed_files.txt
+        touch output/names.txt 
         tail -n +2 bias_table.tsv | while read line; do \
             BIAS_STATUS=$(echo "${line}" | awk '{print $2}')
             if [ ${BIAS_STATUS} == "biased" ]; then
