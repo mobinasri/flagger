@@ -1,4 +1,4 @@
-FROM mobinasri/bio_base:v0.3.0
+FROM mobinasri/bio_base:v0.4.0
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
 RUN pip3 install scipy pandas matplotlib
@@ -25,8 +25,6 @@ RUN cd /home/apps && \
     #cd minimap2 && \
     make
 ENV PATH="/home/apps/minimap2-2.26:${PATH}"
-#ENV PAFTOOLS_PATH="/home/apps/minimap2-2.21/misc/paftools.js"
-#ENV PATH="/home/apps/minimap2:${PATH}"
 ENV PAFTOOLS_PATH="/home/apps/minimap2-2.26/misc/paftools.js"
 
 ## k8
