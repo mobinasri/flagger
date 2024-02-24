@@ -10,7 +10,9 @@ task pdfGenerator{
     input {
         File windowProbTablesTarGz
         File genomeProbTable
-        Boolean isDiploid=true
+        Boolean sortPdfPagesByHaplotype=false
+        String hap1ContigPattern = "h1tg"
+        String hap2ContigPattern = "h2tg"
         # runtime configurations
         Int memSize=16
         Int threadCount=8
@@ -38,7 +40,9 @@ task pdfGenerator{
             --table  ~{genomeProbTable} \
             --dir tables \
             --pdf ${PREFIX}.cov_dist.pdf \
-            ~{true="--diploid" false="" isDiploid}
+            --hap1Pattern "~{hap1ContigPattern}" \
+            --hap2Pattern "~{hap2ContigPattern}" \
+            ~{true="--diploid" false="" sortPdfPagesByHaplotype}
         
     >>> 
     runtime {
