@@ -14,7 +14,7 @@ task calmd {
         Int memSize=16
         Int threadCount=8
         Int diskSize=500
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
         String zones="us-west2-a"
     }

@@ -164,7 +164,7 @@ task gatherFiles {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -198,7 +198,7 @@ task String2Float {
         echo ~{str} > file.txt
     >>>
     runtime {
-        docker: "mobinasri/flagger:v0.3.2"
+        docker: "mobinasri/flagger:v0.4.0"
         memory: "1 GB"
         cpu: 1
         disks: "local-disk 1 SSD"
@@ -218,7 +218,7 @@ task combineBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -276,7 +276,7 @@ task dupCorrectBeds {
         Int memSize=16
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
 
@@ -350,7 +350,7 @@ task filterBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
 
@@ -433,7 +433,7 @@ task mergeHsatBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -493,7 +493,7 @@ task getFinalBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<

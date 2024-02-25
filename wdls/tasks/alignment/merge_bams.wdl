@@ -17,7 +17,7 @@ task merge{
         Int memSize=32
         Int threadCount=8
         Int diskSize=256
-        String dockerImage="mobinasri/bio_base:latest"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
         String zones
     }

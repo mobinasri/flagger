@@ -33,7 +33,7 @@ workflow asm2asmAlignment {
             refAssembly = refAssemblyFastaGz,
             readFastq_or_queryAssembly = queryAssemblyFastaGzProcessed,
             kmerSize = 19,
-            dockerImage="mobinasri/long_read_aligner:v0.3.3",
+            dockerImage="mobinasri/long_read_aligner:v0.4.0",
             diskSize = 64,
             zones = zones
     }
@@ -55,7 +55,7 @@ task runSplitAssembly {
         Int memSize=8
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
