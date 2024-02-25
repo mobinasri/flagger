@@ -1,10 +1,10 @@
-FROM mobinasri/bio_base:v0.1
+FROM mobinasri/bio_base:v0.4.0
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
 RUN mkdir -p /home/apps
 RUN pip3 install scipy pandas matplotlib
 RUN apt-get update
-RUN apt-get install -y build-essential python3-dev autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev wget unzip
+RUN apt-get install -y build-essential python3-dev autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev wget unzip vim
 
 
 #install Java
