@@ -5,7 +5,7 @@ workflow runBamCoverage{
     output{
         File counts = bamCoverageFast.counts
         File coverageGz = bamCoverageFast.coverageGz
-        Float coverageMeanFloat = bamCoverageFast.coverageMean
+        Float coverageModeFloat = bamCoverageFast.coverageMode
         Float coverageSdFloat = bamCoverageFast.coverageSD
     }
 }
@@ -54,15 +54,17 @@ task bamCoverageFast{
         ln -s ~{bam} ${BAM_PREFIX}.bam
         ln -s ~{bai} ${BAM_PREFIX}.bam.bai
 
+      
+        COV_PREFIX=${BAM_PREFIX}.mapq~{minMAPQ}.~{output_format}
         # convert bam to cov
         # -f only_total is for printing the total coverage only
-        bam2cov -i ${BAM_PREFIX}.bam -O "c" -o ${BAM_PREFIX}.cov -j bed_file.json -t~{threadCount} -f ~{output_format}
+        bam2cov -i ${BAM_PREFIX}.bam -O "c" -m ~{minMAPQ} -o ${COV_PREFIX}.cov -j bed_file.json -t~{threadCount} -f ~{output_format}
 
         # Convert cov to counts
-        cov2counts -i ${BAM_PREFIX}.cov -o ${BAM_PREFIX}.counts
-        # Calculate mean and standard deviation
-        python3 ${CALC_MEAN_SD_PY} --countsInput ${BAM_PREFIX}.counts --meanOutput cov_mean.txt --sdOutput cov_sd.txt
-        gzip ${BAM_PREFIX}.cov
+        cov2counts -i ${COV_PREFIX}.cov -o ${COV_PREFIX}.counts
+        # Calculate mod and standard deviation
+        python3 ${CALC_MODE_SD_PY} --countsInput ${COV_PREFIX}.counts --minCoverage 5 --modeOutput cov_mode.txt --sdOutput cov_sd.txt
+        gzip ${COV_PREFIX}.cov
     >>>
     runtime {
         docker: dockerImage
@@ -74,7 +76,7 @@ task bamCoverageFast{
     output{
         File coverageGz = glob("*.cov.gz")[0]
         File counts = glob("*.counts")[0]
-        Float coverageMean = read_float("cov_mean.txt")
+        Float coverageMode = read_float("cov_mode.txt")
         Float coverageSD = read_float("cov_sd.txt")
     }
 }
@@ -115,13 +117,14 @@ task bamCoverage{
         BAM_PREFIX="${BAM_FILENAME%.*}"
         samtools depth -aa -Q ~{minMAPQ} ~{bam}  > ${BAM_PREFIX}.depth
         
+        COV_PREFIX=${BAM_PREFIX}.mapq~{minMAPQ}
         # Convert the output of samtools depth into a compressed format
-        depth2cov -d ${BAM_PREFIX}.depth -f ${FA_PREFIX}.fa.fai -o ${BAM_PREFIX}.cov
+        depth2cov -d ${BAM_PREFIX}.depth -f ${FA_PREFIX}.fa.fai -o ${COV_PREFIX}.cov
         # Convert cov to counts
-        cov2counts -i ${BAM_PREFIX}.cov -o ${BAM_PREFIX}.counts
+        cov2counts -i ${COV_PREFIX}.cov -o ${COV_PREFIX}.counts
         # Calculate mean and standard deviation
-        python3 ${CALC_MEAN_SD_PY} --countsInput ${BAM_PREFIX}.counts --meanOutput cov_mean.txt --sdOutput cov_sd.txt
-        gzip ${BAM_PREFIX}.cov
+        python3 ${CALC_MODE_SD_PY} --countsInput ${COV_PREFIX}.counts --minCoverage 5 --modeOutput cov_mode.txt --sdOutput cov_sd.txt
+        gzip ${COV_PREFIX}.cov
     >>>
     runtime {
         docker: dockerImage
@@ -133,7 +136,7 @@ task bamCoverage{
     output{
         File coverageGz = glob("*.cov.gz")[0]
         File counts = glob("*.counts")[0]
-        Float coverageMean = read_float("cov_mean.txt") 
+        Float coverageMode = read_float("cov_mode.txt") 
         Float coverageSD = read_float("cov_sd.txt")
     }
 }
