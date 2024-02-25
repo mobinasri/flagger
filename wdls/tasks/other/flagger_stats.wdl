@@ -75,7 +75,7 @@ task flaggerStats {
             col=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Col" | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}') || true
             unk=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Unk" | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}') || true
             tot=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}')
-            unreliable_perc=$(echo ${err} ${dup} ${hap} ${col} ${unk} ${tot} | awk '{printf "%0.2f", ($1+$2+$4+$5)/$6 * 100}')
+            unreliable_perc=$(echo ${err} ${dup} ${hap} ${col} ${unk} ${tot} | awk '{printf "%0.2f", ($1+$2+$4+$5)/($6+1e-10) * 100}')
             values_curr=$(echo ${err} ${dup} ${hap} ${col} ${unk} ${tot} ${unreliable_perc} | awk '{printf $1"\\t"$2"\\t"$3"\\t"$4"\\t"$5"\\t"($1+$2+$4+$5)"\\t"$7"\\t"$6}')
             values_curr_2="${unreliable_perc}"
             columns_curr="Err_${name}\tDup_${name}\tHap_${name}\tCol_${name}\tUnk_${name}\tUnreliable_${name}\tUnreliable_${name}_Percent\tTotal_${name}"
@@ -86,7 +86,7 @@ task flaggerStats {
             columns_2="${columns_2}\t${columns_curr_2}"
             # store sorted sizes of the Hap blocks
             printf ${name}"\t" >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
-            bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Hap" | awk '{print $3-$2}' | sort -nk1,1 -r | tr '\n' ',' >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
+            bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Hap" | awk '{print $3-$2}' | sort -nk1,1 -r | tr '\n' ',' >> ~{sample}.~{prefix}.flagger.hap_ngx.txt || true
             printf "\n" >> ~{sample}.~{prefix}.flagger.hap_ngx.txt
         done
 
