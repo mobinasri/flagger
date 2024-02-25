@@ -149,10 +149,13 @@ CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int 
 void extend_cov_info_data(void *dest_, void *src_){
     CoverageInfo * dest = dest_;
     CoverageInfo * src = src_;
+    int32_t total = dest->coverage + src->coverage;
+    int32_t total_high_mapq =  dest->coverage_high_mapq + src->coverage_high_mapq;
+    int32_t total_high_clip = dest->coverage_high_clip + src->coverage_high_clip;
     dest->annotation_flag |= src->annotation_flag;
-    dest->coverage += src->coverage;
-    dest->coverage_high_mapq += src->coverage_high_mapq;
-    dest->coverage_high_clip += src->coverage_high_clip;
+    dest->coverage = 250 < total ? 250 : total;
+    dest->coverage_high_mapq = 250 < total_high_mapq ? 250 : total_high_mapq;
+    dest->coverage_high_clip = 250 < total_high_clip ? 250 : total_high_clip;
 }
 
 
