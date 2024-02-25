@@ -292,7 +292,7 @@ task dupCorrectBeds {
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
  
-        FILENAME=$(basename ~{highMapqCovGz})
+        FILENAME=$(basename ~{covGz})
         PREFIX=${FILENAME%.cov.gz}
 
         mkdir ~{prefix}

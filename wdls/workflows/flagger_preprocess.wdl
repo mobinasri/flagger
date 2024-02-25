@@ -52,7 +52,7 @@ workflow runFlaggerPreprocess{
     }
 
     output {
-        Float meanCorrectedCoverageFloat = bam2cov_corrected.coverageMean
+        Float modeCorrectedCoverageFloat = bam2cov_corrected.coverageMode
         File correctedCovGz = bam2cov_corrected.coverageGz
         File correctedHighMapqCovGz = bam2cov_corrected_highMapq.coverageGz
         File excludedReadIdsText = correctBam.excludedReadIdsText

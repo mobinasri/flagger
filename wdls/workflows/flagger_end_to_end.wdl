@@ -187,7 +187,7 @@ workflow FlaggerEndToEnd{
             fai = produceFai.fai,
             sampleName = sampleName,
             suffix = suffix,
-            covFloat = preprocess.meanCorrectedCoverageFloat
+            covFloat = preprocess.modeCorrectedCoverageFloat
     }
 
     # Get Flagger stats
@@ -215,7 +215,7 @@ workflow FlaggerEndToEnd{
         Array[Float] detectedBiasedRegionFactorArray = select_first([biasDetector.biasedRegionFactorArray, []])
 
         # flagger preprocess files
-        Float meanCoverageFloat = preprocess.meanCorrectedCoverageFloat
+        Float modeCoverageFloat = preprocess.modeCorrectedCoverageFloat
         File covGz = preprocess.correctedCovGz
         File highMapqCovGz = preprocess.correctedHighMapqCovGz
         File excludedReadIdsText = preprocess.excludedReadIdsText
