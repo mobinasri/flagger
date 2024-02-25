@@ -1,4 +1,0 @@
-{
-  "runQuast.quast.assemblyFasta": "s3://human-pangenomics/working/HPRC_PLUS/HG002/assemblies/year1_f1_assembly_v2_genbank/HG002.maternal.f1_assembly_v2_genbank.fa.gz",
-  "runQuast.quast.referenceFasta": "s3://human-pangenomics/working/HPRC_PLUS/CHM13/assemblies/chm13.draft_v1.0.fasta.gz"
-}
