@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 
 import "long_read_aligner.wdl" as aligner_t
 workflow asm2asmAlignment {

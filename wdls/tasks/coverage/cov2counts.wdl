@@ -1,4 +1,4 @@
-version 1.1 
+version 1.0 
 
 workflow runCov2Counts{
     call cov2counts

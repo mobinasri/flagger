@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 
 import "../tasks/coverage/cov2counts.wdl" as cov2counts_t
 import "../tasks/coverage/cov2counts_by_window.wdl" as cov2counts_by_window_t

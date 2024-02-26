@@ -1,4 +1,4 @@
-version 1.1 
+version 1.0 
 
 import "../alignment/read_set_splitter.wdl" as readSetSplitter_t
 import "../alignment/long_read_aligner.wdl" as longReadAligner_t

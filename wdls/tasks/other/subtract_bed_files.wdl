@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 
 import "bedtools.wdl" as bedtools_t
 

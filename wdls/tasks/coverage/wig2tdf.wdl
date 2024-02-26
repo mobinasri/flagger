@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 
 workflow runWig2Tdf{
     call wig2tdf

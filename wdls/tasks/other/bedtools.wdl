@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 
 ## This wdl contains the 3 operations frequently used for bed files; subtract, intersect, union
 

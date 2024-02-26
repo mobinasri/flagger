@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 
 import "long_read_aligner_scattered.wdl" as aligner_t
 import "../../ext/secphase/wdls/workflows/correct_bam.wdl" as correct_bam_t

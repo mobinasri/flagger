@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 
 import "../tasks/alignment/bam2paf.wdl" as bam2paf_t
 import "../tasks/other/project_blocks.wdl" as projectBlocks_t

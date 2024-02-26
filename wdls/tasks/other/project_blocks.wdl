@@ -1,4 +1,4 @@
-version 1.1 
+version 1.0 
 
 import "../alignment/bam2paf.wdl" as bam2paf_t
 
