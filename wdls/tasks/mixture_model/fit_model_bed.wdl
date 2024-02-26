@@ -1,4 +1,4 @@
-version 1.0
+version 1.1
 
 import "../coverage/cov2counts.wdl" as cov2counts_t
 import "fit_model.wdl" as fit_model_t

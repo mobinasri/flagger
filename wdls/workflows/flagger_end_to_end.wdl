@@ -1,4 +1,4 @@
-version 1.0
+version 1.1
 
 import "../tasks/other/misc.wdl" as misc_t
 import "flagger.wdl" as flagger_t
@@ -219,6 +219,7 @@ workflow FlaggerEndToEnd{
         File covGz = preprocess.correctedCovGz
         File highMapqCovGz = preprocess.correctedHighMapqCovGz
         File excludedReadIdsText = preprocess.excludedReadIdsText
+        File? secphaseOutputLog = secphase.outLog
 
         # flagger outputs for all alignments
         File finalBed = flagger.finalBed

@@ -1,0 +1,14 @@
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:02:30-0800] [MainThread] [I] [toil.job] Saving graph of 1 jobs, 1 non-service, 1 new
+[2024-02-16T00:02:30-0800] [MainThread] [I] [toil.job] Processing job 'WDLRootJob' kind-WDLRootJob/instance-2jluziei v0
+[2024-02-16T00:02:30-0800] [MainThread] [I] [toil] Running Toil version 5.12.0a1-f0f3133896b1004769e52ca8141dd8177ed62fc9 on host phoenix-20.prism.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:02:32-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/2f734b9182795962929daa19f7ed5d55/3544/worker_log.txt
+[2024-02-16T00:02:32-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:02:36-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/2f734b9182795962929daa19f7ed5d55/1c82/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:02:47-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/2f734b9182795962929daa19f7ed5d55/4d00/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:02:51-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/2f734b9182795962929daa19f7ed5d55/bcae/worker_log.txt
+[2024-02-16T00:02:55-0800] [MainThread] [I] [toil.leader] Finished toil run successfully.

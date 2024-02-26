@@ -1,4 +1,4 @@
-version 1.0
+version 1.1
 
 import "../../../ext/hpp_production_workflows/QC/wdl/tasks/extract_reads.wdl" as extractReads_t
 import "../../../ext/hpp_production_workflows/QC/wdl/tasks/arithmetic.wdl" as arithmetic_t

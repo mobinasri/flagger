@@ -1,4 +1,4 @@
-version 1.0
+version 1.1
 
 import "../../ext/secphase/wdls/workflows/correct_bam.wdl" as correct_bam_t
 import "../tasks/coverage/bam_coverage.wdl" as bam_coverage_t

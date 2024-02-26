@@ -1,4 +1,4 @@
-version 1.0
+version 1.1
 
 import "variant_calling.wdl" as var_t
 import "deep_variant.wdl" as dpv_t

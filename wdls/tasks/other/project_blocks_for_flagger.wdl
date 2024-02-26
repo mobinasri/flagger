@@ -1,4 +1,4 @@
-version 1.0 
+version 1.1 
 
 import "../alignment/long_read_aligner.wdl" as aligner_t
 import "../alignment/bam2paf.wdl" as bam2paf_t

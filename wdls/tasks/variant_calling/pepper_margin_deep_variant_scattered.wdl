@@ -1,4 +1,4 @@
-version 1.0
+version 1.1
 
 import "deep_variant_scattered.wdl" as dv_scat_t
 import "variant_calling.wdl" as var_t
