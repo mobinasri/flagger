@@ -139,7 +139,7 @@ task alignmentBam{
         seqkit sort -nN asm.fa > asm.sorted.fa	
 
         REF_FILENAME=$(basename ~{refAssembly})
-        REF_FILENAME_NO_GZ=${QUERY_FILENAME%.gz}
+        REF_FILENAME_NO_GZ=${REF_FILENAME%.gz}
         REF_PREFIX=${REF_FILENAME_NO_GZ%.*}
 
         QUERY_FILENAME=$(basename ~{readFastq_or_queryAssembly})
