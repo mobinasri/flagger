@@ -14,6 +14,7 @@ workflow runProjectBlocksForFlagger{
         File refSDBed
         File refCntrBed
         File refCntrCtBed
+        Array[File] additionalBedArray 
         # isAssemblySplit should be true if assembly is split before alignment to reference
         Boolean isAssemblySplit = false
         String sampleName
@@ -103,7 +104,7 @@ workflow runProjectBlocksForFlagger{
             sampleName = sampleName,
             suffix = "Cntr_Projected",
             mode = "ref2asm",
-            mergingMargin = 100000,
+            mergingMargin = 50000,
             isAssemblySplit = isAssemblySplit
     }
 
@@ -115,8 +116,22 @@ workflow runProjectBlocksForFlagger{
             sampleName = sampleName,
             suffix = "Cntr_Trans_Projected",
             mode = "ref2asm",
-            mergingMargin = 10000,
+            mergingMargin = 50000,
             isAssemblySplit = isAssemblySplit
+    }
+    
+    scatter (bed_additional in additionalBedArray) {
+        String bed_suffix_additional = basename(bed_additional, ".txt")
+        call project_blocks_t.project as projectAdditional{
+            input:
+                blocksBed = bed_additional,
+                asm2refPaf = concatPaf.outputFile,
+                sampleName = sampleName,
+                suffix = bed_suffix_additional,
+                mode = "ref2asm",
+                mergingMargin = 1,
+                isAssemblySplit = isAssemblySplit
+       }
     }
     
     # Subtract centric transition regions from centromeres
@@ -129,6 +144,7 @@ workflow runProjectBlocksForFlagger{
 
     output {
         Array[File] projectionBiasedBedArray = flatten([projectHap1.projectionBed, projectHap2.projectionBed])
+        Array[File] projectionAdditionalBedArray = projectAdditional.projectionBed
         File projectionSDBed = projectSD.projectionBed
         File projectionSexBed = projectSex.projectionBed
         File projectionCntrBed = subtractCntr.subtractBed
