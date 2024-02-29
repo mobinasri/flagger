@@ -56,7 +56,7 @@ task biasDetector {
         
         ln -s ~{inputBam} alignment.bam
         ln -s ~{inputBai} alignment.bam.bai
-        bias_detector -i alignment.bam -j bed_files.json -b "baseline" -t~{threadCount} > bias_table.tsv
+        bias_detector -i alignment.bam -j bed_files.json -b "baseline" -t~{threadCount} -m 500000 > bias_table.tsv
 
         cat bias_table.tsv
         mkdir -p output

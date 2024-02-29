@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
     char *baseline_annot_name;
     double cov_diff_normalized_threshold = 0.15;
     int lowest_coverage = 5;
-    int min_count = 2000000; // 2Mb
+    int min_count = 500000; // 500Kb
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
     while (~(c = getopt(argc, argv, "i:t:j:b:d:e:m:h"))) {
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "         -b         name of the baseline annotation\n");
 		fprintf(stderr, "         -d         threshold for reporting an annotation as biased or not  (It is being applied on the coverage deviation normalized by the baseline coverage) [default:0.15]\n");
 		fprintf(stderr, "         -e         the most frequent coverage will selected from among the coverages greater than or equal to the value of this parameter [default:5]\n");
-		fprintf(stderr, "         -m         min length of an annotation that can be reported as biased [default:2000000]\n");
+		fprintf(stderr, "         -m         min length of an annotation that can be reported as biased [default:500000]\n");
                 return 1;
         }
     }
