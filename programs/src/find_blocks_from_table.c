@@ -105,7 +105,7 @@ float** readProbTable(char* tablePath, int* maxCovObserved){
 void findBlocks(float** probTable, char* covPath, char* prefix, int maxCovObserved){
     FILE* fp; FILE* fo;
     char suffixes[4][20] = {".error.bed", ".duplicated.bed", ".haploid.bed", ".collapsed.bed"};
-    char outputPath[200];
+    char outputPath[1000];
     FILE** foArray = malloc( 4 * sizeof(FILE*));
     for(int i = 0; i < 4; i++){
 	    strcpy(outputPath, prefix);
@@ -126,8 +126,8 @@ void findBlocks(float** probTable, char* covPath, char* prefix, int maxCovObserv
     if (fp == NULL)
         exit(EXIT_FAILURE);
 
-    char* contig = malloc(50);
-    char* preContig = malloc(50);
+    char* contig = malloc(100);
+    char* preContig = malloc(100);
     int blockStart=0, preEnd=0, preCov=0;
     int start=0, end=0, cov=0;
 
