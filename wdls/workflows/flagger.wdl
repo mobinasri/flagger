@@ -524,7 +524,7 @@ task getFinalBed {
         bedtools subtract \
             -a output/~{sampleName}.~{suffix}.flagger_final.bed \
             -b ~{canonicalBasesDiploidBed} | \
-            awk '{print $1"\t"$2"\t"$3"\tNNN\t"$5"\t"$6"\t"$7"\t"$8"\t0,0,0"}' > non_canonical.bed
+            awk '{print $1"\t"$2"\t"$3"\tNNN\t"$5"\t.\t"$2"\t"$3"\t0,0,0"}' > non_canonical.bed
 
         # make a bed file after excluding Ns
         # keep the label and color 
@@ -532,10 +532,13 @@ task getFinalBed {
         bedtools intersect \
             -a output/~{sampleName}.~{suffix}.flagger_final.bed \
             -b ~{canonicalBasesDiploidBed} | \
-            awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$1"\t"$2"\t"$9}' > only_canonical.bed
+            awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t.\t"$2"\t"$3"\t"$9}' > only_canonical.bed
 
+        # add tack name
+        echo "track name=\"~{sampleName}.~{suffix}\" visibility=2 itemRgb=\"On\" > output/~{sampleName}.~{suffix}.flagger_final.bed
+         
         # overwrite the bed file with adjusted colors and labels
-        cat non_canonical.bed only_canonical.bed | bedtools sort -i - > output/~{sampleName}.~{suffix}.flagger_final.bed
+        cat non_canonical.bed only_canonical.bed | bedtools sort -i - >> output/~{sampleName}.~{suffix}.flagger_final.bed
     >>>
     runtime {
         docker: dockerImage
