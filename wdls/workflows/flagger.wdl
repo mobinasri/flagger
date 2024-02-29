@@ -30,6 +30,7 @@ workflow runFlagger{
         File coverageGz
         File highMapqCoverageGz
         File fai
+        File canonicalBasesDiploidBed
         Float covFloat # the coverage with the highest frequency (most of the time same as mean coverage)
         Boolean sortPdfPagesByHaplotype=false # This is only used for pdf generation and separating the pages for each haplotype
         String hap1ContigPattern = ""
@@ -139,6 +140,7 @@ workflow runFlagger{
     call getFinalBed {
         input:
             bedsTarGz = filterBeds.filteredBedsTarGz,
+            canonicalBasesDiploidBed = canonicalBasesDiploidBed,
             sampleName = sampleName,
             suffix = suffix
     }
@@ -487,6 +489,7 @@ task mergeHsatBeds {
 task getFinalBed {
     input {
         File bedsTarGz
+        File canonicalBasesDiploidBed
         String sampleName
         String suffix
         # runtime configurations
@@ -514,6 +517,25 @@ task getFinalBed {
             -m /home/scripts/colors.txt \
             -t ~{sampleName}.~{suffix} \
             -o output/~{sampleName}.~{suffix}.flagger_final.bed
+
+        # make a bed file for Ns only
+        # the color is black with an rgb of "0,0,0"
+        # the label is "NNN"
+        bedtools subtract \
+            -a output/~{sampleName}.~{suffix}.flagger_final.bed \
+            -b ~{canonicalBasesDiploidBed} | \
+            awk '{print $1"\t"$2"\t"$3"\tNNN\t"$5"\t"$6"\t"$7"\t"$8"\t0,0,0"}' > non_canonical.bed
+
+        # make a bed file after excluding Ns
+        # keep the label and color 
+        # just update the columns 7 and 8
+        bedtools intersect \
+            -a output/~{sampleName}.~{suffix}.flagger_final.bed \
+            -b ~{canonicalBasesDiploidBed} | \
+            awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$1"\t"$2"\t"$9}' > only_canonical.bed
+
+        # overwrite the bed file with adjusted colors and labels
+        cat non_canonical.bed only_canonical.bed | bedtools sort -i - > output/~{sampleName}.~{suffix}.flagger_final.bed
     >>>
     runtime {
         docker: dockerImage

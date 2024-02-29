@@ -1,5 +1,44 @@
 version 1.0 
 
+
+task getCanonicalBasesBed {
+    input {
+        File assemblyFastaGz
+        # runtime configurations
+        Int memSize=4
+        Int threadCount=2
+        Int diskSize=32
+        String dockerImage="mobinasri/flagger:v0.4.0"
+        Int preemptible=2
+    }
+    command <<<
+        set -o pipefail
+        set -e
+        set -u
+        set -o xtrace
+
+        FILENAME=$(basename ~{assemblyFastaGz})
+        PREFIX=${FILENAME%%.fa*(sta).gz}
+        ln -s ~{assemblyFastaGz} ${PREFIX}.fa.gz
+        gunzip -c ${PREFIX}.fa.gz > ${PREFIX}.fa
+        # ignore Ns
+        python3 /home/scripts/get_contig_coords.py --inputFasta ${PREFIX}.fa | bedtools sort -i - > ${PREFIX}.canonical_only.bed
+
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+    }
+    output {
+        File canonicalBasesBed = glob("*.bed")[0]
+    }
+}
+
+
+
 task createDipAsm {
     input {
         File hap1AssemblyFastaGz
