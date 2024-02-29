@@ -41,7 +41,7 @@ workflow runProjectBlocksForFlagger{
 
     # Project ref biased blocks to hap1 and hap2 assemblies separately
     scatter (bed in refBiasedBlocksBedArray) {
-        String bed_suffix = basename(bed, ".txt")
+        String bed_suffix = basename(bed, ".bed")
         call project_blocks_t.project as projectHap1{
             input:
                 blocksBed = bed,
@@ -121,7 +121,7 @@ workflow runProjectBlocksForFlagger{
     }
     
     scatter (bed_additional in additionalBedArray) {
-        String bed_suffix_additional = basename(bed_additional, ".txt")
+        String bed_suffix_additional = basename(bed_additional, ".bed")
         call project_blocks_t.project as projectAdditional{
             input:
                 blocksBed = bed_additional,
@@ -139,7 +139,7 @@ workflow runProjectBlocksForFlagger{
         input:
             firstBed = projectCntr.projectionBed,
             secondBed = projectCntrCt.projectionBed,
-            outputPrefix = "${sampleName}" + "censat_no_ct"
+            outputPrefix = "${sampleName}" + ".censat_no_ct"
     }
 
     output {
