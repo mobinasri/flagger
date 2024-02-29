@@ -74,6 +74,7 @@ task project {
                 mv output/output.tmp.bed output/${OUTPUT_FILENAME}
             else
                 cat output/output.tmp.bed | cut -f1-3 | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+                rm -rf output/output.tmp.bed
             fi
         else
             # Convert bed coordinates to the originial one if assembly was split before alignment
@@ -84,6 +85,7 @@ task project {
                 mv output/output.tmp.bed output/${OUTPUT_FILENAME}
             else
                 cat output/output.tmp.bed | cut -f1-3 | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+                rm -rf output/output.tmp.bed
             fi
         fi
 
