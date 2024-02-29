@@ -9,6 +9,7 @@ import "../../ext/secphase/wdls/workflows/secphase.wdl" as secphase_t
 import "../tasks/alignment/asm2asm_aligner.wdl" as asm2asm_t 
 import "../tasks/coverage/bias_detector.wdl" as bias_t
 import "../tasks/alignment/produce_fai.wdl" as fai_t
+import "../tasks/coverage/cov2wig.wdl" as cov2wig_t
 
 workflow FlaggerEndToEnd{
     meta {
@@ -29,12 +30,15 @@ workflow FlaggerEndToEnd{
         SDBed: "Optional Bed file containing Segmental Duplications. (can be either in ref or asm coordinates)"
         cntrBed: "Optional Bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks."
         cntrCtBed: "Optional Bed file containing centromere transition 'ct' blocks."
+        additionalStratificationBedArray: "Array of additional stratification bed files for final stats tsv file. (Default: [])"
+        additionalStratificationNameArray: "Array of names for the stratifications provided in the argument additionalStratificationBedArray. (Default: [])"
         enableProjectingBedsFromRef2Asm: "If True it means that the given bed files are in ref coors (e.g. chm13v2) and they have to be projected to asm coors. (Default: false)"
         projectionReferenceFastaGz: "The given bed files are in the coordinates of this reference. A reference should be passed if enableProjectingBedsFromRef2Asm is true. (Default: '')"
         enableRunningSecphase : "If True it will run secphase in the marker mode using the parameters starting with 'secphase' otherwise skip it. (Default: false)"
         secphaseDockerImage: "Docker image for running Secphase (Default: mobinasri/secphase:v0.4.3)"
         secphaseOptions: "String containing secphase options (can be either --hifi or --ont). (Default --hifi)"
         secphaseVersion: "Secphase version. (Default: v0.4.3)"
+        enableOutputtingWig: "If True it will make wig files from cov files and output them. wig files can be easily imported into IGV sessions (Default: true)"
     }
     input{
         String sampleName
@@ -51,6 +55,8 @@ workflow FlaggerEndToEnd{
         File? SDBed
         File? cntrBed # censat annotation with no "ct"
         File? cntrCtBed
+        Array[File] additionalStratificationBedArray=[]
+        Array[String] additionalStratificationNameArray=[]
         
         Boolean enableProjectingBedsFromRef2Asm = true
         File projectionReferenceFastaGz = ""
@@ -58,7 +64,9 @@ workflow FlaggerEndToEnd{
         Boolean enableRunningSecphase = false
         String secphaseDockerImage = "mobinasri/secphase:v0.4.3"
         String secphaseOptions = "--hifi"
-        String secphaseVersion = "v0.4.3"    
+        String secphaseVersion = "v0.4.3"
+
+        Boolean enableOutputtingWig = true
     }
 
     # Make en empty bed file
@@ -87,7 +95,13 @@ workflow FlaggerEndToEnd{
         input:
             assemblyGz = createDipAsm.diploidAssemblyFastaGz
     }
-    
+
+    # Get coordinates of canonical bases only (no "N" which may come from scaffolding)
+    call misc_t.getCanonicalBasesBed as dipCanonical{
+        input: 
+            assemblyFastaGz = createDipAsm.diploidAssemblyFastaGz
+    }
+
     # Run Secphase if it is enabled by user
     # Secphase is for fixing reads that were
     # not mapped to the correct haplotype
@@ -145,6 +159,7 @@ workflow FlaggerEndToEnd{
                 hap1AssemblyBam = hap1ToRef.sortedBamFile,
                 hap2AssemblyBam = hap2ToRef.sortedBamFile, 
                 refBiasedBlocksBedArray = potentialBiasesBedArray,
+                additionalBedArray = additionalStratificationBedArray,
                 refSexBed = select_first([sexBed, emptyBed]),
                 refSDBed = select_first([SDBed, emptyBed]),
                 refCntrBed = select_first([cntrBed, emptyBed]),
@@ -157,6 +172,11 @@ workflow FlaggerEndToEnd{
     # regions in asm coordinates, which can be 
     # projections from reference
     Array[File] potentialBiasesBedArrayInAsmCoor = select_first([project.projectionBiasedBedArray, potentialBiasesBedArray])
+    
+    # Get bed files containing additional stratifications
+    # regions in asm coordinates, which can be
+    # projections from reference
+    Array[File] additionalStratificationBedArrayInAsmCoor = select_first([project.projectionAdditionalBedArray, additionalStratificationBedArray])
      
     # Get bed files for SD, centromere and 
     # sex which can be projections from reference
@@ -187,7 +207,8 @@ workflow FlaggerEndToEnd{
             fai = produceFai.fai,
             sampleName = sampleName,
             suffix = suffix,
-            covFloat = preprocess.modeCorrectedCoverageFloat
+            covFloat = preprocess.modeCorrectedCoverageFloat,
+            canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed
     }
 
     # Get Flagger stats
@@ -203,10 +224,33 @@ workflow FlaggerEndToEnd{
             difficultString_1 = "Cntr",
             difficultBed_2 = SDBedInAsmCoor,
             difficultString_2 = "SD",
+            additionalBeds = additionalStratificationBedArrayInAsmCoor,
+            additionalStrings = additionalStratificationNameArray,
             sexBed = sexBedInAsmCoor,
             minContigSize = 1000000,
             sample = sampleName,
             prefix = suffix
+    }
+
+    # make wig files from cov files
+    # wig files can be easily imported into IGV sessions
+    if (enableOutputtingWig) {
+        call cov2wig_t.cov2wig as cov2wig{
+            input:
+                covGz = preprocess.correctedCovGz,
+                segmentSize = 1024,
+                threshold = 250,
+                trackName = "${sampleName}_tot",
+                fai = produceFai.fai
+        }
+        call cov2wig_t.cov2wig as cov2wigHighMapq{
+            input:
+                covGz = preprocess.correctedHighMapqCovGz,
+                segmentSize = 1024,
+                threshold = 250,
+                trackName = "${sampleName}_high_mapq",
+                fai = produceFai.fai
+        }
     }
 
     output {
@@ -214,11 +258,26 @@ workflow FlaggerEndToEnd{
         Array[File] detectedBiasedRegionBedArray = select_first([biasDetector.biasedRegionBedArray, []])
         Array[Float] detectedBiasedRegionFactorArray = select_first([biasDetector.biasedRegionFactorArray, []])
 
+        # get projected bed files if there is any
+        File? projectionSexBed = project.projectionSexBed
+        File? projectionSDBed = project.projectionSDBed
+        File? projectionCntrBed = project.projectionCntrBed
+        Array[File]? projectionAdditionalStratificationBedArray = project.projectionAdditionalBedArray
+
         # flagger preprocess files
         Float modeCoverageFloat = preprocess.modeCorrectedCoverageFloat
         File covGz = preprocess.correctedCovGz
         File highMapqCovGz = preprocess.correctedHighMapqCovGz
         File excludedReadIdsText = preprocess.excludedReadIdsText
+
+        # wig files if user enabled outputting them
+        File? wig = cov2wig.wig
+        File? highMapqWig = cov2wigHighMapq.wig
+
+        # secphase output
+        File? secphaseOutputLog = secphase.outLog
+        File? secphaseModifiedReadBlocksMarkersBed = secphase.modifiedReadBlocksMarkersBed
+        File? secphaseMarkerBlocksBed = secphase.markerBlocksBed
 
         # flagger outputs for all alignments
         File finalBed = flagger.finalBed
