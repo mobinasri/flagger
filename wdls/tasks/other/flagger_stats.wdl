@@ -16,6 +16,8 @@ task flaggerStats {
         String difficultString_1
         File difficultBed_2
         String difficultString_2
+        Array[File]? additionalBeds
+        Array[String]? additionalStrings
         File sexBed
         String sample
         String prefix
@@ -58,15 +60,38 @@ task flaggerStats {
         bedtools intersect -a autosome.bed -b easy_all.bed > autosome_easy_all.bed
 
         bedtools intersect -a autosome_easy_all.bed -b asm_long.bed > autosome_easy_all_long.bed
-        
-        
 
         columns="sample\tinfo"
         values="~{sample}\t~{prefix}"
 
         columns_2="sample\tinfo"
         values_2="~{sample}\t~{prefix}"
-        for x in asm.bed,All asm_long.bed,Long ~{sexBed},sex autosome.bed,Autosome ~{difficultBed_1},~{difficultString_1} diff_long_1.bed,~{difficultString_1}_Long ~{difficultBed_2},~{difficultString_2} diff_long_2.bed,~{difficultString_2}_Long easy_1.bed,Non_~{difficultString_1} easy_2.bed,Non_~{difficultString_2} autosome_easy_1.bed,Autosome_Non_~{difficultString_1} autosome_easy_2.bed,Autosome_Non_~{difficultString_2} autosome_easy_all.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2} autosome_easy_all_long.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2}_Long
+
+        BED_AND_NAME_TUPLES=()
+        BED_AND_NAME_TUPLES[0]="asm.bed,All"
+        BED_AND_NAME_TUPLES[1]="asm_long.bed,Long"
+        BED_AND_NAME_TUPLES[2]="~{sexBed},sex"
+        BED_AND_NAME_TUPLES[3]="autosome.bed,Autosome"
+        BED_AND_NAME_TUPLES[4]="~{difficultBed_1},~{difficultString_1}"
+        BED_AND_NAME_TUPLES[5]="diff_long_1.bed,~{difficultString_1}_Long"
+        BED_AND_NAME_TUPLES[6]="~{difficultBed_2},~{difficultString_2}"
+        BED_AND_NAME_TUPLES[7]="diff_long_2.bed,~{difficultString_2}_Long"
+        BED_AND_NAME_TUPLES[8]="easy_1.bed,Non_~{difficultString_1}"
+        BED_AND_NAME_TUPLES[9]="easy_2.bed,Non_~{difficultString_2}"
+        BED_AND_NAME_TUPLES[10]="autosome_easy_1.bed,Autosome_Non_~{difficultString_1}"
+        BED_AND_NAME_TUPLES[11]="autosome_easy_2.bed,Autosome_Non_~{difficultString_2}"
+        BED_AND_NAME_TUPLES[12]="autosome_easy_all.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2}"
+        BED_AND_NAME_TUPLES[13]="autosome_easy_all_long.bed,Autosome_Non_~{difficultString_1}_Non_~{difficultString_2}_Long"
+
+        ADDITIONAL_BED_ARRAY=(~{sep=" " additionalBeds})
+        ADDITIONAL_NAME_ARRAY=(~{sep=" " additionalStrings})
+        for i in $(seq 0 $(( ${#ADDITIONAL_BED_ARRAY[@]} - 1 )))
+        do
+            ADDITIONAL_NAME=${ADDITIONAL_NAME_ARRAY[$i]}
+            BED_AND_NAME_TUPLES[$i + 14]="${ADDITIONAL_BED_ARRAY[$i]},${ADDITIONAL_NAME}"
+        done
+
+        for x in ${BED_AND_NAME_TUPLES[@]}
         do
             IFS=, read bed name <<< "$x"
             err=$(bedtools intersect -a ~{flaggerBed} -b ${bed} | grep "Err" | awk '{s+=$3-$2}END{printf("%.2f", s/1e6)}') || true
