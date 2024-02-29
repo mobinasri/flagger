@@ -535,7 +535,7 @@ task getFinalBed {
             awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t.\t"$2"\t"$3"\t"$9}' > only_canonical.bed
 
         # add tack name
-        echo "track name=\"~{sampleName}.~{suffix}\" visibility=2 itemRgb=\"On\" > output/~{sampleName}.~{suffix}.flagger_final.bed
+        echo "track name=\"~{sampleName}.~{suffix}\" visibility=2 itemRgb=\"On\"" > output/~{sampleName}.~{suffix}.flagger_final.bed
          
         # overwrite the bed file with adjusted colors and labels
         cat non_canonical.bed only_canonical.bed | bedtools sort -i - >> output/~{sampleName}.~{suffix}.flagger_final.bed
