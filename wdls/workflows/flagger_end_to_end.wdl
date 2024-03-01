@@ -281,6 +281,7 @@ workflow FlaggerEndToEnd{
 
         # flagger outputs for all alignments
         File finalBed = flagger.finalBed
+        File finalBedNoHap = flagger.finalBedNoHap
         File miscFilesTarGz = flagger.miscFilesTarGz
         File pdf = flagger.pdf
 

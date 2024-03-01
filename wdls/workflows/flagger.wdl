@@ -154,7 +154,8 @@ workflow runFlagger{
     output {
         File miscFilesTarGz = gatherFiles.outputTarGz
         File pdf = pdfGenerator.pdf
-        File finalBed = getFinalBed.finalBed 
+        File finalBed = getFinalBed.finalBed
+        File finalBedNoHap = getFinalBed.finalBedNoHap 
     }
 }
 
@@ -539,6 +540,9 @@ task getFinalBed {
          
         # overwrite the bed file with adjusted colors and labels
         cat non_canonical.bed only_canonical.bed | bedtools sort -i - >> output/~{sampleName}.~{suffix}.flagger_final.bed
+
+        # make a BED with no Hap tracks
+        cat output/~{sampleName}.~{suffix}.flagger_final.bed | grep -v "Hap" > output/~{sampleName}.~{suffix}.flagger_final.no_Hap.bed
     >>>
     runtime {
         docker: dockerImage
@@ -549,5 +553,6 @@ task getFinalBed {
     }
     output {
         File finalBed = glob("output/*.flagger_final.bed")[0]
+        File finalBedNoHap = glob("output/*.flagger_final.no_Hap.bed")[0]
     }
 }
