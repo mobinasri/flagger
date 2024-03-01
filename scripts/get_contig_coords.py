@@ -4,7 +4,7 @@ import argparse
 
 def print_coords(seq_name, seq):
     for match in re.finditer(r'[ATGCatgc]+', seq):
-        print(f'{seq_name}\t{match.start() + 1}\t{match.end()}')
+        print(f'{seq_name}\t{match.start()}\t{match.end()}')
 
 
 
