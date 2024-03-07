@@ -1,6 +1,7 @@
 import sys
 import argparse
 from block_utils import Alignment
+from alignment_utils import *
 from collections import defaultdict
 from copy import deepcopy
 from falsifier_utils import *
@@ -244,6 +245,7 @@ def main():
     parser.add_argument('--contigSuffix', type=str, default = "_f",
                         help='The suffix to be added to the names of the new contigs (which could be either intact or with mis-assemblies) [Default = "_f"]')
     parser.add_argument('--singleBaseErrorRate', type=float, default = 0.05, help='The rate of single-base errors that will be induced in "Err" blocks [Default = 0.05]')
+    parser.add_argument('--maxGapLength', type=int, default = 500, help='Split alignments into smaller alignments with no gaps longer than this parameter[Default = 500]')
     parser.add_argument('--safetyFactor', type=float, default = 4.0, help='The factor for checking the feasibility of inducing the misassmblies with the requested numbers and sizes [Default = 4.0]')
 
 
@@ -264,6 +266,7 @@ def main():
     marginLength = args.marginLength
     contigSuffix = args.contigSuffix
     safetyFactor = args.safetyFactor
+    maxGapLength = args.maxGapLength
     singleBaseErrorRate = args.singleBaseErrorRate
 
 
@@ -278,7 +281,9 @@ def main():
             if alignmentLengthQuery >= minAlignmentLength and \
                     alignmentLengthRef >= minAlignmentLength and \
                     alignment.isPrimary:
-                alignments.append(alignment)
+                # split alignments into alignments with short gaps
+                for alignmentWithShortGap in splitIntoAlignmentsWithShortGaps(alignment, maxGapLength):
+                    alignments.append(alignmentWithShortGap)
 
     # parse hap1 sequences
     hap1Sequences = parseFasta(hap1FastaPath)
