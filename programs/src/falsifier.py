@@ -173,6 +173,25 @@ def getTotalLengthOfMisAssembliesForAllAnnotations(misAssemblySizeTable):
     return totalLengths
 
 
+def getTotalCountOfMisAssembliesForAllAnnotations(misAssemblySizeTable):
+    """
+    Returns a dictionary whose keys are annotation names. Each value is a list of total counts of the
+    requested misassemblies of different sizes.
+    :param misAssemblySizeTable: A DataFrame that contains the numbers and the lengths of the requested misassemblies
+    """
+
+    totalCounts = defaultdict(list)
+    print(f"[{datetime.datetime.now()}] Total counts of requested mis-assemblies:")
+    for row in misAssemblySizeTable.index:
+        misAssemblyLengthKb = int(misAssemblySizeTable.at[row, "length_kb"])
+        print(f"\t Mis-assembly Size: {misAssemblyLengthKb}Kb")
+        for annotation in misAssemblySizeTable.columns[1:]:
+            counts = misAssemblySizeTable.at[row, annotation]
+            totCount = sum(counts)
+            print(f"\t\tAnnotation: {annotation} -> {totCount}")
+            totalCounts[annotation].append(totCount)
+    return totalCounts
+
 def checkFeasiblity(relationChains, annotations, misAssemblySizeTable, safetyFactor = 4):
     """
     Checks if there exist enough number of contiguous blocks per annotation to make misassemblies with the
@@ -193,19 +212,25 @@ def checkFeasiblity(relationChains, annotations, misAssemblySizeTable, safetyFac
     :return: True if feasible otherwise False
     """
     blockSizes = np.array(misAssemblySizeTable["length_kb"], dtype=int) * 1000
-    totalAvailableLengthsPerAnnotation = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotations, blockSizes)
+    totalAvailableLengthsPerAnnotation = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotations, blockSizes, excludeVoidHomology=True)
     totalRequestedLengthsPerAnnotation = getTotalLengthOfMisAssembliesForAllAnnotations(misAssemblySizeTable)
+    totalAvailableCountsPerAnnotation = relationChains.getTotalCountOfLongerBlocksForAllAnnotations(annotations, blockSizes, excludeVoidHomology=True)
+    totalRequestedCountsPerAnnotation = getTotalCountOfMisAssembliesForAllAnnotations(misAssemblySizeTable)
 
     flag = True
     for annotation in annotations:
+        for requestedCount, availableCount, blockSize in zip(totalRequestedCountsPerAnnotation[annotation],
+                                              totalAvailableCountsPerAnnotation[annotation],
+                                              blockSizes):
+            print(f"[{datetime.datetime.now()}] Counts: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableCount},\trequested={requestedCount}")
         for requestedLen, availableLen, blockSize in zip(totalRequestedLengthsPerAnnotation[annotation],
                                               totalAvailableLengthsPerAnnotation[annotation],
                                               blockSizes):
             if availableLen < safetyFactor * requestedLen:
-                print(f"[{datetime.datetime.now()}] Check Feasibility: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tNOT PASSED")
+                print(f"[{datetime.datetime.now()}] Check Feasibility (Total length): annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tNOT PASSED")
                 flag = False
             else:
-                print(f"[{datetime.datetime.now()}] Check Feasibility: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tPASSED")
+                print(f"[{datetime.datetime.now()}] Check Feasibility (Total length): annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tPASSED")
     return flag
 
 
