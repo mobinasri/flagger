@@ -39,7 +39,7 @@ class HomologyBlock:
 
         self.misAssemblyLength = 0
         self.minOverlapRatioWithEachAnnotation = 0.5
-        self.minMarginLength = 10000
+        self.minMarginLength = 1000
         self.containsMisAssembly = False
 
     def getSequence(self, origCtgSequences, singleBaseErrorRate):
@@ -612,6 +612,7 @@ class HomologyRelationChains:
         # a dictionary with annotation names as keys and list of
         # weights as values; one weight per newCtg
         # it will be filled by calling "updateAnnotationBlocksForSampling"
+        self.origRefContigNames = origCtgListRefOnly.copy()
         self.newCtgAnnotationWeightsForSampling = defaultdict(list)
         self.newCtgAnnotationWeightsForSamplingMisjoin = defaultdict(list)
         self.newCtgListForSampling = [c + newCtgSuffix for c in origCtgListRefOnly]
@@ -1627,71 +1628,131 @@ class HomologyRelationChains:
         for newCtg in newCtgList:
             yield newCtg, self.getNewCtgSequence(newCtg, origCtgSequences, singleBaseErrorRate)
 
-    def getTotalCountOfLongerBlocks(self, annotation, blockSizes, excludeVoidHomology=True):
+    def getTotalCountOfLongerBlocks(self, annotation, minBlockSize, onlyRefInHomology=False):
         """
-        It counts the number of blocks longer than each block size in the given list and
-        returns the list of total counts
-        :param excludeVoidHomology: if True will exclude relations with void homology (no 1-to-1 mapping)
-        :param blockSizes: A list of block sizes
-        :param annotation: The name of the annotation
-        :return: list of total counts
+        It counts the number of blocks longer than minimum block size for one annotation and
+        returns the total count
+        :param annotation: annotation name
+        :param minBlockSize: Minimum block size
+        :param onlyRefInHomology: If True it will consider only ref blocks with 1-to-1 mappings
+        :return: totalCount
         """
-        totalCounts = [0] * len(blockSizes)
+        totalCount = 0
         for newCtg, relations in self.relationChains.items():
             for relation in relations:
-                if relation.homologousBlock is None and excludeVoidHomology:
+                # if there is no homology for this block, skip it
+                if (relation.homologousBlock is None and
+                        onlyRefInHomology):
+                    continue
+                # if there is a homology but the original contig of this block is not from reference, skip it
+                if (relation.homologousBlock is not None and
+                        onlyRefInHomology and
+                        relation.block.origCtg not in self.origRefContigNames):
                     continue
                 for block in relation.block.annotationBlockLists[annotation].blocks:
-                    for i, length in enumerate(blockSizes):
-                        if length < (block[1] - block[0]):
-                            totalCounts[i] += 1
-        return totalCounts
+                    if minBlockSize < (block[1] - block[0]):
+                        totalCount += 1
 
-    def getTotalCountOfLongerBlocksForAllAnnotations(self, annotations, blockSizes, excludeVoidHomology=True):
+        return totalCount
+
+    def getTotalCountOfLongerBlocksForAllAnnotations(self, annotations, minBlockSizes, onlyRefInHomology=False):
         """
-        Run getTotalCountOfLongerBlocks for each given annotation
-        :param excludeVoidHomology: If True it will exclude relations with void homology (no 1-to-1 mapping)
+        Run getTotalCountOfLongerBlocks for each given annotation and minimum block size
         :param annotations: A list of annotation names
-        :param blockSizes: A list of block sizes
-        :return: A dictionary with annotation names as keys and total length lists as values
+        :param minBlockSizes: A list of minimum block sizes
+        :param onlyRefInHomology: If True it will consider only ref blocks in 1-to-1 mappings
+        :return: A dictionary with annotation names as keys and count lists as values. If the input blockSizes
+                 is None each value in the output dictionary will be an integer instead of list. It can be used for
+                 cases when we don't want to filter annotation blocks.
         """
-        totalCounts = defaultdict(list)
+        if minBlockSizes is None:
+            totalCounts = defaultdict(int)
+        else:
+            totalCounts = defaultdict(list)
         for annotation in annotations:
-            totalCounts[annotation] = self.getTotalCountOfLongerBlocks(annotation, blockSizes, excludeVoidHomology)
+            if minBlockSizes is None:
+                totalCounts[annotation] = self.getTotalCountOfLongerBlocks(annotation, 0, onlyRefInHomology)
+            else:
+                for minBlockSize in minBlockSizes:
+                    totalCounts[annotation].append(self.getTotalCountOfLongerBlocks(annotation, minBlockSize, onlyRefInHomology))
         return totalCounts
 
-    def getTotalLengthOfLongerBlocks(self, annotation, blockSizes, excludeVoidHomology=True):
+    def getTotalLengthOfLongerBlocks(self, annotation, minBlockSize, onlyRefInHomology=False):
         """
-        It counts the total lengths of blocks longer than each block size in the given list and
-        returns the list of total lengths
-        :param excludeVoidHomology: if True will exclude relations with void homology (no 1-to-1 mapping)
-        :param blockSizes: A list of block sizes
-        :param annotation: The name of the annotation
-        :return: list of total lengths
+        It computes the total length of blocks longer than minimum block size for one annotation and
+        returns the total length
+        :param annotation: annotation name
+        :param minBlockSize: Minimum block size
+        :param onlyRefInHomology: If True it will consider only ref blocks with 1-to-1 mappings
+        :return: totalLength
         """
-        totalLengths = [0] * len(blockSizes)
+        totalLength = 0
         for newCtg, relations in self.relationChains.items():
             for relation in relations:
-                if relation.homologousBlock is None and excludeVoidHomology:
+                # if there is no homology for this block, skip it
+                if (relation.homologousBlock is None and
+                        onlyRefInHomology):
+                    continue
+                # if there is a homology but the original contig of this block is not from reference, skip it
+                if (relation.homologousBlock is not None and
+                        onlyRefInHomology and
+                        relation.block.origCtg not in self.origRefContigNames):
                     continue
                 for block in relation.block.annotationBlockLists[annotation].blocks:
-                    for i, length in enumerate(blockSizes):
-                        if length < (block[1] - block[0]):
-                            totalLengths[i] += block[1] - block[0]
+                    if minBlockSize < (block[1] - block[0]):
+                        totalLength += block[1] - block[0]
+        return totalLength
+
+    def getTotalLengthOfLongerBlocksForAllAnnotations(self, annotations, minBlockSizes, onlyRefInHomology=False):
+        """
+        Run getTotalLengthOfLongerBlocks for each given annotation and minimum block size
+        :param annotations: A list of annotation names
+        :param minBlockSizes: A list of block sizes (it can be None)
+        :param onlyRefInHomology: If True it will consider only ref blocks in 1-to-1 mappings
+        :return: A dictionary with annotation names as keys and total length lists as values. If minBlockSizes
+                 is None each value in the output dictionary will be an integer instead of list. It can be used for cases
+                 when we don't want to filter annotation blocks.
+        """
+        if minBlockSizes is None:
+            totalLengths = defaultdict(int)
+        else:
+            totalLengths = defaultdict(list)
+        for annotation in annotations:
+            if minBlockSizes is None:
+                totalLengths[annotation] = self.getTotalLengthOfLongerBlocks(annotation, 0, onlyRefInHomology)
+            else:
+                for minBlockSize in minBlockSizes:
+                    totalLengths[annotation].append(self.getTotalLengthOfLongerBlocks(annotation, minBlockSize, onlyRefInHomology))
         return totalLengths
 
-    def getTotalLengthOfLongerBlocksForAllAnnotations(self, annotations, blockSizes, excludeVoidHomology=True):
+    def getLowerBoundOnNumberOfMisassemblies(self, annotation, misAssemblySize, marginSize):
         """
-        Run getTotalLengthOfLongerBlocks for each given annotation
-        :param excludeVoidHomology: If True it will exclude relations with void homology (no 1-to-1 mapping)
-        :param annotations: A list of annotation names
-        :param blockSizes: A list of block sizes
-        :return: A dictionary with annotation names as keys and total length lists as values
+        It computes the minimum number of misassemblies of a specific length that can be created in the given annotation
+        :param annotation:  annotation name
+        :param misAssemblySize: misassembly size
+        :return: lowerBound
         """
-        totalLengths = defaultdict(list)
-        for annotation in annotations:
-            totalLengths[annotation] = self.getTotalLengthOfLongerBlocks(annotation, blockSizes, excludeVoidHomology)
-        return totalLengths
+        lowerBound = 0
+        for newCtg, relations in self.relationChains.items():
+            for relation in relations:
+                # if there is no homology for this block, skip it
+                if relation.homologousBlock is None:
+                    continue
+                # if there is a homology but the original contig of this block is not from reference, skip it
+                if relation.homologousBlock is not None and relation.block.origCtg not in self.origRefContigNames:
+                    continue
+                for block in relation.block.annotationBlockLists[annotation].blocks:
+                    if misAssemblySize < (block[1] - block[0]):
+                        # X = block size
+                        # L = effective misassembly size
+                        ## n = [log2( X/L + 1)] - 1
+                        # how many times we can split the whole block until we get a block smaller than the
+                        # misassembly size
+                        numberOfSplits = np.floor(np.log2((block[1] - block[0]) / misAssemblySize + 1)) - 1
+                        numberOfSplits = 0 if numberOfSplits < 0 else numberOfSplits
+                        lowerBound += np.pow(2, numberOfSplits) + 1
+        return lowerBound
+
 
     def writeNewContigsToFasta(self, origCtgSequences, fastaPath, singleBaseErrorRate):
         handle = open(fastaPath, "w")

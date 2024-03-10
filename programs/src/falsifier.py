@@ -192,7 +192,7 @@ def getTotalCountOfMisAssembliesForAllAnnotations(misAssemblySizeTable):
             totalCounts[annotation].append(totCount)
     return totalCounts
 
-def checkFeasiblity(relationChains, annotations, misAssemblySizeTable, safetyFactor = 4):
+def checkFeasiblity(relationChains, misAssemblySizeTable):
     """
     Checks if there exist enough number of contiguous blocks per annotation to make misassemblies with the
     requested sizes
@@ -203,35 +203,50 @@ def checkFeasiblity(relationChains, annotations, misAssemblySizeTable, safetyFac
     of this function is passed and it returns True. The higher the value of safetyFactor the less probable it would
     be to run out of blocks.
     :param relationChains:  Chains of relations created out of the alignments
-    :param annotations: A list of annotation names
     :param misAssemblySizeTable: A DataFrame that contains the numbers and the sizes of the requested misassemblies
-    :param safetyFactor: The total number of bases available in the blocks longer than each requested misassembly size
-                         should be more than "safetyFactor" times the total lengths of the misassemblies longer than
-                         the related requested size.
-                         This check is performed separately per annotation.
     :return: True if feasible otherwise False
     """
-    blockSizes = np.array(misAssemblySizeTable["length_kb"], dtype=int) * 1000
-    totalAvailableLengthsPerAnnotation = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotations, blockSizes, excludeVoidHomology=True)
-    totalRequestedLengthsPerAnnotation = getTotalLengthOfMisAssembliesForAllAnnotations(misAssemblySizeTable)
-    totalAvailableCountsPerAnnotation = relationChains.getTotalCountOfLongerBlocksForAllAnnotations(annotations, blockSizes, excludeVoidHomology=True)
-    totalRequestedCountsPerAnnotation = getTotalCountOfMisAssembliesForAllAnnotations(misAssemblySizeTable)
+    #:param safetyFactor: The total number of bases available in the blocks longer than each requested misassembly size
+    #should be more than "safetyFactor" times the total lengths of the misassemblies longer than
+    #the related requested size.
+    #This check is performed separately per annotation.
 
+    #blockSizes = np.array(misAssemblySizeTable["length_kb"], dtype=int) * 1000
+    #totalAvailableLengthsPerAnnotation = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotations, blockSizes, onlyRefInHomology=True)
+    #totalRequestedLengthsPerAnnotation = getTotalLengthOfMisAssembliesForAllAnnotations(misAssemblySizeTable)
+    #totalAvailableCountsPerAnnotation = relationChains.getTotalCountOfLongerBlocksForAllAnnotations(annotations, blockSizes, onlyRefInHomology=True)
+    #totalRequestedCountsPerAnnotation = getTotalCountOfMisAssembliesForAllAnnotations(misAssemblySizeTable)
+    annotations = misAssemblySizeTable.columns[1:]
     flag = True
-    for annotation in annotations:
-        for requestedCount, availableCount, blockSize in zip(totalRequestedCountsPerAnnotation[annotation],
-                                              totalAvailableCountsPerAnnotation[annotation],
-                                              blockSizes):
-            print(f"[{datetime.datetime.now()}] Counts: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableCount},\trequested={requestedCount}")
-        for requestedLen, availableLen, blockSize in zip(totalRequestedLengthsPerAnnotation[annotation],
-                                              totalAvailableLengthsPerAnnotation[annotation],
-                                              blockSizes):
-            if availableLen < safetyFactor * requestedLen:
-                print(f"[{datetime.datetime.now()}] Check Feasibility (Total length): annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tNOT PASSED")
-                flag = False
+    for row in misAssemblySizeTable.index:
+        misAssemblyLengthKb = int(misAssemblySizeTable.at[row, "length_kb"])
+        for annotation in annotations:
+            requestedCount = sum(misAssemblySizeTable.at[row, annotation])
+            lowerBoundOnCount = relationChains.getLowerBoundOnNumberOfMisassemblies(annotation, misAssemblyLengthKb * 1e3)
+            if requestedCount <= lowerBoundOnCount:
+                status = "PASSED"
             else:
-                print(f"[{datetime.datetime.now()}] Check Feasibility (Total length): annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tPASSED")
+                status = "NOT_PASSED"
+                flag = False
+            print(f"[{datetime.datetime.now()}] annotation={annotation},\tblock size={misAssemblyLengthKb}Kb,\tlower_bound={lowerBoundOnCount},\trequested={requestedCount},\t{status}")
     return flag
+
+
+#flag = True
+#for annotation in annotations:
+#    for requestedCount, availableCount, blockSize in zip(totalRequestedCountsPerAnnotation[annotation],
+#                                          totalAvailableCountsPerAnnotation[annotation],
+#                                          blockSizes):
+#        print(f"[{datetime.datetime.now()}] Counts: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableCount},\trequested={requestedCount}")
+#    for requestedLen, availableLen, blockSize in zip(totalRequestedLengthsPerAnnotation[annotation],
+#                                          totalAvailableLengthsPerAnnotation[annotation],
+#                                          blockSizes):
+#        if availableLen < safetyFactor * requestedLen:
+#            print(f"[{datetime.datetime.now()}] Check Feasibility (Total length): annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tNOT PASSED")
+#            flag = False
+#        else:
+#            print(f"[{datetime.datetime.now()}] Check Feasibility (Total length): annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tPASSED")
+#return flag
 
 
 
@@ -257,10 +272,10 @@ def main():
                         help='JSON file that contains the annotation names and the paths to the corresponding annotation bed files. The tracks in all the given bed files should not have any overlap.')
     parser.add_argument('--outputDir', type=str, default= "falsifier_outputs",
                         help='Output directory for saving the falsified assembly, the new annotation and mis-assembly coordinates')
-    parser.add_argument('--minAlignmentLength', type=int, default = 500000,
-                        help='Minimum length of the alignments to be used by the program [Default = 500000 (500Kb)]')
-    parser.add_argument('--marginLength', type=int, default = 10000,
-                        help='Length of the margins at the ends of each unbroken alignment (a contiguous homology relation) where no mis-assembly is permitted to be created [Default = 10000 (10 Kb)]')
+    parser.add_argument('--minAlignmentLength', type=int, default = 50000,
+                        help='Minimum length of the alignments to be used by the program [Default = 50000 (50Kb)]')
+    parser.add_argument('--marginLength', type=int, default = 1000,
+                        help='Length of the margins at the ends of each unbroken alignment (a contiguous homology relation) where no mis-assembly is permitted to be created [Default = 1000 (1 Kb)]')
     parser.add_argument('--switchFlagWindowLength', type=int, default = 5000,
                         help='Each switch error is shown as one/multiple bed tracks around the switching point. This parameter defines the length of the window labeled as "Sw" on each side of switching points created because of haplotype switches (should be smaller than --marginLength) [Default = 5000 (5 Kb)]')
     parser.add_argument('--misjoinFlagWindowLength', type=int, default = 5000,
@@ -356,6 +371,14 @@ def main():
                                                                diploidContigLengths,
                                                                contigSuffix)
 
+    # get the total length of all annotation blocks  (both ref and query) without considering the 1-to-1 mapping
+    # this will be used for calculating the actual misassembly rate per annotation in the final falsified assembly
+    # note that blockSize is set to [0] which means do not filter annotation blocks based on their size and get
+    # all of them
+    annotationLengths = relationChains.getTotalCountOfLongerBlocksForAllAnnotations(annotationNames,
+                                                                                    None,
+                                                                                    onlyRefInHomology=False)
+
     if checkFeasiblity(relationChains, annotationNames, misAssemblySizeTable, safetyFactor = safetyFactor):
         print(f"[{datetime.datetime.now()}] Feasibilty is PASSED with the safety factor of {safetyFactor}")
     else:
@@ -389,6 +412,7 @@ def main():
     total_successful = 0
     total_requested = 0
     totalMisAssembledBasesKbByType = {"Sw":0, "Err":0, "Dup":0, "Col":0}
+    totalMisAssembledBasesKbByAnnotationAndType = {annotation: {"Sw":0, "Err":0, "Dup":0, "Col":0} for annotation in annotationNames}
     for misAssemblySizeKb in misAssemblySizesSortedKb:
         # for each mis-assembly size, the start locations for sampling should be updated
         relationChains.updateAnnotationBlocksForSampling(annotationNames,
@@ -410,18 +434,29 @@ def main():
                 total_successful += res
                 total_requested += misAssemblyCount
                 if misAssemblyType == "Sw":
-                    totalMisAssembledBasesKbByType[misAssemblyType] += 2 * res * misAssemblySizeKb
+                    totalMisAssembledBasesKbByAnnotationAndType["whole_genome"][misAssemblyType] += 2 * res * misAssemblySizeKb
+                    totalMisAssembledBasesKbByAnnotationAndType[annotation][misAssemblyType] += 2 * res * misAssemblySizeKb
                 else:
-                    totalMisAssembledBasesKbByType[misAssemblyType] += 1 * res * misAssemblySizeKb
+                    totalMisAssembledBasesKbByAnnotationAndType["whole_genome"][misAssemblyType] += 1 * res * misAssemblySizeKb
+                    totalMisAssembledBasesKbByAnnotationAndType[annotation][misAssemblyType] += 1 * res * misAssemblySizeKb
                 #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
 
     print(f"[{datetime.datetime.now()}] Creating mis-assemblies is Done! ({total_successful}/{total_requested}) mi-assemblies could be created successfully.")
 
-    totalMisAssembledBasesKb = 0
-    for misAssemblyType, lengthKb in totalMisAssembledBasesKbByType.items():
-        print(f"[{datetime.datetime.now()}] Mis-assembly rate ({misAssemblyType}): {totalMisAssembledBasesKbByType[misAssemblyType]/totalGenomeSizeKb * 100:0.3f} %")
-        totalMisAssembledBasesKb += lengthKb
-    print(f"[{datetime.datetime.now()}] Mis-assembly rate (Total): {totalMisAssembledBasesKb/totalGenomeSizeKb * 100:0.3f} %")
+
+    print(f"[{datetime.datetime.now()}] Writing actual misassembly rates whole genome and per annotation in the final falsified assembly.")
+    misAssemblyRateTextPath = os.path.join(outputDir, f"falsified_asm.misassembly_rates.txt")
+    print(f"{annotation}\ttotal\t{misAssemblyRateTotal * 100:0.3f}")
+    # Print mis-assembly rate per annotation (both per misassembly type and altogether)
+    for annotation in annotationNames:
+        totalMisAssembledBasesKb = 0
+        totalAnnotationLengthKb = annotationLengths[annotation][0] / 1e3
+        for misAssemblyType, misAssemblySizeKb in totalMisAssembledBasesKbByAnnotationAndType[annotation].items():
+            misAssemblyRate = misAssemblySizeKb / totalAnnotationLengthKb
+            print(f"{annotation}\t{misAssemblyType}\t{misAssemblyRate * 100:0.3f}")
+            totalMisAssembledBasesKb += misAssemblySizeKb
+        misAssemblyRateTotal = totalMisAssembledBasesKb / totalAnnotationLengthInRefKb
+        print(f"{annotation}\ttotal\t{misAssemblyRateTotal * 100:0.3f}")
 
 
     os.makedirs(outputDir, exist_ok = True)
