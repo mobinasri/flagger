@@ -1745,12 +1745,13 @@ class HomologyRelationChains:
                     if misAssemblySize < (block[1] - block[0]):
                         # X = block size
                         # L = effective misassembly size
-                        ## n = [log2( X/L + 1)] - 1
+                        ## n = [log2( X/3L + 2/3)]
                         # how many times we can split the whole block until we get a block smaller than the
                         # misassembly size
-                        numberOfSplits = np.floor(np.log2((block[1] - block[0]) / misAssemblySize + 1)) - 1
-                        numberOfSplits = 0 if numberOfSplits < 0 else numberOfSplits
-                        lowerBound += np.power(2, numberOfSplits) + 1
+                        X = (block[1] - block[0])
+                        L = misAssemblySize
+                        numberOfSplits = np.floor(np.log2(X / (3 * L) + 2 / 3))
+                        lowerBound += 1 if numberOfSplits <= 0 else np.power(2, numberOfSplits) + 1
         return lowerBound
 
 
