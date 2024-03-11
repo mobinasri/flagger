@@ -209,9 +209,9 @@ def checkFeasiblity(relationChains, misAssemblySizeTable):
     print(f"#annotation\tmisassembly_block_size_kb,\tlower_bound_count\trequested_total_count\tstatus")
     annotations = misAssemblySizeTable.columns[1:]
     flag = True
-    for row in misAssemblySizeTable.index:
-        misAssemblyLengthKb = int(misAssemblySizeTable.at[row, "length_kb"])
-        for annotation in annotations:
+    for annotation in annotations:
+        for row in misAssemblySizeTable.index:
+            misAssemblyLengthKb = int(misAssemblySizeTable.at[row, "length_kb"])
             requestedCount = sum(misAssemblySizeTable.at[row, annotation])
             lowerBoundOnCount = relationChains.getLowerBoundOnNumberOfMisassemblies(annotation, misAssemblyLengthKb * 1e3)
             if requestedCount <= lowerBoundOnCount:
@@ -300,14 +300,21 @@ def main():
     hap1Sequences = parseFasta(hap1FastaPath)
     hap1ContigNames = list(hap1Sequences.keys())
 
+    # parse hap2 sequences
+    hap2Sequences = parseFasta(hap2FastaPath)
+    hap2ContigNames = list(hap2Sequences.keys())
+
     # extend hap1 sequences to contain hap2 sequences too
-    diploidSequences = hap1Sequences
-    diploidSequences.update(parseFasta(hap2FastaPath))
+    diploidSequences = hap1Sequences.copy()
+    diploidSequences.update(hap2Sequences)
 
     diploidContigLengths = getContigLengths(diploidSequences)
 
-    print(diploidContigLengths)
+    print(f"[{datetime.datetime.now()}] Prased contigs and their sizes")
+    for contigName, contigSize in diploidContigLengths.items():
+        print(contigName, contigSize)
     totalGenomeSizeKb = sum(diploidContigLengths.values()) / 1e3
+    print(f"[{datetime.datetime.now()}] Diploid genome size is {totalGenomeSizeKb} Kb")
 
     annotationBlockLists, annotationNames = parseAnnotationsPerContig(annotationsJsonPath)
 
@@ -330,11 +337,11 @@ def main():
     # get the alignments that shows 1-to-1 correspondence between hap1 and hap2
     uniqueAlignments = subsetAlignmentsToQueryBlocks(hap1UniqueAlignments, hap2UniqueBlocksPerContig)
 
-    print(uniqueAlignments[1:10])
     # make relation chains for the whole diploid assembly
     relationChains = HomologyRelationChains(uniqueAlignments,
                                             diploidContigLengths,
                                             hap1ContigNames,
+                                            hap2ContigNames,
                                             contigSuffix)
 
 
@@ -434,9 +441,11 @@ def main():
 
     os.makedirs(outputDir, exist_ok = True)
     print(f"[{datetime.datetime.now()}] Writing Fasta file for the falsified assembly")
-    fastaPath = os.path.join(outputDir,"falsified_asm.fasta")
-    relationChains.writeNewContigsToFasta(diploidSequences, fastaPath, singleBaseErrorRate)
-    print(f"[{datetime.datetime.now()}] The falsified assembly is written to {fastaPath}")
+    diploidFastaPath = os.path.join(outputDir,"falsified_asm.dip.fa")
+    hap1FastaPath = os.path.join(outputDir,"falsified_asm.hap1.fa")
+    hap2FastaPath = os.path.join(outputDir,"falsified_asm.hap2.fa")
+    relationChains.writeNewContigsToFasta(diploidSequences, diploidFastaPath, hap1FastaPath, hap2FastaPath, singleBaseErrorRate)
+    print(f"[{datetime.datetime.now()}] The falsified assembly is written to {diploidFastaPath} (hap1={hap1FastaPath}, hap2={hap2FastaPath})")
 
     for annotation in annotationNames:
         bedPath = os.path.join(outputDir, f"falsified_asm.{annotation}.bed")

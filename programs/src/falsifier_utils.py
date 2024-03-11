@@ -599,11 +599,12 @@ class HomologyRelation:
         return  homologyRelations
 
 class HomologyRelationChains:
-    def __init__(self, alignments, origContigLengths, origCtgListRefOnly, newCtgSuffix):
+    def __init__(self, alignments, origContigLengths, origRefContigNames, origQueryContigNames, newCtgSuffix):
         """
             A class for saving chains of homology relations for each new contig
 
-            origCtgListRefOnly: The names of the original contigs from ref/hap1 only
+            origRefContigNames: The names of the original contigs from ref/hap1
+            origQueryContigNames: The names of the original contigs from query/hap2
             For other params read the documentation for "createAllInclusiveRelationChainsFromAlignments"
         """
         self.relationChains = HomologyRelationChains.createAllInclusiveRelationChainsFromAlignments(alignments,
@@ -612,7 +613,8 @@ class HomologyRelationChains:
         # a dictionary with annotation names as keys and list of
         # weights as values; one weight per newCtg
         # it will be filled by calling "updateAnnotationBlocksForSampling"
-        self.origRefContigNames = origCtgListRefOnly.copy()
+        self.origRefContigNames = origRefContigNames.copy()
+        self.origQueryContigNames = origQueryContigNames.copy()
         self.newCtgAnnotationWeightsForSampling = defaultdict(list)
         self.newCtgAnnotationWeightsForSamplingMisjoin = defaultdict(list)
         self.newCtgListForSampling = [c + newCtgSuffix for c in origCtgListRefOnly]
@@ -1614,7 +1616,15 @@ class HomologyRelationChains:
         loc = self.getRandomLocationFromRelationBlock(newCtg, annotation, orderIndex)
         return newCtg, orderIndex, loc
 
-
+    def getNewCtgHaplotype(self, newCtg):
+        hap1AttributedLength = 0
+        hap2AttributedLength = 0
+        for relation in self.relationChains[newCtg]:
+            if relation.block.origCtg in self.origRefContigNames:
+                hap1AttributedLength += relation.block.origEnd - relation.block.origStart + 1
+            else:
+                hap2AttributedLength += relation.block.origEnd - relation.block.origStart + 1
+        return 'hap1' if hap2AttributedLength <= hap1AttributedLength else 'hap2'
 
     def getNewCtgSequence(self, newCtg, origCtgSequences, singleBaseErrorRate):
         newCtgSeqList = []
@@ -1755,15 +1765,23 @@ class HomologyRelationChains:
         return lowerBound
 
 
-    def writeNewContigsToFasta(self, origCtgSequences, fastaPath, singleBaseErrorRate):
-        handle = open(fastaPath, "w")
-        writer = FastaWriter(handle)
+    def writeNewContigsToFasta(self, origCtgSequences, diploidFastaPath, hap1FastaPath, hap2FastaPath, singleBaseErrorRate):
+        handles = {'diploid': open(diploidFastaPath, "w"),
+                   'hap1': open(hap1FastaPath, "w"),
+                   'hap2': open(hap2FastaPath, "w")}
+        writers = {'diploid' : FastaWriter(handles['diploid']),
+                   'hap1': FastaWriter(handles['hap1']),
+                   'hap2': FastaWriter(handles['hap2'])}
         for newCtg, newSeq in self.yieldNewCtgSequences(origCtgSequences, singleBaseErrorRate):
+            haplotype = self.getNewCtgHaplotype(newCtg)
             record = SeqRecord(Seq(newSeq),
                                id = newCtg,
                                description = "")
-            writer.write_record(record)
-        handle.close()
+            writers[haplotype].write_record(record)
+            writers['diploid'].write_record(record)
+        handles['diploid'].close()
+        handles['hap1'].close()
+        handles['hap2'].close()
 
 
     def getNewCtgCoordinatesOfAnnotation(self, newCtg, annotation):
