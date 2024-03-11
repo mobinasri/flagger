@@ -599,7 +599,7 @@ class HomologyRelation:
         return  homologyRelations
 
 class HomologyRelationChains:
-    def __init__(self, alignments, origContigLengths, origRefContigNames, origQueryContigNames, newCtgSuffix):
+    def __init__(self, alignments, origContigLengths, origRefContigNames, newCtgSuffix):
         """
             A class for saving chains of homology relations for each new contig
 
@@ -614,7 +614,6 @@ class HomologyRelationChains:
         # weights as values; one weight per newCtg
         # it will be filled by calling "updateAnnotationBlocksForSampling"
         self.origRefContigNames = origRefContigNames.copy()
-        self.origQueryContigNames = origQueryContigNames.copy()
         self.newCtgAnnotationWeightsForSampling = defaultdict(list)
         self.newCtgAnnotationWeightsForSamplingMisjoin = defaultdict(list)
         self.newCtgListForSampling = [c + newCtgSuffix for c in origRefContigNames]

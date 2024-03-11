@@ -300,13 +300,9 @@ def main():
     hap1Sequences = parseFasta(hap1FastaPath)
     hap1ContigNames = list(hap1Sequences.keys())
 
-    # parse hap2 sequences
-    hap2Sequences = parseFasta(hap2FastaPath)
-    hap2ContigNames = list(hap2Sequences.keys())
-
     # extend hap1 sequences to contain hap2 sequences too
     diploidSequences = hap1Sequences.copy()
-    diploidSequences.update(hap2Sequences)
+    diploidSequences.update(parseFasta(hap2FastaPath))
 
     diploidContigLengths = getContigLengths(diploidSequences)
 
@@ -341,7 +337,6 @@ def main():
     relationChains = HomologyRelationChains(uniqueAlignments,
                                             diploidContigLengths,
                                             hap1ContigNames,
-                                            hap2ContigNames,
                                             contigSuffix)
 
 
@@ -391,8 +386,8 @@ def main():
     misAssemblySizesSortedKb = sorted(np.array(misAssemblySizeTable["length_kb"]), reverse=True)
     total_successful = 0
     total_requested = 0
-    totalMisAssembledBasesKbByType = {"Sw":0, "Err":0, "Dup":0, "Col":0}
-    totalMisAssembledBasesKbByAnnotationAndType = {annotation: {"Sw":0, "Err":0, "Dup":0, "Col":0} for annotation in annotationsForCreatingMisAssembly}
+    totalMisAssembledBasesKbByAnnotationAndType = {annotation: {"Sw":0, "Err":0, "Dup":0, "Col":0}
+                                                   for annotation in annotationsForCreatingMisAssembly}
     totalMisAssembledBasesKbByAnnotationAndType["whole_genome"] = {"Sw":0, "Err":0, "Dup":0, "Col":0}
     for misAssemblySizeKb in misAssemblySizesSortedKb:
         # for each mis-assembly size, the start locations for sampling should be updated
