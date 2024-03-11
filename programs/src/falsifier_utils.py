@@ -1725,7 +1725,7 @@ class HomologyRelationChains:
                     totalLengths[annotation].append(self.getTotalLengthOfLongerBlocks(annotation, minBlockSize, onlyRefInHomology))
         return totalLengths
 
-    def getLowerBoundOnNumberOfMisassemblies(self, annotation, misAssemblySize, marginSize):
+    def getLowerBoundOnNumberOfMisassemblies(self, annotation, misAssemblySize):
         """
         It computes the minimum number of misassemblies of a specific length that can be created in the given annotation
         :param annotation:  annotation name
@@ -1750,7 +1750,7 @@ class HomologyRelationChains:
                         # misassembly size
                         numberOfSplits = np.floor(np.log2((block[1] - block[0]) / misAssemblySize + 1)) - 1
                         numberOfSplits = 0 if numberOfSplits < 0 else numberOfSplits
-                        lowerBound += np.pow(2, numberOfSplits) + 1
+                        lowerBound += np.power(2, numberOfSplits) + 1
         return lowerBound
 
 

@@ -274,9 +274,9 @@ def main():
                         help='Output directory for saving the falsified assembly, the new annotation and mis-assembly coordinates')
     parser.add_argument('--minAlignmentLength', type=int, default = 50000,
                         help='Minimum length of the alignments to be used by the program [Default = 50000 (50Kb)]')
-    parser.add_argument('--marginLength', type=int, default = 1000,
+    parser.add_argument('--marginLength', type=int, default = 2000,
                         help='Length of the margins at the ends of each unbroken alignment (a contiguous homology relation) where no mis-assembly is permitted to be created [Default = 1000 (1 Kb)]')
-    parser.add_argument('--switchFlagWindowLength', type=int, default = 5000,
+    parser.add_argument('--switchFlagWindowLength', type=int, default = 1000,
                         help='Each switch error is shown as one/multiple bed tracks around the switching point. This parameter defines the length of the window labeled as "Sw" on each side of switching points created because of haplotype switches (should be smaller than --marginLength) [Default = 5000 (5 Kb)]')
     parser.add_argument('--misjoinFlagWindowLength', type=int, default = 5000,
                         help='Each misjoin is shown as one/multiple bed tracks around the misjoin. This parameter defines the length of the window labeled as "Msj" on each side of a misjoin between non-homologous contigs (should be smaller than --marginLength) [Default = 5000 (5 Kb)]')
@@ -286,7 +286,6 @@ def main():
                         help='The suffix to be added to the names of the new contigs (which could be either intact or with mis-assemblies) [Default = "_f"]')
     parser.add_argument('--singleBaseErrorRate', type=float, default = 0.05, help='The rate of single-base errors that will be induced in "Err" blocks [Default = 0.05]')
     parser.add_argument('--maxGapLength', type=int, default = 500, help='Split alignments into smaller alignments with no gaps longer than this parameter[Default = 500]')
-    parser.add_argument('--safetyFactor', type=float, default = 4.0, help='The factor for checking the feasibility of inducing the misassmblies with the requested numbers and sizes [Default = 4.0]')
 
 
 
@@ -305,7 +304,6 @@ def main():
     minOverlapRatio = args.minOverlapRatio
     marginLength = args.marginLength
     contigSuffix = args.contigSuffix
-    safetyFactor = args.safetyFactor
     maxGapLength = args.maxGapLength
     singleBaseErrorRate = args.singleBaseErrorRate
 
@@ -346,6 +344,7 @@ def main():
         if annotation not in annotationNames:
             print(f"[{datetime.datetime.now()}] Error: {annotation} exists in the mis-assembly tsv but its path is not given in the json file!")
             exit()
+    annotationsForCreatingMisAssembly = list(misAssemblySizeTable.columns[1:])
 
     # find the hap1 coordinates with exactly one alignment from hap2
     hap1UniqueBlocksPerContig = getBlockListsWithSingleAlignmentPerRefContig(alignments)
@@ -375,14 +374,15 @@ def main():
     # this will be used for calculating the actual misassembly rate per annotation in the final falsified assembly
     # note that blockSize is set to [0] which means do not filter annotation blocks based on their size and get
     # all of them
-    annotationLengths = relationChains.getTotalCountOfLongerBlocksForAllAnnotations(annotationNames,
+    annotationLengths = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotationNames,
                                                                                     None,
                                                                                     onlyRefInHomology=False)
+    annotationLengths["whole_genome"] = totalGenomeSizeKb * 1e3
 
-    if checkFeasiblity(relationChains, annotationNames, misAssemblySizeTable, safetyFactor = safetyFactor):
-        print(f"[{datetime.datetime.now()}] Feasibilty is PASSED with the safety factor of {safetyFactor}")
+    if checkFeasiblity(relationChains, misAssemblySizeTable):
+        print(f"[{datetime.datetime.now()}] Feasibilty is PASSED.")
     else:
-        print(f"[{datetime.datetime.now()}] Feasibilty is NOT PASSED with the safety factor of {safetyFactor}. Please use more contiguous alignments/annotations tracks or request for shorter (or fewer) misassemblies.")
+        print(f"[{datetime.datetime.now()}] Feasibilty is NOT PASSED. Please use more contiguous alignments/annotations tracks or request for shorter (or fewer) misassemblies.")
         exit()
 
 
@@ -412,7 +412,8 @@ def main():
     total_successful = 0
     total_requested = 0
     totalMisAssembledBasesKbByType = {"Sw":0, "Err":0, "Dup":0, "Col":0}
-    totalMisAssembledBasesKbByAnnotationAndType = {annotation: {"Sw":0, "Err":0, "Dup":0, "Col":0} for annotation in annotationNames}
+    totalMisAssembledBasesKbByAnnotationAndType = {annotation: {"Sw":0, "Err":0, "Dup":0, "Col":0} for annotation in annotationsForCreatingMisAssembly}
+    totalMisAssembledBasesKbByAnnotationAndType["whole_genome"] = {"Sw":0, "Err":0, "Dup":0, "Col":0}
     for misAssemblySizeKb in misAssemblySizesSortedKb:
         # for each mis-assembly size, the start locations for sampling should be updated
         relationChains.updateAnnotationBlocksForSampling(annotationNames,
@@ -420,7 +421,7 @@ def main():
                                                                  minOverlapRatio,
                                                                  marginLength)
         # induce all mis-assemblies of the same size across all annotations
-        for annotation in annotationNames:
+        for annotation in annotationsForCreatingMisAssembly:
             misAssemblyCounts = misAssemblySizeTable.at[misAssemblySizeKb, annotation]
             for misAssemblyType, misAssemblyCount in  zip(misAssemblyTypes, misAssemblyCounts) :
                 #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
@@ -446,17 +447,18 @@ def main():
 
     print(f"[{datetime.datetime.now()}] Writing actual misassembly rates whole genome and per annotation in the final falsified assembly.")
     misAssemblyRateTextPath = os.path.join(outputDir, f"falsified_asm.misassembly_rates.txt")
-    print(f"{annotation}\ttotal\t{misAssemblyRateTotal * 100:0.3f}")
-    # Print mis-assembly rate per annotation (both per misassembly type and altogether)
-    for annotation in annotationNames:
-        totalMisAssembledBasesKb = 0
-        totalAnnotationLengthKb = annotationLengths[annotation][0] / 1e3
-        for misAssemblyType, misAssemblySizeKb in totalMisAssembledBasesKbByAnnotationAndType[annotation].items():
-            misAssemblyRate = misAssemblySizeKb / totalAnnotationLengthKb
-            print(f"{annotation}\t{misAssemblyType}\t{misAssemblyRate * 100:0.3f}")
-            totalMisAssembledBasesKb += misAssemblySizeKb
-        misAssemblyRateTotal = totalMisAssembledBasesKb / totalAnnotationLengthInRefKb
-        print(f"{annotation}\ttotal\t{misAssemblyRateTotal * 100:0.3f}")
+    with open(misAssemblyRateTextPath, "w") as f:
+        f.write(f"#annotation\tmisassembly_type\ttotal_misassembly_size_kb\ttotal_annotation_size_kb\tmisassembly_rate_percent\n")
+        # Print mis-assembly rate per annotation (both per misassembly type and altogether)
+        for annotation in annotationsForCreatingMisAssembly + ["whole_genome"]:
+            totalMisAssembledBasesKb = 0
+            totalAnnotationLengthKb = annotationLengths[annotation] / 1e3
+            for misAssemblyType, misAssemblySizeKb in totalMisAssembledBasesKbByAnnotationAndType[annotation].items():
+                misAssemblyRate = misAssemblySizeKb / totalAnnotationLengthKb
+                f.write(f"{annotation}\t{misAssemblyType}\t{misAssemblySizeKb}\t{totalAnnotationLengthKb}\t{misAssemblyRate * 100:0.3f}\n")
+                totalMisAssembledBasesKb += misAssemblySizeKb
+            misAssemblyRateTotal = totalMisAssembledBasesKb / totalAnnotationLengthKb
+            f.write(f"{annotation}\t{misAssemblyType}\t{totalMisAssembledBasesKb}\t{totalAnnotationLengthKb}\t{misAssemblyRateTotal * 100:0.3f}\n")
 
 
     os.makedirs(outputDir, exist_ok = True)
