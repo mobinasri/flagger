@@ -617,7 +617,7 @@ class HomologyRelationChains:
         self.origQueryContigNames = origQueryContigNames.copy()
         self.newCtgAnnotationWeightsForSampling = defaultdict(list)
         self.newCtgAnnotationWeightsForSamplingMisjoin = defaultdict(list)
-        self.newCtgListForSampling = [c + newCtgSuffix for c in origCtgListRefOnly]
+        self.newCtgListForSampling = [c + newCtgSuffix for c in origRefContigNames]
         self.newCtgToIndexForSampling = {c: i for i, c in enumerate(self.newCtgListForSampling)}
         self.misAssemblyLength = 0
 
