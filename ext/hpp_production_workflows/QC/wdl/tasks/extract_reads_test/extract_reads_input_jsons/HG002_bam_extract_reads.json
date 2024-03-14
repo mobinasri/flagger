@@ -1,0 +1,8 @@
+{
+  "runExtractReads.referenceFasta": "/private/groups/patenlab/masri/hprc/polishing/HG002/assemblies/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna",
+  "runExtractReads.inputFiles": [
+    "https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/48f9717b-23c6-4045-a33f-10a3df8fc924--UW_HPRC_HiFi/HG002/PacBio_HiFi/m64076_201013_225902.ccs.bam"
+  ],
+  "runExtractReads.extractReads.sortByName": false,
+  "runExtractReads.dockerImage": "mobinasri/bio_base:dev-v0.1"
+}

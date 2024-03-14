@@ -1,0 +1,13 @@
+file	simple.fastq
+total_reads	22
+total_bp	1042
+total_Gbp	0
+min	12
+max	76
+mean	47
+quartile_25	12
+quartile_50	76
+quartile_75	76
+N25	76
+N50	76
+N75	76

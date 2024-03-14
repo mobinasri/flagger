@@ -1,0 +1,5 @@
+sample_id,read,sort_by_name
+HG002_fastq_gz,https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/006d0ef0-56ea-4f42-bed3-ae0b09672e0f--HG002_FILT_FASTQS/m54238_180901_011437.Q20.filt.fastq.gz,false
+HG002_bam,https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/48f9717b-23c6-4045-a33f-10a3df8fc924--UW_HPRC_HiFi/HG002/PacBio_HiFi/m64076_201013_225902.ccs.bam,false
+HG002_cram,https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00480/raw_data/Illumina/child/HG00480.final.cram,false
+HG002_cram_sort_by_name,https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00480/raw_data/Illumina/child/HG00480.final.cram,true
