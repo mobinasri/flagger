@@ -37,6 +37,44 @@ task getCanonicalBasesBed {
     }
 }
 
+task gzipCompress {
+    input {
+        File inputFile
+        # runtime configurations
+        Int memSize=8
+        Int threadCount=4
+        Int diskSize=32
+        String dockerImage="mobinasri/bio_base:v0.4.0"
+        Int preemptible=2
+    }
+    command <<<
+        set -o pipefail
+        set -e
+        set -u
+        set -o xtrace
+
+
+        FILENAME=$(basename ~{inputFile})
+        EXTENSION=${FILENAME##*.}
+
+        mkdir output
+        if [[ ${EXTENSION} == "gz" ]];then
+            ln -s ~{inputFile} output/${FILENAME}
+        else
+            pigz -p~{threadCount} -c ~{inputFile} > output/${FILENAME}.gz
+        fi
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+    }
+    output {
+        File gzCompressedFile = glob("output/*")[0]
+    }
+}
 
 
 task createDipAsm {
@@ -48,7 +86,7 @@ task createDipAsm {
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -83,7 +121,7 @@ task createFile{
         Int memSize=2
         Int threadCount=2
         Int diskSize=2
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
     }
     command <<<
         set -o pipefail

@@ -132,13 +132,18 @@ task alignmentBam{
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
 
-       
-
-        gunzip -c ~{refAssembly} > asm.fa
-        # Sort fasta based on contig names
-        seqkit sort -nN asm.fa > asm.sorted.fa	
-
         REF_FILENAME=$(basename ~{refAssembly})
+        REF_EXTENSION=${REF_FILENAME##*.}
+
+        if [[ ${REF_EXTENSION} == "gz" ]];then
+            gunzip -c ~{refAssembly} > asm.fa
+        else
+            ln -s ~{refAssembly} asm.fa
+        fi
+
+        # Sort fasta based on contig names
+        seqkit sort -nN asm.fa > asm.sorted.fa
+
         REF_FILENAME_NO_GZ=${REF_FILENAME%.gz}
         REF_PREFIX=${REF_FILENAME_NO_GZ%.*}
 
