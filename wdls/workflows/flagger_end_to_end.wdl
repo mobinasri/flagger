@@ -19,12 +19,12 @@ workflow FlaggerEndToEnd{
     }
     parameter_meta {
         sampleName: "Sample name for example 'HG002'"
-        suffix: "Suffix string that contains information about this analysis for example 'hifi_winnowmap_flagger_for_hprc'"
+        suffix: "Suffix string that contains information about this analysis \n for example 'hifi_winnowmap_flagger_for_hprc'"
         hap1AssemblyFastaGz: "Path to gzip-compressed fasta file of the 1st haplotype."
         hap2AssemblyFastaGz: "Path to gzip-compressed fasta file of the 2nd haplotype."
         readAlignmentBam: "Path to sorted read alignment bam."
         readAlignmentBai: "Path to bam index for read alignment"
-        maxReadDivergence: "Alignments with gap-compressed ratio higher than this will be filtered in the pre-process step. (Default: 0.1)"
+        maxReadDivergence: "Alignments with gap-compressed ratio higher than \n this will be filtered in the pre-process step. (Default: 0.1)"
         potentialBiasesBedArray: "Array of bed files each of which contains regions with potential coverage bias for example one bed file can contain HSat2 regions in haplotype 1. (Default: [])"
         sexBed: "Optional bed file containing regions assigned to X/Y chromosomes. (can be either in ref or asm coordinates)"
         SDBed: "Optional Bed file containing Segmental Duplications. (can be either in ref or asm coordinates)"
