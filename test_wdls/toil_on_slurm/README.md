@@ -167,7 +167,8 @@ mkdir -p run_test_1_toil_slurm/${WDL_NAME}_logs
 USERNAME="your_user_name"
 EMAIL="your@email"
 TIME_LIMIT="5:00:00"
-# Partition should be modifed based on the available partitions on the server
+
+## Partition should be modifed based on the available partitions on the server
 PARTITION="medium"
 
 ## Go to the execution directory
