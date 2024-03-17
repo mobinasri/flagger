@@ -107,9 +107,9 @@ mkdir -p ${WDL_NAME}_input_jsons
 cd ${WDL_NAME}_input_jsons
 
 ## Make input json files
-python3  ../../launch_from_table.py \
-            --data_table ../../data_table_test_1.csv \
-            --field_mapping ../../input_mapping_test_1.csv \
+python3  ${WORKING_DIR}/launch_from_table.py \
+            --data_table ${WORKING_DIR}/data_table_test_1.csv \
+            --field_mapping ${WORKING_DIR}/input_mapping_test_1.csv \
             --workflow_name ${WDL_NAME}
 ```
 The output log should be
@@ -151,40 +151,45 @@ cat HG002_hifiasm_chr15_only_test_secphase_and_md_tag_long_read_aligner_scattere
 In this json we are using `minimap2` aligner with the parameter preset of `map-hifi` and kmer size of 19 for aligning hifi reads. `longReadAlignmentScattered.readFiles` points to two read files in the `fq.gz` format. Both `longReadAlignmentScattered.enableAddingMDTag` and `longReadAlignmentScattered.enableRunningSecphase` are true which means that the pipeline will add MD tags to the final bam file and also run secphase for correcting potentially wrong alignments. For more information about other parameters take a look at the WDL file.
 
 #### 4. Executing workflow using input json files
-For running this WDL on Slurm we are using [a bash script](https://github.com/human-pangenomics/hprc_intermediate_assembly/blob/1f61ff0043442d8350a282ef3533def588bee8dc/hpc/launch_workflow_job_array_single_machine.sh) that can execute an array of jobs by taking the data table csv file. For each row in the csv file Toil will create a separate job after acquiring the speficied cpu `--cpus-per-task` and memory `--mem`.
+For running this WDL on Slurm we are using [a bash script](https://github.com/human-pangenomics/hprc_intermediate_assembly/blob/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh) that can execute an array of jobs by taking the data table csv file. For each row in the csv file Toil will create a separate job after acquiring the speficied cpu `--cpus-per-task` and memory `--mem`.
 ```
 ## Make sure you are in the working directory. Check step 1 for setting ${WORKING_DIR} if it's not set already
 cd ${WORKING_DIR}
 
 ## Get the bash script for running WDLs on Slurm using Toil
-wget https://raw.githubusercontent.com/human-pangenomics/hprc_intermediate_assembly/1f61ff0043442d8350a282ef3533def588bee8dc/hpc/launch_workflow_job_array_single_machine.sh
+wget https://raw.githubusercontent.com/human-pangenomics/hprc_intermediate_assembly/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh
 
 ## Create folders for saving output json files
-mkdir -p ${WDL_NAME}_output_jsons
-mkdir -p ${WDL_NAME}_logs
+mkdir -p run_test_1_toil_slurm/${WDL_NAME}_output_jsons
+mkdir -p run_test_1_toil_slurm/${WDL_NAME}_logs
 
-## Set your email and user name
+## Set environment variables for sbatch
 USERNAME="your_user_name"
-EMAIL="your_email"
+EMAIL="your@email"
+TIME_LIMIT="5:00:00"
+# Partition should be modifed based on the available partitions on the server
+PARTITION="medium"
+
+## Go to the execution directory
+cd run_test_1_toil_slurm
 
 ## Run jobs arrays
 ## --array=1-7%7 will make 7 jobs; one per json file (ordered by rows in csv file)
 ## It can be modified based on the desired jobs
 ## For example --array=4-5%2 will run the jobs related to the 4th and 5th rows in the csv file
 ## or --array=7-7%1 will run only the job related to the 7th row
-## --partition should be modifed based on the available partitions on the server
 sbatch      --job-name=${WDL_NAME}_${USERNAME} \
             --cpus-per-task=32 \
             --mem=64G \
             --mail-user=${EMAIL} \
             --output=${WDL_NAME}_logs/${WDL_NAME}_%A_%a.log \
-            --array=1-7%7  \
+            --array=7-7%1  \
             --time=${TIME_LIMIT} \
-            --partition=medium \
-            launch_workflow_job_array_single_machine.sh \
+            --partition=${PARTITION} \
+            ${WORKING_DIR}/toil_sbatch_single_machine.sh \
             --wdl ${WDL_PATH} \
-            --sample_csv  ${INPUT_DATA_TABLE_CSV_1} \
-            --input_json_path ${WORKING_DIR_1}/${WDL_NAME}_input_jsons/\${SAMPLE_ID}_${WDL_NAME}.json
+            --sample_csv  ${WORKING_DIR}/data_table_test_1.csv \
+            --input_json_path ${WORKING_DIR}/run_test_1_toil_slurm/${WDL_NAME}_input_jsons/\${SAMPLE_ID}_${WDL_NAME}.json
 ```
 
 #### flagger_end_to_end.wdl
