@@ -98,7 +98,6 @@ WDL_FILENAME=$(basename ${WDL_PATH})
 WDL_NAME=${WDL_FILENAME%%.wdl}
 
 ## Make a folder for saving files related to run e.g. input and output jsons
-
 mkdir -p run_test_1_toil_slurm
 cd run_test_1_toil_slurm
 
@@ -175,8 +174,8 @@ PARTITION="medium"
 cd run_test_1_toil_slurm
 
 ## Run jobs arrays
-## --array=1-7%7 will make 7 jobs; one per json file (ordered by rows in csv file)
-## It can be modified based on the desired jobs
+## --array=1-7%7 will make 7 jobs; one per input json file (numbered by row indices in csv file)
+## It can be modified based on the desired jobs/rows
 ## For example --array=4-5%2 will run the jobs related to the 4th and 5th rows in the csv file
 ## or --array=7-7%1 will run only the job related to the 7th row
 sbatch      --job-name=${WDL_NAME}_${USERNAME} \
