@@ -150,7 +150,7 @@ cat HG002_hifiasm_chr15_only_test_secphase_and_md_tag_long_read_aligner_scattere
 
 In this json we are using `minimap2` aligner with the parameter preset of `map-hifi` and kmer size of 19 for aligning hifi reads. `longReadAlignmentScattered.readFiles` points to two read files in the `fq.gz` format. Both `longReadAlignmentScattered.enableAddingMDTag` and `longReadAlignmentScattered.enableRunningSecphase` are true which means that the pipeline will add MD tags to the final bam file and also run secphase for correcting potentially wrong alignments. For more information about other parameters take a look at the WDL file.
 
-#### 4. Executing workflow using input json files
+#### 4. Executing workflow using a Toil-based bash script
 For running this WDL on Slurm we are using [a bash script](https://github.com/human-pangenomics/hprc_intermediate_assembly/blob/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh) that can execute an array of jobs by taking the data table csv file. For each row in the csv file Toil will create a separate job after acquiring the speficied cpu `--cpus-per-task` and memory `--mem`.
 ```
 ## Make sure you are in the working directory. Check step 1 for setting ${WORKING_DIR} if it's not set already
