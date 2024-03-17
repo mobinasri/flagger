@@ -32,7 +32,10 @@ pip install toil[all]
 #### 1. Cloning Flagger repository
 ```
 git clone -b dev-0.3.0 https://github.com/mobinasri/flagger
+```
 
+Set some environment variables
+```
 # Go to the flagger directory
 cd flagger
 FLAGGER_DIR=${PWD}
@@ -106,6 +109,7 @@ mkdir -p ${WDL_NAME}_input_jsons
 cd ${WDL_NAME}_input_jsons
 
 ## Make input json files
+## One json will be created per row
 python3  ${WORKING_DIR}/launch_from_table.py \
             --data_table ${WORKING_DIR}/data_table_test_1.csv \
             --field_mapping ${WORKING_DIR}/input_mapping_test_1.csv \
@@ -158,10 +162,6 @@ cd ${WORKING_DIR}
 ## Get the bash script for running WDLs on Slurm using Toil
 wget https://raw.githubusercontent.com/human-pangenomics/hprc_intermediate_assembly/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh
 
-## Create folders for saving output json files
-mkdir -p run_test_1_toil_slurm/${WDL_NAME}_output_jsons
-mkdir -p run_test_1_toil_slurm/${WDL_NAME}_logs
-
 ## Set environment variables for sbatch
 USERNAME="your_user_name"
 EMAIL="your@email"
@@ -171,6 +171,7 @@ TIME_LIMIT="5:00:00"
 PARTITION="medium"
 
 ## Go to the execution directory
+mkdir -p run_test_1_toil_slurm/${WDL_NAME}_logs
 cd run_test_1_toil_slurm
 
 ## Run jobs arrays
@@ -183,13 +184,33 @@ sbatch      --job-name=${WDL_NAME}_${USERNAME} \
             --mem=64G \
             --mail-user=${EMAIL} \
             --output=${WDL_NAME}_logs/${WDL_NAME}_%A_%a.log \
-            --array=7-7%1  \
+            --array=1-7%1  \
             --time=${TIME_LIMIT} \
             --partition=${PARTITION} \
             ${WORKING_DIR}/toil_sbatch_single_machine.sh \
             --wdl ${WDL_PATH} \
             --sample_csv  ${WORKING_DIR}/data_table_test_1.csv \
             --input_json_path ${WORKING_DIR}/run_test_1_toil_slurm/${WDL_NAME}_input_jsons/\${SAMPLE_ID}_${WDL_NAME}.json
+```
+
+The output log showing progress for each job will be available in:
+```
+${WORKING_DIR}/run_test_1_toil_slurm/${SAMPLE_ID}/log.txt
+```
+ `${SAMPLE_ID}` has to be replaced based on the `sample_id` column in `data_table_test_1.csv`. For the current csv file the possible values are:
+```
+HG002_hifiasm_chr15_only_test_secphase_and_md_tag
+HG002_hifiasm_chr15_only_test_secphase
+HG002_hifiasm_chr15_only_test_md_tag
+HG002_hifiasm_chr15_only_test
+HG002_hifiasm_chr15_only_test_secphase_and_md_tag_fasta_gz
+HG002_hifiasm_chr15_only_test_fasta_gz
+HG002_hifiasm_chr15_only_test_reads_bam
+```
+ 
+After each job is finished the related output json will be located in:
+```
+${WORKING_DIR}/run_test_1_toil_slurm/${SAMPLE_ID}/${SAMPLE_ID}_${WDL_NAME}
 ```
 
 #### flagger_end_to_end.wdl
