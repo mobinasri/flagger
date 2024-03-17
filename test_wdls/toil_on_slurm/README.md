@@ -25,9 +25,9 @@ You can install Toil on your system using this command. More information about i
 pip install toil[all]
 ```
 
-## Steps for executing workflows
+## Steps for executing workflows on Slurm with Toil
 
-### long_read_aligner_scattered.wdl
+### Running long_read_aligner_scattered.wdl on test datasets
 
 #### 1. Cloning Flagger repository
 ```
@@ -213,10 +213,55 @@ After each job is finished the related output json will be located in:
 ${WORKING_DIR}/run_test_1_toil_slurm/${SAMPLE_ID}/${SAMPLE_ID}_${WDL_NAME}
 ```
 
-#### flagger_end_to_end.wdl
-For flagger_end_to_end.wdl there are two set of test files (test_1 and test_2). Its related data table (data_table_test_1_template.csv) contain 7 
-different rows. Each row contain different combinations of input parameters (for example reads can be in bam or fastq.gz format or 
-different mappers may be specified)
+### Running flagger_end_to_end.wdl on test datasets
+
+#### 1. Cloning Flagger repository
+```
+git clone -b dev-0.3.0 https://github.com/mobinasri/flagger
+```
+
+Set some environment variables
+```
+# Go to the flagger directory
+cd flagger
+FLAGGER_DIR=${PWD}
+
+# Go to the related directory for testing long_read_aligner_scattered 
+cd test_wdls/toil_on_slurm/test_flagger_end_to_end
+WORKING_DIR=${PWD}
+```
+
+#### 2. Downloading datasets
+flagger_end_to_end.wdl has two sets of test files: test_1 and test_2. Each test dataset contains only one row in its corresponding data table CSV file: data_table_1_template.csv for test_1 and data_table_test_2_template.csv for test_2. In test_1, the files are associated with ONT-Duplex reads aligned to chr15 of the HG002-T2T-v1.0.1 assembly, while in test_2, the files pertain to HiFi reads aligned to chr15 contigs for HG002 assembled by hifiasm_trio_0.19.5.
+
+```
+## Download test_1.tar.gz
+wget https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/flagger_v0.4.0/test_files/test_long_read_aligner_scattered/test_1.tar.gz
+
+## Extract test_1 files
+tar -xvzf test_1.tar.gz
+```
+
+```
+# List files
+tree test_1
+
+test_1
+├── bam_files
+│   └── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.subsample_0.1.bam
+├── fasta_files
+│   ├── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.fa
+│   ├── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.fa.fai
+│   └── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.fa.gz
+└── fastq_files
+    ├── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.subsample_0.1.part_1.fq.gz
+    └── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.subsample_0.1.part_2.fq.gz
+```
+Description the files in test_1:
+- `fasta_files` folder contains a gz-compressed fasta file that includes the contigs assembled by hifiasm_0.19.5 and subsetted to only those attributed to chromosome 15.
+- `bam_files` folder contains a bam file with approximately 4x HiFi reads aligned to the chr15 contigs.
+- `fastq_files` folder contains two gz-compressed fastq files including HiFi reads from chr15 with approximately 4x coverage altogether.
+
 ```
 cd test_long_read_aligner_scattered
 wget https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/flagger_v0.4.0/test_files/test_long_read_aligner_scattered/test_1.tar.gz
