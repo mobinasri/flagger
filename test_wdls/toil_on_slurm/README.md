@@ -232,11 +232,12 @@ WORKING_DIR=${PWD}
 ```
 
 #### 2. Downloading datasets
-flagger_end_to_end.wdl has two sets of test files: test_1 and test_2. Each test dataset contains only one row in its corresponding data table CSV file: data_table_1_template.csv for test_1 and data_table_test_2_template.csv for test_2. In test_1, the files are associated with ONT-Duplex reads aligned to chr15 of the HG002-T2T-v1.0.1 assembly, while in test_2, the files pertain to HiFi reads aligned to chr15 contigs for HG002 assembled by hifiasm_trio_0.19.5.
+flagger_end_to_end.wdl has two sets of test files: test_1 and test_2. Each test dataset is represented in its corresponding data table csv file: data_table_1_template.csv for test_1 and data_table_test_2_template.csv for test_2. Each table has only one row. In test_1, the files are associated with ONT Ultra Long reads aligned to chr15 of the HG002-T2T-v1.0.1 assembly. In test_2, the files pertain to HiFi reads aligned to chr15 contigs for HG002 assembled by hifiasm_trio_0.19.5.
 
+#### Test_1
 ```
 ## Download test_1.tar.gz
-wget https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/flagger_v0.4.0/test_files/test_long_read_aligner_scattered/test_1.tar.gz
+wget https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/flagger_v0.4.0/test_files/test_flagger_end_to_end/test_1.tar.gz
 
 ## Extract test_1 files
 tar -xvzf test_1.tar.gz
@@ -261,6 +262,16 @@ Description the files in test_1:
 - `fasta_files` folder contains a gz-compressed fasta file that includes the contigs assembled by hifiasm_0.19.5 and subsetted to only those attributed to chromosome 15.
 - `bam_files` folder contains a bam file with approximately 4x HiFi reads aligned to the chr15 contigs.
 - `fastq_files` folder contains two gz-compressed fastq files including HiFi reads from chr15 with approximately 4x coverage altogether.
+
+#### Test_2
+```
+## Download test_2.tar.gz
+wget https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/flagger_v0.4.0/test_files/test_flagger_end_to_end/test_2.tar.gz
+
+## Extract test_2 files
+tar -xzvf test_2.tar.gz
+```
+
 
 ```
 cd test_long_read_aligner_scattered
