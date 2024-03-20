@@ -4,9 +4,9 @@
 
 This directory contains test files and tables for the workflows listed below:
 
-1. **long_read_aligner_scattered.wdl**: This workflow is designed to align long reads to any reference or assembly which can be either diploid or haploid. Currently this workflow supports using minimap2, winnowmap and veritymap (veritymap is experimental and not tested reliably yet). Detailed descriptions of input parameters are included in the related WDL file.
+1. **long_read_aligner_scattered.wdl**: This workflow is designed to align long reads to any reference or assembly which can be either diploid or haploid. Currently this workflow supports using minimap2, winnowmap and veritymap (veritymap is experimental and not tested reliably yet). Detailed descriptions of input parameters are included in the related WDL file. ([github link](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/long_read_aligner_scattered.wdl), [dockstore link](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:dev-0.3.0?tab=info))
 
-2. **flagger_end_to_end.wdl**: This workflow is designed to run Flagger for evaluating a diploid assembly. Its primary inputs consist of one fasta file per assembled haplotype and one bam file containing the long read alignments to the diploid assembly.
+2. **flagger_end_to_end.wdl**: This workflow is designed to run Flagger for evaluating a diploid assembly. Its primary inputs consist of one fasta file per assembled haplotype and one bam file containing the long read alignments to the diploid assembly. ([github link](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end.wdl), [dockstore link](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEnd:dev-0.3.0?tab=info))
 
 
 These wdls can be found in `wdls/workflows/` including detailed descriptions of their input parameters.
@@ -79,7 +79,7 @@ Description of the files in test_1:
 
 #### 3. Creating input json files
 
-- Replace WORK_DIR with `$PWD`. The template data table (data_table_test_1_template.csv) does not contain actual file paths so modify the template paths to contain actual paths.
+- Replace WORK_DIR with `$PWD`. The template data table (data_table_test_1_template.csv) does not contain actual file paths so the template paths have to be modified to contain the actual paths.
 ```
 sed 's|WORK_DIR|'${PWD}'|g' data_table_test_1_template.csv > data_table_test_1.csv 
 ```
@@ -126,7 +126,7 @@ Creating json for HG002_hifiasm_chr15_only_test_fasta_gz
 Creating json for HG002_hifiasm_chr15_only_test_reads_bam
 ```
 
-It has created 7 different input json files each of each contain a different combination of parameters. For example we take a look at the content of one json file for example
+It has created 7 different input json files each of which contains a different combination of parameters. For example we take a look at the content of one json file:
 ```
 cat HG002_hifiasm_chr15_only_test_secphase_and_md_tag_long_read_aligner_scattered.json 
 {
@@ -154,7 +154,7 @@ cat HG002_hifiasm_chr15_only_test_secphase_and_md_tag_long_read_aligner_scattere
 In this json we are using `minimap2` aligner with the parameter preset of `map-hifi` and kmer size of 19 for aligning hifi reads. `longReadAlignmentScattered.readFiles` points to two read files in the `fq.gz` format. Both `longReadAlignmentScattered.enableAddingMDTag` and `longReadAlignmentScattered.enableRunningSecphase` are true which means that the pipeline will add MD tags to the final bam file and also run secphase for correcting potentially wrong alignments. For more information about other parameters take a look at the WDL file.
 
 #### 4. Executing workflow using a Toil-based bash script
-For running this WDL on Slurm we are using [a bash script](https://github.com/human-pangenomics/hprc_intermediate_assembly/blob/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh) that can execute an array of jobs by taking the data table csv file. Using this script for each row in the csv file Toil will create a separate job after acquiring the speficied cpu `--cpus-per-task` and memory `--mem` (Look at the sbatch command below). Note that this script will execuate all of the tasks of a single job in a single machine. More information about this script can be found in [its help message](https://github.com/human-pangenomics/hprc_intermediate_assembly/blob/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh#L27).
+For running this WDL on Slurm we are using [a bash script](https://github.com/human-pangenomics/hprc_intermediate_assembly/blob/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh) that can execute an array of jobs by taking the data table csv file. Using this script for each row in the csv file Toil will create a separate job after acquiring the speficied cpu `--cpus-per-task` and memory `--mem` (Look at the sbatch command below). Note that this script will execute all of the tasks of a single job in a single machine. More information about this script can be found in [its help message](https://github.com/human-pangenomics/hprc_intermediate_assembly/blob/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh#L27).
 ```
 ## Make sure you are in the working directory. Check step 1 for setting ${WORKING_DIR} if it's not set already
 cd ${WORKING_DIR}
