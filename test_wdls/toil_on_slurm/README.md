@@ -302,7 +302,7 @@ test_2
     └── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.hap2.fa.gz
 ```
 Description of the files in test_2:
-- `fasta_files` folder contains a gz-compressed fasta files that includes the chr15 contigs for HG002 assembled by hifiasm_trio_0.19.5.
+- `fasta_files` folder contains a gz-compressed fasta file that includes the chr15 contigs for HG002 assembled by hifiasm_trio_0.19.5.
 - `bam_files` folder contains a bam file with approximately 40x HiFi reads aligned to the chr15 contigs.
 
 #### Steps 3 and 4
