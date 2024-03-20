@@ -72,7 +72,7 @@ test_1
     ├── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.subsample_0.1.part_1.fq.gz
     └── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.subsample_0.1.part_2.fq.gz
 ```
-Description the files in test_1:
+Description of the files in test_1:
 - `fasta_files` folder contains a gz-compressed fasta file that includes the contigs assembled by hifiasm_0.19.5 and subsetted to only those attributed to chromosome 15.
 - `bam_files` folder contains a bam file with approximately 4x HiFi reads aligned to the chr15 contigs.
 - `fastq_files` folder contains two gz-compressed fastq files including HiFi reads from chr15 with approximately 4x coverage altogether.
@@ -249,19 +249,34 @@ tree test_1
 
 test_1
 ├── bam_files
-│   └── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.subsample_0.1.bam
+│   ├── hg002v1.0_ont_r10_ul_dorado.pri.chr15_dip.bam
+│   └── hg002v1.0_ont_r10_ul_dorado.pri.chr15_dip.bam.bai
 ├── fasta_files
-│   ├── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.fa
-│   ├── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.fa.fai
-│   └── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.fa.gz
-└── fastq_files
-    ├── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.subsample_0.1.part_1.fq.gz
-    └── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.subsample_0.1.part_2.fq.gz
+│   ├── hg002v1.0.1.dip.chr15.fasta
+│   ├── hg002v1.0.1.dip.chr15.fasta.fai
+│   ├── hg002v1.0.1.mat.chr15.fasta.gz
+│   └── hg002v1.0.1.pat.chr15.fasta.gz
+├── potentially_biased
+│   ├── hg002v1.0.1.cenSatv1.0.chr15_mat_asat.bed
+│   ├── hg002v1.0.1.cenSatv1.0.chr15_mat_hsat1A.bed
+│   ├── hg002v1.0.1.cenSatv1.0.chr15_mat_hsat1B.bed
+│   ├── hg002v1.0.1.cenSatv1.0.chr15_pat_asat.bed
+│   ├── hg002v1.0.1.cenSatv1.0.chr15_pat_hsat1A.bed
+│   └── hg002v1.0.1.cenSatv1.0.chr15_pat_hsat1B.bed
+└── stratification_bed_files
+    ├── hg002v1.0.1.cenSatv1.0.chr15_dip_asat.bed
+    ├── hg002v1.0.1.cenSatv1.0.chr15_dip_censat_no_rDNA.bed
+    ├── hg002v1.0.1.cenSatv1.0.chr15_dip_hsat1A.bed
+    ├── hg002v1.0.1.cenSatv1.0.chr15_dip_hsat1B.bed
+    ├── hg002v1.0.1.cenSatv1.0.chr15_dip_sd.bed
+    └── hg002v1.0.1.cenSatv1.0.chr15_dip_sex.bed
+
 ```
-Description the files in test_1:
-- `fasta_files` folder contains a gz-compressed fasta file that includes the contigs assembled by hifiasm_0.19.5 and subsetted to only those attributed to chromosome 15.
-- `bam_files` folder contains a bam file with approximately 4x HiFi reads aligned to the chr15 contigs.
-- `fastq_files` folder contains two gz-compressed fastq files including HiFi reads from chr15 with approximately 4x coverage altogether.
+Description of the files in test_1:
+- `fasta_files` folder contains a gz-compressed fasta file that includes the chromosome 15 haplotypes of HG002-v1.0.1 assembly.
+- `bam_files` folder contains a bam file with approximately 120x ONT UL reads aligned to the chr15 contigs.
+- `potentially_biased` folder contains ASat and HSat bed files that might have bias coverages and they have to be examined by Flagger.
+- `stratification_bed_files` stratification bed files that will be used for stratifying the unreliability percentages in the final summary table.
 
 #### Test_2
 ```
@@ -272,10 +287,25 @@ wget https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e
 tar -xzvf test_2.tar.gz
 ```
 
-
 ```
-cd test_long_read_aligner_scattered
-wget https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/flagger_v0.4.0/test_files/test_long_read_aligner_scattered/test_1.tar.gz
-```
+# List files
+tree test_2
 
+test_2
+├── bam_files
+│   ├── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.bam
+│   └── HG002.trio_hifiasm_0.19.5.DC_1.2.diploid.DC_1.2_40x.winnowmap_2.03.chr15_only.bam.bai
+└── fasta_files
+    ├── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.fa
+    ├── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.fa.fai
+    ├── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.hap1.fa.gz
+    └── HG002.trio_hifiasm_0.19.5.DC_1.2_40x.dip.chr15_only.hap2.fa.gz
+```
+Description of the files in test_2:
+- `fasta_files` folder contains a gz-compressed fasta files that includes the chr15 contigs for HG002 assembled by hifiasm_trio_0.19.5.
+- `bam_files` folder contains a bam file with approximately 40x HiFi reads aligned to the chr15 contigs.
+
+#### Steps 3 and 4
+
+For running either of Test_1 or Test_2 users can use the steps explained in [step3](https://github.com/mobinasri/flagger/edit/dev-0.3.0/test_wdls/toil_on_slurm/README.md#3-creating-input-json-files) and [step4](https://github.com/mobinasri/flagger/edit/dev-0.3.0/test_wdls/toil_on_slurm/README.md#4-executing-workflow-using-a-toil-based-bash-script) with some small modifications (e.g. changing test_1 to test_2 if test_2 is being invoked or setting `--array=1-1%1` while running sbatch command since for each test there would be only one input json).
 
