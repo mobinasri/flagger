@@ -9,6 +9,7 @@ import "../tasks/alignment/calmd.wdl" as calmd_t
 import "../tasks/other/misc.wdl" as misc_t
 import "../../ext/secphase/wdls/workflows/correct_bam.wdl" as correct_bam_t
 import "../../ext/secphase/wdls/workflows/secphase.wdl" as secphase_t
+import "../../ext/hpp_production_workflows/assembly/wdl/tasks/filter_short_reads.wdl" as filter_short_reads_t
 
 workflow longReadAlignmentScattered {
     meta {
@@ -30,6 +31,7 @@ workflow longReadAlignmentScattered {
         enableAddingMDTag: "If true it will call samtools calmd to add MD tags to the final bam file. [Default = true]"
         splitNumber: "The number of chunks which the input reads should be equally split into. Note that enableSplittingReadsEqually should be set to true if user wants to split reads into equally sized chunks. [Default = 16]"
         enableSplittingReadsEqually: "If true it will merge all reads together and then split them into multiple chunks of roughly equal size. Each chunk will then be aligned via a separate task. This feature is useful for running alignment on cloud/slurm systems where there are  multiple nodes available with enough computing power and having alignments tasks distributed among small nodes is more efficient or cheaper than running a single alignment task in a large node. If the  whole workflow is being on a single node it is not recommened to use this feature since mergin and splitting reads takes its own time. [Default = false]"
+        minReadLength: "If it is greater than zero, a task will be executed for filtering reads shorter than this value before alignment. [Default = 0]"
         enableRunningSecphase: "If true it will run Secphase and apply the corrections reported by Secphase to the final output. [Default = false]"
         secphaseOptions: "--hifi for hifi reads and --ont for ont reads [Default = '--hifi'] "
         secphaseDockerImage: "The secphase docker image. [Default = 'mobinasri/secphase:v0.4.3']"
@@ -52,6 +54,7 @@ workflow longReadAlignmentScattered {
         Boolean enableAddingMDTag=true
         Int splitNumber = 16
         Boolean enableSplittingReadsEqually=false
+        Int minReadLength = 0
         Boolean enableRunningSecphase=false
         String secphaseOptions="--hifi"
         String secphaseDockerImage="mobinasri/secphase:v0.4.3"
@@ -89,13 +92,22 @@ workflow longReadAlignmentScattered {
 
     # Map reads
     scatter (readFile in readsArrayToMap) {
+        # filter short reads if minReadLength is greater than 0
+        if (0 < minReadLength){
+            call filter_short_reads_t.filterShortReads {
+                input:
+                    readFastq = readFile,
+                    minReadLength = minReadLength,
+                    diskSizeGB= floor(size(readFile, 'GB')) * 3 + 32, 
+            }
+        }
         call longReadAligner_t.alignmentBam as alignment{
             input:
                 aligner =  aligner,
                 preset = preset,
                 kmerSize = kmerSize,
                 refAssembly = assemblyFasta,
-                readFastq_or_queryAssembly = readFile,
+                readFastq_or_queryAssembly = select_first([filterShortReads.longReadFastqGz, readFile]),
                 options = alignerOptions,
                 diskSize = 64 + floor(size(readFile, 'GB')) * 6,
                 preemptible = preemptible,
