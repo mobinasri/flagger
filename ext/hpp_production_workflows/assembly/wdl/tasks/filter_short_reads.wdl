@@ -34,14 +34,13 @@ workflow FilterShortReads {
 }
 
 
-# This task does not work properly if sequences have methylation tags
 task filterShortReads {
     input{
         File readFastq
         Int minReadLength
         # runtime configurations
         Int memSizeGB=8
-        Int threadCount=4
+        Int threadCount=8
         Int diskSizeGB=512
         Int preemptible=1
         String dockerImage="mobinasri/bio_base:latest"
@@ -52,11 +51,22 @@ task filterShortReads {
         set -u
         set -o xtrace
 
+
         FILENAME=$(basename -- "~{readFastq}")
-        PREFIX="${FILENAME%.*}"
+
+        EXTENSION=${FILENAME##*.}
+        if [[ ${EXTENSION} == "gz" ]]
+        then
+            CAT_COMMAND="zcat"
+            PREFIX="${FILENAME%.*.gz}"
+        else
+            CAT_COMMAND="cat"
+            PREFIX="${FILENAME%.*}"
+        fi
+
         minLenKb=$(echo ~{minReadLength} | awk '{printf "%.0f",$1/1e3}')
         # filter reads shorter than minReadLength
-        awk 'NR%4==1{a=$0} NR%4==2{b=$0} NR%4==3{c=$0} NR%4==0&&length(b)>~{minReadLength}{print a"\n"b"\n"c"\n"$0;}' ~{readFastq} | pigz -p8 - > ${PREFIX}.gt_${minLenKb}kb.fastq.gz
+        ${CAT_COMMAND} ~{readFastq} | awk 'NR%4==1{a=$0} NR%4==2{b=$0} NR%4==3{c=$0} NR%4==0&&length(b)>~{minReadLength}{print a"\n"b"\n"c"\n"$0;}' | pigz -p~{threadCount} - > ${PREFIX}.gt_${minLenKb}kb.fastq.gz
         OUTPUTSIZE=`du -s -BG *.fastq.gz | sed 's/G.*//'`
         echo $OUTPUTSIZE > outputsize
     >>>

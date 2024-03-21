@@ -2,7 +2,7 @@ Since Dockstore has problems with referencing to the wdls in a submodule, these 
 
 [https://github.com/human-pangenomics/hpp_production_workflows](https://github.com/mobinasri/hpp_production_workflows)
 
-commit: 4bcdd7a2df3ff2cb35f7dad090193ac76dda126b
+commit: c1b9be2 
 
 and
 
