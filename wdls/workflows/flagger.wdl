@@ -49,7 +49,7 @@ workflow runFlagger{
             call bedtools_t.merge {
                 input:
                     bed = biasedRegionBed,
-                    margin = 50000,
+                    margin = 20000,
                     outputPrefix = basename(biasedRegionBed, ".bed")
             }
             call fit_model_bed_t.runFitModelBed as biasedRegionModels {
