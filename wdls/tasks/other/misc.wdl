@@ -116,7 +116,7 @@ task createDipAsm {
 task createFile{
      input {
         String content = ""
-        File filename = "mock.txt"
+        String filename = "mock.txt"
         # runtime configurations
         Int memSize=2
         Int threadCount=2
