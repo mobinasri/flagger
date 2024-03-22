@@ -58,9 +58,7 @@ task gzipCompress {
         EXTENSION=${FILENAME##*.}
 
         mkdir output
-        if [[ ${EXTENSION} == "gz" ]];then
-            ln -s ~{inputFile} output/${FILENAME}
-        else
+        if [[ ${EXTENSION} != "gz" ]];then
             pigz -p~{threadCount} -c ~{inputFile} > output/${FILENAME}.gz
         fi
     >>>
@@ -72,7 +70,7 @@ task gzipCompress {
         preemptible : preemptible
     }
     output {
-        File gzCompressedFile = glob("output/*")[0]
+        File gzCompressedFile = flatten([glob("output/*"), [inputFile]])[0]
     }
 }
 
