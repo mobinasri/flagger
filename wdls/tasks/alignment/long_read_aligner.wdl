@@ -66,7 +66,7 @@ workflow longReadAlignment {
 
 task indexBam{
     input{
-        String bam 
+        File bam 
         # runtime configurations
         Int memSize=16
         Int threadCount=8
