@@ -200,7 +200,7 @@ char *get_string_cov_info_data_format_2(void* src_){
 
 char *get_string_cov_info_data_format_only_total(void* src_){
     CoverageInfo * src = src_;
-    char *str = malloc(50);
+    char *str = malloc(200);
     sprintf(str,
             "%d",
             src->coverage);
@@ -209,7 +209,7 @@ char *get_string_cov_info_data_format_only_total(void* src_){
 
 char *get_string_cov_info_data_format_only_high_mapq(void* src_){
     CoverageInfo * src = src_;
-    char *str = malloc(50);
+    char *str = malloc(200);
     sprintf(str,
             "%d",
             src->coverage_high_mapq);

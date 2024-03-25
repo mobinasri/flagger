@@ -36,7 +36,7 @@
  @field ps              Phase block number
  */
 typedef struct {
-    char contig[50];
+    char contig[200];
     int32_t pos;
     int8_t type;
     float vaf;

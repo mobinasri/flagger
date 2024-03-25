@@ -86,7 +86,7 @@ void VectorChar_copyInPlace(VectorChar* dest, VectorChar* src){
 }
 
 char* VectorChar_toString(VectorChar* vec){
-	char tmp[50];
+	char tmp[200];
 	char* str = malloc(vec->dim * 10);
 	str[0] = '[';
 	int offset = 1;
@@ -202,7 +202,7 @@ void VectorDouble_copyInPlace(VectorDouble* dest, VectorDouble* src){
 }
 
 char* VectorDouble_toString(VectorDouble* vec){
-        char tmp[50];
+        char tmp[200];
         char* str = malloc(vec->dim * 10);
         str[0] = '[';
         int offset = 1;
@@ -329,7 +329,7 @@ void MatrixChar_destruct(MatrixChar* mat){
 }
 
 char* MatrixChar_toString(MatrixChar* mat){
-        char tmp[50];
+        char tmp[200];
         char* str = malloc(mat->dim1 * mat->dim2 * 10);
         str[0] = '[';
         int offset = 1;
@@ -450,7 +450,7 @@ void MatrixDouble_copyInPlace(MatrixDouble* dest, MatrixDouble* src){
 }
 
 char* MatrixDouble_toString(MatrixDouble* mat){
-        char tmp[50];
+        char tmp[200];
         char* str = malloc(mat->dim1 * mat->dim2 * 30);
         str[0] = '[';
         int offset = 1;

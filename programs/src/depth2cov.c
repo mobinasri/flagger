@@ -60,8 +60,8 @@ void depth2cov(char* depthPath, char** contigNames, int* contigSizes, int number
     char * token;
     int pos=0, startPos=0, cov=0;
     int posNew=0, covNew=0;
-    char contigName[50];
-    char contigNameNew[50];
+    char contigName[200];
+    char contigNameNew[200];
     fin = fopen(depthPath, "r");
     if (fin == NULL)
         exit(EXIT_FAILURE);
