@@ -25,7 +25,7 @@ def main():
     intervalSize = int(totalSize / n) + 1
     currBlock = BedBlocks[0]
     currInterval = 0
-    startPoint = (currBlock[0],0)
+    startPoint = (currBlock[0],currBlock[1])
     blockIdx = 0
     for i in range(1,n+1):
         currInterval = 0
