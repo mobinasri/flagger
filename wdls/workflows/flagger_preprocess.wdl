@@ -11,6 +11,7 @@ workflow runFlaggerPreprocess{
         Int minReadLength = 5000
         Int minAlignmentLength = 5000
         Float maxDivergence # For HiFi 0.02, For ONT guppy 6 -> 0.09
+        String correctBamDockerImage = "mobinasri/secphase:v0.4.3--c99e0e9f3561192e127b2d913c932c3e68aa21bf"
     }
     
     ## Correct the bam file by swapping pri/sec tags for the wrongly phased reads
@@ -21,7 +22,8 @@ workflow runFlaggerPreprocess{
             suffix = "corrected",
             options = "--primaryOnly --minReadLen ${minReadLength} --minAlignment ${minAlignmentLength} --maxDiv ${maxDivergence}",
             flagRemoveSupplementary = true,
-            flagRemoveMultiplePrimary = true
+            flagRemoveMultiplePrimary = true,
+            dockerImage = correctBamDockerImage
     }
     
 

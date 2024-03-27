@@ -62,7 +62,7 @@ workflow FlaggerEndToEnd{
         File projectionReferenceFastaGz = ""
 
         Boolean enableRunningSecphase = false
-        String secphaseDockerImage = "mobinasri/secphase:v0.4.3"
+        String secphaseDockerImage = "mobinasri/secphase:v0.4.3--c99e0e9f3561192e127b2d913c932c3e68aa21bf"
         String secphaseOptions = "--hifi"
         String secphaseVersion = "v0.4.3"
 
@@ -126,7 +126,8 @@ workflow FlaggerEndToEnd{
             bam = readAlignmentBam,
             assemblyFastaGz = createDipAsm.diploidAssemblyFastaGz,
             phasingLogText  = secphase.outLog,
-            maxDivergence = maxReadDivergence
+            maxDivergence = maxReadDivergence,
+            correctBamDockerImage = secphaseDockerImage
     }
 
     # Map each haplotype to the given reference
