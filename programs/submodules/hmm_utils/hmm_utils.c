@@ -50,7 +50,7 @@ void ParameterEstimator_incrementDenominatorForAllComps(ParameterEstimator *para
 
 double ParameterEstimator_getEstimation(ParameterEstimator *parameterEstimator, int compIndex){
     if(parameterEstimator->denominatorPerComp[compIndex] == 0){
-        printf(stderr, "Warning: the denominator is zero for comp=%d, so the estimation will be returned as zero\n");
+        fprintf(stderr, "Warning: the denominator is zero for comp=%d, so the estimation will be returned zero\n", compIndex);
         return 0.0;
     }
     double est;
@@ -241,7 +241,7 @@ ParameterBinding **ParameterBinding_getDefault1DArrayForTruncExpGaussian(int num
     int numberOfParams = 1;
     double *coefsPerParam = Double_construct1DArray(numberOfParams);
 
-    coefsPerParam[TRUNC_EXP_MEAN] = 0.0; // zero means no binding
+    coefsPerParam[TRUNC_EXP_LAMBDA] = 0.0; // zero means no binding
     parameterBinding1DArray[STATE_ERR] = ParameterBinding_constructForSingleComp(coefsPerParam, numberOfParams);
     Double_destruct1DArray(coefsPerParam);
 
@@ -550,7 +550,28 @@ void NegativeBinomial_updateParameter(NegativeBinomial *nb, NegativeBinomialPara
     }
 }
 
+double *NegativeBinomial_getParameterValues(NegativeBinomial *nb, NegativeBinomialParameterType parameterType) {
+    double *paramValues = Double_construct1DArray(nb->numberOfComps);
+    for(int comp=0; comp < nb->numberOfComps; comp++){
+        if (parameterType == NB_LAMBDA)
+            paramValues[comp] = nb->lambda[comp];
+        else if (parameterType == NB_THETA)
+            paramValues[comp] = nb->theta[comp];
+        else if (parameterType == NB_WEIGHT)
+            paramValues[comp] = nb->weights[comp];
+        else if (parameterType == NB_MEAN)
+            paramValues[comp] = NegativeBinomial_getMean(nb->theta[comp], nb->lambda[comp]);
+        else if (parameterType == NB_VAR)
+            paramValues[comp] = NegativeBinomial_getVar(nb->theta[comp], nb->lambda[comp]);
+        else
+            exit(EXIT_FAILURE);
+    }
+    return paramValues;
+}
 
+char *NegativeBinomial_getParameterName(NegativeBinomialParameterType parameterType){
+    return NegativeBinomialParameterToString[parameterType];
+}
 
 
 /////////////////////////////
@@ -717,6 +738,24 @@ void Gaussian_updateParameter(Gaussian *gaussian, GaussianParameterType paramete
     }
 }
 
+double *Gaussian_getParameterValues(Gaussian *gaussian, GaussianParameterType parameterType) {
+    double *paramValues = Double_construct1DArray(gaussian->numberOfComps);
+    for(int comp=0; comp < gaussian->numberOfComps; comp++){
+        if (parameterType == GAUSSIAN_MEAN)
+            paramValues[comp] = gaussian->mean[comp];
+        else if (parameterType == GAUSSIAN_VAR)
+            paramValues[comp] = gaussian->var[comp];
+        else if (parameterType == NB_WEIGHT)
+            paramValues[comp] = gaussian->weights[comp];
+        else
+            exit(EXIT_FAILURE);
+    }
+    return paramValues;
+}
+
+char *Gaussian_getParameterName(GaussianParameterType parameterType){
+    return GaussianParameterToString[parameterType];
+}
 
 
 ////////////////////////////////////
@@ -809,7 +848,7 @@ double TruncExponential_estimateLambda(TruncExponential *truncExponential, Param
 
 
 ParameterEstimator *TruncExponential_getEstimator(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType){
-    if (parameterType == TRUNC_EXP_MEAN) {
+    if (parameterType == TRUNC_EXP_LAMBDA) {
         return truncExponential->lambdaEstimator;
     }
 }
@@ -825,12 +864,25 @@ void TruncExponential_updateEstimator(TruncExponential *truncExponential,
 }
 
 void TruncExponential_updateParameter(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType, double value){
-    if (parameterType == TRUNC_EXP_MEAN){
-        truncExponential->lambda = value;
+    if (parameterType == TRUNC_EXP_LAMBDA){
+        truncExponential->lambda = 1.0 / value;
     }
 }
 
+double *TruncExponential_getParameterValues(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType){
+    double *paramValues = Double_construct1DArray(1);
+    if (parameterType == TRUNC_EXP_LAMBDA)
+        paramValues[0] = truncExponential->lambda;
+    if (parameterType == TRUNC_EXP_MEAN)
+        paramValues[0] = 1.0 / truncExponential->lambda;
+    else
+        exit(EXIT_FAILURE);
+    return paramValues;
+}
 
+char *TruncExponential_getParameterName(TruncatedExponentialParameterType parameterType){
+    return TruncatedExponentialParameterToString[parameterType];
+}
 
 
 /////////////////////////////////
@@ -962,7 +1014,97 @@ double EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8
     }
 }
 
+double *EmissionDist_getParameterValuesForOneType(EmissionDist* emissionDist, void *parameterTypePtr){
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        TruncatedExponentialParameterType *parameterTypeTruncExpPtr = parameterTypePtr;
+        return TruncExponential_getParameterValues((TruncExponential *) emissionDist->dist,
+                                                   *parameterTypeTruncExpPtr);
+    }
+    else if (emissionDist->distType == DIST_GAUSSIAN){
+        GaussianParameterType *parameterTypeGaussianPtr = parameterTypePtr;
+        return Gaussian_getParameterValues((Gaussian *) emissionDist->dist,
+                                           *parameterTypeGaussianPtr);
+    }
+    else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL){
+        NegativeBinomialParameterType *parameterTypeNBPtr = parameterTypePtr;
+        return NegativeBinomial_getParameterValues((NegativeBinomial *) emissionDist->dist,
+                                                   *parameterTypeNBPtr);
+    }else {
+        return NULL;
+    }
+}
 
+const char *EmissionDist_getParameterName(EmissionDist* emissionDist, void *parameterTypePtr){
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        TruncatedExponentialParameterType *parameterTypeTruncExpPtr = parameterTypePtr;
+        return TruncExponential_getParameterName(*parameterTypeTruncExpPtr);
+    }
+    else if (emissionDist->distType == DIST_GAUSSIAN){
+        GaussianParameterType *parameterTypeGaussianPtr = parameterTypePtr;
+        return Gaussian_getParameterName(*parameterTypeGaussianPtr);
+    }
+    else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL){
+        NegativeBinomialParameterType *parameterTypeNBPtr = parameterTypePtr;
+        return NegativeBinomial_getParameterName(*parameterTypeNBPtr);
+    }else {
+        return "NA";
+    }
+}
+
+void **EmissionDist_getParameterTypePtrsForLogging(EmissionDist* emissionDist, int *length){
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL){
+        TruncatedExponentialParameterType **parameterTypeTruncExpPtrs = malloc(1*sizeof(TruncatedExponentialParameterType*));
+        parameterTypeTruncExpPtrs[0] = malloc(sizeof(TruncatedExponentialParameterType);
+        parameterTypeTruncExpPtrs[0][0] = TRUNC_EXP_MEAN;
+        *length = 1;
+        return (void**) parameterTypeTruncExpPtrs;
+    }
+    else if (emissionDist->distType == DIST_GAUSSIAN){
+        GaussianParameterType **parameterTypeGaussianPtrs = malloc(3*sizeof(GaussianParameterType*));
+        for(int i=0; i < 3; i++){
+            parameterTypeGaussianPtrs[i] = malloc(sizeof(GaussianParameterType));
+        }
+        parameterTypeGaussianPtrs[0][0] = GAUSSIAN_MEAN;
+        parameterTypeGaussianPtrs[1][0] = GAUSSIAN_VAR;
+        parameterTypeGaussianPtrs[2][0] = GAUSSIAN_WEIGHT;
+        *length = 3;
+        return (void**) parameterTypeGaussianPtrs;
+    }
+    else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL){
+        NegativeBinomialParameterType **parameterTypeNegativeBinomialPtrs = malloc(3*sizeof(NegativeBinomialParameterType*));
+        for(int i=0; i < 3; i++){
+            parameterTypeNegativeBinomialPtrs[i] = malloc(sizeof(NegativeBinomialParameterType));
+        }
+        parameterTypeNegativeBinomialPtrs[0][0] = NB_MEAN;
+        parameterTypeNegativeBinomialPtrs[1][0] = NB_VAR;
+        parameterTypeNegativeBinomialPtrs[2][0] = NB_WEIGHT;
+        *length =3;
+        return (void**) parameterTypeNegativeBinomialPtrs;
+    }else {
+        *length = 0;
+        return NULL;
+    }
+}
+
+const char**EmissionDist_getParameterNames(EmissionDist* emissionDist, void **parameterTypePtrs, int numberOfParams){
+    const char **parameterNames = malloc(numberOfParams * sizeof(char*));
+    for(int i=0; i < numberOfParams; i++){
+         parameterNames[i] = EmissionDist_getParameterName(emissionDist, parameterTypePtrs[i]);
+    }
+    return parameterNames;
+}
+
+double **EmissionDist_getParameterValues(EmissionDist* emissionDist, void **parameterTypePtrs, int numberOfParams){
+    double **parameterValues = malloc(numberOfParams * sizeof(double*));
+    for(int i=0; i < numberOfParams; i++){
+        parameterValues[i] = EmissionDist_getParameterValues(emissionDist, parameterTypePtrs[i]);
+    }
+    return parameterValues;
+}
+
+const char* EmissionDist_getDistributionName(EmissionDist* emissionDist){
+    return DistToString[emissionDist->distType];
+}
 
 //////////////////////////////////////
 //// EmissionDistSeries Functions ////
@@ -1053,11 +1195,14 @@ double EmissionDistSeries_getProb(EmissionDistSeries* emissionDistSeries,
 }
 
 
-void EmissionDistSeries_updateEstimators(EmissionDistSeries *emissionDistSeries, uint8_t x, uint8_t preX, double alpha, double count) {
-    for(int distIndex=0; distIndex < emissionDistSeries->numberOfDists, distIndex++){
-        EmissionDist *emissionDist = emissionDistSeries[distIndex];
-        EmissionDist_updateEstimator(emissionDist, x, preX, alpha, count);
-    }
+int EmissionDistSeries_getNumberOfComps(EmissionDistSeries * emissionDistSeries, int distIndex){
+    EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
+    return EmissionDist_getNumberOfComps(emissionDist);
+}
+
+void EmissionDistSeries_updateEstimator(EmissionDistSeries *emissionDistSeries, int distIndex, uint8_t x, uint8_t preX, double alpha, double count) {
+    EmissionDist *emissionDist = emissionDistSeries[distIndex];
+    EmissionDist_updateEstimator(emissionDist, x, preX, alpha, count);
 }
 
 
@@ -1125,8 +1270,8 @@ void EmissionDistSeries_estimateParameters(EmissionDistSeries *emissionDistSerie
         free(parameterTypeArrayGaussian);
         if(emissionDistSeries->modelType == MODEL_TRUNC_EXP_GAUSSIAN){
             TruncatedExponentialParameterType *parameterTypeArrayTruncExp = malloc(1 * sizeof(TruncatedExponentialParameterType));
-            parameterTypeArrayTruncExp[0] = TRUNC_EXP_MEAN;
-            EmissionDistSeries_estimateParameter(emissionDistSeries, DIST_TRUNC_EXPONENTIAL, &parameterTypeArrayTruncExp[0]);
+            parameterTypeArrayTruncExp[0] = TRUNC_EXP_LAMBDA;
+            EmissionDistSeries_estimateOneParameterType(emissionDistSeries, DIST_TRUNC_EXPONENTIAL, &parameterTypeArrayTruncExp[0]);
             free(parameterTypeArrayTruncExp);
         }
     }else if(emissionDistSeries->modelType == MODEL_NEGATIVE_BINOMIAL){
@@ -1135,13 +1280,31 @@ void EmissionDistSeries_estimateParameters(EmissionDistSeries *emissionDistSerie
         parameterTypeArrayNB[1] = NB_LAMBDA;
         parameterTypeArrayNB[2] = NB_WEIGHT;
         for (int i=0; i < 3; i++) {
-            EmissionDistSeries_estimateParameter(emissionDistSeries, DIST_NEGATIVE_BINOMIAL, &parameterTypeArrayNB[i]);
+            EmissionDistSeries_estimateOneParameterType(emissionDistSeries, DIST_NEGATIVE_BINOMIAL, &parameterTypeArrayNB[i]);
         }
         free(parameterTypeArrayNB);
     }
 }
 
+const char**EmissionDistSeries_getParameterNames(EmissionDistSeries *emissionDistSeries, int distIndex, int* numberOfParams) {
+    EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
+    void **parameterTypePtrs = EmissionDist_getParameterTypePtrsForLogging(emissionDist,numberOfParams);
+    return EmissionDist_getParameterNames(emissionDist, parameterTypePtrs, *numberOfParams);
+}
 
+double **EmissionDistSeries_getParameterValues(EmissionDistSeries *emissionDistSeries, int distIndex, int* numberOfParams) {
+    EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
+    void **parameterTypePtrs = EmissionDist_getParameterTypePtrsForLogging(emissionDist,numberOfParams);
+    return EmissionDist_getParameterValues(emissionDist, parameterTypePtrs, *numberOfParams);
+}
+
+const char* EmissionDistSeries_getDistributionName(EmissionDistSeries *emissionDistSeries, int distIndex) {
+    return EmissionDist_getDistributionName(emissionDistSeries->emissionDists[distIndex]);
+}
+
+const char* EmissionDistSeries_getStateName(int distIndex) {
+    return StateToString[distIndex];
+}
 
 //////////////////////////////////////////
 //// TransitionRequirements Functions ////
@@ -1185,6 +1348,7 @@ void TransitionCountData_increment(TransitionCountData *transitionCountData, dou
     pthread_mutex_unlock(transitionCountData->mutexPtr);
 }
 
+
 void TransitionCountData_resetCountMatrix(TransitionCountData *transitionCountData){
     MatrixDouble_setValue(transitionCountData->countMatrix, 0.0);
 }
@@ -1193,6 +1357,10 @@ void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitio
     assert(dim == (transitionCountData->numberOfStates + 1))
     MatrixDouble_destruct(transitionCountData->pseudoCountMatrix);
     transitionCountData->pseudoCountMatrix = MatrixDouble_parseFromFile(pathToMatrix, dim ,dim);
+}
+
+void TransitionCountData_setPseudoCountMatrix(TransitionCountData *transitionCountData, double value){
+    MatrixDouble_setValue(transitionCountData->pseudoCountMatrix, value);
 }
 
 TransitionCountData *TransitionCountData_destruct(TransitionCountData *transitionCountData){
@@ -1271,7 +1439,21 @@ void Transition_addValidityFunction(Transition *transition, ValidityFunction val
     transition->numberOfValidityFunctions += 1;
 }
 
-
+void Transition_estimateTransitionMatrix(Transition *transition){
+    MatrixDouble *countMatrix = transition->transitionCountData->countMatrix;
+    MatrixDouble *pseudoCountMatrix = transition->transitionCountData->pseudoCountMatrix;
+    for(int i1=0; i1 < transition->numberOfStates + 1 ; i1++){
+        double rowSum = 0.0;
+        // take sum per row
+        for(int i2=0; i2 < transition->numberOfStates + 1 ; i2++){
+            rowSum += countMatrix->data[i1][i2] + pseudoCountMatrix->data[i1][i2];
+        }
+        // estimate transition
+        for(int i2=0; i2 < transition->numberOfStates + 1 ; i2++){
+            transition->matrix->data[i1][i2] = (countMatrix->data[i1][i2] + pseudoCountMatrix->data[i1][i2]) / rowSum;
+        }
+    }
+}
 
 
 /////////////////////////////

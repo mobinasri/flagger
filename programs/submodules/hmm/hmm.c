@@ -1,18 +1,19 @@
 #include <math.h>
 #include "float.h"
 #include <assert.h>
-#include "../data_types/data_types.h"
+#include "data_types.h"
 #include "hmm.h"
 #include <stdio.h>
-#include "../block_it/block_it.h"
-#include "../common/common.h"
-#include "../ptBlock/ptBlock.h"
-#include "../hmm_utils/hmm_utils.h"
+#include "block_it.h"
+#include "common.h"
+#include "ptBlock.h"
+#include "hmm_utils.h"
 #include "sonLib.h"
 #include "stdlib.h"
 
 
 #define TRANSITION_INITIAL_DIAG_PROB 0.9
+#define TRANSITION_PSEUDO_COUNT_VALUE 10
 static pthread_mutex_t chunkMutex;
 
 ///////////////////
@@ -27,7 +28,7 @@ HMM *HMM_construct(int numberOfStates,
                    double minHighlyClippedRatio,
                    char* pathToTransitionCounts,
                    ModelType modelType,
-                   double* alpha){
+                   MatrixDouble* alpha){
     HMM *model = malloc(1 * sizeof(HMM));
     model->emissionDistSeriesPerRegion = malloc(numberOfRegions * sizeof(EmissionDistSeries *));
     model->transitionPerRegion =  malloc(numberOfRegions * sizeof(Transition *));
@@ -40,7 +41,7 @@ HMM *HMM_construct(int numberOfStates,
                                maxNumberOfComps,
                                meanScalePerRegion[region]);
         model->emissionDistSeriesPerRegion[region] = EmissionDistSeries_constructForModel(modelType,
-                                                                                          means,
+                                                                                          meansForRegion,
                                                                                           numberOfCompsPerState,
                                                                                           numberOfStates);
         Double_destruct2DArray(meansForRegion);
@@ -48,6 +49,8 @@ HMM *HMM_construct(int numberOfStates,
         // construct transition
         model->transitionPerRegion[region] = Transition_constructSymmetricBiased(numberOfStates,
                                                                                  TRANSITION_INITIAL_DIAG_PROB);
+        TransitionCountData_setPseudoCountMatrix(model->transitionPerRegion[region]->transitionCountData,
+                                                 TRANSITION_PSEUDO_COUNT_VALUE);
         Transition_addRequirements(model->transitionPerRegion[region],
                                    TransitionRequirements_construct(minHighlyClippedRatio, maxHighMapqRatio));
         Transition_addValidityFunction(model->transitionPerRegion[region],
@@ -63,6 +66,106 @@ HMM *HMM_construct(int numberOfStates,
     return model;
 }
 
+void HMM_estimateParameters(HMM* model) {
+    for(int region = 0; region < model->numberOfRegions; region++){
+        EmissionDistSeries_estimateParameters(model->emissionDistSeriesPerRegion[region]);
+        Transition_estimateTransitionMatrix(model->transitionPerRegion[region]);
+    }
+}
+
+void HMM_printTransitionMatrixInTsvFormat(HMM* model, FILE* fout){
+    // 100 = maximum number of rows
+    // 10 = maximum number of columns
+    // 20 = maximum size of each entry/word
+    char table[100][10][20];
+    int numberOfColumns = model->numberOfStates + 3; // +3; because "Region" + "PreState/State" and end state
+    // fill first row (header)
+    sprintf(table[0][0], "#Region");
+    sprintf(table[0][1], "State");
+    for(int state=0; state < model->numberOfStates; state++) {
+        const char* stateName = EmissionDistSeries_getStateName(state);
+        sprintf(table[0][2 + state],"%s", stateName);
+    }
+    sprintf(table[0][2 + model->numberOfStates], "End");
+
+    // write a transition matrix for each region one at a time
+    int numberOfRows = 1;
+    for(int region=0; region < model->numberOfRegions; region++) {
+        Transition *transition = model->transitionPerRegion[region];
+        // fill the first and second columns for this region
+        for(int state=0; state < model->numberOfStates; state++) {
+            sprintf(table[numberOfRows + state][0], "%d", region);
+            const char* stateName = EmissionDistSeries_getStateName(state);
+            sprintf(table[numberOfRows + state][1], "%s", stateName);
+        }
+        sprintf(table[numberOfRows + model->numberOfStates][0], "%d", region);
+        sprintf(table[numberOfRows + model->numberOfStates][1],"Start");
+        // fill the probability matrix
+        for (int preState = 0; preState < model->numberOfStates + 1; preState++) {
+            for (int state = 0; state < model->numberOfStates + 1; state++) {
+                sprintf(table[numberOfRows + preState][2 + state],
+                        "%.2e", transition->matrix->data[preState][state]);
+            }
+        }
+        numberOfRows += model->numberOfStates + 1; // +1 for "Start" state
+    }
+
+    for(int row=0; row < numberOfRows; row++){
+        for(int col=0; col < numberOfColumns - 1; col++){
+            fwrite(fout, "%s\t", table[row][col]);
+        }
+        // last column needs \n instead of \t
+        fwrite(fout, "%s\n", table[row][numberOfColumns - 1]);
+    }
+}
+
+void HMM_printEmissionParametersInTsvFormat(HMM* model, FILE* fout){
+    // 100 = maximum number of rows
+    // 40 = maximum number of columns
+    // 200 = maximum size of each entry/word
+    char table[100][40][200];
+    // 4 is for the first 4 columns; State	Distribution	Components	Parameter
+    int numberOfColumns = 4 + model->numberOfRegions;
+    sprintf(table[0][0], "#State");
+    sprintf(table[0][1], "Distribution");
+    sprintf(table[0][2], "Components");
+    sprintf(table[0][3], "Parameter");
+    for(int region=0; region < model->numberOfRegions; region++) {
+        sprintf(table[0][4 + region], "Values_Region_%d", region);
+    }
+    int numberOfRows=1;
+    for(int region=0; region < model->numberOfRegions; region++){
+        EmissionDistSeries *emissionDistSeries = model->emissionDistSeriesPerRegion[region];
+        for(int state=0; state < emissionDistSeries->numberOfDists; state++) {
+            int numberOfParams;
+            const char* stateName = EmissionDistSeries_getStateName(state);
+            const char* distributionName = EmissionDistSeries_getDistributionName(emissionDistSeries, state);
+            const char** parameterNames = EmissionDistSeries_getParameterNames(emissionDistSeries, state, &numberOfParams);
+            double **parameterValues = EmissionDistSeries_getParameterValues(emissionDistSeries, state, &numberOfParams);
+            int numberOfComps = EmissionDistSeries_getNumberOfComps(emissionDistSeries, state);
+            for(int param=0; param < numberOfParams; param++){
+                char * parameterValuesStr = String_joinDoubleArray(parameterValues[param], numberOfComps, ',');
+                sprintf(table[numberOfRows][0], "%s", stateName);
+                sprintf(table[numberOfRows][1], "%s", distributionName);
+                sprintf(table[numberOfRows][2], "%d", numberOfComps);
+                sprintf(table[numberOfRows][3], "%s", parameterNames[param]);
+                sprintf(table[numberOfRows][4 + region], "%s", parameterValuesStr);
+                free(parameterValuesStr);
+                numberOfRows += 1;
+            }
+            free(parameterValues);
+        }
+    }
+
+    for(int row=0; row < numberOfRows; row++){
+        for(int col=0; col < numberOfColumns - 1; col++){
+            fwrite(fout, "%s\t", table[row][col]);
+        }
+        // last column needs \n instead of \t
+        fwrite(fout, "%s\n", table[row][numberOfColumns - 1]);
+    }
+}
+
 void HMM_destruct(HMM *model){
     for(int region=0; region < model->numberOfRegions; region++) {
         EmissionDistSeries_destruct(model->emissionDistSeriesPerRegion[region]);
@@ -72,6 +175,28 @@ void HMM_destruct(HMM *model){
     free(model->transitionPerRegion);
     MatrixDouble_destruct(model->alpha);
 
+}
+
+
+EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model) {
+    assert(seqLen > 0);
+    EM *em = malloc(sizeof(EM));
+    em->coverageInfoSeq = coverageInfoSeq;
+    em->seqLen = seqLen;
+    em->model = model;
+    // Allocate and initialize forward and backward matrices
+    em->f = Double_construct2DArray(em->seqLen, model->numberOfStates);
+    em->b = Double_construct2DArray(em->seqLen, model->numberOfStates);
+    // Initialize scale to avoid underflow
+    em->scales = Double_construct1DArray(em->seqLen);
+    em->px = -1.0;
+    return em;
+}
+
+void EM_destruct(EM *em) {
+    Double_construct2DArray(em->f, em->seqLen);
+    Double_construct2DArray(em->b, em->seqLen);
+    Double_construct1DArray(em->scales);
 }
 
 ///////////////////////////////////////
@@ -341,7 +466,8 @@ void EM_updateEstimatorsUsingOneColumn(EM* em, int columnIndex){
             }
             // P(s_i = preState, s_(i+1) = state|x)
             double count = em->f[i][preState] * tProb * eProb * em->b[i + 1][state];
-            EmissionDistSeries_updateEstimators(emissionDistSeries,
+            EmissionDistSeries_updateEstimator(emissionDistSeries,
+                                                state,
                                                 x,
                                                 preX,
                                                 alpha,
@@ -361,6 +487,10 @@ void EM_updateEstimators(EM *em) {
     }
 }
 
-void EM_estimateParameters(EM* em) {
-    HMM* model = em->model;
+void EM_estimateParameters(EM *em) {
+    HMM *model = em->model;
+    for(int region=0; region < model->numberOfRegions; region++) {
+        EmissionDistSeries_estimateParameters(model->emissionDistSeriesPerRegion[region]);
+        Transition_estimateTransitionMatrix(model->transitionPerRegion[region]);
+    }
 }

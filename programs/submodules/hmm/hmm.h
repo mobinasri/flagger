@@ -32,9 +32,13 @@ HMM *HMM_construct(int numberOfStates,
                    double minHighlyClippedRatio,
                    char* pathToTransitionCounts,
                    ModelType modelType,
-                   double* alpha);
+                   MatrixDouble *alpha);
 
 void HMM_destruct(HMM *model);
+
+
+void HMM_printTransitionMatrixInTsvFormat(HMM* model, FILE* fout);
+void HMM_printEmissionParametersInTsvFormat(HMM* model, FILE* fout);
 
 typedef struct EM {
     CoverageInfo **coverageInfoSeq; // the sequence of emissions
@@ -46,6 +50,7 @@ typedef struct EM {
     HMM *model;
 } EM;
 
+/*
 typedef struct Chunk {
     // 2 * chunkLen is the maximum size for a chunk
     // the last chunk of a contig is most of the times
@@ -82,11 +87,21 @@ typedef struct Batch {
 } Batch;
 
 stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen, int nEmit);
+*/
 
 EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model);
 
 void EM_destruct(EM *em);
 
+void EM_runForward(EM *em);
+
+void EM_runBackward(EM *em);
+
+void EM_updateEstimators(EM *em);
+
+void EM_estimateParameters(EM *em);
+
+/*
 double *getForward(EM *em, int pos);
 
 double *getBackward(EM *em, int pos);
@@ -112,6 +127,6 @@ void Batch_destruct(Batch *batch);
 int Batch_readThreadChunks(Batch *batch);
 
 int Batch_readNextChunk(void *batch_);
-
+*/
 
 #endif

@@ -382,3 +382,30 @@ double *Splitter_getDoubleArray(char *str, char delimiter, double *arraySize){
     *arraySize = i;
     return doubleArray;
 }
+
+char* String_copy(const char* src){
+    char *dest = malloc(strlen(src) + 1);
+    strcpy(dest, src);
+    retrun dest;
+}
+
+char *String_joinDoubleArray(double *array, int length, char delimiter){
+    char *str = malloc(length * 10 * sizeof(char));
+    str[0] = '\0';
+    for(int i=0; i < length-1; i++) {
+        sprintf(str + strlen(str), "%.2e%c", array[i], delimiter);
+    }
+    sprintf(str + strlen(str), "%.2e", array[length-1]);
+    str[strlen(str)] = '\0';
+    return str;
+}
+
+char *String_joinStringArray(const char** array, int elementMaxSize, int length, char delimiter){
+    char *str = malloc(length * elementMaxSize * sizeof(char));
+    str[0] = '\0';
+    for(int i=0; i < length-1; i++) {
+        sprintf(str + strlen(str), "%s%c", array[i], delimiter);
+    }
+    sprintf(str + strlen(str), "%s", array[length-1]);
+    return str;
+}

@@ -106,6 +106,10 @@ int *Splitter_getIntArray(char *str, char delimiter, int *arraySize);
 // Returns the array of numbers and sets the array size
 double *Splitter_getDoubleArray(char *str, char delimiter, double *arraySize);
 
+char* String_copy(const char* src);
+char *String_joinDoubleArray(double *array, int length, char delimiter);
+char *String_joinStringArray(const char** array, int elementMaxSize, int length, char delimiter);
+
 #endif
 
 
