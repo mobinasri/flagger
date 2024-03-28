@@ -270,7 +270,7 @@ int Int_getMaxValue1DArray(int *array, int length){
     }
     return maxValue;
 }
-int Double_getMaxValue2DArray(int **array, int length1, int length2){
+int Int_getMaxValue2DArray(int **array, int length1, int length2){
     assert(length1 > 0 && length2 > 0);
     int maxValue = array[0][0];
     for(int i=0; i < length1; i++){
@@ -383,10 +383,10 @@ double *Splitter_getDoubleArray(char *str, char delimiter, double *arraySize){
     return doubleArray;
 }
 
-char* String_copy(const char* src){
+char *String_copy(const char* src){
     char *dest = malloc(strlen(src) + 1);
     strcpy(dest, src);
-    retrun dest;
+    return dest;
 }
 
 char *String_joinDoubleArray(double *array, int length, char delimiter){
