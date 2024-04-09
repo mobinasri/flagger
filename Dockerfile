@@ -1,4 +1,4 @@
-FROM mobinasri/bio_base:v0.1
+FROM mobinasri/bio_base:v0.4.0
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
 RUN mkdir -p /home/apps
