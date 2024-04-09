@@ -260,25 +260,25 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "Options:\n");
                 fprintf(stderr,
-                        "         --testData, -i         path to the test file\n");
+                        "         --testData, -i		path to the test file\n");
 		fprintf(stderr,
-                        "         --outputDir, -o    directory for saving output files.\n");
+                        "         --outputDir, -o		directory for saving output files.\n");
 		fprintf(stderr,
-                        "         --iterations, -n         maximum number of iterations [Default = 100]\n");
+                        "         --iterations, -n		maximum number of iterations [Default = 100]\n");
 		fprintf(stderr,
-                        "         --convergenceTol, -t         convergence tolerance [Default = 0.001]\n");
+                        "         --convergenceTol, -t		convergence tolerance [Default = 0.001]\n");
 		fprintf(stderr,
-                        "         --model, -m         model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' [Default = not defined]\n");
+                        "         --model, -m			model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' [Default = not defined]\n");
 		fprintf(stderr,
-			"         --coverage, -c        median coverage for initializing the parameters for the EM algorithm. Note that the inital values will be slightly deviated from the given value by a random factor to make sure the EM algorithm can handle imprecise initial values.\n");
+			"         --coverage, -c		median coverage for initializing the parameters for the EM algorithm. Note that the inital values will be slightly deviated from the given value by a random factor to make sure the EM algorithm can handle imprecise initial values.\n");
 		fprintf(stderr,
-			"         --collapsedComps, -p    number of components of the collapsed state [Default = 4]\n");
+			"         --collapsedComps, -p		number of components of the collapsed state [Default = 4]\n");
 		fprintf(stderr,
-			"         --writeStatsPerIteration, -w    write emission, transition and posterior statisitics per each iteration.\n");
+			"         --writeStatsPerIteration, -w	write emission, transition and posterior statisitics per each iteration.\n");
 		fprintf(stderr,
-                        "         --numberOfRegions, -r    number of regions [Default = 1]\n");
+                        "         --numberOfRegions, -r		number of regions [Default = 1]\n");
                 fprintf(stderr,
-                        "         --regionScales, -s    a comma-delimited list of scaling factors for setting initial means of different regions [Default = '1.0'] (As an example with --numberOfRegions 3 --regionScales can be set to '1.0,0.5,1.25')\n");
+                        "         --regionScales, -s		a comma-delimited list of scaling factors for setting initial means of different regions [Default = '1.0'] (As an example with --numberOfRegions 3 --regionScales can be set to '1.0,0.5,1.25')\n");
                 return 1;
         }
     }
