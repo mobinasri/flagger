@@ -1,7 +1,7 @@
 #include "common.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <dirent.h>
 
 int getFirstIndexWithNonZeroBitFromRight(int32_t a){
     int n=0;
@@ -69,6 +69,17 @@ bool file_exists(char *filename) {
     return (stat(filename, &buffer) == 0);
 }
 
+bool folder_exists(char *folderpath){
+    DIR* dir = opendir(folderpath);
+    if (dir) {
+        closedir(dir);
+	return true;
+    } else {
+	return false;
+    }
+}
+
+
 int min(int a, int b) {
     return a < b ? a : b;
 }
@@ -133,7 +144,7 @@ double Double_sum2DArray(double **array, int length1, int length2){
 
 double *Double_copy1DArray(double *src, int length){
     double *dest = Double_construct1DArray(length);
-    memcpy(src, dest, length * sizeof(double));
+    memcpy(dest, src, length * sizeof(double));
     return dest;
 }
 
@@ -180,6 +191,18 @@ double Double_getMaxValue2DArray(double **array, int length1, int length2){
     return maxValue;
 }
 
+int Double_getArgMaxIndex1DArray(double *array, int length){
+    assert(length > 0);
+    double maxValue = array[0];
+    int index = 0;
+    for(int i=0; i < length; i++){
+        if (maxValue < array[i]){
+            maxValue = array[i];
+	    index = i;
+        }
+    }
+    return index;
+}
 
 
 int *Int_construct1DArray(int length){
@@ -236,7 +259,7 @@ void Int_destruct2DArray(int **array, int length1){
 
 int *Int_copy1DArray(int *src, int length){
     int *dest = Int_construct1DArray(length);
-    memcpy(src, dest, length * sizeof(int));
+    memcpy(dest, src, length * sizeof(int));
     return dest;
 }
 

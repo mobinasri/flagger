@@ -8,7 +8,7 @@
 
 
 
-#define EXP_TRUNC_POINT_COV_FRACTION 0.2
+#define EXP_TRUNC_POINT_COV_FRACTION 0.25
 #define NUMBER_OF_STATES 5
 #define ERR_COMP_BINDING_COEF 0.1
 #define MAX_COVERAGE_VALUE 250
@@ -42,7 +42,8 @@ typedef enum DistType {
 typedef enum ModelType {
     MODEL_TRUNC_EXP_GAUSSIAN = 0,
     MODEL_GAUSSIAN = 1,
-    MODEL_NEGATIVE_BINOMIAL = 2
+    MODEL_NEGATIVE_BINOMIAL = 2,
+    MODEL_UNDEFINED = 3
 } ModelType;
 
 typedef enum GaussianParameterType{
@@ -61,14 +62,28 @@ typedef enum NegativeBinomialParameterType{
 
 typedef enum TruncatedExponentialParameterType{
     TRUNC_EXP_LAMBDA = 0,
-    TRUNC_EXP_MEAN = 1
+    TRUNC_EXP_MEAN = 1,
+    TRUNC_EXP_TRUNC_POINT = 2
 } TruncatedExponentialParameterType;
 
 static const char* NegativeBinomialParameterToString[5] = {"Theta", "Lambda", "Weight", "Mean", "Var"};
 static const char* GaussianParameterToString[3] = {"Mean", "Var", "Weight"};
-static const char* TruncatedExponentialParameterToString[2] = {"Rate", "Mean"};
+static const char* TruncatedExponentialParameterToString[3] = {"Rate", "Mean", "Trunc_Point"};
 static const char* DistToString[4] = {"Truncated Exponential", "Gaussian", "Negative Binomial", "Undefined"};
 static const char* StateToString[5] = {"Err", "Dup", "Hap", "Col" ,"Msj"};
+
+ModelType getModelTypeFromString(const char* modelString);
+
+/*! @typedef
+ * @abstract Structure for storing a distribution structure. It can be either Gaussian,
+ * Negative Binominal, or TruncExponential.
+ * @field dist          The distribution structure
+ * @field distType      The type of distribution
+ */
+typedef struct EmissionDist {
+    void *dist;
+    DistType distType;
+}EmissionDist;
 
 
 typedef struct ParameterEstimator{
@@ -86,9 +101,9 @@ typedef struct ParameterEstimator{
 
 ParameterEstimator *ParameterEstimator_construct(EmissionDist * emissionDist, int numberOfComps);
 void ParameterEstimator_increment(ParameterEstimator *parameterEstimator, double numerator, double denominator, int compIndex);
-double ParameterEstimator_getEstimation(ParameterEstimator *parameterEstimator, int compIndex);
+double ParameterEstimator_getEstimation(ParameterEstimator *parameterEstimator, int compIndex, double *count);
+void ParameterEstimator_reset(ParameterEstimator *parameterEstimator);
 void ParameterEstimator_destruct(ParameterEstimator *parameterEstimator);
-
 
 
 /*! @typedef
@@ -132,26 +147,26 @@ double ParameterBinding_getValue(ParameterBinding* parameterBinding, int paramIn
  * Make a 1D array of ParameterBinding struct for the specified model type. The only state with more than
  * component is the "collapsed" component so that it needs the number of components for that.
  */
-ParameterBinding **ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfCollapsedComps);
+ParameterBinding **ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfCollapsedComps, bool excludeMisjoin);
 
 /*
  * Make a 1D array of ParameterBinding struct for the Gaussian model. The only state with more than
  * component is the "collapsed" component so that it needs the number of components for that.
  */
-ParameterBinding **ParameterBinding_getDefault1DArrayForGaussian(int numberOfCollapsedComps);
+ParameterBinding **ParameterBinding_getDefault1DArrayForGaussian(int numberOfCollapsedComps, bool excludeMisjoin);
 
 /*
  * Make a 1D array of ParameterBinding struct for the Negative Binomial model. The only state with more than
  * component is the "collapsed" component so that it needs the number of components for that.
  */
-ParameterBinding **ParameterBinding_getDefault1DArrayForNegativeBinomial(int numberOfCollapsedComps);
+ParameterBinding **ParameterBinding_getDefault1DArrayForNegativeBinomial(int numberOfCollapsedComps, bool excludeMisjoin);
 
 /*
  * Make a 1D array of ParameterBinding struct for the Truncated Exponential + Guassial model.
  * The only state with more than component is the "collapsed" component so that it needs the
  * number of components for that.
  */
-ParameterBinding **ParameterBinding_getDefault1DArrayForTruncExpGaussian(int numberOfCollapsedComps);
+ParameterBinding **ParameterBinding_getDefault1DArrayForTruncExpGaussian(int numberOfCollapsedComps, bool excludeMisjoin);
 
 /*
  * Destruct a ParameterBinding struct
@@ -292,7 +307,7 @@ ParameterEstimator *NegativeBinomial_getEstimator(NegativeBinomial *nb, Negative
 
 void NegativeBinomial_updateEstimator(NegativeBinomial *nb, uint8_t x, double count);
 
-void NegativeBinomial_updateParameter(NegativeBinomial *nb, NegativeBinomialParameterType parameterType, int compIndex, double value);
+bool NegativeBinomial_updateParameter(NegativeBinomial *nb, NegativeBinomialParameterType parameterType, int compIndex, double value, double convergenceTol);
 
 double *NegativeBinomial_getParameterValues(NegativeBinomial *nb,NegativeBinomialParameterType parameterType);
 
@@ -351,7 +366,7 @@ void Gaussian_updateEstimator(Gaussian *gaussian,
                               double alpha,
                               double count);
 
-void Gaussian_updateParameter(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex, double value);
+bool Gaussian_updateParameter(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex, double value, double convergenceTol);
 
 double *Gaussian_getParameterValues(Gaussian *gaussian, GaussianParameterType parameterType);
 
@@ -410,7 +425,7 @@ void TruncExponential_updateEstimator(TruncExponential *truncExponential,
                                       uint8_t x,
                                       double count);
 
-void TruncExponential_updateParameter(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType, double value);
+bool TruncExponential_updateParameter(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType, double value, double convergenceTol);
 
 double *TruncExponential_getParameterValues(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType);
 const char *TruncExponential_getParameterName(TruncatedExponentialParameterType parameterType);
@@ -421,17 +436,6 @@ const char *TruncExponential_getParameterName(TruncatedExponentialParameterType 
  */
 void TruncExponential_destruct(TruncExponential* truncExponential);
 
-
-/*! @typedef
- * @abstract Structure for storing a distribution structure. It can be either Gaussian,
- * Negative Binominal, or TruncExponential.
- * @field dist          The distribution structure
- * @field distType      The type of distribution
- */
-typedef struct EmissionDist {
-    void *dist;
-    DistType distType;
-}EmissionDist;
 
 /*
  * Construct a EmissionDist structure
@@ -449,11 +453,11 @@ int EmissionDist_getNumberOfComps(EmissionDist* emissionDist);
  */
 double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha);
 
-void EmissionDist_updateParameter(EmissionDist* emissionDist, void *parameterTypePtr, int compIndex, double value);
+bool EmissionDist_updateParameter(EmissionDist* emissionDist, void *parameterTypePtr, int compIndex, double value, double convergenceTol);
 
 ParameterEstimator *EmissionDist_getEstimator(EmissionDist* emissionDist, void *parameterTypePtr);
 
-double EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double count);
+void EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double count);
 
 void **EmissionDist_getParameterTypePtrsForLogging(EmissionDist* emissionDist, int *length);
 
@@ -466,6 +470,8 @@ const char**EmissionDist_getParameterNames(EmissionDist* emissionDist, void **pa
 double **EmissionDist_getParameterValues(EmissionDist* emissionDist, void **parameterTypePtrs, int numberOfParams);
 
 const char* EmissionDist_getDistributionName(EmissionDist* emissionDist);
+
+void EmissionDist_resetParameterEstimators(EmissionDist *emissionDist);
 
 /*
  * Destruct a EmissionDist structure
@@ -502,12 +508,15 @@ typedef struct EmissionDistSeries {
 EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
                                                          double **means,  // [numberOfDists] x [maxMixtures]
                                                          int *numberOfCompsPerDist,
-                                                         int numberOfDists);
+                                                         int numberOfDists,
+							 bool excludeMisjoin);
 
 /*
  * Get a emissionDist structure from the emissionDistSeries structure
  */
 EmissionDist *EmissionDistSeries_getEmissionDist(EmissionDistSeries* emissionDistSeries, int distIndex);
+
+void EmissionDistSeries_resetParameterEstimators(EmissionDistSeries *emissionDistSeries);
 
 /*
  * Destruct an EmissionDistSeries structure
@@ -550,11 +559,12 @@ ParameterEstimator *EmissionDistSeries_getBoundParameterEstimator(EmissionDistSe
                                                                   DistType distType,
                                                                   void *parameterTypePtr);
 
-void EmissionDistSeries_estimateOneParameterType(EmissionDistSeries *emissionDistSeries,
+bool EmissionDistSeries_estimateOneParameterType(EmissionDistSeries *emissionDistSeries,
                                                  DistType distType,
-                                                 void *parameterTypePtr);
+                                                 void *parameterTypePtr,
+						 double convergenceTol);
 
-void EmissionDistSeries_estimateParameters(EmissionDistSeries *emissionDistSeries);
+bool EmissionDistSeries_estimateParameters(EmissionDistSeries *emissionDistSeries, double convergenceTol);
 
 const char ** EmissionDistSeries_getParameterNames(EmissionDistSeries *emissionDistSeries, int distIndex, int* numberOfParams);
 
@@ -695,7 +705,9 @@ void Transition_addRequirements(Transition *transition, TransitionRequirements *
  */
 void Transition_addValidityFunction(Transition *transition, ValidityFunction validityFunction);
 
-void Transition_estimateTransitionMatrix(Transition *transition);
+bool Transition_estimateTransitionMatrix(Transition *transition, double convergenceTol);
+
+void Transition_resetCountData(Transition *transition);
 
 /*
  * Destruct a Transition structure with uniform probabilities

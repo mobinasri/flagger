@@ -21,6 +21,7 @@ typedef struct HMM {
     int numberOfRegions; // Number of classes like non-HSAT, HSAT1, ...
     int numberOfStates; // Number of states like erroneous, haploid, ...
     int maxNumberOfComps;
+    bool excludeMisjoin;
 } HMM;
 
 HMM *HMM_construct(int numberOfStates,
@@ -32,10 +33,13 @@ HMM *HMM_construct(int numberOfStates,
                    double minHighlyClippedRatio,
                    char* pathToTransitionCounts,
                    ModelType modelType,
-                   MatrixDouble *alpha);
+                   MatrixDouble *alpha,
+		   bool excludeMisjoin);
 
 void HMM_destruct(HMM *model);
 
+int HMM_getStartStateIndex(HMM *model);
+int HMM_getEndStateIndex(HMM *model);
 
 void HMM_printTransitionMatrixInTsvFormat(HMM* model, FILE* fout);
 void HMM_printEmissionParametersInTsvFormat(HMM* model, FILE* fout);
@@ -99,7 +103,15 @@ void EM_runBackward(EM *em);
 
 void EM_updateEstimators(EM *em);
 
-void EM_estimateParameters(EM *em);
+bool EM_estimateParameters(EM *em, double convergenceTol);
+
+void EM_resetEstimators(EM *em);
+
+double *EM_getPosterior(EM *em, int pos);
+
+int EM_getMostProbableState(EM *em, int pos);
+
+void EM_printPosteriorInTsvFormat(EM* em, FILE* fout);
 
 /*
 double *getForward(EM *em, int pos);

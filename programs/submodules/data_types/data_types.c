@@ -486,17 +486,22 @@ void MatrixDouble_destruct(MatrixDouble* mat){
 }
 
 
-MatrixDouble* MatrixDouble_parseFromFile(char* filePath, int dim1, int dim2){
+MatrixDouble* MatrixDouble_parseFromFile(char* filePath, int dim1, int dim2, bool skipFirstLine){
 	MatrixDouble* mat = MatrixDouble_construct0(dim1, dim2);
 	FILE* f = fopen(filePath, "r");
 	size_t len = 0;
-    char* line = NULL;
-    char* token;
-    ssize_t read;
+	char* line = NULL;
+	char* token;
+    	ssize_t read;
 	int i = 0;
 	int j = 0;
 	Splitter* splitter;
+	bool skipped = false;
 	while ((read = getline(&line, &len, f)) != -1){
+		if (skipFirstLine && !skipped){
+			skipped = true;
+			continue;
+		}
 		line[strlen(line)-1] = '\0';
 		splitter = Splitter_construct(line, '\t');
 		j = 0;

@@ -12,8 +12,8 @@
 #include "stdlib.h"
 
 
-#define TRANSITION_INITIAL_DIAG_PROB 0.9
-#define TRANSITION_PSEUDO_COUNT_VALUE 10
+#define TRANSITION_INITIAL_DIAG_PROB 0.99
+#define TRANSITION_PSEUDO_COUNT_VALUE 0.001
 static pthread_mutex_t chunkMutex;
 
 ///////////////////
@@ -28,13 +28,17 @@ HMM *HMM_construct(int numberOfStates,
                    double minHighlyClippedRatio,
                    char* pathToTransitionCounts,
                    ModelType modelType,
-                   MatrixDouble* alpha){
+                   MatrixDouble* alpha,
+		   bool excludeMisjoin){
     HMM *model = malloc(1 * sizeof(HMM));
+    model->excludeMisjoin = excludeMisjoin;
     model->emissionDistSeriesPerRegion = malloc(numberOfRegions * sizeof(EmissionDistSeries *));
     model->transitionPerRegion =  malloc(numberOfRegions * sizeof(Transition *));
-    int maxNumberOfComps = Double_getMaxValue1DArray(numberOfCompsPerState, numberOfStates);
+    int maxNumberOfComps = Int_getMaxValue1DArray(numberOfCompsPerState, numberOfStates);
     for(int region=0; region < numberOfRegions; region++){
-        // construct emissionDistSeries
+	fprintf(stdout, "region=%d\n", region);
+        fprintf(stdout, "construct emissions\n");
+	// construct emissionDistSeries
         double **meansForRegion = Double_copy2DArray(means, numberOfStates, maxNumberOfComps);
         Double_multiply2DArray(meansForRegion,
                                numberOfStates,
@@ -43,9 +47,11 @@ HMM *HMM_construct(int numberOfStates,
         model->emissionDistSeriesPerRegion[region] = EmissionDistSeries_constructForModel(modelType,
                                                                                           meansForRegion,
                                                                                           numberOfCompsPerState,
-                                                                                          numberOfStates);
-        Double_destruct2DArray(meansForRegion);
+                                                                                          numberOfStates,
+											  excludeMisjoin);
+        Double_destruct2DArray(meansForRegion, numberOfStates);
 
+	fprintf(stdout, "construct transition\n");
         // construct transition
         model->transitionPerRegion[region] = Transition_constructSymmetricBiased(numberOfStates,
                                                                                  TRANSITION_INITIAL_DIAG_PROB);
@@ -66,12 +72,20 @@ HMM *HMM_construct(int numberOfStates,
     return model;
 }
 
-void HMM_estimateParameters(HMM* model) {
-    for(int region = 0; region < model->numberOfRegions; region++){
-        EmissionDistSeries_estimateParameters(model->emissionDistSeriesPerRegion[region]);
-        Transition_estimateTransitionMatrix(model->transitionPerRegion[region]);
-    }
+int HMM_getStartStateIndex(HMM *model){
+	return model->excludeMisjoin ? START_STATE_INDEX - 1 : START_STATE_INDEX;
 }
+
+int HMM_getEndStateIndex(HMM *model){
+	return model->excludeMisjoin ? END_STATE_INDEX - 1 : END_STATE_INDEX;
+}
+
+//void HMM_estimateParameters(HMM* model) {
+//    for(int region = 0; region < model->numberOfRegions; region++){
+//        EmissionDistSeries_estimateParameters(model->emissionDistSeriesPerRegion[region]);
+//        Transition_estimateTransitionMatrix(model->transitionPerRegion[region]);
+//    }
+//}
 
 void HMM_printTransitionMatrixInTsvFormat(HMM* model, FILE* fout){
     // 100 = maximum number of rows
@@ -112,10 +126,10 @@ void HMM_printTransitionMatrixInTsvFormat(HMM* model, FILE* fout){
 
     for(int row=0; row < numberOfRows; row++){
         for(int col=0; col < numberOfColumns - 1; col++){
-            fwrite(fout, "%s\t", table[row][col]);
+            fprintf(fout, "%s\t", table[row][col]);
         }
         // last column needs \n instead of \t
-        fwrite(fout, "%s\n", table[row][numberOfColumns - 1]);
+        fprintf(fout, "%s\n", table[row][numberOfColumns - 1]);
     }
 }
 
@@ -134,21 +148,30 @@ void HMM_printEmissionParametersInTsvFormat(HMM* model, FILE* fout){
         sprintf(table[0][4 + region], "Values_Region_%d", region);
     }
     int numberOfRows=1;
+    EmissionDistSeries *emissionDistSeries = model->emissionDistSeriesPerRegion[0];
+    for(int state=0; state < emissionDistSeries->numberOfDists; state++) {
+        int numberOfParams;
+        const char* stateName = EmissionDistSeries_getStateName(state);
+        const char* distributionName = EmissionDistSeries_getDistributionName(emissionDistSeries, state);
+        const char** parameterNames = EmissionDistSeries_getParameterNames(emissionDistSeries, state, &numberOfParams);
+        int numberOfComps = EmissionDistSeries_getNumberOfComps(emissionDistSeries, state);
+        for(int param=0; param < numberOfParams; param++){
+            sprintf(table[numberOfRows][0], "%s", stateName);
+            sprintf(table[numberOfRows][1], "%s", distributionName);
+            sprintf(table[numberOfRows][2], "%d", numberOfComps);
+            sprintf(table[numberOfRows][3], "%s", parameterNames[param]);
+            numberOfRows += 1;
+        }
+    }
     for(int region=0; region < model->numberOfRegions; region++){
+	numberOfRows=1;
         EmissionDistSeries *emissionDistSeries = model->emissionDistSeriesPerRegion[region];
         for(int state=0; state < emissionDistSeries->numberOfDists; state++) {
             int numberOfParams;
-            const char* stateName = EmissionDistSeries_getStateName(state);
-            const char* distributionName = EmissionDistSeries_getDistributionName(emissionDistSeries, state);
-            const char** parameterNames = EmissionDistSeries_getParameterNames(emissionDistSeries, state, &numberOfParams);
             double **parameterValues = EmissionDistSeries_getParameterValues(emissionDistSeries, state, &numberOfParams);
             int numberOfComps = EmissionDistSeries_getNumberOfComps(emissionDistSeries, state);
             for(int param=0; param < numberOfParams; param++){
                 char * parameterValuesStr = String_joinDoubleArray(parameterValues[param], numberOfComps, ',');
-                sprintf(table[numberOfRows][0], "%s", stateName);
-                sprintf(table[numberOfRows][1], "%s", distributionName);
-                sprintf(table[numberOfRows][2], "%d", numberOfComps);
-                sprintf(table[numberOfRows][3], "%s", parameterNames[param]);
                 sprintf(table[numberOfRows][4 + region], "%s", parameterValuesStr);
                 free(parameterValuesStr);
                 numberOfRows += 1;
@@ -157,12 +180,13 @@ void HMM_printEmissionParametersInTsvFormat(HMM* model, FILE* fout){
         }
     }
 
+
     for(int row=0; row < numberOfRows; row++){
         for(int col=0; col < numberOfColumns - 1; col++){
-            fwrite(fout, "%s\t", table[row][col]);
+            fprintf(fout, "%s\t", table[row][col]);
         }
         // last column needs \n instead of \t
-        fwrite(fout, "%s\n", table[row][numberOfColumns - 1]);
+        fprintf(fout, "%s\n", table[row][numberOfColumns - 1]);
     }
 }
 
@@ -194,9 +218,9 @@ EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model) {
 }
 
 void EM_destruct(EM *em) {
-    Double_construct2DArray(em->f, em->seqLen);
-    Double_construct2DArray(em->b, em->seqLen);
-    Double_construct1DArray(em->scales);
+    Double_destruct2DArray(em->f, em->seqLen);
+    Double_destruct2DArray(em->b, em->seqLen);
+    Double_destruct1DArray(em->scales);
 }
 
 ///////////////////////////////////////
@@ -226,16 +250,13 @@ void EM_fillFirstColumnForward(EM *em){
         uint8_t region = em->coverageInfoSeq[0]->annotation_flag;
         uint8_t x = em->coverageInfoSeq[0]->coverage;
         // Emission probability
-        eProb = EmissionDistSeries_getProb(model->emissionDistSeries[region],
+        eProb = EmissionDistSeries_getProb(model->emissionDistSeriesPerRegion[region],
                                            state,
                                            x,
                                            preX,
                                            alpha);
         // Transition probability
-        tProb = Transition_getProbConditional(model->transitionPerRegion[region],
-                                              START_STATE_INDEX,
-                                              state,
-                                              em->coverageInfoSeq[0]);
+        tProb = Transition_getStartProb(model->transitionPerRegion[region], state);
         // Update forward
         em->f[0][state] = eProb * tProb;
         scale += em->f[0][state];
@@ -261,8 +282,9 @@ void EM_fillOneColumnForward(EM* em, int columnIndex){
     uint8_t x;
     uint8_t preX;
     double alpha;
+    double scale =0.0;
     for (int state = 0; state < model->numberOfStates; state++) {
-        for (int preState = 0; preState < model->numberOfSates; preState++) { // Transition from c1 comp to c2 comp
+        for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
             region = em->coverageInfoSeq[i]->annotation_flag;
             preRegion = em->coverageInfoSeq[i-1]->annotation_flag;
             x = em->coverageInfoSeq[i]->coverage;
@@ -275,7 +297,7 @@ void EM_fillOneColumnForward(EM* em, int columnIndex){
                                                state,
                                                x,
                                                preX,
-                                               model->alpha[preState][state]);
+                                               model->alpha->data[preState][state]);
             if (region != preRegion) { // if the region class has changed
                 // Make the transition prob uniform
                 tProb = 1.0 / (model->numberOfStates + 1);
@@ -287,10 +309,11 @@ void EM_fillOneColumnForward(EM* em, int columnIndex){
             }
             em->f[i][state] += (em->f[i - 1][preState] * tProb * eProb);
         }
-        em->scales[i] += em->f[i][state];
+        scale += em->f[i][state];
     }
+    em->scales[i] = scale;
     if (em->scales[i] < 1e-50) {
-        fprintf(stderr, "scale (= %.2e) is very low!\n", scale);
+        fprintf(stderr, "scale (= %.2e) is very low!\n", em->scales[i]);
         exit(EXIT_FAILURE);
     }
     // Scale f
@@ -335,10 +358,7 @@ void EM_fillLastColumnBackward(EM *em){
     for (int state = 0; state < model->numberOfStates; state++) {
         uint8_t region = em->coverageInfoSeq[em->seqLen - 1]->annotation_flag;
         // Transition probability
-        tProb = Transition_getProbConditional(model->transitionPerRegion[region],
-                                              state,
-                                              END_STATE_INDEX,
-                                              em->coverageInfoSeq[em->seqLen - 1]);
+        tProb = Transition_getTerminationProb(model->transitionPerRegion[region], state);
         // Update backward
         em->b[em->seqLen - 1][state] = tProb;
     }
@@ -366,13 +386,14 @@ void EM_fillOneColumnBackward(EM* em, int columnIndex){
     CoverageInfo *preCovInfo;
     double alpha;
     for (int state = 0; state < model->numberOfStates; state++) {
-        for (int preState = 0; preState < model->numberOfSates; preState++) { // Transition from c1 comp to c2 comp
+        for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
             region = em->coverageInfoSeq[i + 1]->annotation_flag;
             preRegion = em->coverageInfoSeq[i]->annotation_flag;
             covInfo = em->coverageInfoSeq[i + 1];
             preCovInfo = em->coverageInfoSeq[i];
-            preX = covInfo->coverage;
-            alpha = model->alpha[preState][state];
+            x = covInfo->coverage;
+	    preX = preCovInfo->coverage;
+            alpha = model->alpha->data[preState][state];
             // Emission probability
             // Not that alpha can be zero and in that case emission probability is not
             // dependent on the previous observation
@@ -391,10 +412,14 @@ void EM_fillOneColumnBackward(EM* em, int columnIndex){
                                                       covInfo);
             }
             em->b[i][preState] += tProb * eProb * em->b[i + 1][state];
-        }
+	//if (em->b[i][preState] == 0.0){
+		//fprintf(stdout, "i=%d, tProb =%.2e, eProb =%.2e,em->b[i + 1][state]=%.2e\n", i, tProb , eProb , em->b[i + 1][state]);
+	//	fprintf(stdout, "x = %d, state = %d, preState=%d, eProb=%.2e\n", x, state, preState, eProb);
+	//}
+	}
     }
     if (em->scales[i] < 1e-50) {
-        fprintf(stderr, "scale (= %.2e) is very low!\n", scale);
+        fprintf(stderr, "scale (= %.2e) is very low!\n", em->scales[i]);
         exit(EXIT_FAILURE);
     }
     // Scale f
@@ -410,7 +435,7 @@ void EM_fillOneColumnBackward(EM* em, int columnIndex){
 void EM_runBackward(EM *em) {
     EM_resetAllColumnsBackward(em);
     // Fill columns of the backward matrix
-    for (int columnIndex = 0; columnIndex < em->seqLen; columnIndex++) {
+    for (int columnIndex = em->seqLen - 1; columnIndex >=0; columnIndex--) {
         EM_fillOneColumnBackward(em, columnIndex);
     }
     // Update P(x)
@@ -437,7 +462,7 @@ void EM_updateEstimatorsUsingOneColumn(EM* em, int columnIndex){
     EmissionDistSeries *emissionDistSeries;
     Transition *transition;
     for (int state = 0; state < model->numberOfStates; state++) {
-        for (int preState = 0; preState < model->numberOfSates; preState++) { // Transition from c1 comp to c2 comp
+        for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
             // get observations
             region = em->coverageInfoSeq[i + 1]->annotation_flag;
             preRegion = em->coverageInfoSeq[i]->annotation_flag;
@@ -471,9 +496,12 @@ void EM_updateEstimatorsUsingOneColumn(EM* em, int columnIndex){
                                                 x,
                                                 preX,
                                                 alpha,
-                                                count);
+                                                count * 1000);
+	    /*if(count < 1e-3 && i % 50000  == 0){
+		fprintf(stdout, "i=%d, count=%.2e, em->f[%d][%d]=%.2e, tProb=%.2e, eProb=%.2e, em->b[%d][%d]=%.2e, scale=%.2e\n", i, count, i, preState, em->f[i][preState],tProb,eProb, i+1, state, em->b[i + 1][state], em->scales[i]);
+	    }*/
             TransitionCountData_increment(transition->transitionCountData,
-                                          count,
+                                          count * 1000,
                                           preState,
                                           state);
         }
@@ -487,10 +515,67 @@ void EM_updateEstimators(EM *em) {
     }
 }
 
-void EM_estimateParameters(EM *em) {
+bool EM_estimateParameters(EM *em, double convergenceTol) {
+    bool converged = true;
     HMM *model = em->model;
     for(int region=0; region < model->numberOfRegions; region++) {
-        EmissionDistSeries_estimateParameters(model->emissionDistSeriesPerRegion[region]);
-        Transition_estimateTransitionMatrix(model->transitionPerRegion[region]);
+        converged &= EmissionDistSeries_estimateParameters(model->emissionDistSeriesPerRegion[region], convergenceTol);
+        converged &= Transition_estimateTransitionMatrix(model->transitionPerRegion[region], convergenceTol);
+    }
+    return converged;
+}
+
+void EM_resetEstimators(EM *em) {
+    HMM *model = em->model;
+    for(int region=0; region < model->numberOfRegions; region++) {
+        EmissionDistSeries_resetParameterEstimators(model->emissionDistSeriesPerRegion[region]);
+        Transition_resetCountData(model->transitionPerRegion[region]);
     }
 }
+
+
+double *EM_getPosterior(EM *em, int pos) {
+    HMM *model = em->model;
+    double *posterior = malloc(model->numberOfStates * sizeof(double));
+    double total = 0.0;
+    for (int s = 0; s < model->numberOfStates; s++) {
+        posterior[s] = em->f[pos][s] * em->b[pos][s] * em->scales[pos];
+	total += posterior[s];
+	//fprintf(stdout, "s=%d, %.2e\t",s, posterior[s]);
+    }
+    for (int s = 0; s < model->numberOfStates; s++) {
+        posterior[s] /= total;
+    }
+    //fprintf(stdout, "\n");
+    return posterior;
+}
+
+int EM_getMostProbableState(EM *em, int pos) {
+    double *posterior = EM_getPosterior(em, pos);
+    int state = Double_getArgMaxIndex1DArray(posterior, em->model->numberOfStates);
+    free(posterior);
+    return state;
+}
+
+void EM_printPosteriorInTsvFormat(EM* em, FILE* fout){
+    HMM *model = em->model;
+    EmissionDistSeries* emissionDistSeries = model->emissionDistSeriesPerRegion[0];
+    fprintf(fout, "position\t");
+    for(int state=0; state < model->numberOfStates; state++){
+    	const char* stateName = EmissionDistSeries_getStateName(state);
+	fprintf(fout, "%s_%d_posterior\t", stateName, state);
+    }
+    fprintf(fout, "state_index_prediction\n");
+    for(int pos=0; pos < em->seqLen ;pos++){
+	    fprintf(fout, "%d\t",pos);
+	    double *posterior = EM_getPosterior(em, pos);
+            int prediction = EM_getMostProbableState(em, pos);
+	    for(int state=0; state < model->numberOfStates; state++){
+		    fprintf(fout, "%.3f\t", posterior[state]);
+	    }
+	    fprintf(fout, "%d\n", prediction);
+            free(posterior);
+    }
+}
+
+

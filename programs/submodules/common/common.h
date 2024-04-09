@@ -35,6 +35,8 @@ char* get_timestamp();
 
 bool file_exists (char *filename);
 
+bool folder_exists(char *folderpath);
+
 char* read_whole_file(char* file_path, long* length_ptr, char* mode);
 
 char* copyString(char* str);
@@ -73,7 +75,7 @@ void Double_multiply1DArray(double *array, int length, double factor);
 void Double_multiply2DArray(double **array, int length1, int length2, double factor);
 double Double_getMaxValue1DArray(double *array, int length);
 double Double_getMaxValue2DArray(double **array, int length1, int length2);
-
+int Double_getArgMaxIndex1DArray(double *array, int length);
 
 int *Int_construct1DArray(int length);
 int **Int_construct2DArray(int length1, int length2);

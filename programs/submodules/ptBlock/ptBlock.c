@@ -574,7 +574,7 @@ void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
         // get the contig length and print it beside the contig header
         int *ctg_len_ptr = stHash_search(ctg_to_len, ctg_name);
         if(ctg_len_ptr == NULL) {
-            fprintf(stderr, "[%s] Error: contig %s is not present in the bam/sam header\n", ctg_name);
+            fprintf(stderr, "[%s] Error: contig %s is not present in the bam/sam header\n", get_timestamp(), ctg_name);
             exit(EXIT_FAILURE);
         }
         sprintf(line,
