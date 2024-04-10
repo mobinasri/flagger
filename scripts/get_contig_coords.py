@@ -19,7 +19,7 @@ def main():
             if line.strip()[0] == ">":
                 if seq_name != None:
                     print_coords(seq_name, seq)
-                seq_name = line.strip()[1:]
+                seq_name = line.strip()[1:].split()[0]
                 seq = ""
                 continue
             seq += line.strip()
