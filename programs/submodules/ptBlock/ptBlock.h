@@ -53,9 +53,9 @@ typedef struct {
  */
 typedef struct CoverageInfo {
     int32_t annotation_flag;
-    u_int8_t coverage;
-    u_int8_t coverage_high_mapq;
-    u_int8_t coverage_high_clip;
+    u_int16_t coverage;
+    u_int16_t coverage_high_mapq;
+    u_int16_t coverage_high_clip;
 } CoverageInfo;
 
 /*! @typedef

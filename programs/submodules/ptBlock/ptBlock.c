@@ -101,9 +101,9 @@ char *get_string_count_data(void* src_){
 }
 
 CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
-                            u_int8_t coverage,
-                            u_int8_t coverage_high_mapq,
-                            u_int8_t coverage_high_clip){
+                            u_int16_t coverage,
+                            u_int16_t coverage_high_mapq,
+                            u_int16_t coverage_high_clip){
     CoverageInfo *cov_info = malloc(sizeof(CoverageInfo));
     cov_info->annotation_flag = annotation_flag;
     cov_info->coverage = coverage;
@@ -139,10 +139,10 @@ void CoverageInfo_destruct(CoverageInfo *coverageInfo){
 }
 
 CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int min_mapq, double min_clipping_ratio){
-    u_int8_t coverage_high_mapq = min_mapq <= alignment->mapq ? 1 : 0;
+    u_int16_t coverage_high_mapq = min_mapq <= alignment->mapq ? 1 : 0;
     int max_clip = max(alignment->r_clip, alignment->l_clip);
     int alignment_len = alignment->rfe - alignment->rfs + 1;
-    u_int8_t coverage_high_clip = min_clipping_ratio <= ((double) max_clip / alignment_len) ? 1 : 0;
+    u_int16_t coverage_high_clip = min_clipping_ratio <= ((double) max_clip / alignment_len) ? 1 : 0;
     return CoverageInfo_construct(0, 1, coverage_high_mapq, coverage_high_clip);
 }
 
