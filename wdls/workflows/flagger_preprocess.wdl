@@ -21,8 +21,8 @@ workflow runFlaggerPreprocess{
             phasingLogText = phasingLogText,
             suffix = "corrected",
             options = "--primaryOnly --minReadLen ${minReadLength} --minAlignment ${minAlignmentLength} --maxDiv ${maxDivergence}",
-            flagRemoveSupplementary = true,
-            flagRemoveMultiplePrimary = true,
+            flagRemoveSupplementary = false,
+            flagRemoveMultiplePrimary = false,
             dockerImage = correctBamDockerImage
     }
     
