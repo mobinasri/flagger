@@ -39,11 +39,10 @@ int main(int argc, char *argv[]) {
     char *bam_path;
     char *out_path;
     char *json_path;
-    char *out_type;
     char *program;
     char *output_cov_format = "all";
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "i:t:j:m:r:O:f:o:xh"))) {
+    while (~(c = getopt(argc, argv, "i:t:j:m:r:f:o:xh"))) {
         switch (c) {
             case 'i':
                 bam_path = optarg;
@@ -63,25 +62,21 @@ int main(int argc, char *argv[]) {
             case 'r':
                 min_clipping_ratio = atof(optarg);
                 break;
-            case 'O':
-                out_type = optarg;
-                break;
             case 'f':
 		output_cov_format = optarg;
 		break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
-                fprintf(stderr, "\nUsage: %s  -i <BAM_FILE> -j <JSON_FILE> -t <THREADS> -O <'b'|'bz'|'c'|'cz'> -o <OUT_BED_OR_COV_FILE> \n", program);
+                fprintf(stderr, "\nUsage: %s  -i <BAM_FILE> -j <JSON_FILE> -t <THREADS> -o <OUT_BED_OR_COV_FILE> \n", program);
                 fprintf(stderr, "Options:\n");
                 fprintf(stderr, "         -i         input bam file (should be indexed)\n");
                 fprintf(stderr, "         -j         JSON file for the annotation bed files. At least one BED file should be in this json and it can be a BED file covering the whole genome/assembly [maximum 32 files can be given and the keys can be any number between 1-32 for example {\"1\":\"/path/to/1.bed\", \"2\":\"/path/to/2.bed\"}]\n");
                 fprintf(stderr, "         -m         minimum mapq for the measuring the coverage of the alignments with high mapq [Default = 20]\n");
                 fprintf(stderr, "         -r         minimum clipping ratio for the measuring the coverage of the highly clipped alignments [Default = 0.1]\n");
-                fprintf(stderr, "         -f         if this parameter is enabled and -O is \"cz\" or \"c\" then the output will be formatted based on the value of this parameter. options: [\"all\", \"only_total\", \"only_high_mapq\"][Default = \"all\"]\n");
+                fprintf(stderr, "         -f         if this parameter is enabled and output file extension is either cov or cov.gz then the output will be formatted based on the value of this parameter. options: [\"all\", \"only_total\", \"only_high_mapq\"][Default = \"all\"]\n");
 		fprintf(stderr, "         -t         number of threads [default: 4]\n");
-                fprintf(stderr, "         -O         output type [\"b\" for bed, \"bz\" for gzipped bed, \"c\" for cov, \"cz\" for gzipped cov]\n");
-                fprintf(stderr, "         -o         output path \n");
+                fprintf(stderr, "         -o         output path [output file can be either cov/cov.gz/bed/bed.gz]\n");
                 return 1;
         }
     }
@@ -98,7 +93,8 @@ int main(int argc, char *argv[]) {
     stHash* ctg_to_len = ptBlock_get_contig_length_stHash_from_bam(bam_path);
 
     fprintf(stderr, "[%s] Started writing to %s.\n", get_timestamp(), out_path);
-    if (strcmp(out_type, "c") == 0) { // uncompressed cov
+    char *extension = extractFileExtension(out_path);
+    if (strcmp(extension, "cov") == 0) { // uncompressed cov
         FILE* fp = fopen(out_path, "w");
         if (fp == NULL) {
             fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
@@ -123,13 +119,13 @@ int main(int argc, char *argv[]) {
                                                false,
                                                ctg_to_len);
 	} else {
-            fprintf(stderr, "[%s] Error: output format (-f) should be either \"all\", \"only_high_mapq\" or \" only_total\" %s.\n", get_timestamp());
+            fprintf(stderr, "[%s] Error: output format (-f) cannot be %s, it should be either \"all\", \"only_high_mapq\" or \" only_total\".\n", get_timestamp(), output_cov_format);
             exit(EXIT_FAILURE);
         }
         fclose(fp);
-    }else if(strcmp(out_type, "cz") == 0){ // gzip-compressed cov
+    }else if(strcmp(extension, "cov.gz") == 0){ // gzip-compressed cov
         gzFile fp = gzopen(out_path, "w6h");
-        if (fp == NULL) {
+        if (fp == Z_NULL) {
             fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
         }
 	if (strcmp(output_cov_format, "only_total") == 0){
@@ -151,11 +147,11 @@ int main(int argc, char *argv[]) {
                                                true,
                                                ctg_to_len);
 	} else {
-	    fprintf(stderr, "[%s] Error: output format (-f) should be either \"all\", \"only_high_mapq\" or \" only_total\" %s.\n", get_timestamp());
+	    fprintf(stderr, "[%s] Error: output format (-f) cannot be %s, it should be either \"all\", \"only_high_mapq\" or \" only_total\" %s.\n", get_timestamp(), output_cov_format);
 	    exit(EXIT_FAILURE);
 	}
         gzclose(fp);
-    }else if (strcmp(out_type, "b") == 0){ // uncompressed BED
+    }else if (strcmp(extension, "bed") == 0){ // uncompressed BED
         FILE* fp = fopen(out_path, "w");
         if (fp == NULL) {
             fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
@@ -165,9 +161,9 @@ int main(int argc, char *argv[]) {
                                            fp,
                                            false);
         fclose(fp);
-    }else if (strcmp(out_type, "bz") == 0){ // gzip-compressed BED
+    }else if (strcmp(extension, "bed.gz") == 0){ // gzip-compressed BED
         gzFile fp = gzopen(out_path, "w6h");
-        if (fp == NULL) {
+        if (fp == Z_NULL) {
             fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), out_path);
         }
         ptBlock_print_blocks_stHash_in_bed(final_block_table,
@@ -176,9 +172,10 @@ int main(int argc, char *argv[]) {
                                            true);
         gzclose(fp);
     }else{
-        fprintf(stderr, "[%s] Error: Output type should only be from this list ['c','cz','b','bz']\n", get_timestamp());
+        fprintf(stderr, "[%s] Error: Output type should only be from this list ['cov','cov.gz','bed','bed.gz']\n", get_timestamp());
         exit(EXIT_FAILURE);
     }
+    free(extension);
     stHash_destruct(final_block_table);
     stHash_destruct(ctg_to_len);
     fprintf(stderr, "[%s] Done.\n", get_timestamp());

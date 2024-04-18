@@ -2,6 +2,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <string.h>
+
+char *extractFileExtension(char *filePath){
+	int len = strlen(filePath);
+	int i = len-1;
+	for(; 0 <= i; i--){
+		if(filePath[i] == '.'){
+			if (strcmp(filePath + i, ".gz") != 0 &&
+			    strcmp(filePath + i, ".tar") != 0 &&
+			    strcmp(filePath + i, ".tar.gz") != 0 &&
+			    strcmp(filePath + i, ".zip") != 0)
+				break;
+		}
+	}
+	char *extension = malloc(len - i);
+	strcpy(extension, filePath + i + 1);
+	return extension;
+}
 
 int getFirstIndexWithNonZeroBitFromRight(int32_t a){
     int n=0;

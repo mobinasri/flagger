@@ -7,42 +7,45 @@
 #include <assert.h>
 #include "sonLib.h"
 #include "common.h"
-#include "hmm.h" 
+#include "chunk.h" 
 
 
 int main(int argc, char *argv[]) {
    int c;
-   char covPath[200];
-   int chunkLen;
+   char *covPath;
+   char *faiPath = NULL;
+   int chunkCanonicalLen = 20000000;
    char *program;
    (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-   while (~(c=getopt(argc, argv, "c:l:h"))) {
+   while (~(c=getopt(argc, argv, "i:l:f:h"))) {
 		switch (c) {
-			case 'c':
-                                strcpy(covPath, optarg);
+			case 'i':
+                                covPath = optarg;
                                 break;
+			case 'f':
+				faiPath = optarg;
+				break;
 			case 'l':
-                                chunkLen = atoi(optarg);
+                                chunkCanonicalLen = atoi(optarg);
                                 break;
 			default:
 				if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
 			help:	
-				fprintf(stderr, "\nUsage: %s  -c <COV_FILE> -l <CHUNK_LEN> \n", program);
+				fprintf(stderr, "\nUsage: %s  -i <COV_OR_BED_FILE> -l <CHUNK_LEN> [-f <FAI>] \n", program);
 				fprintf(stderr, "Options:\n");
-				fprintf(stderr, "         -c         path to .cov file\n");
-				fprintf(stderr, "         -l         chunk length\n");
+				fprintf(stderr, "         -i         path to input coverage file (can be either cov/cov.gz/bed/bed.gz)\n");
+				fprintf(stderr, "         -f         path to fai file (It can be skipped if the coverage file is cov/cov.gz)\n");
+				fprintf(stderr, "         -l         chunk length [Default = 20000000 (20Mb)]\n");
 				return 1;	
 		}		
    }
-   stList* chunks = createCovIndex(covPath, chunkLen);
-   char covIndexPath[200];
+   stList* templateChunks = ChunksCreator_createCovIndex(covPath, faiPath, chunkCanonicalLen);
+   char covIndexPath[1000];
    sprintf(covIndexPath, "%s.index", covPath);
-   writeCovIndex(chunks, covIndexPath);
-   stList* parsedChunks = parseCovIndex(covIndexPath);
-   for(int i = 0; i < stList_length(parsedChunks); i++){
-	   Chunk* chunk = stList_get(parsedChunks, i);
-	   printf("%d:\t%s\t%d\t%d\t%ld\n", i, chunk->ctg, chunk->s, chunk->e, chunk->fileOffset);
+   ChunksCreator_writeCovIndex(templateChunks, covIndexPath);
+   for(int i = 0; i < stList_length(templateChunks); i++){
+	   Chunk* chunk = stList_get(templateChunks, i);
+	   printf("[%s]Chunk %d:\t%s\t%d\t%d\t%ld\n", get_timestamp(), i, chunk->ctg, chunk->s, chunk->e, chunk->fileOffset);
    }
-   stList_destruct(chunks);
-   stList_destruct(parsedChunks);
+   stList_destruct(templateChunks);
 }

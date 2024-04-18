@@ -4,7 +4,7 @@
 #include "data_types.h"
 #include "hmm.h"
 #include <stdio.h>
-#include "block_it.h"
+#include "track_reader.h"
 #include "common.h"
 #include "ptBlock.h"
 #include "hmm_utils.h"
@@ -491,17 +491,18 @@ void EM_updateEstimatorsUsingOneColumn(EM* em, int columnIndex){
             }
             // P(s_i = preState, s_(i+1) = state|x)
             double count = em->f[i][preState] * tProb * eProb * em->b[i + 1][state];
+	    double adjustedCount = count / transition->terminationProb;
             EmissionDistSeries_updateEstimator(emissionDistSeries,
                                                 state,
                                                 x,
                                                 preX,
                                                 alpha,
-                                                count * 1000);
+                                                adjustedCount);
 	    /*if(count < 1e-3 && i % 50000  == 0){
 		fprintf(stdout, "i=%d, count=%.2e, em->f[%d][%d]=%.2e, tProb=%.2e, eProb=%.2e, em->b[%d][%d]=%.2e, scale=%.2e\n", i, count, i, preState, em->f[i][preState],tProb,eProb, i+1, state, em->b[i + 1][state], em->scales[i]);
 	    }*/
             TransitionCountData_increment(transition->transitionCountData,
-                                          count * 1000,
+                                          adjustedCount,
                                           preState,
                                           state);
         }

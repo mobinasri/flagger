@@ -29,6 +29,8 @@ void DEBUG_PRINT(const char *fmt, ...)
 static inline void DEBUG_PRINT(const char *fmt, ...) {};
 #endif
 
+char *extractFileExtension(char *filePath);
+
 int getFirstIndexWithNonZeroBitFromRight(int32_t a);
 
 char* get_timestamp();

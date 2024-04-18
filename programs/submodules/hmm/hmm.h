@@ -1,7 +1,7 @@
 #ifndef HMM_H
 #define HMM_H
 
-#include "block_it.h"
+#include "track_reader.h"
 #include "common.h"
 #include "data_types.h"
 #include <stdio.h>

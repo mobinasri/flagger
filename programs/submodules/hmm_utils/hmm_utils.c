@@ -1364,7 +1364,7 @@ bool EmissionDistSeries_estimateOneParameterType(EmissionDistSeries *emissionDis
                 estimation = ParameterEstimator_getEstimation(parameterEstimator, comp, &count);
             }
 	    //fprintf(stderr, "distIndex = %d, param=%s -> count = %.2e\n", distIndex, EmissionDist_getParameterName(emissionDist, parameterTypePtr), count );
-	    if (1.0 < count){
+	    if (MIN_COUNT_FOR_PARAMETER_UPDATE < count){
 		// if at least one parameter is not converged then "converged" variable will become false
                 converged &= EmissionDist_updateParameter(emissionDist,
                                              parameterTypePtr,
@@ -1528,6 +1528,7 @@ Transition *Transition_constructUniform(int numberOfStates) {
     transition->transitionCountData = TransitionCountData_construct(numberOfStates);
     transition->numberOfValidityFunctions = 0;
     transition->numberOfStates = numberOfStates;
+    transition->terminationProb = 1e-3;
     return transition;
 }
 
@@ -1551,6 +1552,7 @@ Transition *Transition_constructSymmetricBiased(int numberOfStates, double diago
     transition->numberOfStates = numberOfStates;
     transition->requirements = NULL;
     transition->validityFunctions = NULL;
+    transition->terminationProb = 1e-3;
     return transition;
 }
 
@@ -1580,7 +1582,7 @@ void Transition_addValidityFunction(Transition *transition, ValidityFunction val
 
 bool Transition_estimateTransitionMatrix(Transition *transition, double convergenceTol){
     bool converged = true;
-    double terminationProb = 0.001;
+    double terminationProb = transition->terminationProb;
     MatrixDouble *countMatrix = transition->transitionCountData->countMatrix;
     MatrixDouble *pseudoCountMatrix = transition->transitionCountData->pseudoCountMatrix;
     for(int i1=0; i1 < transition->numberOfStates; i1++){

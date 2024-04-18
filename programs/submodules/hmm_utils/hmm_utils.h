@@ -8,6 +8,7 @@
 
 
 
+#define MIN_COUNT_FOR_PARAMETER_UPDATE 10
 #define EXP_TRUNC_POINT_COV_FRACTION 0.25
 #define NUMBER_OF_STATES 5
 #define ERR_COMP_BINDING_COEF 0.1
@@ -682,6 +683,7 @@ typedef struct Transition{
     ValidityFunction *validityFunctions;
     int numberOfValidityFunctions;
     TransitionRequirements *requirements;
+    double terminationProb;
 }Transition;
 
 /*

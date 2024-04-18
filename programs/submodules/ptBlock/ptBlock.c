@@ -1,6 +1,7 @@
 #include "ptBlock.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "track_reader.h"
 #include <zlib.h>
 
 
@@ -119,6 +120,24 @@ CoverageInfo *CoverageInfo_copy(CoverageInfo *src){
                                   src->coverage_high_clip);
 }
 
+
+void CoverageInfo_reset(CoverageInfo *coverageInfo){
+    coverageInfo->annotation_flag = 0;
+    coverageInfo->coverage = 0;
+    coverageInfo->coverage_high_mapq = 0;
+    coverageInfo->coverage_high_clip = 0;
+}
+
+
+CoverageInfo **CoverageInfo_construct1DArray(int len){
+    CoverageInfo **array = (CoverageInfo **) malloc(len * sizeof(CoverageInfo *));
+    for(int i=0; i < len; i++){
+        array[i] = CoverageInfo_construct(0,0,0,0);
+    }
+    return array;
+}
+
+
 CoverageInfo **CoverageInfo_copy1DArray(CoverageInfo **src, int len){
     CoverageInfo **dest = (CoverageInfo **) malloc(len * sizeof(CoverageInfo *));
     for(int i=0; i < len; i++){
@@ -136,6 +155,25 @@ void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray, int len){
 
 void CoverageInfo_destruct(CoverageInfo *coverageInfo){
     free(coverageInfo);
+}
+
+int32_t CoverageInfo_getRegionBitRepresentation(int regionIndex){
+	return 1 << regionIndex;
+}
+
+int CoverageInfo_getRegionIndex(CoverageInfo *coverageInfo){
+	return getFirstIndexWithNonZeroBitFromRight(coverageInfo->annotation_flag);
+}
+
+
+u_int16_t CoverageInfo_getCoverage(CoverageInfo *coverageInfo){
+	return coverageInfo->coverage;
+}
+u_int16_t CoverageInfo_getCoverageHighMapq(CoverageInfo *coverageInfo){
+	return coverageInfo->coverage_high_mapq;
+}
+u_int16_t CoverageInfo_getCoverageHighClip(CoverageInfo *coverageInfo){
+	return coverageInfo->coverage_high_clip;
 }
 
 CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int min_mapq, double min_clipping_ratio){
@@ -176,7 +214,7 @@ char *get_string_cov_info_data_format_1(void* src_){
     char *str = malloc(150);
     sprintf(str,
             "annot=%d, cov=%d, cov_mapq=%d, cov_clip=%d",
-            src->annotation_flag,
+            CoverageInfo_getRegionIndex(src),
             src->coverage,
             src->coverage_high_mapq,
             src->coverage_high_clip);
@@ -191,7 +229,7 @@ char *get_string_cov_info_data_format_2(void* src_){
             src->coverage,
             src->coverage_high_mapq,
             src->coverage_high_clip,
-            src->annotation_flag);
+            CoverageInfo_getRegionIndex(src));
     return str;
 }
 
@@ -530,10 +568,11 @@ void ptBlock_print_blocks_stHash_in_bed(stHash* blocks_per_contig,
                                         bool is_compressed){
     char* ctg_name;
     char line[1000];
-    stHashIterator *it = stHash_getIterator(blocks_per_contig);
-    while ((ctg_name = stHash_getNext(it)) != NULL) {
-        stList* blocks = stHash_search(blocks_per_contig, ctg_name);
-        for(int i=0; i < stList_length(blocks); i++){
+    stList *sorted_contig_list = ptBlock_get_sorted_contig_list(blocks_per_contig);
+    for(int ctg_i=0; ctg_i < stList_length(sorted_contig_list); ctg_i++){
+        ctg_name = stList_get(sorted_contig_list, ctg_i);
+	stList* blocks = stHash_search(blocks_per_contig, ctg_name);
+    	for(int i=0; i < stList_length(blocks); i++){
             ptBlock* block = stList_get(blocks, i);
             if(get_string_function != NULL){
                 sprintf(line,
@@ -558,7 +597,20 @@ void ptBlock_print_blocks_stHash_in_bed(stHash* blocks_per_contig,
             }
         }
     }
-    stHash_destructIterator(it);
+    stList_destruct(sorted_contig_list);
+}
+
+
+stList *ptBlock_get_sorted_contig_list(stHash* blocks_per_contig){
+	char* ctg_name;
+	stHashIterator *it = stHash_getIterator(blocks_per_contig);
+	stList* contig_list = stList_construct3(0, free);
+	while ((ctg_name = stHash_getNext(it)) != NULL) {
+		stList_append(contig_list, copyString(ctg_name));
+	}
+	// sort contig list
+	stList_sort(contig_list, strcmp);
+	return contig_list;
 }
 
 void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
@@ -569,12 +621,13 @@ void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
 
     char* ctg_name;
     char line[1000];
-    stHashIterator *it = stHash_getIterator(blocks_per_contig);
-    while ((ctg_name = stHash_getNext(it)) != NULL) {
+    stList *sorted_contig_list = ptBlock_get_sorted_contig_list(blocks_per_contig);
+    for(int ctg_i=0; ctg_i < stList_length(sorted_contig_list); ctg_i++){
+	ctg_name = stList_get(sorted_contig_list, ctg_i);
         // get the contig length and print it beside the contig header
         int *ctg_len_ptr = stHash_search(ctg_to_len, ctg_name);
         if(ctg_len_ptr == NULL) {
-            fprintf(stderr, "[%s] Error: contig %s is not present in the bam/sam header\n", get_timestamp(), ctg_name);
+            fprintf(stderr, "[%s] Error: contig %s is not present in the bam/sam header or fai file\n", get_timestamp(), ctg_name);
             exit(EXIT_FAILURE);
         }
         sprintf(line,
@@ -614,7 +667,7 @@ void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
             }
         }
     }
-    stHash_destructIterator(it);
+    stList_destruct(sorted_contig_list);
 }
 
 
@@ -1080,6 +1133,52 @@ stHash* ptBlock_get_contig_length_stHash_from_bam(char* bam_path){
     return ctg_to_len;
 }
 
+stHash* ptBlock_get_contig_length_stHash_from_fai(char* fai_path){
+    stHash *ctg_to_len = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, free, free);
+    char *line = malloc(1000);
+    FILE *fp = fopen(fai_path, "r");
+    if (fp == NULL){
+	    fprintf(stderr, "Error: Unable to open %s\n", fai_path);
+    }
+    int len;
+    int read;
+    char *token;
+    char *ctg_name;
+    while((read = getline(&line, &len, fp)) > 0){
+	    //fprintf(stderr, "%s %d\n",line, read);
+	    if (0 < read && line[read-1] == '\n') line[read-1] = '\0';
+	    Splitter* splitter = Splitter_construct(line, '\t');
+	    // get contig name
+	    token = Splitter_getToken(splitter);
+	    ctg_name = copyString(token);
+	    //fprintf(stderr, "%s %s %s\n",ctg_name, token, line);
+	    // get contig len
+	    token = Splitter_getToken(splitter);
+            int * ctg_len_ptr = malloc(sizeof(int));
+	    *ctg_len_ptr = atoi(token);
+	    // add to table
+	    stHash_insert(ctg_to_len, ctg_name, ctg_len_ptr);
+	    Splitter_destruct(splitter);
+    }
+    fclose(fp);
+    free(line);
+    return ctg_to_len;
+}
+
+int ptBlock_get_max_contig_length(stHash *ctg_to_len){
+	char* ctg_name;
+	int max_len = 0;
+        stHashIterator *it = stHash_getIterator(ctg_to_len);
+        while ((ctg_name = stHash_getNext(it)) != NULL) {
+                int * ctg_len_ptr = stHash_search(ctg_to_len, ctg_name);
+		if (max_len < *ctg_len_ptr){
+			max_len = *ctg_len_ptr;
+		}
+        }
+	stHash_destructIterator(it);
+	return max_len;
+}
+
 // for one thread of parsing alignments
 void _update_coverage_blocks_with_alignments(void * arg_){
     // get the arguments
@@ -1288,7 +1387,7 @@ stList *parse_annotation_paths_and_save_in_stList(char* json_path){
     cJSON_ArrayForEach(element, annotation_json){
         char* annotation_path = cJSON_GetStringValue(element);
         stList_append(annotation_paths, copyString(annotation_path));
-    }
+    } 
     cJSON_Delete(annotation_json);
     return annotation_paths;
 }
@@ -1334,6 +1433,43 @@ stList* parse_all_annotations_and_save_in_stList(char* json_path){
 
 }
 
+
+stHash *ptBlock_parse_coverage_info_blocks(char *filePath){
+	TrackReader *trackReader = TrackReader_construct(filePath, NULL, true); //0-based coors = true
+	stHash *coverage_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
+                                                           (void (*)(void *)) stList_destruct);
+	stList *blocks = NULL;
+	while(0 < TrackReader_next(trackReader)){
+		// create a ptBlock based on the parsed track
+		ptBlock *block = ptBlock_construct(trackReader->s, trackReader->e,
+				                   -1, -1,
+						   -1, -1);
+		// annotation_flag is the first attribute
+		int annotation_flag = CoverageInfo_getRegionBitRepresentation(atoi(trackReader->attrbs[3]));
+		CoverageInfo * cov_info_data = CoverageInfo_construct(annotation_flag,
+				                                      atoi(trackReader->attrbs[0]),
+								      atoi(trackReader->attrbs[1]),
+				                                      atoi(trackReader->attrbs[2]));
+		// add coverageInfo data to block
+		ptBlock_set_data(block, cov_info_data, 
+				destruct_cov_info_data,
+				copy_cov_info_data,
+				extend_cov_info_data);
+
+		// add block to the block stHash table
+		blocks = stHash_search(coverage_blocks_per_contig, trackReader->ctg);
+		// add new contig key to the table if it does not exist
+		if (blocks == NULL){
+			blocks = stList_construct3(0,ptBlock_destruct);
+			stHash_insert(coverage_blocks_per_contig, copyString(trackReader->ctg), blocks);
+		}
+		stList_append(blocks, block);
+	}
+	TrackReader_destruct(trackReader);
+	ptBlock_sort_stHash_by_rfs(coverage_blocks_per_contig);
+	return coverage_blocks_per_contig;
+}
+
 // annotation block tables need to have a CoverageInfo object as their "data"
 // this CoverageInfo will have zero values for the coverage related attributes
 // the annotation flag is set based on the order of the annotation blocks in the
@@ -1345,7 +1481,7 @@ void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list){
         // Each annotation has an associated flag represented by a bit-vector
         // the size of the bit-vector is 32, so it can be saved in an int32_t variable
         // for example for i=0 -> flag = 1 and for i=6 -> flag= 64
-        int32_t annotation_flag = 1 << i;
+        int32_t annotation_flag = CoverageInfo_getRegionBitRepresentation(i);
         CoverageInfo * cov_info = CoverageInfo_construct(annotation_flag, 0, 0, 0);
         // The cov_info object created above will be copied and added as "data" to all blocks
         // for the current annotation. This process is happening in place

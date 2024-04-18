@@ -128,15 +128,25 @@ char *get_string_count_data(void* src_);
  * @param coverage_high_clip    coverage of the highly clipped alignments for the related block
  */
 CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
-                            u_int8_t coverage,
-                            u_int8_t coverage_high_mapq,
-                            u_int8_t coverage_high_clip);
+                            u_int16_t coverage,
+                            u_int16_t coverage_high_mapq,
+                            u_int16_t coverage_high_clip);
 
 CoverageInfo *CoverageInfo_copy(CoverageInfo *coverageInfo);
 CoverageInfo **CoverageInfo_copy1DArray(CoverageInfo **coverageInfo, int len);
+void CoverageInfo_reset(CoverageInfo *coverageInfo);
+CoverageInfo **CoverageInfo_construct1DArray(int len);
 void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray, int len);
 void CoverageInfo_destruct(CoverageInfo *coverageInfo);
+int CoverageInfo_getRegionIndex(CoverageInfo *coverageInfo);
+int32_t CoverageInfo_getRegionBitRepresentation(int regionIndex);
 
+u_int16_t CoverageInfo_getCoverage(CoverageInfo *coverageInfo);
+u_int16_t CoverageInfo_getCoverageHighMapq(CoverageInfo *coverageInfo);
+u_int16_t CoverageInfo_getCoverageHighClip(CoverageInfo *coverageInfo);
+
+
+stHash *ptBlock_parse_coverage_info_blocks(char *filePath);
 
 /**
  * Receives an alignment, creates a CoverageInfo struct based on the given thresholds on mapq and clipping ratio
@@ -366,6 +376,8 @@ void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
                                         bool is_compressed,
                                         stHash* ctg_to_len);
 
+stList *ptBlock_get_sorted_contig_list(stHash* blocks_per_contig);
+
 /**
  * Merge blocks (should be sorted by stList_sort)
  * Since merging can be performed by either rfs/rfe or rds_f/rde_f this function
@@ -558,6 +570,9 @@ stList* ptBlock_copy_stList(stList* blocks);
 // returns a stHash table from contig name to length
 stHash* ptBlock_get_contig_length_stHash_from_bam(char* bam_path);
 
+stHash* ptBlock_get_contig_length_stHash_from_fai(char* fai_path);
+
+int ptBlock_get_max_contig_length(stHash *ctg_to_len);
 
 // functions and structs for extracting coverage information from bam/sam file
 
