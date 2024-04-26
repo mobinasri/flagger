@@ -72,3 +72,14 @@ def splitIntoAlignmentsWithShortGaps(alignment, maxGapLength):
         splitAlignments.append(splitAlignment)
 
     return splitAlignments
+
+
+def getRefBlockListPerChromFromAlignments(alignments, maxIndelSize=500, merge=True):
+    blockListPerChrom = defaultdict(BlockList)
+    for alignment in alignments:
+        blockListPerChrom[alignment.chromName].extend(getRefBlockList(alignment, threshold))
+    if merge:
+        for chrom in blockListPerChrom:
+            blockListPerChrom[chrom].sort()
+            blockListPerChrom[chrom].mergeWithOverlapCount(inplace=True)
+    return blockListPerChrom
