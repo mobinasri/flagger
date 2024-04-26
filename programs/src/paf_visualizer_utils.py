@@ -1,4 +1,5 @@
-
+from block_utils import *
+from alignment_utils import *
 
 def readAnnotationsWithColors(bedPath, nameColIndex, colorColIndex, isColorRGB, isEightBit, patternForName):
   """
