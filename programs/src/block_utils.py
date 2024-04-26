@@ -838,7 +838,7 @@ class Alignment:
         x = self.chromStart
         preX = x
         intervals = []
-        for op, opSize in alignment.cigarList:
+        for op, opSize in self.cigarList:
             # save the previous interval with small deletions
             if op == 'D' and opSize > maxDelSize and preX < x:
                 intervals.append((preX, x))
