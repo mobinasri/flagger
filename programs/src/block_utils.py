@@ -851,6 +851,9 @@ class Alignment:
 
             if op == 'X' or op == '=' or op == 'D':
                 x += opSize
+
+        if preX < x:
+            intervals.append((preX, x))
         return BlockList(intervals)
 
     def getPerfectMatchRateByRef(self):
