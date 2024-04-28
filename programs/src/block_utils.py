@@ -834,20 +834,22 @@ class Alignment:
                                status, f'cg:Z:{makeCigarString(self.cigarList)}\n']))
 
 
-    def getRefCoveredBlockList(self, maxDelSize=1e9):
+    def getRefCoveredBlockList(self, maxIndelSize=1e9):
         x = self.chromStart
         preX = x
         intervals = []
         for op, opSize in self.cigarList:
             # save the previous interval with small deletions
-            if op == 'D' and opSize > maxDelSize and preX < x:
+            if (op == 'D' or op == 'I') and opSize > maxIndelSize and preX < x:
                 intervals.append((preX, x))
             # once we have a long deletion update preX
             # so that it skips the long deletion
             # for each interval the maximum size of 
             # deletion would be maxDelSize
-            if op == 'D' and opSize > maxDelSize:
+            if op == 'D' and opSize > maxIndelSize:
                 preX = x + opSize
+            if op == 'I' and opSize > maxIndelSize:
+                preX = x
 
             if op == 'X' or op == '=' or op == 'D':
                 x += opSize
