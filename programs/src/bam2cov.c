@@ -244,8 +244,13 @@ int main(int argc, char *argv[]) {
     // create a list of header lines
     int numberOfLabels = 0;
     bool isTruthAvailable = false;
-    stList *headerLines = ptBlock_create_headers(annotationNames, coveragePerRegion, numberOfRegions, numberOfLabels,
-                                                 isTruthAvailable);
+    bool isPredictionAvailable = false;
+    stList *headerLines = ptBlock_create_headers(annotationNames,
+                                                 coveragePerRegion,
+                                                 numberOfRegions,
+                                                 numberOfLabels,
+                                                 isTruthAvailable,
+                                                 isPredictionAvailable);
     // write header and tracks into output file
     ptBlock_write_blocks_per_contig(blockTable, outPath, format, ctgToLen, headerLines);
 

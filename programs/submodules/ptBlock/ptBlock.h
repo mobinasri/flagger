@@ -403,13 +403,15 @@ stList *ptBlock_create_headers(stList *annotation_names,
                                int *region_coverages,
                                int number_of_regions,
                                int number_of_labels,
-                               bool is_truth_available);
+                               bool is_truth_available,
+                               bool is_prediction_available);
 
 void ptBlock_create_and_print_headers(stList *annotation_names,
                                       int *region_coverages,
                                       int number_of_regions,
                                       int number_of_labels,
                                       bool is_truth_available,
+                                      bool is_prediction_available,
                                       void *file_ptr,
                                       bool is_compressed);
 

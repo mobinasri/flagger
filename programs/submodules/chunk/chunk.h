@@ -36,6 +36,7 @@ typedef struct ChunksCreator {
     int *regionCoverages;
     int numberOfLabels;
     bool isTruthAvailable;
+    bool isPredictionAvailable;
     // Constant attributes
     int nThreads;
     int chunkCanonicalLen;
@@ -91,6 +92,8 @@ void ChunksCreator_parseRegionCoverages(ChunksCreator *chunksCreator);
 void ChunksCreator_parseNumberOfLabels(ChunksCreator *chunksCreator);
 
 void ChunksCreator_parseTruthAvailability(ChunksCreator *chunksCreator);
+
+void ChunksCreator_parsePredictionAvailability(ChunksCreator *chunksCreator);
 
 void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
                                            const char *outputPath,

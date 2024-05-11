@@ -813,7 +813,8 @@ stList *ptBlock_create_headers(stList *annotation_names,
                                int *region_coverages,
                                int number_of_regions,
                                int number_of_labels,
-                               bool is_truth_available) {
+                               bool is_truth_available,
+                               bool is_prediction_available) {
 
     stList *header_lines = stList_construct3(0, free);
     char line[1000];
@@ -850,6 +851,15 @@ stList *ptBlock_create_headers(stList *annotation_names,
         stList_append(header_lines, copyString(line));
     }
 
+    // are truth labels available
+    if (is_prediction_available) {
+        sprintf(line, "#prediction:true");
+        stList_append(header_lines, copyString(line));
+    } else {
+        sprintf(line, "#prediction:false");
+        stList_append(header_lines, copyString(line));
+    }
+
     return header_lines;
 }
 
@@ -858,10 +868,15 @@ void ptBlock_create_and_print_headers(stList *annotation_names,
                                       int number_of_regions,
                                       int number_of_labels,
                                       bool is_truth_available,
+                                      bool is_prediction_available,
                                       void *file_ptr,
                                       bool is_compressed) {
-    stList *header_lines = ptBlock_create_headers(annotation_names, region_coverages, number_of_regions,
-                                                  number_of_labels, is_truth_available);
+    stList *header_lines = ptBlock_create_headers(annotation_names,
+                                                  region_coverages,
+                                                  number_of_regions,
+                                                  number_of_labels,
+                                                  is_truth_available,
+                                                  is_prediction_available);
     // write header lines
     ptBlock_print_headers_stList(header_lines, file_ptr, is_compressed);
     stList_destruct(header_lines);

@@ -249,7 +249,7 @@ bool test_ptBlock_create_and_print_headers_uncompressed(const char *outputPath) 
 
     bool isCompressed = false;
     FILE *fp = fopen(outputPath, "w");
-    ptBlock_create_and_print_headers(annotationNames, regionFactors, 3, 0, false, (void *) fp, isCompressed);
+    ptBlock_create_and_print_headers(annotationNames, regionFactors, 3, 0, false, false, (void *) fp, isCompressed);
     fclose(fp);
     stList_destruct(annotationNames);
 
@@ -262,6 +262,7 @@ bool test_ptBlock_create_and_print_headers_uncompressed(const char *outputPath) 
     stList_append(headerLines, copyString("#region:coverage:1:10"));
     stList_append(headerLines, copyString("#region:coverage:2:25"));
     stList_append(headerLines, copyString("#truth:false"));
+    stList_append(headerLines, copyString("#prediction:false"));
 
 
     TrackReader *trackReader = TrackReader_construct(outputPath, NULL, true);

@@ -78,7 +78,7 @@ bool test_ChunksCreator_parseHeaderInformation(const char *outputPath) {
 
     bool isCompressed = false;
     FILE *fp = fopen(outputPath, "w");
-    ptBlock_create_and_print_headers(annotationNames, regionFactors, 3, 0, false, (void *) fp, isCompressed);
+    ptBlock_create_and_print_headers(annotationNames, regionFactors, 3, 0, false, false, (void *) fp, isCompressed);
     fclose(fp);
 
     ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(outputPath, NULL, 1000, 1, 100);

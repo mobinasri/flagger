@@ -153,6 +153,7 @@ int main(int argc, char *argv[]) {
     ChunksCreator_parseAnnotationNames(chunksCreator);
     ChunksCreator_parseNumberOfLabels(chunksCreator);
     ChunksCreator_parseTruthAvailability(chunksCreator);
+    ChunksCreator_parsePredictionAvailability(chunksCreator);
 
     if (numberOfLabels != chunksCreator->numberOfLabels) {
         fprintf(stderr,
@@ -166,11 +167,13 @@ int main(int argc, char *argv[]) {
     }
     // create a list of header lines
     bool isTruthAvailable = truthPath != NULL || chunksCreator->isTruthAvailable;
+    bool isPredictionAvailable = predictionPath != NULL || chunksCreator->isPredictionAvailable;
     stList *headerLines = ptBlock_create_headers(chunksCreator->annotationNames,
                                                  chunksCreator->regionCoverages,
                                                  chunksCreator->numberOfRegions,
                                                  numberOfLabels,
-                                                 isTruthAvailable);
+                                                 isTruthAvailable,
+                                                 isPredictionAvailable);
 
     fprintf(stderr, "[%s] Writing %s.\n", get_timestamp(), outputPath);
     // write header and tracks into output file

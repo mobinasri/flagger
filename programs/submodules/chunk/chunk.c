@@ -152,6 +152,8 @@ ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalL
     ChunksCreator_parseNumberOfLabels(chunksCreator);
     fprintf(stderr, "[%s] Parsing truth availability.\n", get_timestamp());
     ChunksCreator_parseTruthAvailability(chunksCreator);
+    fprintf(stderr, "[%s] Parsing prediction availability.\n", get_timestamp());
+    ChunksCreator_parsePredictionAvailability(chunksCreator);
 
     chunksCreator->nextChunkIndexToRead = 0;
     chunksCreator->nThreads = nThreads;
@@ -388,7 +390,7 @@ void ChunksCreator_parseNumberOfLabels(ChunksCreator *chunksCreator) {
 }
 
 void ChunksCreator_parseTruthAvailability(ChunksCreator *chunksCreator) {
-    // set it to zero in case no label line existed in header
+    // set it to false in case no label line existed in header
     chunksCreator->isTruthAvailable = false;
     TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
     stList *headerLines = trackReader->headerLines;
@@ -403,6 +405,21 @@ void ChunksCreator_parseTruthAvailability(ChunksCreator *chunksCreator) {
     TrackReader_destruct(trackReader);
 }
 
+void ChunksCreator_parsePredictionAvailability(ChunksCreator *chunksCreator) {
+    // set it to false in case no label line existed in header
+    chunksCreator->isPredictionAvailable = false;
+    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
+    stList *headerLines = trackReader->headerLines;
+    char *token;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#truth:true", headerLine, strlen("#prediction:true")) == 0) {
+            chunksCreator->isPredictionAvailable = true;
+            break;
+        }
+    }
+    TrackReader_destruct(trackReader);
+}
 
 void ChunksCreator_destruct(ChunksCreator *chunksCreator) {
     if (chunksCreator->annotationNames != NULL) {
@@ -617,6 +634,7 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
     int numberOfRegions = chunksCreator->numberOfRegions;
     int numberOfLabels = chunksCreator->numberOfLabels;
     bool isTruthAvailable = chunksCreator->isTruthAvailable;
+    bool isPredictionAvailable = chunksCreator->isPredictionAvailable;
 
     // write number of annotations
     fwrite(&numberOfAnnotations, sizeof(int32_t), 1, fp);
@@ -630,8 +648,10 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
     fwrite(regionCoverages, sizeof(int32_t), numberOfRegions, fp);
     // write number of labels (will be non-zero if there are truth/prediction labels in the input coverage file)
     fwrite(&numberOfLabels, sizeof(int32_t), 1, fp);
-    // get truth availability
+    // write truth availability
     fwrite(&isTruthAvailable, sizeof(bool), 1, fp);
+    // write truth availability
+    fwrite(&isPredictionAvailable, sizeof(bool), 1, fp);
     // write chunk length attributes
     fwrite(&chunkCanonicalLen, sizeof(int32_t), 1, fp);
     fwrite(&windowLen, sizeof(int32_t), 1, fp);
@@ -722,6 +742,8 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
     fread(&chunksCreator->numberOfLabels, sizeof(int32_t), 1, fp);
     // read truth availability one bit
     fread(&chunksCreator->isTruthAvailable, sizeof(bool), 1, fp);
+    // read prediction availability one bit
+    fread(&chunksCreator->isPredictionAvailable, sizeof(bool), 1, fp);
 
     // read chunk length attributes
     fread(&chunksCreator->chunkCanonicalLen, sizeof(int32_t), 1, fp);
