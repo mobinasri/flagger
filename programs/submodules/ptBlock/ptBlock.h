@@ -23,7 +23,7 @@
  * @field rds_f         Start coordinate on read's forward strand (0-based inclusive)
  * @field rde_f         End coordinate on read's forward strand (0-based inclusive)
  * @field data		Pointer to some data attached to the block
- * @field free_data	Function for freeing the memory allocated to data
+ * @field destruct_data	Function for freeing the memory allocated to data
  */
 typedef struct {
     int rfs; // ref start
@@ -42,9 +42,23 @@ typedef struct {
 } ptBlock;
 
 /*! @typedef
+ * @abstract Structure for keeping information about an inference 
+ * @field truth    The truth index (-1 means not defined)
+ * @field prediction    The prediction index (-1 means no defined)
+ */
+typedef struct Inference {
+	int8_t truth;
+	int8_t prediction;
+} Inference;
+
+void extend_inference_data(void *dest_, void *src_);
+void destruct_inference_data(void* src);
+void *copy_inference_data(void* src_);
+
+/*! @typedef
  * @abstract Structure for keeping useful information about a block with the same coverage/annotation
- * @field annotation_flag     a 32-bit flag where each bit represents a single annotation. Therefore it can only
- *                           keep track of 32 distinct annotations. For example "0...00000100" means the 3rd annotation
+ * @field annotation_flag     a 64-bit flag where each bit represents a single annotation. Therefore it can only
+ *                           keep track of 64 distinct annotations. For example "0...00000100" means the 3rd annotation
  *                           or "0...00011100" means that this block is completely within three different annotations;
  *                           3rd, 4th and 5th
  * @field coverage              The total read depth of coverage in this block
@@ -52,10 +66,15 @@ typedef struct {
  * @field coverage_high_clip    The read depth of coverage for only the alignments that are highly clipped (for example >10%)
  */
 typedef struct CoverageInfo {
-    int32_t annotation_flag;
+    uint64_t annotation_flag;
     u_int16_t coverage;
     u_int16_t coverage_high_mapq;
     u_int16_t coverage_high_clip;
+
+    void *data;
+    void (*destruct_data)(void *);
+    void *(*copy_data)(void *);
+    void (*extend_data)(void *, void *);
 } CoverageInfo;
 
 /*! @typedef
@@ -122,12 +141,12 @@ char *get_string_count_data(void* src_);
 /**
  * Creates an instance of CoverageInfo given the required attributes
  *
- * @param annotation_flag       32-bit flag for representing at most 32 different annotations
+ * @param annotation_flag       64-bit flag for representing at most 64 different annotations
  * @param coverage              coverage value for the related block
  * @param coverage_high_mapq    coverage of the alignments with high mapq for the related block
  * @param coverage_high_clip    coverage of the highly clipped alignments for the related block
  */
-CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
+CoverageInfo *CoverageInfo_construct(uint64_t annotation_flag,
                             u_int16_t coverage,
                             u_int16_t coverage_high_mapq,
                             u_int16_t coverage_high_clip);
@@ -138,14 +157,25 @@ void CoverageInfo_reset(CoverageInfo *coverageInfo);
 CoverageInfo **CoverageInfo_construct1DArray(int len);
 void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray, int len);
 void CoverageInfo_destruct(CoverageInfo *coverageInfo);
+int CoverageInfo_getFirstAnnotationIndex(CoverageInfo *coverageInfo);
+uint64_t CoverageInfo_getAnnotationFlag(int annotationIndex);
+uint64_t CoverageInfo_getAnnotationFlagFromArray(int *annotationIndices, int len);
+bool CoverageInfo_overlapAnnotationIndex(CoverageInfo *coverageInfo, int annotationIndex);
+uint64_t CoverageInfo_getAnnotationBits(CoverageInfo *coverageInfo);
 int CoverageInfo_getRegionIndex(CoverageInfo *coverageInfo);
-int32_t CoverageInfo_getRegionBitRepresentation(int regionIndex);
+void CoverageInfo_setRegionIndex(CoverageInfo *coverageInfo, int regionIndex);
+void CoverageInfo_setRegionIndexByMapping(CoverageInfo *coverageInfo, int *annotationToRegionMap, int annotationToRegionMapLength);
+int* CoverageInfo_getAnnotationIndices(CoverageInfo *coverageInfo, int *length);
 
 u_int16_t CoverageInfo_getCoverage(CoverageInfo *coverageInfo);
 u_int16_t CoverageInfo_getCoverageHighMapq(CoverageInfo *coverageInfo);
 u_int16_t CoverageInfo_getCoverageHighClip(CoverageInfo *coverageInfo);
 
+void CoverageInfo_addInferenceData(CoverageInfo *cov_info,
+                                   int8_t truth,
+                                   int8_t prediction);
 
+stHash *ptBlock_parse_inference_label_blocks(char *bedPath, bool isLabelTruth);
 stHash *ptBlock_parse_coverage_info_blocks(char *filePath);
 
 /**
@@ -339,6 +369,26 @@ void ptBlock_add_block_to_stList_table(stHash* blocks_per_contig, ptBlock* block
  *         of the given blocks
  */
 stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
+
+
+void ptBlock_print_headers_stList(stList *header_lines,
+                                  void *file_ptr,
+                                  bool is_compressed);
+
+
+stList *ptBlock_create_headers(stList *annotation_names,
+                               int *region_coverages,
+                               int number_of_regions,
+                               int number_of_labels,
+			       bool is_truth_available);
+
+void ptBlock_create_and_print_headers(stList *annotation_names,
+                                      int *region_coverages,
+                                      int number_of_regions,
+				      int number_of_labels,
+				      bool is_truth_available,
+                                      void *file_ptr,
+                                      bool is_compressed);
 
 /**
  * Print all block in the given table. The blocks are printed in BED format. start is 0-based and end is 1-based
@@ -598,11 +648,11 @@ stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path,
 stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path);
 
 int get_annotation_index(stList* annotation_names, char* annotation_name);
-stList *parse_annotation_names_and_save_in_stList(char* json_path);
-stList *parse_annotation_paths_and_save_in_stList(char* json_path);
+stList *parse_annotation_names_and_save_in_stList(const char *json_path, const char *annotation_zero_name);
+stList *parse_annotation_paths_and_save_in_stList(const char *json_path, const char *annotation_zero_path);
 
 void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list);
-stList* parse_all_annotations_and_save_in_stList(char* json_path);
+stList* parse_all_annotations_and_save_in_stList(const char *json_path, stHash *annotation_zero_block_table);
 
 
 // parse bam file and create a stHash table of blocks
@@ -614,5 +664,12 @@ stHash* ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
                                                                                      int threads,
                                                                                      int min_mapq,
 										     double min_clipping_ratio);
+void ptBlock_set_region_indices_by_mapping(stHash *blocks_per_contig, 
+		                           int *annotation_to_region_map, 
+					   int annotation_to_region_map_length);
+
+
+void ptBlock_write_blocks_per_contig(stHash *blockTable, const char *outPath, const char *format, stHash *ctgToLen, stList *headerLines);
+
 #endif /* PT_BLOCK_H */
 

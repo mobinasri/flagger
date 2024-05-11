@@ -4,6 +4,7 @@
 #include "track_reader.h"
 #include <zlib.h>
 
+#define MAX_NUMBER_OF_ANNOTATIONS 58
 
 ptBlock *ptBlock_construct(int rfs, int rfe, int sqs, int sqe, int rds_f, int rde_f) {
     ptBlock *block = malloc(sizeof(ptBlock));
@@ -55,9 +56,11 @@ void ptBlock_set_data(ptBlock *block, void *data, void (*destruct_data)(void *),
 }
 
 void ptBlock_extend_data(ptBlock *block, void *data) {
+	fprintf(stderr, "start ptBlock_extend_data\n");
     if (block->extend_data != NULL) {
         block->extend_data(block->data, data);
     }
+    fprintf(stderr, "end ptBlock_extend_data\n");
 }
 
 void ptBlock_destruct_data(ptBlock *block) {
@@ -101,7 +104,37 @@ char *get_string_count_data(void* src_){
     return str;
 }
 
-CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
+
+
+void extend_inference_data(void *dest_, void *src_){
+    fprintf(stderr, "### start extend\n");
+    Inference *dest = dest_;
+    Inference *src = src_;
+    if(0 <= src->truth){
+	    dest->truth = src->truth;
+    }
+    if(0 <= src->prediction){
+	    dest->prediction = src->prediction;
+    }
+    fprintf(stderr, "#### end extend \n");
+}
+
+
+void destruct_inference_data(void* src){
+    free(src);
+}
+
+
+void *copy_inference_data(void* src_){
+    Inference * src = src_;
+    Inference * dest = malloc(sizeof(Inference));
+    dest->truth = src->truth;
+    dest->prediction = src->prediction;
+    return dest;
+}
+
+
+CoverageInfo *CoverageInfo_construct(uint64_t annotation_flag,
                             u_int16_t coverage,
                             u_int16_t coverage_high_mapq,
                             u_int16_t coverage_high_clip){
@@ -110,19 +143,37 @@ CoverageInfo *CoverageInfo_construct(int32_t annotation_flag,
     cov_info->coverage = coverage;
     cov_info->coverage_high_mapq = coverage_high_mapq;
     cov_info->coverage_high_clip = coverage_high_clip;
+    cov_info->data = NULL;
+    cov_info->extend_data = NULL;
+    cov_info->destruct_data = NULL;
+    cov_info->copy_data = NULL;
     return cov_info;
 }
 
+void CoverageInfo_addInferenceData(CoverageInfo *cov_info,
+		                   int8_t truth,
+				   int8_t prediction){
+    if (cov_info->data != NULL){
+	    cov_info->destruct_data(cov_info->data);
+    }
+    Inference *infer = malloc(sizeof(Inference));
+    infer->truth = truth;
+    infer->prediction = prediction;
+    // set data
+    cov_info->data = infer;
+    // set related functions
+    cov_info->extend_data = extend_inference_data;
+    cov_info->destruct_data = destruct_inference_data;
+    cov_info->copy_data = copy_inference_data;
+}
+
 CoverageInfo *CoverageInfo_copy(CoverageInfo *src){
-    return CoverageInfo_construct(src->annotation_flag,
-                                  src->coverage,
-                                  src->coverage_high_mapq,
-                                  src->coverage_high_clip);
+	return (CoverageInfo *)copy_cov_info_data((void *) src);
 }
 
 
 void CoverageInfo_reset(CoverageInfo *coverageInfo){
-    coverageInfo->annotation_flag = 0;
+    coverageInfo->annotation_flag = 0ULL;
     coverageInfo->coverage = 0;
     coverageInfo->coverage_high_mapq = 0;
     coverageInfo->coverage_high_clip = 0;
@@ -132,7 +183,7 @@ void CoverageInfo_reset(CoverageInfo *coverageInfo){
 CoverageInfo **CoverageInfo_construct1DArray(int len){
     CoverageInfo **array = (CoverageInfo **) malloc(len * sizeof(CoverageInfo *));
     for(int i=0; i < len; i++){
-        array[i] = CoverageInfo_construct(0,0,0,0);
+        array[i] = CoverageInfo_construct(0ULL,0,0,0);
     }
     return array;
 }
@@ -154,17 +205,97 @@ void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray, int len){
 }
 
 void CoverageInfo_destruct(CoverageInfo *coverageInfo){
-    free(coverageInfo);
+    destruct_cov_info_data((void *) coverageInfo);
 }
 
-int32_t CoverageInfo_getRegionBitRepresentation(int regionIndex){
-	return 1 << regionIndex;
+uint64_t CoverageInfo_getAnnotationFlag(int annotationIndex){
+	uint64_t flag = 0 < annotationIndex ? 1ULL << (annotationIndex - 1) : 0ULL;
+	return flag;
 }
 
+uint64_t CoverageInfo_getAnnotationFlagFromArray(int *annotationIndices, int len){
+	uint64_t annotationFlag = 0ULL;
+	for(int i=0; i < len; i++){
+		annotationFlag |= CoverageInfo_getAnnotationFlag(annotationIndices[i]);
+	}
+        return annotationFlag;
+}
+
+
+int CoverageInfo_getFirstAnnotationIndex(CoverageInfo *coverageInfo){
+	uint64_t annotationBits = CoverageInfo_getAnnotationBits(coverageInfo);
+	int annotationIndex = annotationBits == 0ULL ? 0 : getFirstIndexWithNonZeroBitFromRight(annotationBits) + 1;
+	return annotationIndex;
+}
+
+bool CoverageInfo_overlapAnnotationIndex(CoverageInfo *coverageInfo, int annotationIndex){
+	if (CoverageInfo_getAnnotationBits(coverageInfo) == 0ULL && annotationIndex == 0) return 1;
+	uint64_t annotationFlag = CoverageInfo_getAnnotationFlag(annotationIndex);
+	return (annotationFlag & coverageInfo->annotation_flag) ? 1 : 0;
+}
+
+// once we have an array (with its length equal to the number of available annotations)
+// and it maps annotation index to region index we can use this function
+// for setting region bits based on annotation bits
+void CoverageInfo_setRegionIndexByMapping(CoverageInfo *coverageInfo, int *annotationToRegionMap, int annotationToRegionMapLength){
+	// reset region index
+	CoverageInfo_setRegionIndex(coverageInfo, 0);
+	// get all overlapping annotation indices
+	int len=0;
+	int *annotationIndices = CoverageInfo_getAnnotationIndices(coverageInfo, &len);
+	// one of the annotations might be mappable to a non-zero region index
+	// so we have to check all indices
+	for(int i=0; i < len; i++){
+		int annotationIndex = annotationIndices[i];
+		if (annotationToRegionMapLength <= annotationIndex) continue;
+		int regionIndex = annotationToRegionMap[annotationIndex];
+		if (regionIndex != 0){
+			CoverageInfo_setRegionIndex(coverageInfo, regionIndex);
+			break; // There should be at most one region index per annotation index
+		}
+	}
+	free(annotationIndices);
+}
+
+
+uint64_t CoverageInfo_getAnnotationBits(CoverageInfo *coverageInfo){
+        uint64_t regionDigitsMask = 0xFC00000000000000ULL; // only 6 high bits are 1
+	// Note the negation symbol
+        uint64_t annotationBits = (coverageInfo->annotation_flag & ~regionDigitsMask);
+        return annotationBits;
+}
+
+
+// high 6 bits are allocated for keeping the region index
+// 6 is hardcoded here and it should be enough since 
+// for hmm_flagger we barely expect to have more than 2^6 = 64
+// regions with different converage biases.
 int CoverageInfo_getRegionIndex(CoverageInfo *coverageInfo){
-	return getFirstIndexWithNonZeroBitFromRight(coverageInfo->annotation_flag);
+        uint64_t regionDigitsMask = 0xFC00000000000000ULL; // only 6 high bits are 1
+	int regionIndex = (coverageInfo->annotation_flag & regionDigitsMask) >> (64 - 6);
+        return regionIndex;
 }
 
+void CoverageInfo_setRegionIndex(CoverageInfo *coverageInfo, int regionIndex){
+	uint64_t regionIndex64Bit = regionIndex;
+        coverageInfo->annotation_flag &= 0x03FFFFFFFFFFFFFFULL; // reset high 6 bits (region bits)
+	coverageInfo->annotation_flag |= (regionIndex64Bit << (64 - 6)); // set region digits						   
+}
+
+
+int* CoverageInfo_getAnnotationIndices(CoverageInfo *coverageInfo, int *length){
+	int *indices = NULL;
+	int actualSize = 0;
+	for(int annotationIndex = 0; annotationIndex < MAX_NUMBER_OF_ANNOTATIONS; annotationIndex++){
+		if(CoverageInfo_overlapAnnotationIndex(coverageInfo, annotationIndex)){
+			indices = (int*) realloc(indices, (actualSize + 1) * sizeof(int));
+			indices[actualSize] = annotationIndex;
+			actualSize++;
+		}
+	}
+	*length = actualSize;
+	return indices;
+}
 
 u_int16_t CoverageInfo_getCoverage(CoverageInfo *coverageInfo){
 	return coverageInfo->coverage;
@@ -181,20 +312,35 @@ CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int 
     int max_clip = max(alignment->r_clip, alignment->l_clip);
     int alignment_len = alignment->rfe - alignment->rfs + 1;
     u_int16_t coverage_high_clip = min_clipping_ratio <= ((double) max_clip / alignment_len) ? 1 : 0;
-    return CoverageInfo_construct(0, 1, coverage_high_mapq, coverage_high_clip);
+    return CoverageInfo_construct(0ULL, 1, coverage_high_mapq, coverage_high_clip);
 }
 
 void extend_cov_info_data(void *dest_, void *src_){
+	fprintf(stderr, "## start extend_cov_info_data\n");
     CoverageInfo * dest = dest_;
     CoverageInfo * src = src_;
     dest->annotation_flag |= src->annotation_flag;
     dest->coverage += src->coverage;
     dest->coverage_high_mapq += src->coverage_high_mapq;
     dest->coverage_high_clip += src->coverage_high_clip;
+    if(src->data != NULL && dest->data != NULL){
+	    dest->extend_data(dest->data, src->data);
+    }
+    else if (src->data != NULL && dest->data == NULL){
+	    dest->data = src->copy_data(src->data);
+	    dest->copy_data = src->copy_data;
+	    dest->destruct_data = src->destruct_data;
+	    dest->extend_data = src->extend_data;
+    }
+    fprintf(stderr, "## end extend_cov_info_data\n");
 }
 
 
-void destruct_cov_info_data(void* src){
+void destruct_cov_info_data(void* src_){
+    CoverageInfo *src = (CoverageInfo *) src_;
+    if(src->data != NULL){
+	    src->destruct_data(src->data);
+    }
     free(src);
 }
 
@@ -206,6 +352,17 @@ void *copy_cov_info_data(void* src_){
     dest->coverage = src->coverage;
     dest->coverage_high_mapq = src->coverage_high_mapq;
     dest->coverage_high_clip = src->coverage_high_clip;
+    if(src->data != NULL && src->copy_data != NULL){
+	    dest->data = src->copy_data(src->data);
+	    dest->copy_data = src->copy_data;
+	    dest->extend_data = src->extend_data;
+	    dest->destruct_data = src->destruct_data;
+    }else{
+	    dest->data = NULL;
+	    dest->copy_data = NULL;
+	    dest->extend_data = NULL;
+	    dest->destruct_data = NULL;
+    }
     return dest;
 }
 
@@ -223,13 +380,34 @@ char *get_string_cov_info_data_format_1(void* src_){
 
 char *get_string_cov_info_data_format_2(void* src_){
     CoverageInfo * src = src_;
-    char *str = malloc(150);
+    
+    int len=0;
+    int *annotation_indices = CoverageInfo_getAnnotationIndices(src, &len);
+    char *annotation_entry_str = String_joinIntArray(annotation_indices, len, ','); 
+
+    char *str = malloc(200);
     sprintf(str,
-            "%d\t%d\t%d\t%d",
+            "%d\t%d\t%d\t%s\t%d",
             src->coverage,
             src->coverage_high_mapq,
             src->coverage_high_clip,
+	    annotation_entry_str,
             CoverageInfo_getRegionIndex(src));
+
+    if(src->data != NULL){
+	    Inference *infer = src->data;
+	    sprintf(str,
+	            "%d\t%d\t%d\t%s\t%d\t%d\t%d",
+	            src->coverage,
+                    src->coverage_high_mapq,
+                    src->coverage_high_clip,
+                    annotation_entry_str,
+                    CoverageInfo_getRegionIndex(src),
+	            infer->truth,
+	            infer->prediction);
+    }
+    free(annotation_indices);
+    free(annotation_entry_str);
     return str;
 }
 
@@ -254,6 +432,7 @@ char *get_string_cov_info_data_format_only_high_mapq(void* src_){
 
 
 ptBlock *ptBlock_copy(ptBlock *block) {
+	fprintf(stderr,"start ptBlock_copy\n");
     ptBlock *block_copy = ptBlock_construct(block->rfs,
                                             block->rfe,
                                             block->sqs,
@@ -262,6 +441,7 @@ ptBlock *ptBlock_copy(ptBlock *block) {
                                             block->rde_f);
     void *data_copy = ptBlock_copy_data(block);
     ptBlock_set_data(block_copy, data_copy, block->destruct_data, block->copy_data, block->extend_data);
+    fprintf(stderr,"end ptBlock_copy\n");
     return block_copy;
 }
 
@@ -613,6 +793,81 @@ stList *ptBlock_get_sorted_contig_list(stHash* blocks_per_contig){
 	return contig_list;
 }
 
+
+void ptBlock_print_headers_stList(stList *header_lines,
+                                  void *file_ptr,
+				  bool is_compressed){
+	for(int i=0; i< stList_length(header_lines); i++){
+		char *line = stList_get(header_lines, i);
+		if(is_compressed){
+			gzFile* gzFile_ptr = file_ptr;
+			gzprintf(*gzFile_ptr, "%s\n", line);
+		}else{
+			FILE* fp = file_ptr;
+			fprintf(fp,"%s\n",line);
+		}
+	}
+}
+
+stList *ptBlock_create_headers(stList *annotation_names,
+                               int *region_coverages,
+                               int number_of_regions,
+			       int number_of_labels,
+			       bool is_truth_available){
+
+        stList *header_lines = stList_construct3(0, free);
+        char line[1000];
+
+        // add header lines for annotation
+        sprintf(line, "#annotation:len:%d",stList_length(annotation_names));
+        stList_append(header_lines, copyString(line));
+        for(int i=0; i< stList_length(annotation_names); i++){
+                sprintf(line, "#annotation:name:%d:%s", i,(char *) stList_get(annotation_names,i));
+                stList_append(header_lines, copyString(line));
+        }
+
+        // add header lines for region
+        sprintf(line, "#region:len:%d",number_of_regions);
+        stList_append(header_lines, copyString(line));
+        for(int i=0; i < number_of_regions; i++){
+                sprintf(line, "#region:coverage:%d:%d", i, region_coverages[i]);
+                stList_append(header_lines, copyString(line));
+        }
+
+	// add number of labels for truth/prediction
+	if(0 < number_of_labels){
+		// add header line for number of labels
+		sprintf(line, "#label:len:%d",number_of_labels);
+		stList_append(header_lines, copyString(line));
+	}
+
+	// are truth labels available
+	if(is_truth_available){
+		sprintf(line, "#truth:true");
+                stList_append(header_lines, copyString(line));
+	}
+	else{
+		sprintf(line, "#truth:false");
+                stList_append(header_lines, copyString(line));
+	}
+
+	return header_lines;
+}
+
+void ptBlock_create_and_print_headers(stList *annotation_names,
+		                      int *region_coverages,
+				      int number_of_regions,
+				      int number_of_labels,
+				      bool is_truth_available,
+                                      void *file_ptr,
+                                      bool is_compressed){
+	stList *header_lines = ptBlock_create_headers(annotation_names, region_coverages, number_of_regions, number_of_labels, is_truth_available);
+	// write header lines
+	ptBlock_print_headers_stList(header_lines, file_ptr, is_compressed);
+	stList_destruct(header_lines);
+}
+
+
 void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
                                         char * (*get_string_function)(void *),
                                         void* file_ptr,
@@ -679,8 +934,10 @@ void ptBlock_sort_stHash_by_rfs(stHash *blocks_per_contig) {
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
     while ((contig_name = stHash_getNext(it)) != NULL) {
         blocks = stHash_search(blocks_per_contig, contig_name);
+	fprintf(stderr, "###%s\n", contig_name);
         stList_sort(blocks, ptBlock_cmp_rfs);
     }
+    fprintf(stderr, "###done\n");
 }
 
 stList *ptBlock_merge_blocks(stList *blocks,
@@ -735,6 +992,7 @@ stList *ptBlock_merge_blocks_v2(stList *blocks,
     int e2;
     for (int i = 0; i < stList_length(blocks); i++) {
         b2 = stList_get(blocks, i);
+	fprintf(stderr, "%d : %d-%d\n",i, get_start(b2), get_end(b2));
         //printf("%d\t%d\n", b->rds_f, b->rde_f);
         if (stList_length(blocks_merged_ongoing) == 0) { // Initiate b_merged for the first block
             b_merged = ptBlock_copy(b2);
@@ -746,9 +1004,11 @@ stList *ptBlock_merge_blocks_v2(stList *blocks,
         blocks_merged_temp = blocks_merged_ongoing;
         blocks_merged_ongoing = stList_construct3(0, ptBlock_destruct);
         for (int j = 0; j < stList_length(blocks_merged_temp); j++) {
+	    fprintf(stderr , "%d(%d)\n",j,stList_length(blocks_merged_temp));
             b1 = stList_get(blocks_merged_temp, j);
             e1 = get_end(b1);
             s1 = get_start(b1);
+	    fprintf(stderr , "%d-%d\n",s1,e1);
             /*
              * finalized:
              *
@@ -924,6 +1184,24 @@ stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
                                                          (void (*)(void *)) stList_destruct);
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
     while ((contig_name = stHash_getNext(it)) != NULL) {
+	    blocks = stHash_search(blocks_per_contig, contig_name);
+        fprintf(stderr , "## %s\n", contig_name);
+	for(int i=0; i < stList_length(blocks); i++){
+		ptBlock *block = stList_get(blocks,i);
+		if (block->data != NULL){
+			CoverageInfo* covInfo = block->data;
+			fprintf(stderr, "#@#@ %s %d %d %d\n",contig_name, block->rfs, block->rfe, covInfo->coverage);
+			if(covInfo->data != NULL){
+				Inference *infer = covInfo->data;
+				fprintf(stderr, "#@#INFER@ %d %d\n", infer->truth, infer->prediction);
+			}
+		}
+	}
+    }
+    stHash_destructIterator(it);
+    it = stHash_getIterator(blocks_per_contig); 
+    while ((contig_name = stHash_getNext(it)) != NULL) {
+	fprintf(stderr , "## %s\n", contig_name);
         // get blocks
         blocks = stHash_search(blocks_per_contig, contig_name);
         // merge blocks
@@ -1106,6 +1384,7 @@ void ptBlock_add_data_to_all_blocks_stHash(stHash *blocks_per_contig,
                          copy_data,
                          extend_data);
     }
+    ptBlockItrPerContig_destruct(block_iter);
 }
 
 stList* ptBlock_copy_stList(stList* blocks) {
@@ -1314,6 +1593,7 @@ stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path,
     fprintf(stderr, "[%s] Started sorting and merging blocks.\n", get_timestamp());
     //sort
     ptBlock_sort_stHash_by_rfs(coverage_blocks_per_contig);
+    fprintf(stderr, "[%s] Sorting is done.\n", get_timestamp());
     //merge
     stHash * coverage_blocks_per_contig_merged = ptBlock_merge_blocks_per_contig_by_rf_v2(coverage_blocks_per_contig);
     fprintf(stderr, "[%s] Merging coverage blocks is done.\n", get_timestamp());
@@ -1333,10 +1613,19 @@ int get_annotation_index(stList* annotation_names, char* annotation_name){
     return -1;
 }
 
-stList *parse_annotation_names_and_save_in_stList(char* json_path){
+// annotation_zero_name will be ignored if its value is NULL
+stList *parse_annotation_names_and_save_in_stList(const char *json_path, const char *annotation_zero_name){
+    stList* annotation_names = stList_construct3(0, free);
+    if(annotation_zero_name != NULL){
+            stList_append(annotation_names, copyString(annotation_zero_name));
+    }
+    if (json_path == NULL){
+	    return annotation_names;
+    }
+
     int buffer_size = 0;
     char* json_buffer = read_whole_file(json_path, &buffer_size, "r");
-    fwrite(json_buffer,1,buffer_size,stderr);
+    fwrite(json_buffer, 1, buffer_size, stderr);
     cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
     if (annotation_json == NULL)
     {
@@ -1349,7 +1638,6 @@ stList *parse_annotation_names_and_save_in_stList(char* json_path){
     }
 
     int annotation_count = cJSON_GetArraySize(annotation_json);
-    stList* annotation_names = stList_construct3(0, free);
 
     // iterate over key-values in json
     // each key is an index
@@ -1363,7 +1651,16 @@ stList *parse_annotation_names_and_save_in_stList(char* json_path){
     return annotation_names;
 }
 
-stList *parse_annotation_paths_and_save_in_stList(char* json_path){
+// annotation_zero_path will be ignored if its value is NULL
+stList *parse_annotation_paths_and_save_in_stList(const char *json_path, const char *annotation_zero_path){
+    stList* annotation_paths = stList_construct3(0, free);
+    if (annotation_zero_path != NULL){
+	    stList_append(annotation_paths, copyString(annotation_zero_path));
+    }
+    if (json_path == NULL){
+	    return annotation_paths;
+    }
+
     int buffer_size = 0;
     char* json_buffer = read_whole_file(json_path, &buffer_size, "r");
     fwrite(json_buffer,1,buffer_size,stderr);
@@ -1377,8 +1674,6 @@ stList *parse_annotation_paths_and_save_in_stList(char* json_path){
         }
         return NULL;
     }
-
-    stList* annotation_paths = stList_construct3(0, free);
 
     // iterate over key-values in json
     // each key is an index
@@ -1392,44 +1687,96 @@ stList *parse_annotation_paths_and_save_in_stList(char* json_path){
     return annotation_paths;
 }
 
-
-stList* parse_all_annotations_and_save_in_stList(char* json_path){
-    int buffer_size = 0;
-    char* json_buffer = read_whole_file(json_path, &buffer_size, "r");
-    fwrite(json_buffer,1,buffer_size,stderr);
-    cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
-    if (annotation_json == NULL)
-    {
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL)
-        {
-            fprintf(stderr, "Error before: %s\n", error_ptr);
-        }
-        return NULL;
-    }
-
-    int annotation_count = cJSON_GetArraySize(annotation_json);
+// annotation_zero_block_table can be NULL
+stList* parse_all_annotations_and_save_in_stList(const char *json_path, stHash *annotation_zero_block_table){
     stList* block_table_list = stList_construct3(0, stHash_destruct);
-
-    // iterate over key-values in json
-    // each key is an index
-    // each value is a path to a bed file
-    cJSON *element = NULL;
-    cJSON_ArrayForEach(element, annotation_json)
-    {
-        if (cJSON_IsString(element)){
-            char* bed_path = cJSON_GetStringValue(element);
-            stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
-            fprintf(stderr, "[%s] Parsed  annotation %s:%s\n", get_timestamp(), element->string, cJSON_GetStringValue(element));
-            stList_append(block_table_list, annotation_block_table);
-        }
+    // first add block table for annotation 0 (no_annotation)
+    if(annotation_zero_block_table != NULL){
+            stList_append(block_table_list, annotation_zero_block_table);
     }
-    cJSON_Delete(annotation_json);
-    fprintf(stderr, "[%s] Number of parsed annotations = %d\n", get_timestamp(), stList_length(block_table_list));
+
+    if (json_path != NULL){
+	    int buffer_size = 0;
+	    char* json_buffer = read_whole_file(json_path, &buffer_size, "r");
+	    fwrite(json_buffer,1,buffer_size,stderr);
+	    cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
+	    if (annotation_json == NULL)
+	    {
+		    const char *error_ptr = cJSON_GetErrorPtr();
+		    if (error_ptr != NULL)
+		    {
+			    fprintf(stderr, "Error before: %s\n", error_ptr);
+		    }
+		    return NULL;
+	    }
+
+	    int annotation_count = cJSON_GetArraySize(annotation_json);
+	    // iterate over key-values in json
+	    // each key is an index
+	    // each value is a path to a bed file
+	    cJSON *element = NULL;
+	    cJSON_ArrayForEach(element, annotation_json){
+		    if (cJSON_IsString(element)){
+			    char* bed_path = cJSON_GetStringValue(element);
+			    stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
+			    fprintf(stderr, "[%s] Parsed  annotation %s:%s\n", get_timestamp(), element->string, cJSON_GetStringValue(element));
+			    stList_append(block_table_list, annotation_block_table);
+		    }
+	    }
+	    cJSON_Delete(annotation_json);
+    }
+    fprintf(stderr, "[%s] Number of created annotation block tables = %d\n", get_timestamp(), stList_length(block_table_list));
     //for(int i=0;i < stList_length(block_table_list);i++){
     //    ptBlock_print_blocks_stHash_in_bed(stList_get(block_table_list, i), NULL, stderr, false);
     //}
     return block_table_list;
+
+}
+
+
+// parse a bed file with at least 4 columns. 4th column can be an integer
+// showing the truth/prediction label index
+stHash *ptBlock_parse_inference_label_blocks(char *bedPath, bool isLabelTruth){
+	TrackReader *trackReader = TrackReader_construct(bedPath, NULL, true); //0-based coors = true
+        stHash *label_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
+                                                           (void (*)(void *)) stList_destruct);
+        stList *blocks = NULL;
+        while(0 < TrackReader_next(trackReader)){
+                // create a ptBlock based on the parsed track
+                ptBlock *block = ptBlock_construct(trackReader->s, trackReader->e,
+                                                   -1, -1,
+                                                   -1, -1);
+                CoverageInfo * cov_info_data = CoverageInfo_construct(0ULL, 0, 0, 0);
+		// read 4th column
+		int8_t label = 1 <= trackReader->attrbsLen ? atoi(trackReader->attrbs[0]) : -1;
+		fprintf(stderr, "LABEL=%d\n", label);
+                // add inference data to coverage info
+		if (isLabelTruth){
+			int8_t truth = label;
+                        CoverageInfo_addInferenceData(cov_info_data, truth, -1);
+                }else{ // label is prediction
+			int8_t prediction = label;
+			CoverageInfo_addInferenceData(cov_info_data, -1, prediction);
+		}
+
+		// add coverage info data to block
+                ptBlock_set_data(block, cov_info_data,
+                                destruct_cov_info_data,
+                                copy_cov_info_data,
+                                extend_cov_info_data);
+
+                // add block to the block stHash table
+                blocks = stHash_search(label_blocks_per_contig, trackReader->ctg);
+                // add new contig key to the table if it does not exist
+                if (blocks == NULL){
+                        blocks = stList_construct3(0,ptBlock_destruct);
+                        stHash_insert(label_blocks_per_contig, copyString(trackReader->ctg), blocks);
+                }
+                stList_append(blocks, block);
+	}
+	TrackReader_destruct(trackReader);
+        ptBlock_sort_stHash_by_rfs(label_blocks_per_contig);
+        return label_blocks_per_contig;
 
 }
 
@@ -1445,11 +1792,26 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath){
 				                   -1, -1,
 						   -1, -1);
 		// annotation_flag is the first attribute
-		int annotation_flag = CoverageInfo_getRegionBitRepresentation(atoi(trackReader->attrbs[3]));
+		int len = 0;
+		int *annotation_indices = Splitter_getIntArray(trackReader->attrbs[3], ',', &len);
+		uint64_t annotation_flag = CoverageInfo_getAnnotationFlagFromArray(annotation_indices, len);
 		CoverageInfo * cov_info_data = CoverageInfo_construct(annotation_flag,
 				                                      atoi(trackReader->attrbs[0]),
 								      atoi(trackReader->attrbs[1]),
 				                                      atoi(trackReader->attrbs[2]));
+		free(annotation_indices);
+
+		// set region index
+		CoverageInfo_setRegionIndex(cov_info_data, atoi(trackReader->attrbs[4]));
+		// add inference data if exists
+		int8_t truth = 6 <= trackReader->attrbsLen ? atoi(trackReader->attrbs[5]) : -1;
+		// parse prediction label if it exists (optional attribute)
+		int8_t prediction = 7 <= trackReader->attrbsLen ? atoi(trackReader->attrbs[6]) : -1;
+		// at least one of truth or prediction labels should be defined to add the inference data
+		if (truth != -1 || prediction != -1){
+			CoverageInfo_addInferenceData(cov_info_data, truth, prediction);
+		}
+
 		// add coverageInfo data to block
 		ptBlock_set_data(block, cov_info_data, 
 				destruct_cov_info_data,
@@ -1476,12 +1838,12 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath){
 // given stList as the input
 // The data augmentation is happening in place
 void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list){
-    for(int i=0; i < stList_length(block_table_list); i++){
-        stHash * block_per_contig = stList_get(block_table_list, i);
+    for(int annotationIndex=0; annotationIndex < stList_length(block_table_list); annotationIndex++){
+        stHash * block_per_contig = stList_get(block_table_list, annotationIndex);
         // Each annotation has an associated flag represented by a bit-vector
-        // the size of the bit-vector is 32, so it can be saved in an int32_t variable
-        // for example for i=0 -> flag = 1 and for i=6 -> flag= 64
-        int32_t annotation_flag = CoverageInfo_getRegionBitRepresentation(i);
+        // the size of the bit-vector is 64, so it can be saved in an int64_t variable
+        // for example for i=0 -> flag = 0 and for i=6 -> flag= 32
+        int32_t annotation_flag = CoverageInfo_getAnnotationFlag(annotationIndex);
         CoverageInfo * cov_info = CoverageInfo_construct(annotation_flag, 0, 0, 0);
         // The cov_info object created above will be copied and added as "data" to all blocks
         // for the current annotation. This process is happening in place
@@ -1498,12 +1860,6 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
                                                                                      int threads,
                                                                                      int min_mapq,
                                                                                      double min_clipping_ratio) {
-    // parse annotation bed files
-    stList *annotation_block_table_list = parse_all_annotations_and_save_in_stList(json_path);
-
-    // add coverage info objects as data to all annotation blocks
-    // each coverage info will contain only the related annotation flag with 0 coverage
-    add_coverage_info_to_all_annotation_block_tables(annotation_block_table_list);
 
     // parse alignments and make a block table that contains the necessary coverage values per block
     // the coverage values will be related to the total alignments, alignments with high mapq and
@@ -1520,12 +1876,8 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
     // cover the whole genome with blocks that have zero coverage
     // this is useful to save the blocks with no coverage
     stHash *whole_genome_block_table = ptBlock_get_whole_genome_blocks_per_contig(bam_path);
-    // print len/number stats for the whole genome block table
-    fprintf(stderr, "[%s] Created block table for whole genome  : tot_len=%ld, number=%ld\n", get_timestamp(),
-            ptBlock_get_total_length_by_rf(whole_genome_block_table),
-            ptBlock_get_total_number(whole_genome_block_table));
 
-    CoverageInfo *cov_info = CoverageInfo_construct(0, 0, 0, 0);
+    CoverageInfo *cov_info = CoverageInfo_construct(CoverageInfo_getAnnotationFlag(0), 0, 0, 0);
     // The cov_info object created above will be copied and added as "data" to all whole genome blocks
     // This process is happening in place.
     ptBlock_add_data_to_all_blocks_stHash(whole_genome_block_table,
@@ -1540,28 +1892,35 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
             ptBlock_get_total_number(whole_genome_block_table));
 
 
-    // add annotation and coverage blocks to the whole genome blocks in place
-    ptBlock_extend_block_tables(whole_genome_block_table, coverage_block_table);
-    fprintf(stderr, "[%s] Added 0-coverage whole genome blocks to coverage block tables : tot_len=%ld, number=%ld\n",
-            get_timestamp(),
-            ptBlock_get_total_length_by_rf(whole_genome_block_table),
-            ptBlock_get_total_number(whole_genome_block_table));
+    // parse annotation bed files
+    stList *annotation_block_table_list = parse_all_annotations_and_save_in_stList(json_path, whole_genome_block_table);
+
+    if(MAX_NUMBER_OF_ANNOTATIONS < stList_length(annotation_block_table_list)){
+            fprintf(stderr, "[%s] Warning: %d annotation bed files are given, which is more than maximum number (%d). In the current implementation it may interfere with digits dedicated for coverage bias detection.\n", get_timestamp(), stList_length(annotation_block_table_list), MAX_NUMBER_OF_ANNOTATIONS);
+    }
+    // add coverage info objects as data to all annotation blocks
+    // each coverage info will contain only the related annotation flag with 0 coverage
+    add_coverage_info_to_all_annotation_block_tables(annotation_block_table_list);
+
+
     for (int i = 0; i < stList_length(annotation_block_table_list); i++) {
-        ptBlock_extend_block_tables(whole_genome_block_table, stList_get(annotation_block_table_list, i));
+        ptBlock_extend_block_tables(coverage_block_table, stList_get(annotation_block_table_list, i));
     }
     fprintf(stderr, "[%s] Added annotation blocks to coverage block tables: tot_len=%ld, number=%ld\n", get_timestamp(),
-            ptBlock_get_total_length_by_rf(whole_genome_block_table),
-            ptBlock_get_total_number(whole_genome_block_table));
+            ptBlock_get_total_length_by_rf(coverage_block_table),
+            ptBlock_get_total_number(coverage_block_table));
 
     fprintf(stderr, "[%s] Started sorting and merging blocks\n", get_timestamp());
     //sort
-    ptBlock_sort_stHash_by_rfs(whole_genome_block_table);
+    ptBlock_sort_stHash_by_rfs(coverage_block_table);
+    fprintf(stderr, "[%s] Sorting is done!\n", get_timestamp());
+
     fprintf(stderr, "[%s] Merged blocks : tot_len=%ld, number=%ld\n", get_timestamp(),
-            ptBlock_get_total_length_by_rf(whole_genome_block_table),
-            ptBlock_get_total_number(whole_genome_block_table));
+            ptBlock_get_total_length_by_rf(coverage_block_table),
+            ptBlock_get_total_number(coverage_block_table));
 
     //merge and create the final block table
-    stHash *final_block_table = ptBlock_merge_blocks_per_contig_by_rf_v2(whole_genome_block_table);
+    stHash *final_block_table = ptBlock_merge_blocks_per_contig_by_rf_v2(coverage_block_table);
 
     fprintf(stderr, "[%s] Created final block table : tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(final_block_table),
@@ -1570,8 +1929,99 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
 
     // free unmerged blocks
     stHash_destruct(coverage_block_table);
-    stHash_destruct(whole_genome_block_table);
     stList_destruct(annotation_block_table_list);
 
     return final_block_table;
 }
+
+void ptBlock_set_region_indices_by_mapping(stHash *blocks_per_contig, int *annotation_to_region_map, int annotation_to_region_map_length){
+	ptBlockItrPerContig * block_iter = ptBlockItrPerContig_construct(blocks_per_contig);
+	char ctg_name[200];
+	ptBlock* block;
+	while ((block = ptBlockItrPerContig_next(block_iter, ctg_name)) != NULL) {
+		if(block->data != NULL){
+			CoverageInfo_setRegionIndexByMapping((CoverageInfo*) block->data, 
+				                     	     annotation_to_region_map, 
+						             annotation_to_region_map_length);
+		}
+	}
+	ptBlockItrPerContig_destruct(block_iter);
+}
+
+void ptBlock_write_blocks_per_contig(stHash *blockTable, const char *outPath, const char *format, stHash *ctgToLen, stList *headerLines){
+    
+    char *extension = extractFileExtension(outPath);
+    bool isCompressed = strcmp(extension, "cov.gz") == 0 || strcmp(extension, "bed.gz") == 0;
+    bool isFormatCov = strcmp(extension, "cov.gz") == 0 || strcmp(extension, "cov") == 0;
+    bool isFormatBed = strcmp(extension, "bed.gz") == 0 || strcmp(extension, "bed") == 0;
+
+    if (!isFormatBed && !isFormatCov){
+	    fprintf(stderr, "[%s] (Error) The output file (%s) should have one of these formats cov, cov.gz, bed or bed.gz\n", get_timestamp(), outPath);
+            exit(EXIT_FAILURE);
+    }
+
+    if (isFormatCov && ctgToLen == NULL){
+	    fprintf(stderr, "[%s] (Error) For writing to %s it is necessary to pass a table of contig lengths.\n", get_timestamp(), outPath);
+	    exit(EXIT_FAILURE);
+    }
+
+    // open output file for writing
+    void *filePtr;
+    if (isCompressed){
+	gzFile fp = gzopen(outPath, "w6h");
+        if (fp == Z_NULL) {
+            fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outPath);
+	    exit(EXIT_FAILURE);
+        }
+	filePtr = &fp;
+    }
+    else{
+	FILE* fp = fopen(outPath, "w");
+        if (fp == NULL) {
+            fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outPath);
+        }
+	filePtr = fp;
+    }
+
+    fprintf(stderr, "[%s] Started writing to %s.\n", get_timestamp(), outPath);
+    // write
+    if (isFormatCov){ // if file extension is either cov or cov.gz
+    	if (strcmp(format, "only_total") == 0){
+            ptBlock_print_blocks_stHash_in_cov(blockTable,
+                                               get_string_cov_info_data_format_only_total,
+                                               filePtr,
+                                               isCompressed,
+                                               ctgToLen);
+        }else if (strcmp(format,"only_high_mapq") == 0){
+            ptBlock_print_blocks_stHash_in_cov(blockTable,
+                                               get_string_cov_info_data_format_only_high_mapq,
+                                               filePtr,
+                                               isCompressed,
+                                               ctgToLen);
+        } else if (strcmp(format, "all") == 0){
+	    ptBlock_print_headers_stList(headerLines, filePtr, isCompressed);
+            ptBlock_print_blocks_stHash_in_cov(blockTable,
+                                               get_string_cov_info_data_format_2,
+                                               filePtr,
+                                               isCompressed,
+                                               ctgToLen);
+        }
+    }
+    else if (isFormatBed){ // if file extension is either bed or bed.gz
+	ptBlock_print_headers_stList(headerLines, filePtr, isCompressed);
+        ptBlock_print_blocks_stHash_in_bed(blockTable,
+                                           get_string_cov_info_data_format_1,
+                                           filePtr,
+                                           isCompressed);
+    }
+
+    // close output file
+    if (isCompressed){
+	gzFile* fpGz = filePtr;
+	gzclose(*fpGz);
+    }
+    else{
+        fclose((FILE *)filePtr);
+    }
+}
+
