@@ -180,6 +180,7 @@ void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
         // if this annotation is not among the ones to check go to the next one
         if (get_annotation_index(annotationNamesToCheck, annotationName) == -1) continue;
 
+        // get stats for detecting coverage bias
         int mostFrequentCoverage = biasDetector->mostFrequentCoveragePerAnnotation[annotIndex];
         int maxCount = biasDetector->maxCountPerAnnotation[annotIndex];
         int totalCount = biasDetector->totalCountPerAnnotation[annotIndex];

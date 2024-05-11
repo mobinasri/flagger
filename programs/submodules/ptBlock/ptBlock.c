@@ -56,11 +56,9 @@ void ptBlock_set_data(ptBlock *block, void *data, void (*destruct_data)(void *),
 }
 
 void ptBlock_extend_data(ptBlock *block, void *data) {
-    fprintf(stderr, "start ptBlock_extend_data\n");
     if (block->extend_data != NULL) {
         block->extend_data(block->data, data);
     }
-    fprintf(stderr, "end ptBlock_extend_data\n");
 }
 
 void ptBlock_destruct_data(ptBlock *block) {
@@ -106,7 +104,6 @@ char *get_string_count_data(void *src_) {
 
 
 void extend_inference_data(void *dest_, void *src_) {
-    fprintf(stderr, "### start extend\n");
     Inference *dest = dest_;
     Inference *src = src_;
     if (0 <= src->truth) {
@@ -115,7 +112,6 @@ void extend_inference_data(void *dest_, void *src_) {
     if (0 <= src->prediction) {
         dest->prediction = src->prediction;
     }
-    fprintf(stderr, "#### end extend \n");
 }
 
 
@@ -318,7 +314,6 @@ CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int 
 }
 
 void extend_cov_info_data(void *dest_, void *src_) {
-    fprintf(stderr, "## start extend_cov_info_data\n");
     CoverageInfo *dest = dest_;
     CoverageInfo *src = src_;
     dest->annotation_flag |= src->annotation_flag;
@@ -333,7 +328,6 @@ void extend_cov_info_data(void *dest_, void *src_) {
         dest->destruct_data = src->destruct_data;
         dest->extend_data = src->extend_data;
     }
-    fprintf(stderr, "## end extend_cov_info_data\n");
 }
 
 
@@ -432,7 +426,6 @@ char *get_string_cov_info_data_format_only_high_mapq(void *src_) {
 
 
 ptBlock *ptBlock_copy(ptBlock *block) {
-    fprintf(stderr, "start ptBlock_copy\n");
     ptBlock *block_copy = ptBlock_construct(block->rfs,
                                             block->rfe,
                                             block->sqs,
@@ -441,7 +434,6 @@ ptBlock *ptBlock_copy(ptBlock *block) {
                                             block->rde_f);
     void *data_copy = ptBlock_copy_data(block);
     ptBlock_set_data(block_copy, data_copy, block->destruct_data, block->copy_data, block->extend_data);
-    fprintf(stderr, "end ptBlock_copy\n");
     return block_copy;
 }
 
@@ -897,7 +889,7 @@ void ptBlock_print_blocks_stHash_in_cov(stHash *blocks_per_contig,
         // get the contig length and print it beside the contig header
         int *ctg_len_ptr = stHash_search(ctg_to_len, ctg_name);
         if (ctg_len_ptr == NULL) {
-            fprintf(stderr, "[%s] Error: contig %s is not present in the bam/sam header or fai file\n", get_timestamp(),
+            fprintf(stderr, "[%s] Error: contig '%s' is not present in the bam/sam header or fai file\n", get_timestamp(),
                     ctg_name);
             exit(EXIT_FAILURE);
         }
@@ -948,10 +940,8 @@ void ptBlock_sort_stHash_by_rfs(stHash *blocks_per_contig) {
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
     while ((contig_name = stHash_getNext(it)) != NULL) {
         blocks = stHash_search(blocks_per_contig, contig_name);
-        fprintf(stderr, "###%s\n", contig_name);
         stList_sort(blocks, ptBlock_cmp_rfs);
     }
-    fprintf(stderr, "###done\n");
 }
 
 stList *ptBlock_merge_blocks(stList *blocks,
@@ -1006,7 +996,6 @@ stList *ptBlock_merge_blocks_v2(stList *blocks,
     int e2;
     for (int i = 0; i < stList_length(blocks); i++) {
         b2 = stList_get(blocks, i);
-        fprintf(stderr, "%d : %d-%d\n", i, get_start(b2), get_end(b2));
         //printf("%d\t%d\n", b->rds_f, b->rde_f);
         if (stList_length(blocks_merged_ongoing) == 0) { // Initiate b_merged for the first block
             b_merged = ptBlock_copy(b2);
@@ -1018,11 +1007,9 @@ stList *ptBlock_merge_blocks_v2(stList *blocks,
         blocks_merged_temp = blocks_merged_ongoing;
         blocks_merged_ongoing = stList_construct3(0, ptBlock_destruct);
         for (int j = 0; j < stList_length(blocks_merged_temp); j++) {
-            fprintf(stderr, "%d(%d)\n", j, stList_length(blocks_merged_temp));
             b1 = stList_get(blocks_merged_temp, j);
             e1 = get_end(b1);
             s1 = get_start(b1);
-            fprintf(stderr, "%d-%d\n", s1, e1);
             /*
              * finalized:
              *
@@ -1197,15 +1184,12 @@ stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
     while ((contig_name = stHash_getNext(it)) != NULL) {
         blocks = stHash_search(blocks_per_contig, contig_name);
-        fprintf(stderr, "## %s\n", contig_name);
         for (int i = 0; i < stList_length(blocks); i++) {
             ptBlock *block = stList_get(blocks, i);
             if (block->data != NULL) {
                 CoverageInfo *covInfo = block->data;
-                fprintf(stderr, "#@#@ %s %d %d %d\n", contig_name, block->rfs, block->rfe, covInfo->coverage);
                 if (covInfo->data != NULL) {
                     Inference *infer = covInfo->data;
-                    fprintf(stderr, "#@#INFER@ %d %d\n", infer->truth, infer->prediction);
                 }
             }
         }
@@ -1213,7 +1197,6 @@ stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
     stHash_destructIterator(it);
     it = stHash_getIterator(blocks_per_contig);
     while ((contig_name = stHash_getNext(it)) != NULL) {
-        fprintf(stderr, "## %s\n", contig_name);
         // get blocks
         blocks = stHash_search(blocks_per_contig, contig_name);
         // merge blocks
@@ -1609,7 +1592,6 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
     fprintf(stderr, "[%s] Started sorting and merging blocks.\n", get_timestamp());
     //sort
     ptBlock_sort_stHash_by_rfs(coverage_blocks_per_contig);
-    fprintf(stderr, "[%s] Sorting is done.\n", get_timestamp());
     //merge
     stHash *coverage_blocks_per_contig_merged = ptBlock_merge_blocks_per_contig_by_rf_v2(coverage_blocks_per_contig);
     fprintf(stderr, "[%s] Merging coverage blocks is done.\n", get_timestamp());
@@ -1762,9 +1744,8 @@ stHash *ptBlock_parse_inference_label_blocks(char *bedPath, bool isLabelTruth) {
                                            -1, -1,
                                            -1, -1);
         CoverageInfo *cov_info_data = CoverageInfo_construct(0ULL, 0, 0, 0);
-        // read 4th column
+        // read 4th column (first attribute after coordinates)
         int8_t label = 1 <= trackReader->attrbsLen ? atoi(trackReader->attrbs[0]) : -1;
-        fprintf(stderr, "LABEL=%d\n", label);
         // add inference data to coverage info
         if (isLabelTruth) {
             int8_t truth = label;
@@ -1930,9 +1911,8 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
     fprintf(stderr, "[%s] Started sorting and merging blocks\n", get_timestamp());
     //sort
     ptBlock_sort_stHash_by_rfs(coverage_block_table);
-    fprintf(stderr, "[%s] Sorting is done!\n", get_timestamp());
 
-    fprintf(stderr, "[%s] Merged blocks : tot_len=%ld, number=%ld\n", get_timestamp(),
+    fprintf(stderr, "[%s] Blocks before merging : tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(coverage_block_table),
             ptBlock_get_total_number(coverage_block_table));
 
@@ -1976,13 +1956,13 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable, const char *outPath, co
 
     if (!isFormatBed && !isFormatCov) {
         fprintf(stderr,
-                "[%s] (Error) The output file (%s) should have one of these formats cov, cov.gz, bed or bed.gz\n",
+                "[%s] Error: The output file (%s) should have one of these formats cov, cov.gz, bed or bed.gz\n",
                 get_timestamp(), outPath);
         exit(EXIT_FAILURE);
     }
 
     if (isFormatCov && ctgToLen == NULL) {
-        fprintf(stderr, "[%s] (Error) For writing to %s it is necessary to pass a table of contig lengths.\n",
+        fprintf(stderr, "[%s] Error: For writing to %s it is necessary to pass a table of contig lengths.\n",
                 get_timestamp(), outPath);
         exit(EXIT_FAILURE);
     }

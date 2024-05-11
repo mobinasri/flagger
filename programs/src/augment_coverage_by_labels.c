@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     double realtimeStart = System_getRealTimePoint();
 
     if (truthPath == NULL && predictionPath == NULL) {
-        fprintf(stderr, "[%s] (Error) At least one of --truthBed or --predictionBed should be provided!\n",
+        fprintf(stderr, "[%s] Error: At least one of --truthBed or --predictionBed should be provided!\n",
                 get_timestamp());
         exit(EXIT_FAILURE);
     }
@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
 
     if (numberOfLabels != chunksCreator->numberOfLabels) {
         fprintf(stderr,
-                "[%s] (Warning) The number of labels in the header of the input file (%d) does not match --numberOfLabels %d. It will be overwritten to %d.\n",
+                "[%s] Warning: The number of labels in the header of the input file (%d) does not match --numberOfLabels %d. It will be overwritten to %d.\n",
                 get_timestamp(), chunksCreator->numberOfLabels, numberOfLabels, numberOfLabels);
     }
 

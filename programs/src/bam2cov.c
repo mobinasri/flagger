@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 
     if (runBiasDetection && jsonPath == NULL) {
         fprintf(stderr,
-                "[%s] (Warning) Json file is not provided so for bias detection there is only one annotation ('no_annotation')!\n",
+                "[%s] Warning: Json file is not provided so for bias detection there is only one annotation ('no_annotation')!\n",
                 get_timestamp());
     }
 
@@ -203,8 +203,6 @@ int main(int argc, char *argv[]) {
         sprintf(tsvPathToWriteTable, "%s.bias_detection_table.tsv", prefix);
 
         // run bias detection
-        fprintf(stderr, "[%s] Running bias detection. Results table will be saved in %s\n", get_timestamp(),
-                tsvPathToWriteTable);
         BiasDetector_runBiasDetection(biasDetector, annotationNamesToCheck, tsvPathToWriteTable);
         // update mapping from annotation to region
         // and region median coverages
@@ -221,7 +219,10 @@ int main(int argc, char *argv[]) {
                 "[%s] Bias detection is disabled. Running bias module only for getting the whole genome median coverage.\n",
                 get_timestamp());
 
-        BiasDetector *biasDetector = BiasDetector_construct(annotationNames, annotationZeroName, 1, 1,
+        BiasDetector *biasDetector = BiasDetector_construct(annotationNames,
+                                                            annotationZeroName,
+                                                            1,
+                                                            1,
                                                             covDiffNormalizedThreshold);
         BiasDetector_setStatisticsPerAnnotation(biasDetector, blockTable);
 
@@ -231,6 +232,10 @@ int main(int argc, char *argv[]) {
 
         // index 0 is for 'no_annotation'
         coveragePerRegion[0] = biasDetector->mostFrequentCoveragePerAnnotation[0];
+        fprintf(stderr,
+                "[%s] Whole genome median coverage = %d\n",
+                get_timestamp(),
+                coveragePerRegion[0]);
         BiasDetector_destruct(biasDetector);
     }
 

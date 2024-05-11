@@ -230,7 +230,7 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
         int *ctg_len_ptr = stHash_search(trackReader->contigLengthTable, trackReader->ctg);
         if (ctg_len_ptr == NULL) {
             fprintf(stderr,
-                    "[%s]Warning: fai file does not contain this contig name %s. The contig length will be set to -1.\n",
+                    "[%s] Warning: fai file does not contain this contig name %s. The contig length will be set to -1.\n",
                     trackReader->ctg);
         } else {
             trackReader->ctgLen = *ctg_len_ptr;

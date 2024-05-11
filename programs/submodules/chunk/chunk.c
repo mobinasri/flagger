@@ -718,7 +718,7 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
 
     if (!file_exists(binPath)) {
         fprintf(stderr,
-                "[%s ] (Error) The bin file %s does not exist. Please use create_bin_chunks for creating the bin file.\n",
+                "[%s ] Error: The bin file %s does not exist. Please use create_bin_chunks for creating the bin file.\n",
                 get_timestamp(), binPath);
         exit(EXIT_FAILURE);
     }
