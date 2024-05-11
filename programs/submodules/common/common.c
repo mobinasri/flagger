@@ -3,6 +3,51 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <string.h>
+#include "sonLib.h"
+
+
+#include <sys/resource.h>
+#include <sys/time.h>
+
+// System functions are copied from https://github.com/chhylp123/hifiasm/blob/master/sys.cpp
+
+double System_getCpuTime(void)
+{
+	struct rusage r;
+	getrusage(RUSAGE_SELF, &r);
+	return r.ru_utime.tv_sec + r.ru_stime.tv_sec + 1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
+}
+
+double System_getRealTimePoint(void)
+{
+	struct timeval tp;
+	struct timezone tzp;
+	gettimeofday(&tp, &tzp);
+	return tp.tv_sec + tp.tv_usec * 1e-6;
+}
+
+
+long System_getPeakRSS(void)
+{
+	struct rusage r;
+	getrusage(RUSAGE_SELF, &r);
+#ifdef __linux__
+	return r.ru_maxrss * 1024;
+#else
+	return r.ru_maxrss;
+#endif
+}
+
+double System_getPeakRSSInGB(void)
+{
+	return System_getPeakRSS() / 1073741824.0;
+}
+
+double System_getCpuUsage(double cputime, double realtime)
+{
+	return (cputime + 1e-9) / (realtime + 1e-9);
+}
+
 
 char *extractFileExtension(char *filePath){
 	int len = strlen(filePath);
@@ -310,7 +355,31 @@ int Int_getMaxValue1DArray(int *array, int length){
         }
     }
     return maxValue;
+
 }
+
+int Int_getModeValue1DArray(int *array, int length, int minValue, int maxValue) {
+    int numberOfPossibleValues = maxValue - minValue + 1;
+    int *counts = Int_construct1DArray(numberOfPossibleValues);
+
+    for (int i = 0; i < length; i++) {
+	int index = array[i] < minValue ? 0 : array[i] - minValue;
+	index = numberOfPossibleValues <= index ? numberOfPossibleValues - 1 : index;
+        counts[index] += 1;
+    }
+    int modeValue = minValue;
+    int maxCount = counts[0]; // 0 is for minValue
+    for (int i = 1; i < numberOfPossibleValues; i++) {
+        if (maxCount < counts[i]) {
+            modeValue = minValue + i;
+            maxCount = counts[i];
+        }
+    }
+    Int_destruct1DArray(counts);
+    return modeValue;
+}
+
+
 int Int_getMaxValue2DArray(int **array, int length1, int length2){
     assert(length1 > 0 && length2 > 0);
     int maxValue = array[0][0];
@@ -322,7 +391,6 @@ int Int_getMaxValue2DArray(int **array, int length1, int length2){
     }
     return maxValue;
 }
-
 
 
 uint8_t maxCharArray(uint8_t *a, int len) {
@@ -409,7 +477,7 @@ int *Splitter_getIntArray(char *str, char delimiter, int *arraySize){
     return intArray;
 }
 
-double *Splitter_getDoubleArray(char *str, char delimiter, double *arraySize){
+double *Splitter_getDoubleArray(char *str, char delimiter, int *arraySize){
     Splitter *splitter = Splitter_construct(str, delimiter);
     char *token;
     int i = 0;
@@ -423,6 +491,9 @@ double *Splitter_getDoubleArray(char *str, char delimiter, double *arraySize){
     *arraySize = i;
     return doubleArray;
 }
+
+
+
 
 char *String_copy(const char* src){
     char *dest = malloc(strlen(src) + 1);
@@ -441,6 +512,18 @@ char *String_joinDoubleArray(double *array, int length, char delimiter){
     return str;
 }
 
+char *String_joinIntArray(int *array, int length, char delimiter){
+    char *str = malloc(length * 10 * sizeof(char));
+    str[0] = '\0';
+    for(int i=0; i < length-1; i++) {
+        sprintf(str + strlen(str), "%d%c", array[i], delimiter);
+    }
+    sprintf(str + strlen(str), "%d", array[length-1]);
+    str[strlen(str)] = '\0';
+    return str;
+}
+
+
 char *String_joinStringArray(const char** array, int elementMaxSize, int length, char delimiter){
     char *str = malloc(length * elementMaxSize * sizeof(char));
     str[0] = '\0';
@@ -449,4 +532,29 @@ char *String_joinStringArray(const char** array, int elementMaxSize, int length,
     }
     sprintf(str + strlen(str), "%s", array[length-1]);
     return str;
+}
+
+
+stList *Splitter_parseLinesIntoList(const char *filepath){
+    stList *lines = stList_construct3(0, free);
+    FILE *fp = fopen(filepath, "r");
+    if (fp == NULL){
+            fprintf(stderr, "Error: Unable to open %s\n", filepath);
+    }
+    int len;
+    int read;
+    char *token;
+    char *line = malloc(1000);
+    while((read = getline(&line, &len, fp)) > 0){
+            //fprintf(stderr, "%s %d\n",line, read);
+            if (0 < read && line[read-1] == '\n') line[read-1] = '\0';
+            Splitter* splitter = Splitter_construct(line, ' ');
+            // get contig name
+            token = Splitter_getToken(splitter);
+            stList_append(lines, copyString(token));
+            Splitter_destruct(splitter);
+    }
+    fclose(fp);
+    free(line);
+    return lines;
 }

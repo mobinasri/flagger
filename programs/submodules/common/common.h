@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
+#include "sonLib.h"
 
 #ifndef COMMON_H
 #define COMMON_H
@@ -28,6 +29,15 @@ void DEBUG_PRINT(const char *fmt, ...)
 #else
 static inline void DEBUG_PRINT(const char *fmt, ...) {};
 #endif
+
+// System functions
+double System_getCpuTime(void);
+double System_getRealTimePoint(void);
+long System_getPeakRSS(void);
+double System_getPeakRSSInGB(void);
+double System_getCpuUsage(double cputime, double realtime);
+
+
 
 char *extractFileExtension(char *filePath);
 
@@ -92,6 +102,7 @@ int **Int_copy2DArray(int **src, int length1, int length2);
 void Int_multiply1DArray(int *array, int length, int factor);
 void Int_multiply2DArray(int **array, int length1, int length2, int factor);
 int Int_getMaxValue1DArray(int *array, int length);
+int Int_getModeValue1DArray(int *array, int length, int minValue, int maxValue);
 int Int_getMaxValue2DArray(int **array, int length1, int length2);
 
 uint8_t maxCharArray(uint8_t* a, int len);
@@ -108,11 +119,14 @@ int *Splitter_getIntArray(char *str, char delimiter, int *arraySize);
 
 // Takes a string and a delimiter that separates the double numbers in the string
 // Returns the array of numbers and sets the array size
-double *Splitter_getDoubleArray(char *str, char delimiter, double *arraySize);
+double *Splitter_getDoubleArray(char *str, char delimiter, int *arraySize);
 
 char* String_copy(const char* src);
 char *String_joinDoubleArray(double *array, int length, char delimiter);
+char *String_joinIntArray(int *array, int length, char delimiter);
 char *String_joinStringArray(const char** array, int elementMaxSize, int length, char delimiter);
+
+stList *Splitter_parseLinesIntoList(const char *filepath);
 
 #endif
 
