@@ -47,13 +47,15 @@ typedef struct {
  * @field prediction    The prediction index (-1 means no defined)
  */
 typedef struct Inference {
-	int8_t truth;
-	int8_t prediction;
+    int8_t truth;
+    int8_t prediction;
 } Inference;
 
 void extend_inference_data(void *dest_, void *src_);
-void destruct_inference_data(void* src);
-void *copy_inference_data(void* src_);
+
+void destruct_inference_data(void *src);
+
+void *copy_inference_data(void *src_);
 
 /*! @typedef
  * @abstract Structure for keeping useful information about a block with the same coverage/annotation
@@ -72,8 +74,11 @@ typedef struct CoverageInfo {
     u_int16_t coverage_high_clip;
 
     void *data;
+
     void (*destruct_data)(void *);
+
     void *(*copy_data)(void *);
+
     void (*extend_data)(void *, void *);
 } CoverageInfo;
 
@@ -86,9 +91,9 @@ typedef struct CoverageInfo {
  * @field block_index           The index of the current block in the block list related to the current contig
  */
 typedef struct {
-    void* blocks_per_contig;
+    void *blocks_per_contig;
 
-    stList* ctg_list;
+    stList *ctg_list;
     int ctg_index;
     int block_index;
 } ptBlockItrPerContig;
@@ -104,7 +109,7 @@ ptBlock *ptBlock_construct(int rfs, int rfe, int sqs, int sqe, int rds_f, int rd
  */
 ptBlock *ptBlock_construct_with_count(int rfs, int rfe, int sqs, int sqe, int rds_f, int rde_f, int count);
 
-int ptBlock_get_count(ptBlock* block);
+int ptBlock_get_count(ptBlock *block);
 
 /**
  * Set data and the related functions in a ptBlock structure.
@@ -127,7 +132,7 @@ void *ptBlock_copy_data(ptBlock *block);
 
 // the three functions for keeping count data in ptBlock structs
 
-void extend_count_data(void* dest_, void *src_);
+void extend_count_data(void *dest_, void *src_);
 
 
 void destruct_count_data(void *src_);
@@ -136,7 +141,7 @@ void destruct_count_data(void *src_);
 void *copy_count_data(void *src_);
 
 // the function for representing the count data as a string
-char *get_string_count_data(void* src_);
+char *get_string_count_data(void *src_);
 
 /**
  * Creates an instance of CoverageInfo given the required attributes
@@ -147,28 +152,45 @@ char *get_string_count_data(void* src_);
  * @param coverage_high_clip    coverage of the highly clipped alignments for the related block
  */
 CoverageInfo *CoverageInfo_construct(uint64_t annotation_flag,
-                            u_int16_t coverage,
-                            u_int16_t coverage_high_mapq,
-                            u_int16_t coverage_high_clip);
+                                     u_int16_t coverage,
+                                     u_int16_t coverage_high_mapq,
+                                     u_int16_t coverage_high_clip);
 
 CoverageInfo *CoverageInfo_copy(CoverageInfo *coverageInfo);
+
 CoverageInfo **CoverageInfo_copy1DArray(CoverageInfo **coverageInfo, int len);
+
 void CoverageInfo_reset(CoverageInfo *coverageInfo);
+
 CoverageInfo **CoverageInfo_construct1DArray(int len);
+
 void CoverageInfo_destruct1DArray(CoverageInfo **coverageInfo1DArray, int len);
+
 void CoverageInfo_destruct(CoverageInfo *coverageInfo);
+
 int CoverageInfo_getFirstAnnotationIndex(CoverageInfo *coverageInfo);
+
 uint64_t CoverageInfo_getAnnotationFlag(int annotationIndex);
+
 uint64_t CoverageInfo_getAnnotationFlagFromArray(int *annotationIndices, int len);
+
 bool CoverageInfo_overlapAnnotationIndex(CoverageInfo *coverageInfo, int annotationIndex);
+
 uint64_t CoverageInfo_getAnnotationBits(CoverageInfo *coverageInfo);
+
 int CoverageInfo_getRegionIndex(CoverageInfo *coverageInfo);
+
 void CoverageInfo_setRegionIndex(CoverageInfo *coverageInfo, int regionIndex);
-void CoverageInfo_setRegionIndexByMapping(CoverageInfo *coverageInfo, int *annotationToRegionMap, int annotationToRegionMapLength);
-int* CoverageInfo_getAnnotationIndices(CoverageInfo *coverageInfo, int *length);
+
+void CoverageInfo_setRegionIndexByMapping(CoverageInfo *coverageInfo, int *annotationToRegionMap,
+                                          int annotationToRegionMapLength);
+
+int *CoverageInfo_getAnnotationIndices(CoverageInfo *coverageInfo, int *length);
 
 u_int16_t CoverageInfo_getCoverage(CoverageInfo *coverageInfo);
+
 u_int16_t CoverageInfo_getCoverageHighMapq(CoverageInfo *coverageInfo);
+
 u_int16_t CoverageInfo_getCoverageHighClip(CoverageInfo *coverageInfo);
 
 void CoverageInfo_addInferenceData(CoverageInfo *cov_info,
@@ -176,6 +198,7 @@ void CoverageInfo_addInferenceData(CoverageInfo *cov_info,
                                    int8_t prediction);
 
 stHash *ptBlock_parse_inference_label_blocks(char *bedPath, bool isLabelTruth);
+
 stHash *ptBlock_parse_coverage_info_blocks(char *filePath);
 
 /**
@@ -194,22 +217,23 @@ CoverageInfo *CoverageInfo_construct_from_alignment(ptAlignment *alignment, int 
 void extend_cov_info_data(void *dest_, void *src_);
 
 
-void destruct_cov_info_data(void* src);
+void destruct_cov_info_data(void *src);
 
 
-void *copy_cov_info_data(void* src_);
+void *copy_cov_info_data(void *src_);
 
 // the functions for converting coverage info into a single string
 
 // format 1 is useful for debugging purposes
-char *get_string_cov_info_data_format_1(void* src_);
+char *get_string_cov_info_data_format_1(void *src_);
 
 // format 2 is compatible for HMM-Flagger
-char *get_string_cov_info_data_format_2(void* src_);
+char *get_string_cov_info_data_format_2(void *src_);
 
 // these formats can be used for the original implementation of Flagger
-char *get_string_cov_info_data_format_only_total(void* src_);
-char *get_string_cov_info_data_format_only_high_mapq(void* src_);
+char *get_string_cov_info_data_format_only_total(void *src_);
+
+char *get_string_cov_info_data_format_only_high_mapq(void *src_);
 
 
 /* Make a copy of a ptBlock structure
@@ -285,7 +309,7 @@ stHash *ptBlock_parse_bed(char *bed_path);
  * @param block_2       the second block
  * @return              true if the ref/read coordinates of the two blocks were exactly the same
  */
-bool ptBlock_is_equal(ptBlock* block_1, ptBlock* block_2);
+bool ptBlock_is_equal(ptBlock *block_1, ptBlock *block_2);
 
 
 /**
@@ -295,7 +319,7 @@ bool ptBlock_is_equal(ptBlock* block_1, ptBlock* block_2);
  * @param blocks_2      the second list of blocks
  * @return              true if the ref/read coordinates of the two block lists were exactly the same
  */
-bool ptBlock_is_equal_stList(stList* blocks_1, stList* blocks_2);
+bool ptBlock_is_equal_stList(stList *blocks_1, stList *blocks_2);
 
 
 /**
@@ -305,7 +329,7 @@ bool ptBlock_is_equal_stList(stList* blocks_1, stList* blocks_2);
  * @param blocks_2      the second table of blocks
  * @return              true if the contig names and ref/read coordinates of the blocks in the two tables were exactly the same
  */
-bool ptBlock_is_equal_stHash(stHash* blocks_per_contig_1, stHash* blocks_per_contig_2);
+bool ptBlock_is_equal_stHash(stHash *blocks_per_contig_1, stHash *blocks_per_contig_2);
 
 
 // Functions for block iterator
@@ -326,7 +350,6 @@ bool ptBlock_is_equal_stHash(stHash* blocks_per_contig_1, stHash* blocks_per_con
 ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig);
 
 
-
 /**
  * Return the next block and update the contig name
  *
@@ -334,7 +357,7 @@ ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig);
  * @param ctg_name          contig name (to be able to update in place)
  * @return block            ptBlock of the next block
  */
-ptBlock* ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char* ctg_name);
+ptBlock *ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char *ctg_name);
 
 
 /**
@@ -354,7 +377,7 @@ void ptBlockItrPerContig_destruct(ptBlockItrPerContig *blockItr);
  * @param block                 the block to add
  * @param ctg_name              the contig name
  */
-void ptBlock_add_block_to_stList_table(stHash* blocks_per_contig, ptBlock* block, char* ctg_name);
+void ptBlock_add_block_to_stList_table(stHash *blocks_per_contig, ptBlock *block, char *ctg_name);
 
 
 /**
@@ -368,7 +391,7 @@ void ptBlock_add_block_to_stList_table(stHash* blocks_per_contig, ptBlock* block
  * @return a stList of stHash tables. Each table is a batch of regions including about 1/split_number
  *         of the given blocks
  */
-stList* ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
+stList *ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
 
 
 void ptBlock_print_headers_stList(stList *header_lines,
@@ -380,13 +403,13 @@ stList *ptBlock_create_headers(stList *annotation_names,
                                int *region_coverages,
                                int number_of_regions,
                                int number_of_labels,
-			       bool is_truth_available);
+                               bool is_truth_available);
 
 void ptBlock_create_and_print_headers(stList *annotation_names,
                                       int *region_coverages,
                                       int number_of_regions,
-				      int number_of_labels,
-				      bool is_truth_available,
+                                      int number_of_labels,
+                                      bool is_truth_available,
                                       void *file_ptr,
                                       bool is_compressed);
 
@@ -402,9 +425,9 @@ void ptBlock_create_and_print_headers(stList *annotation_names,
  *                              it can also be a POINTER to the output of gzopen() for the compressed mode
  * @param is_compressed		    true if fp is of type gzFile*, false if stderr/stdout/FILE*
  */
-void ptBlock_print_blocks_stHash_in_bed(stHash* blocks_per_contig,
-                                        char * (*get_string_function)(void *),
-                                        void* fp,
+void ptBlock_print_blocks_stHash_in_bed(stHash *blocks_per_contig,
+                                        char *(*get_string_function)(void *),
+                                        void *fp,
                                         bool is_compressed);
 
 /**
@@ -420,13 +443,13 @@ void ptBlock_print_blocks_stHash_in_bed(stHash* blocks_per_contig,
  * @param is_compressed		    true if fp is of type gzFile*, false if stderr/stdout/FILE*
  * @param ctg_to_len            stHash table to convert contig name to contig length (each value is of type int*)
  */
-void ptBlock_print_blocks_stHash_in_cov(stHash* blocks_per_contig,
-                                        char * (*get_string_function)(void *),
-                                        void* fp,
+void ptBlock_print_blocks_stHash_in_cov(stHash *blocks_per_contig,
+                                        char *(*get_string_function)(void *),
+                                        void *fp,
                                         bool is_compressed,
-                                        stHash* ctg_to_len);
+                                        stHash *ctg_to_len);
 
-stList *ptBlock_get_sorted_contig_list(stHash* blocks_per_contig);
+stList *ptBlock_get_sorted_contig_list(stHash *blocks_per_contig);
 
 /**
  * Merge blocks (should be sorted by stList_sort)
@@ -530,8 +553,8 @@ stHash *ptBlock_merge_blocks_per_contig_by_sq(stHash *blocks_per_contig);
  *
  */
 stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
-                                        int (*get_start)(ptBlock *), int (*get_end)(ptBlock *),
-                                        void (*set_start)(ptBlock *, int), void (*set_end)(ptBlock *, int));
+                                           int (*get_start)(ptBlock *), int (*get_end)(ptBlock *),
+                                           void (*set_start)(ptBlock *, int), void (*set_end)(ptBlock *, int));
 
 stHash *ptBlock_merge_blocks_per_contig_by_rf_v2(stHash *blocks_per_contig);
 
@@ -582,7 +605,7 @@ void ptBlock_add_alignment_as_CoverageInfo(stHash *blocks_per_contig,
  *
  */
 void ptBlock_add_data_to_all_blocks_stHash(stHash *blocks_per_contig,
-                                           void* data,
+                                           void *data,
                                            void (*destruct_data)(void *),
                                            void *(*copy_data)(void *),
                                            void (*extend_data)(void *, void *));
@@ -599,8 +622,7 @@ void ptBlock_add_data_to_all_blocks_stHash(stHash *blocks_per_contig,
 void ptBlock_extend_block_tables(stHash *blocks_per_contig_dest, stHash *blocks_per_contig_src);
 
 
-
-void ptBlock_save_in_bed(stHash *blocks_per_contig, char* bed_path, bool print_count_data);
+void ptBlock_save_in_bed(stHash *blocks_per_contig, char *bed_path, bool print_count_data);
 
 int64_t ptBlock_get_total_number(stHash *blocks_per_contig);
 
@@ -612,15 +634,15 @@ int64_t ptBlock_get_total_length_by_rd_f(stHash *blocks_per_contig);
 
 int64_t ptBlock_get_total_length_by_sq(stHash *blocks_per_contig);
 
-void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char* contig, stList* blocks_to_add);
+void ptBlock_add_blocks_by_contig(stHash *blocks_per_contig, char *contig, stList *blocks_to_add);
 
-stList* ptBlock_copy_stList(stList* blocks);
+stList *ptBlock_copy_stList(stList *blocks);
 
 // takes the path to a bam file
 // returns a stHash table from contig name to length
-stHash* ptBlock_get_contig_length_stHash_from_bam(char* bam_path);
+stHash *ptBlock_get_contig_length_stHash_from_bam(char *bam_path);
 
-stHash* ptBlock_get_contig_length_stHash_from_fai(char* fai_path);
+stHash *ptBlock_get_contig_length_stHash_from_fai(char *fai_path);
 
 int ptBlock_get_max_contig_length(stHash *ctg_to_len);
 
@@ -628,9 +650,9 @@ int ptBlock_get_max_contig_length(stHash *ctg_to_len);
 
 
 typedef struct ArgumentsCovExt {
-    stHash* coverage_blocks_per_contig;
-    stHash* ref_blocks_per_contig_to_parse;
-    char* bam_path;
+    stHash *coverage_blocks_per_contig;
+    stHash *ref_blocks_per_contig_to_parse;
+    char *bam_path;
     pthread_mutex_t *mutexPtr;
     int min_mapq;
     double min_clipping_ratio;
@@ -639,37 +661,42 @@ typedef struct ArgumentsCovExt {
 // parse bam file and create a stHash table of blocks
 // coverage information is saved in a CoverageInfo object
 // available as the "data" attribute of each resulting block
-stHash* ptBlock_multi_threaded_coverage_extraction(char* bam_path,
+stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
                                                    int threads,
                                                    int min_mapq,
                                                    double min_clipping_ratio);
 
 // make a block table that covers the whole reference sequences
-stHash* ptBlock_get_whole_genome_blocks_per_contig(char* bam_path);
+stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path);
 
-int get_annotation_index(stList* annotation_names, char* annotation_name);
+int get_annotation_index(stList *annotation_names, char *annotation_name);
+
 stList *parse_annotation_names_and_save_in_stList(const char *json_path, const char *annotation_zero_name);
+
 stList *parse_annotation_paths_and_save_in_stList(const char *json_path, const char *annotation_zero_path);
 
 void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list);
-stList* parse_all_annotations_and_save_in_stList(const char *json_path, stHash *annotation_zero_block_table);
+
+stList *parse_all_annotations_and_save_in_stList(const char *json_path, stHash *annotation_zero_block_table);
 
 
 // parse bam file and create a stHash table of blocks
 // this function calls "ptBlock_multi_threaded_coverage_extraction"
 // and it adds the blocks with 0 coverage and also fills the annotation
 // fields based on the bed files whose paths are given in a json file
-stHash* ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(char* bam_path,
-                                                                                     char* json_path,
+stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(char *bam_path,
+                                                                                     char *json_path,
                                                                                      int threads,
                                                                                      int min_mapq,
-										     double min_clipping_ratio);
-void ptBlock_set_region_indices_by_mapping(stHash *blocks_per_contig, 
-		                           int *annotation_to_region_map, 
-					   int annotation_to_region_map_length);
+                                                                                     double min_clipping_ratio);
+
+void ptBlock_set_region_indices_by_mapping(stHash *blocks_per_contig,
+                                           int *annotation_to_region_map,
+                                           int annotation_to_region_map_length);
 
 
-void ptBlock_write_blocks_per_contig(stHash *blockTable, const char *outPath, const char *format, stHash *ctgToLen, stList *headerLines);
+void ptBlock_write_blocks_per_contig(stHash *blockTable, const char *outPath, const char *format, stHash *ctgToLen,
+                                     stList *headerLines);
 
 #endif /* PT_BLOCK_H */
 

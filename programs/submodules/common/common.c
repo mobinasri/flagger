@@ -11,80 +11,75 @@
 
 // System functions are copied from https://github.com/chhylp123/hifiasm/blob/master/sys.cpp
 
-double System_getCpuTime(void)
-{
-	struct rusage r;
-	getrusage(RUSAGE_SELF, &r);
-	return r.ru_utime.tv_sec + r.ru_stime.tv_sec + 1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
+double System_getCpuTime(void) {
+    struct rusage r;
+    getrusage(RUSAGE_SELF, &r);
+    return r.ru_utime.tv_sec + r.ru_stime.tv_sec + 1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
 }
 
-double System_getRealTimePoint(void)
-{
-	struct timeval tp;
-	struct timezone tzp;
-	gettimeofday(&tp, &tzp);
-	return tp.tv_sec + tp.tv_usec * 1e-6;
+double System_getRealTimePoint(void) {
+    struct timeval tp;
+    struct timezone tzp;
+    gettimeofday(&tp, &tzp);
+    return tp.tv_sec + tp.tv_usec * 1e-6;
 }
 
 
-long System_getPeakRSS(void)
-{
-	struct rusage r;
-	getrusage(RUSAGE_SELF, &r);
+long System_getPeakRSS(void) {
+    struct rusage r;
+    getrusage(RUSAGE_SELF, &r);
 #ifdef __linux__
-	return r.ru_maxrss * 1024;
+    return r.ru_maxrss * 1024;
 #else
-	return r.ru_maxrss;
+    return r.ru_maxrss;
 #endif
 }
 
-double System_getPeakRSSInGB(void)
-{
-	return System_getPeakRSS() / 1073741824.0;
+double System_getPeakRSSInGB(void) {
+    return System_getPeakRSS() / 1073741824.0;
 }
 
-double System_getCpuUsage(double cputime, double realtime)
-{
-	return (cputime + 1e-9) / (realtime + 1e-9);
+double System_getCpuUsage(double cputime, double realtime) {
+    return (cputime + 1e-9) / (realtime + 1e-9);
 }
 
 
-char *extractFileExtension(char *filePath){
-	int len = strlen(filePath);
-	int i = len-1;
-	for(; 0 <= i; i--){
-		if(filePath[i] == '.'){
-			if (strcmp(filePath + i, ".gz") != 0 &&
-			    strcmp(filePath + i, ".tar") != 0 &&
-			    strcmp(filePath + i, ".tar.gz") != 0 &&
-			    strcmp(filePath + i, ".zip") != 0)
-				break;
-		}
-	}
-	char *extension = malloc(len - i);
-	strcpy(extension, filePath + i + 1);
-	return extension;
+char *extractFileExtension(char *filePath) {
+    int len = strlen(filePath);
+    int i = len - 1;
+    for (; 0 <= i; i--) {
+        if (filePath[i] == '.') {
+            if (strcmp(filePath + i, ".gz") != 0 &&
+                strcmp(filePath + i, ".tar") != 0 &&
+                strcmp(filePath + i, ".tar.gz") != 0 &&
+                strcmp(filePath + i, ".zip") != 0)
+                break;
+        }
+    }
+    char *extension = malloc(len - i);
+    strcpy(extension, filePath + i + 1);
+    return extension;
 }
 
-int getFirstIndexWithNonZeroBitFromRight(int32_t a){
-    int n=0;
-    for(;n < 32; n++){
-        if ((a >> n) & 1){
+int getFirstIndexWithNonZeroBitFromRight(int32_t a) {
+    int n = 0;
+    for (; n < 32; n++) {
+        if ((a >> n) & 1) {
             return n;
         }
     }
     return -1;
 }
 
-char* copyString(char* str){
-    char* copy  = (char*) malloc(strlen(str) + 1);
+char *copyString(char *str) {
+    char *copy = (char *) malloc(strlen(str) + 1);
     strcpy(copy, str);
     return copy;
 }
 
-void removeSpacesInPlace(char* s) {
+void removeSpacesInPlace(char *s) {
     //https://stackoverflow.com/questions/1726302/remove-spaces-from-a-string-in-c
-    char* d = s;
+    char *d = s;
     do {
         while (*d == ' ') {
             ++d;
@@ -92,24 +87,21 @@ void removeSpacesInPlace(char* s) {
     } while (*s++ = *d++);
 }
 
-char* read_whole_file(char* file_path, long* length_ptr, char* mode){
-    char * buffer = 0;
+char *read_whole_file(char *file_path, long *length_ptr, char *mode) {
+    char *buffer = 0;
     long length;
-    FILE * f = fopen (file_path, mode);
+    FILE *f = fopen(file_path, mode);
 
-    if (f)
-    {
-      fseek (f, 0, SEEK_END);
-      length = ftell (f);
-      fseek (f, 0, SEEK_SET);
-      buffer = malloc (length);
-      if (buffer)
-      {
-        fread (buffer, 1, length, f);
-      }
-      fclose (f);
-    }
-    else{
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        length = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        buffer = malloc(length);
+        if (buffer) {
+            fread(buffer, 1, length, f);
+        }
+        fclose(f);
+    } else {
         return NULL;
         *length_ptr = 0;
     }
@@ -117,7 +109,7 @@ char* read_whole_file(char* file_path, long* length_ptr, char* mode){
     return buffer;
 }
 
-char* get_timestamp() {
+char *get_timestamp() {
     static char timestamp[TIMESTAMP_SIZE + 1];  // static variable to hold the timestamp string
     time_t t = time(NULL);
     struct tm *tm = localtime(&t);
@@ -132,13 +124,13 @@ bool file_exists(char *filename) {
     return (stat(filename, &buffer) == 0);
 }
 
-bool folder_exists(char *folderpath){
-    DIR* dir = opendir(folderpath);
+bool folder_exists(char *folderpath) {
+    DIR *dir = opendir(folderpath);
     if (dir) {
         closedir(dir);
-	return true;
+        return true;
     } else {
-	return false;
+        return false;
     }
 }
 
@@ -151,45 +143,45 @@ int max(int a, int b) {
     return b < a ? a : b;
 }
 
-double *Double_construct1DArray(int length){
-    double *array = (double*) malloc(length * sizeof(double));
+double *Double_construct1DArray(int length) {
+    double *array = (double *) malloc(length * sizeof(double));
     Double_fill1DArray(array, length, 0.0);
     return array;
 }
 
-double **Double_construct2DArray(int length1, int length2){
-    double **array = malloc(length1 * sizeof(double*));
-    for(int i = 0; i < length1; i++) {
+double **Double_construct2DArray(int length1, int length2) {
+    double **array = malloc(length1 * sizeof(double *));
+    for (int i = 0; i < length1; i++) {
         array[i] = Double_construct1DArray(length2);
     }
     return array;
 }
 
-void Double_destruct1DArray(double *array){
+void Double_destruct1DArray(double *array) {
     free(array);
 }
 
-void Double_destruct2DArray(double **array, int length1){
-    for(int i = 0; i < length1; i++) {
+void Double_destruct2DArray(double **array, int length1) {
+    for (int i = 0; i < length1; i++) {
         Double_destruct1DArray(array[i]);
     }
     free(array);
 }
 
 
-void Double_fill1DArray(double *array, int length, double value){
+void Double_fill1DArray(double *array, int length, double value) {
     for (int i = 0; i < length; i++) {
         array[i] = value;
     }
 }
 
-void Double_fill2DArray(double **array, int length1, int length2, double value){
+void Double_fill2DArray(double **array, int length1, int length2, double value) {
     for (int i = 0; i < length1; i++) {
         Double_fill1DArray(array[i], length2, value);
     }
 }
 
-double Double_sum1DArray(double *array, int length){
+double Double_sum1DArray(double *array, int length) {
     double sum = 0.0;
     for (int i = 0; i < length; i++) {
         sum += array[i];
@@ -197,7 +189,7 @@ double Double_sum1DArray(double *array, int length){
     return sum;
 }
 
-double Double_sum2DArray(double **array, int length1, int length2){
+double Double_sum2DArray(double **array, int length1, int length2) {
     double sum = 0.0;
     for (int i = 0; i < length1; i++) {
         sum += Double_sum1DArray(array[i], length2);
@@ -205,14 +197,14 @@ double Double_sum2DArray(double **array, int length1, int length2){
     return sum;
 }
 
-double *Double_copy1DArray(double *src, int length){
+double *Double_copy1DArray(double *src, int length) {
     double *dest = Double_construct1DArray(length);
     memcpy(dest, src, length * sizeof(double));
     return dest;
 }
 
-double **Double_copy2DArray(double **src, int length1, int length2){
-    double **dest = malloc(length1 * sizeof(double*));
+double **Double_copy2DArray(double **src, int length1, int length2) {
+    double **dest = malloc(length1 * sizeof(double *));
     for (int i = 0; i < length1; i++) {
         dest[i] = Double_copy1DArray(src[i], length2);
     }
@@ -220,81 +212,82 @@ double **Double_copy2DArray(double **src, int length1, int length2){
 }
 
 
-void Double_multiply1DArray(double *array, int length, double factor){
+void Double_multiply1DArray(double *array, int length, double factor) {
     for (int i = 0; i < length; i++) {
         array[i] *= factor;
     }
 }
 
-void Double_multiply2DArray(double **array, int length1, int length2, double factor){
+void Double_multiply2DArray(double **array, int length1, int length2, double factor) {
     for (int i = 0; i < length1; i++) {
         Double_multiply1DArray(array[i], length2, factor);
     }
 }
 
-double Double_getMaxValue1DArray(double *array, int length){
+double Double_getMaxValue1DArray(double *array, int length) {
     assert(length > 0);
     double maxValue = array[0];
-    for(int i=0; i < length; i++){
-        if (maxValue < array[i]){
+    for (int i = 0; i < length; i++) {
+        if (maxValue < array[i]) {
             maxValue = array[i];
         }
     }
     return maxValue;
 }
-double Double_getMaxValue2DArray(double **array, int length1, int length2){
+
+double Double_getMaxValue2DArray(double **array, int length1, int length2) {
     assert(length1 > 0 && length2 > 0);
     double maxValue = array[0][0];
-    for(int i=0; i < length1; i++){
+    for (int i = 0; i < length1; i++) {
         double maxInRow = Double_getMaxValue1DArray(array[i], length2);
-        if (maxValue < maxInRow){
+        if (maxValue < maxInRow) {
             maxValue = maxInRow;
         }
     }
     return maxValue;
 }
 
-int Double_getArgMaxIndex1DArray(double *array, int length){
+int Double_getArgMaxIndex1DArray(double *array, int length) {
     assert(length > 0);
     double maxValue = array[0];
     int index = 0;
-    for(int i=0; i < length; i++){
-        if (maxValue < array[i]){
+    for (int i = 0; i < length; i++) {
+        if (maxValue < array[i]) {
             maxValue = array[i];
-	    index = i;
+            index = i;
         }
     }
     return index;
 }
 
 
-int *Int_construct1DArray(int length){
+int *Int_construct1DArray(int length) {
     int *array = malloc(length * sizeof(int));
     Int_fill1DArray(array, length, 0);
     return array;
 }
 
-int **Int_construct2DArray(int length1, int length2){
-    int **array = malloc(length1 * sizeof(int*));
-    for(int i=0; i < length1; i++) {
+int **Int_construct2DArray(int length1, int length2) {
+    int **array = malloc(length1 * sizeof(int *));
+    for (int i = 0; i < length1; i++) {
         array[i] = Int_construct1DArray(length2);
     }
     return array;
 }
 
-void Int_fill1DArray(int *array, int length, int value){
+void Int_fill1DArray(int *array, int length, int value) {
     for (int i = 0; i < length; i++) {
         array[i] = value;
     }
 }
 
-void Int_fill2DArray(int **array, int length1, int length2, int value){
+void Int_fill2DArray(int **array, int length1, int length2, int value) {
     for (int i = 0; i < length1; i++) {
         Int_fill1DArray(array[i], length2, value);
     }
 }
 
-int Int_sum1DArray(int *array, int length){
+int Int_sum1DArray(int *array, int length) {
     int sum = 0;
     for (int i = 0; i < length; i++) {
         sum += array[i];
@@ -302,7 +295,7 @@ int Int_sum1DArray(int *array, int length){
     return sum;
 }
 
-int Int_sum2DArray(int **array, int length1, int length2){
+int Int_sum2DArray(int **array, int length1, int length2) {
     int sum = 0;
     for (int i = 0; i < length1; i++) {
         sum += Int_sum1DArray(array[i], length2);
@@ -310,47 +303,47 @@ int Int_sum2DArray(int **array, int length1, int length2){
     return sum;
 }
 
-void Int_destruct1DArray(int *array){
+void Int_destruct1DArray(int *array) {
     free(array);
 }
 
-void Int_destruct2DArray(int **array, int length1){
+void Int_destruct2DArray(int **array, int length1) {
     for (int i = 0; i < length1; i++) {
         Int_destruct1DArray(array[i]);
     }
 }
 
-int *Int_copy1DArray(int *src, int length){
+int *Int_copy1DArray(int *src, int length) {
     int *dest = Int_construct1DArray(length);
     memcpy(dest, src, length * sizeof(int));
     return dest;
 }
 
-int **Int_copy2DArray(int **src, int length1, int length2){
-    int **dest = malloc(length1 * sizeof(int*));
+int **Int_copy2DArray(int **src, int length1, int length2) {
+    int **dest = malloc(length1 * sizeof(int *));
     for (int i = 0; i < length1; i++) {
         dest[i] = Int_copy1DArray(src[i], length2);
     }
     return dest;
 }
 
-void Int_multiply1DArray(int *array, int length, int factor){
+void Int_multiply1DArray(int *array, int length, int factor) {
     for (int i = 0; i < length; i++) {
         array[i] *= factor;
     }
 }
 
-void Int_multiply2DArray(int **array, int length1, int length2, int factor){
+void Int_multiply2DArray(int **array, int length1, int length2, int factor) {
     for (int i = 0; i < length1; i++) {
         Int_multiply1DArray(array[i], length2, factor);
     }
 }
 
-int Int_getMaxValue1DArray(int *array, int length){
+int Int_getMaxValue1DArray(int *array, int length) {
     assert(length > 0);
     int maxValue = array[0];
-    for(int i=0; i < length; i++){
-        if (maxValue < array[i]){
+    for (int i = 0; i < length; i++) {
+        if (maxValue < array[i]) {
             maxValue = array[i];
         }
     }
@@ -363,8 +356,8 @@ int Int_getModeValue1DArray(int *array, int length, int minValue, int maxValue) 
     int *counts = Int_construct1DArray(numberOfPossibleValues);
 
     for (int i = 0; i < length; i++) {
-	int index = array[i] < minValue ? 0 : array[i] - minValue;
-	index = numberOfPossibleValues <= index ? numberOfPossibleValues - 1 : index;
+        int index = array[i] < minValue ? 0 : array[i] - minValue;
+        index = numberOfPossibleValues <= index ? numberOfPossibleValues - 1 : index;
         counts[index] += 1;
     }
     int modeValue = minValue;
@@ -380,12 +373,12 @@ int Int_getModeValue1DArray(int *array, int length, int minValue, int maxValue) 
 }
 
 
-int Int_getMaxValue2DArray(int **array, int length1, int length2){
+int Int_getMaxValue2DArray(int **array, int length1, int length2) {
     assert(length1 > 0 && length2 > 0);
     int maxValue = array[0][0];
-    for(int i=0; i < length1; i++){
+    for (int i = 0; i < length1; i++) {
         int maxInRow = Int_getMaxValue1DArray(array[i], length2);
-        if (maxValue < maxInRow){
+        if (maxValue < maxInRow) {
             maxValue = maxInRow;
         }
     }
@@ -436,7 +429,7 @@ Splitter *Splitter_construct(char *str, char delimiter) {
     splitter->token = malloc((strlen(str) + 1) * sizeof(char));
     splitter->delimiter = delimiter;
     splitter->offset = 0;
-    return  splitter;
+    return splitter;
 }
 
 void Splitter_destruct(Splitter *splitter) {
@@ -462,13 +455,13 @@ char *Splitter_getToken(Splitter *splitter) {
     return splitter->token;
 }
 
-int *Splitter_getIntArray(char *str, char delimiter, int *arraySize){
+int *Splitter_getIntArray(char *str, char delimiter, int *arraySize) {
     Splitter *splitter = Splitter_construct(str, delimiter);
     char *token;
     int i = 0;
     int *intArray = NULL;
     while ((token = Splitter_getToken(splitter)) != NULL) {
-        intArray = (int*) realloc(intArray, (i + 1) * sizeof(int));
+        intArray = (int *) realloc(intArray, (i + 1) * sizeof(int));
         intArray[i] = atoi(token);
         i++;
     }
@@ -477,13 +470,13 @@ int *Splitter_getIntArray(char *str, char delimiter, int *arraySize){
     return intArray;
 }
 
-double *Splitter_getDoubleArray(char *str, char delimiter, int *arraySize){
+double *Splitter_getDoubleArray(char *str, char delimiter, int *arraySize) {
     Splitter *splitter = Splitter_construct(str, delimiter);
     char *token;
     int i = 0;
     double *doubleArray = NULL;
     while ((token = Splitter_getToken(splitter)) != NULL) {
-        doubleArray = (double*) realloc(doubleArray, (i + 1) * sizeof(double));
+        doubleArray = (double *) realloc(doubleArray, (i + 1) * sizeof(double));
         doubleArray[i] = atof(token);
         i++;
     }
@@ -493,66 +486,64 @@ double *Splitter_getDoubleArray(char *str, char delimiter, int *arraySize){
 }
 
 
-
-
-char *String_copy(const char* src){
+char *String_copy(const char *src) {
     char *dest = malloc(strlen(src) + 1);
     strcpy(dest, src);
     return dest;
 }
 
-char *String_joinDoubleArray(double *array, int length, char delimiter){
+char *String_joinDoubleArray(double *array, int length, char delimiter) {
     char *str = malloc(length * 10 * sizeof(char));
     str[0] = '\0';
-    for(int i=0; i < length-1; i++) {
+    for (int i = 0; i < length - 1; i++) {
         sprintf(str + strlen(str), "%.2e%c", array[i], delimiter);
     }
-    sprintf(str + strlen(str), "%.2e", array[length-1]);
+    sprintf(str + strlen(str), "%.2e", array[length - 1]);
     str[strlen(str)] = '\0';
     return str;
 }
 
-char *String_joinIntArray(int *array, int length, char delimiter){
+char *String_joinIntArray(int *array, int length, char delimiter) {
     char *str = malloc(length * 10 * sizeof(char));
     str[0] = '\0';
-    for(int i=0; i < length-1; i++) {
+    for (int i = 0; i < length - 1; i++) {
         sprintf(str + strlen(str), "%d%c", array[i], delimiter);
     }
-    sprintf(str + strlen(str), "%d", array[length-1]);
+    sprintf(str + strlen(str), "%d", array[length - 1]);
     str[strlen(str)] = '\0';
     return str;
 }
 
 
-char *String_joinStringArray(const char** array, int elementMaxSize, int length, char delimiter){
+char *String_joinStringArray(const char **array, int elementMaxSize, int length, char delimiter) {
     char *str = malloc(length * elementMaxSize * sizeof(char));
     str[0] = '\0';
-    for(int i=0; i < length-1; i++) {
+    for (int i = 0; i < length - 1; i++) {
         sprintf(str + strlen(str), "%s%c", array[i], delimiter);
     }
-    sprintf(str + strlen(str), "%s", array[length-1]);
+    sprintf(str + strlen(str), "%s", array[length - 1]);
     return str;
 }
 
 
-stList *Splitter_parseLinesIntoList(const char *filepath){
+stList *Splitter_parseLinesIntoList(const char *filepath) {
     stList *lines = stList_construct3(0, free);
     FILE *fp = fopen(filepath, "r");
-    if (fp == NULL){
-            fprintf(stderr, "Error: Unable to open %s\n", filepath);
+    if (fp == NULL) {
+        fprintf(stderr, "Error: Unable to open %s\n", filepath);
     }
     int len;
     int read;
     char *token;
     char *line = malloc(1000);
-    while((read = getline(&line, &len, fp)) > 0){
-            //fprintf(stderr, "%s %d\n",line, read);
-            if (0 < read && line[read-1] == '\n') line[read-1] = '\0';
-            Splitter* splitter = Splitter_construct(line, ' ');
-            // get contig name
-            token = Splitter_getToken(splitter);
-            stList_append(lines, copyString(token));
-            Splitter_destruct(splitter);
+    while ((read = getline(&line, &len, fp)) > 0) {
+        //fprintf(stderr, "%s %d\n",line, read);
+        if (0 < read && line[read - 1] == '\n') line[read - 1] = '\0';
+        Splitter *splitter = Splitter_construct(line, ' ');
+        // get contig name
+        token = Splitter_getToken(splitter);
+        stList_append(lines, copyString(token));
+        Splitter_destruct(splitter);
     }
     fclose(fp);
     free(line);

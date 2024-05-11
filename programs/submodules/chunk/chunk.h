@@ -31,7 +31,7 @@ typedef struct ChunksCreator {
     char *covPath;
     // attributes that should be parsed from header lines
     int numberOfAnnotations;
-    stList* annotationNames;
+    stList *annotationNames;
     int numberOfRegions;
     int *regionCoverages;
     int numberOfLabels;
@@ -49,36 +49,56 @@ typedef struct ChunksCreator {
 
 
 int Chunk_cmp(const void *chunk_1, const void *chunk2);
+
 Chunk *Chunk_construct(int chunkCanonicalLen);
+
 Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int maxSeqSize);
+
 void Chunk_destruct(Chunk *chunk);
+
 stList *Chunk_constructListWithAllocatedSeq(stList *templateChunks, int windowLen);
+
 int32_t Chunk_getWindowRegion(Chunk *chunk);
+
 int Chunk_addWindow(Chunk *chunk);
+
 int Chunk_addTrack(Chunk *chunk, TrackReader *trackReader);
 
 
 ChunksCreator *ChunksCreator_constructEmpty();
-ChunksCreator *ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalLen, int nThreads, int windowLen);
+
+ChunksCreator *
+ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalLen, int nThreads, int windowLen);
+
 stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCanonicalLen);
+
 void ChunksCreator_writeCovIndex(stList *templateChunks, char *indexPath);
+
 stList *ChunksCreator_parseCovIndex(char *covIndexPath);
+
 void ChunksCreator_destruct(ChunksCreator *chunksCreator);
+
 int ChunksCreator_parseChunks(ChunksCreator *chunksCreator);
+
 void ChunksCreator_parseOneChunk(void *chunksCreator_);
+
 void ChunksCreator_sortChunks(ChunksCreator *chunksCreator);
 
 void ChunksCreator_parseAnnotationNames(ChunksCreator *chunksCreator);
+
 void ChunksCreator_parseRegionCoverages(ChunksCreator *chunksCreator);
+
 void ChunksCreator_parseNumberOfLabels(ChunksCreator *chunksCreator);
+
 void ChunksCreator_parseTruthAvailability(ChunksCreator *chunksCreator);
 
 void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
-                                    const char *outputPath,
-                                    const char *trackName,
-                                    u_int16_t (*getCoverageInfoAttribute)(CoverageInfo *),
-                                    const char *writingMode,
-				    const char *color);
+                                           const char *outputPath,
+                                           const char *trackName,
+                                           u_int16_t (*getCoverageInfoAttribute)(CoverageInfo *),
+                                           const char *writingMode,
+                                           const char *color);
 
 void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *binPath);
+
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath);

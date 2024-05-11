@@ -18,16 +18,15 @@
 #include "chunk.h"
 
 
-
 static struct option long_options[] =
         {
-                {"input",			required_argument,      NULL, 'i'},
-		{"fai",				required_argument,      NULL, 'f'},
-                {"predictionBed",		required_argument,      NULL, 'p'},
-                {"truthBed",			required_argument,      NULL, 't'},
-                {"numberOfLabels",		required_argument,      NULL, 'n'},
-                {"output",			required_argument,      NULL, 'o'},
-                {NULL,                          0,                      NULL, 0}
+                {"input",          required_argument, NULL, 'i'},
+                {"fai",            required_argument, NULL, 'f'},
+                {"predictionBed",  required_argument, NULL, 'p'},
+                {"truthBed",       required_argument, NULL, 't'},
+                {"numberOfLabels", required_argument, NULL, 'n'},
+                {"output",         required_argument, NULL, 'o'},
+                {NULL,             0,                 NULL, 0}
         };
 
 
@@ -49,58 +48,63 @@ int main(int argc, char *argv[]) {
             case 'o':
                 outputPath = optarg;
                 break;
-	    case 'f':
+            case 'f':
                 faiPath = optarg;
                 break;
-	    case 'p':
-		predictionPath = optarg;
-		break;
-	    case 't':
-		truthPath = optarg;
-		break;
-	    case 'n':
-		numberOfLabels = atoi(optarg);
-		break;
-	    default:
+            case 'p':
+                predictionPath = optarg;
+                break;
+            case 't':
+                truthPath = optarg;
+                break;
+            case 'n':
+                numberOfLabels = atoi(optarg);
+                break;
+            default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
                 fprintf(stderr, "\nUsage: %s  -i <INPUT_FILE> -f <FAI> -o <OUTPUT_FILE> \n", program);
                 fprintf(stderr, "Options:\n");
-		fprintf(stderr, "         --input, -i                  input path (can have formats '.cov', '.cov.gz', '.bed' or '.bed.gz')\n");
-		fprintf(stderr, "         --fai, -f                    fai path\n");
-                fprintf(stderr, "         --output, -o                 output path (can have formats '.cov', '.cov.gz', '.bed' or '.bed.gz')\n");
-		fprintf(stderr, "         --truthBed, -t              path to a truth bed file. 4th column in the bed file should contain the truth integer label (0<= label <= --numberOfLabels). Labels with a value of -1 will be considered as not defined. If no truth bed is provided (but a prediction bed exists) the related column will be set all to -1 since 8th column is reserved for truth labels.\n");
-		fprintf(stderr, "         --predictionBed, -p         path to a truth bed file. 4th column in the bed file should contain the prediction integer label (0<= label <= --numberOfLabels). Labels with a value of -1 will be considered as not defined. The prediction labels will appear in the 9th column of the output coverage file.\n");
-		fprintf(stderr, "         --numberOfLabels, -n         number of labels [Default = 4]\n");
+                fprintf(stderr,
+                        "         --input, -i                  input path (can have formats '.cov', '.cov.gz', '.bed' or '.bed.gz')\n");
+                fprintf(stderr, "         --fai, -f                    fai path\n");
+                fprintf(stderr,
+                        "         --output, -o                 output path (can have formats '.cov', '.cov.gz', '.bed' or '.bed.gz')\n");
+                fprintf(stderr,
+                        "         --truthBed, -t              path to a truth bed file. 4th column in the bed file should contain the truth integer label (0<= label <= --numberOfLabels). Labels with a value of -1 will be considered as not defined. If no truth bed is provided (but a prediction bed exists) the related column will be set all to -1 since 8th column is reserved for truth labels.\n");
+                fprintf(stderr,
+                        "         --predictionBed, -p         path to a truth bed file. 4th column in the bed file should contain the prediction integer label (0<= label <= --numberOfLabels). Labels with a value of -1 will be considered as not defined. The prediction labels will appear in the 9th column of the output coverage file.\n");
+                fprintf(stderr, "         --numberOfLabels, -n         number of labels [Default = 4]\n");
                 return 1;
         }
     }
-    
+
     double realtimeStart = System_getRealTimePoint();
 
-    if (truthPath == NULL && predictionPath == NULL){
-	    fprintf(stderr, "[%s] (Error) At least one of --truthBed or --predictionBed should be provided!\n", get_timestamp());
-	    exit(EXIT_FAILURE);
+    if (truthPath == NULL && predictionPath == NULL) {
+        fprintf(stderr, "[%s] (Error) At least one of --truthBed or --predictionBed should be provided!\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
     }
     char *inputExtension = extractFileExtension(inputPath);
     char *outputExtension = extractFileExtension(outputPath);
     if (strcmp(outputExtension, "cov") != 0 &&
-	strcmp(outputExtension, "cov.gz") != 0 &&
-	strcmp(outputExtension, "bed") != 0 &&
-	strcmp(outputExtension, "bed.gz") != 0 ){
-	    fprintf(stderr, "[%s] Error: output file should either cov/cov.gz/bed/bed.gz  !\n", get_timestamp());
-	    free(inputExtension);
-	    free(outputExtension);
-	    exit(EXIT_FAILURE);
+        strcmp(outputExtension, "cov.gz") != 0 &&
+        strcmp(outputExtension, "bed") != 0 &&
+        strcmp(outputExtension, "bed.gz") != 0) {
+        fprintf(stderr, "[%s] Error: output file should either cov/cov.gz/bed/bed.gz  !\n", get_timestamp());
+        free(inputExtension);
+        free(outputExtension);
+        exit(EXIT_FAILURE);
     }
     if (strcmp(inputExtension, "cov") != 0 &&
         strcmp(inputExtension, "cov.gz") != 0 &&
         strcmp(inputExtension, "bed") != 0 &&
-        strcmp(inputExtension, "bed.gz") != 0){
-            fprintf(stderr, "[%s] Error: input file should either cov/cov.gz/bed/bed.gz  !\n", get_timestamp());
-	    free(inputExtension);
-            free(outputExtension);
-            exit(EXIT_FAILURE);
+        strcmp(inputExtension, "bed.gz") != 0) {
+        fprintf(stderr, "[%s] Error: input file should either cov/cov.gz/bed/bed.gz  !\n", get_timestamp());
+        free(inputExtension);
+        free(outputExtension);
+        exit(EXIT_FAILURE);
     }
 
     fprintf(stderr, "[%s] Parsing %s to create a table of contig lengths.\n", get_timestamp(), faiPath);
@@ -116,18 +120,18 @@ int main(int argc, char *argv[]) {
     // parse truth/prediction bed files and extend blocks with the related label blocks
     bool isLabelTruth;
     // add truth labels
-    if(truthPath != NULL){
-	    isLabelTruth = true;
-	    stHash *blockTableTruth = ptBlock_parse_inference_label_blocks(truthPath, isLabelTruth);
-	    // add truth labels to the block table
-	    ptBlock_extend_block_tables(blockTable, blockTableTruth);
+    if (truthPath != NULL) {
+        isLabelTruth = true;
+        stHash *blockTableTruth = ptBlock_parse_inference_label_blocks(truthPath, isLabelTruth);
+        // add truth labels to the block table
+        ptBlock_extend_block_tables(blockTable, blockTableTruth);
     }
     // add prediction labels
-    if(predictionPath != NULL){
-            isLabelTruth = false;
-            stHash *blockTablePrediction = ptBlock_parse_inference_label_blocks(predictionPath, isLabelTruth);
-	    // add prediction labels to the block table
-            ptBlock_extend_block_tables(blockTable, blockTablePrediction);
+    if (predictionPath != NULL) {
+        isLabelTruth = false;
+        stHash *blockTablePrediction = ptBlock_parse_inference_label_blocks(predictionPath, isLabelTruth);
+        // add prediction labels to the block table
+        ptBlock_extend_block_tables(blockTable, blockTablePrediction);
     }
 
     //sort
@@ -150,26 +154,28 @@ int main(int argc, char *argv[]) {
     ChunksCreator_parseNumberOfLabels(chunksCreator);
     ChunksCreator_parseTruthAvailability(chunksCreator);
 
-    if(numberOfLabels != chunksCreator->numberOfLabels){
-	    fprintf(stderr, "[%s] (Warning) The number of labels in the header of the input file (%d) does not match --numberOfLabels %d. It will be overwritten to %d.\n",get_timestamp(), chunksCreator->numberOfLabels, numberOfLabels, numberOfLabels);
+    if (numberOfLabels != chunksCreator->numberOfLabels) {
+        fprintf(stderr,
+                "[%s] (Warning) The number of labels in the header of the input file (%d) does not match --numberOfLabels %d. It will be overwritten to %d.\n",
+                get_timestamp(), chunksCreator->numberOfLabels, numberOfLabels, numberOfLabels);
     }
 
-    fprintf(stderr, "numberOfRegions=%d\n",chunksCreator->numberOfRegions);
-    for (int i=0;i++;i<chunksCreator->numberOfRegions){
-	    fprintf(stderr,"reg[%d]\n",chunksCreator->regionCoverages[i]);
+    fprintf(stderr, "numberOfRegions=%d\n", chunksCreator->numberOfRegions);
+    for (int i = 0; i++; i < chunksCreator->numberOfRegions) {
+        fprintf(stderr, "reg[%d]\n", chunksCreator->regionCoverages[i]);
     }
     // create a list of header lines
     bool isTruthAvailable = truthPath != NULL || chunksCreator->isTruthAvailable;
-    stList *headerLines = ptBlock_create_headers(chunksCreator->annotationNames, 
-		                                 chunksCreator->regionCoverages, 
-						 chunksCreator->numberOfRegions, 
-						 numberOfLabels, 
-						 isTruthAvailable);
-    
+    stList *headerLines = ptBlock_create_headers(chunksCreator->annotationNames,
+                                                 chunksCreator->regionCoverages,
+                                                 chunksCreator->numberOfRegions,
+                                                 numberOfLabels,
+                                                 isTruthAvailable);
+
     fprintf(stderr, "[%s] Writing %s.\n", get_timestamp(), outputPath);
     // write header and tracks into output file
-    ptBlock_write_blocks_per_contig(finalBlockTable, outputPath, "all", ctgToLen, headerLines); 
-    
+    ptBlock_write_blocks_per_contig(finalBlockTable, outputPath, "all", ctgToLen, headerLines);
+
     ChunksCreator_destruct(chunksCreator);
     stList_destruct(headerLines);
     stHash_destruct(blockTable);
@@ -184,6 +190,7 @@ int main(int argc, char *argv[]) {
     double rssgb = System_getPeakRSSInGB();
     double usage = System_getCpuUsage(cputime, realtime);
     // copied from https://github.com/chhylp123/hifiasm/blob/70fd9a0b1fea45e442eb5f331922ea91ef4f71ae/main.cpp#L73
-    fprintf(stderr, "Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB; CPU usage: %.1f\%\n", realtime, cputime, rssgb, usage * 100.0);
+    fprintf(stderr, "Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB; CPU usage: %.1f\%\n", realtime, cputime,
+            rssgb, usage * 100.0);
 
 }

@@ -12,7 +12,7 @@
 
 
 
-CountData *CountData_construct(int length){
+CountData *CountData_construct(int length) {
     CountData *countData = malloc(sizeof(CountData));
     countData->counts = Double_construct1DArray(length);
     countData->countsLength = length;
@@ -21,16 +21,16 @@ CountData *CountData_construct(int length){
     return countData;
 }
 
-CountData **CountData_construct1DArray(int length, int arrayLength){
-    CountData **countData1DArray = malloc(arrayLength * sizeof(CountData*));
-    for(int i=0; i < arrayLength; i++){
+CountData **CountData_construct1DArray(int length, int arrayLength) {
+    CountData **countData1DArray = malloc(arrayLength * sizeof(CountData *));
+    for (int i = 0; i < arrayLength; i++) {
         countData1DArray[i] = CountData_construct(length);
     }
     return countData1DArray;
 }
 
-void CountData_destruct1DArray(CountData **countData1DArray, int arrayLength){
-    for(int i=0; i < arrayLength; i++){
+void CountData_destruct1DArray(CountData **countData1DArray, int arrayLength) {
+    for (int i = 0; i < arrayLength; i++) {
         CountData_destruct(countData1DArray[i]);
     }
     free(countData1DArray);
@@ -46,17 +46,17 @@ void CountData_increment(CountData *countData, int value, double count) {
     countData->totalCount += count;
 }
 
-void CountData_reset(CountData* countData){
+void CountData_reset(CountData *countData) {
     memset(countData->counts, 0, countData->countsLength * sizeof(double));
     countData->sum = 0.0;
     countData->totalCount = 0;
 }
 
-int CountData_getMostFrequentValue(CountData *countData, int minValue, int maxValue){
+int CountData_getMostFrequentValue(CountData *countData, int minValue, int maxValue) {
     int value = -1;
     double maxCount = 0.0;
-    for(int i=minValue; i < min(maxValue, countData->countsLength); i++){
-        if(maxCount < countData->counts[i]){
+    for (int i = minValue; i < min(maxValue, countData->countsLength); i++) {
+        if (maxCount < countData->counts[i]) {
             value = i;
             maxCount = countData->counts[i];
         }
@@ -64,11 +64,11 @@ int CountData_getMostFrequentValue(CountData *countData, int minValue, int maxVa
     return value;
 }
 
-double CountData_getMaxCount(CountData *countData, int minValue, int maxValue){
+double CountData_getMaxCount(CountData *countData, int minValue, int maxValue) {
     int value = -1;
     double maxCount = 0.0;
-    for(int i=minValue; i < min(maxValue, countData->countsLength); i++){
-        if(maxCount < countData->counts[i]){
+    for (int i = minValue; i < min(maxValue, countData->countsLength); i++) {
+        if (maxCount < countData->counts[i]) {
             value = i;
             maxCount = countData->counts[i];
         }
@@ -76,15 +76,15 @@ double CountData_getMaxCount(CountData *countData, int minValue, int maxValue){
     return maxCount;
 }
 
-double CountData_getTotalCount(CountData *countData, int minValue, int maxValue){
+double CountData_getTotalCount(CountData *countData, int minValue, int maxValue) {
     double totalCount = 0.0;
-    for(int i=minValue; i < min(maxValue, countData->countsLength); i++){
-            totalCount += countData->counts[i];
+    for (int i = minValue; i < min(maxValue, countData->countsLength); i++) {
+        totalCount += countData->counts[i];
     }
     return totalCount;
 }
 
-void CountData_destruct(CountData* countData){
+void CountData_destruct(CountData *countData) {
     free(countData->counts);
     free(countData);
 }
