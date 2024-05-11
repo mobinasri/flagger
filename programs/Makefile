@@ -1,7 +1,7 @@
 CC=gcc
-INC=-I /home/apps/sonLib/C/inc/ -I /usr/local/include/htslib -I submodules/ptAlignment -I submodules/ptBlock -I submodules/cigar_it -I submodules/common -I submodules/block_it -I submodules/hmm_utils -I submodules/data_types -I submodules/tpool -I submodules/digamma -I submodules/cJSON -I submodules/hmm
+INC=-I /home/apps/sonLib/C/inc/ -I /usr/local/include/htslib -I submodules/ptAlignment -I submodules/ptBlock -I submodules/cigar_it -I submodules/common -I submodules/track_reader -I submodules/hmm_utils -I submodules/data_types -I submodules/tpool -I submodules/digamma -I submodules/cJSON -I submodules/hmm -I submodules/chunk -I submodules/bias_detector -I submodules/count_data
 STATIC_LIBS=/home/apps/sonLib/lib/sonLib.a
-CCFLAGS=$(STATIC_LIBS) $(INC) -lm -lhts -lpthread -lz
+CCFLAGS= -w $(STATIC_LIBS) $(INC) -lm -lhts -lpthread -lz
 BIN_DIR=bin
 SRC_DIR=src
 TEST_DIR=tests
@@ -15,7 +15,7 @@ TEST_BINS=$(patsubst ${TEST_DIR}/%.c,${BIN_DIR}/%,$(SRCS))
 
 .PHONY: all
 
-all: ${OBJS} ${BIN_DIR} $(SRC_BINS) $(TEST_BINS)
+all: ${OBJS} ${BIN_DIR} $(SRC_BINS) $(TEST_BINS) run_tests
 
 bin/%: src/%.c $(OBJS)
 	$(CC) -o $@ $< $(OBJS) $(CCFLAGS)
@@ -31,3 +31,12 @@ ${BIN_DIR}:
 
 %.o: %.c %.h
 	$(CC) -c -o$@ $< $(CCFLAGS)
+
+run_tests: bin/test_track_reader 
+	./bin/test_track_reader	
+	./bin/test_chunks_creator
+	./bin/test_common
+	./bin/test_ptBlock
+	./bin/test_bias_detector
+	./bin/bam2cov --bam tests/test_files/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/ptBlock_bam2cov_test.json --output tests/test_files/ptBlock_bam2cov_test.output.cov --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1 && cmp tests/test_files/ptBlock_bam2cov_test.output.cov tests/test_files/ptBlock_bam2cov_test.truth.cov
+	./bin/bam2cov --bam tests/test_files/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/ptBlock_bam2cov_test.json --output tests/test_files/ptBlock_bam2cov_test.output.cov.gz --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1 && zcmp tests/test_files/ptBlock_bam2cov_test.output.cov.gz tests/test_files/ptBlock_bam2cov_test.truth.cov.gz
