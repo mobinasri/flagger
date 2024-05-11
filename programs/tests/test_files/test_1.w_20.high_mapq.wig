@@ -1,0 +1,13 @@
+track type=wiggle_0 name="coverage_wig_high_mapq" visibility=full color=0,0,153
+fixedStep chrom=ctg1 start=1 step=20 span=20
+2
+10
+10
+15
+16
+16
+
+track type=wiggle_0 name="coverage_wig_high_mapq" visibility=full color=0,0,153
+fixedStep chrom=ctg2 start=1 step=20 span=20
+7
+
