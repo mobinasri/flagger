@@ -99,7 +99,6 @@ void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
                                            const char *outputPath,
                                            const char *trackName,
                                            u_int16_t (*getCoverageInfoAttribute)(CoverageInfo *),
-                                           const char *writingMode,
                                            const char *color);
 
 void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *binPath);

@@ -817,10 +817,9 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
 void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
                                            const char *outputPath,
                                            const char *trackName,
-                                           u_int16_t (*getCoverageInfoAttribute)(CoverageInfo *),
-                                           const char *writingMode,
+                                           u_int16_t (* getCoverageInfoAttribute)(CoverageInfo *),
                                            const char *color) {
-    FILE *fp = fopen(outputPath, writingMode);
+    FILE *fp = fopen(outputPath, "w");
     if (fp == NULL) {
         fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outputPath);
     }
