@@ -29,16 +29,13 @@ bool testCreatingChunks(char *covPath) {
     int numberOfChunks = stList_length(chunks);
     for (int chunkIndex = 0; chunkIndex < numberOfChunks; chunkIndex++) {
         Chunk *chunk = stList_get(chunks, chunkIndex);
-        //fprintf(stderr,"### %s:%d-%d\n", chunk->ctg, chunk->s, chunk->e);
         if (strcmp(chunk->ctg, "ctg1") == 0) {
             for (int windowIndex = 0; windowIndex < chunk->coverageInfoSeqLen; windowIndex++) {
                 trackIndexCtg1 += 1;
                 CoverageInfo *coverageInfo = chunk->coverageInfoSeq[windowIndex];
                 int *truthValues = truthValuesCtg1[trackIndexCtg1];
-                //correct &= (chunk->s == (truthValues[0] - 1));
-                //correct &= (chunk->e == (truthValues[1] - 1));
-                fprintf(stderr, "**** %d %d %d %d\n", coverageInfo->coverage, coverageInfo->coverage_high_mapq,
-                        coverageInfo->coverage_high_clip, coverageInfo->annotation_flag);
+                correct &= (chunk->s == (truthValues[0] - 1));
+                correct &= (chunk->e == (truthValues[1] - 1));
                 correct &= (coverageInfo->coverage == truthValues[2]);
                 correct &= (coverageInfo->coverage_high_mapq == truthValues[3]);
                 correct &= (coverageInfo->coverage_high_clip == truthValues[4]);
@@ -50,10 +47,8 @@ bool testCreatingChunks(char *covPath) {
                 trackIndexCtg2 += 1;
                 CoverageInfo *coverageInfo = chunk->coverageInfoSeq[windowIndex];
                 int *truthValues = truthValuesCtg2[trackIndexCtg2];
-                //correct &= (chunk->s == (truthValues[0] - 1));
-                //correct &= (chunk->e == (truthValues[1] - 1));
-                fprintf(stderr, "**** %d %d %d %d\n", coverageInfo->coverage, coverageInfo->coverage_high_mapq,
-                        coverageInfo->coverage_high_clip, coverageInfo->annotation_flag);
+                correct &= (chunk->s == (truthValues[0] - 1));
+                correct &= (chunk->e == (truthValues[1] - 1));
                 correct &= (coverageInfo->coverage == truthValues[2]);
                 correct &= (coverageInfo->coverage_high_mapq == truthValues[3]);
                 correct &= (coverageInfo->coverage_high_clip == truthValues[4]);

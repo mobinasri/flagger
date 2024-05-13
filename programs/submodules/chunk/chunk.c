@@ -307,7 +307,6 @@ int Chunk_getWindowRegion(Chunk *chunk) {
 }
 
 int Chunk_addWindow(Chunk *chunk) {
-    fprintf(stderr, "add window\n");
     if (chunk->windowItr == -1) return 1;
     CoverageInfo *windowSumCoverageInfo = chunk->windowSumCoverageInfo;
     double coverage_avg = (double) windowSumCoverageInfo->coverage / (chunk->windowItr + 1);
@@ -358,7 +357,6 @@ int Chunk_addTrack(Chunk *chunk, TrackReader *trackReader) {
     if (canonicalBasesToAdd <= 0) return 0;
     CoverageInfo *windowSumCoverageInfo;
     for (int i = 0; i < canonicalBasesToAdd; i++) {
-        fprintf(stderr, "i=%d\n", i);
         // windowItr initial value is -1
         chunk->windowItr += 1;
         chunk->windowItr %= chunk->windowLen;
