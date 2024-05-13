@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     int numberOfLabels = 4;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:o:f:w:t:n:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:o:f:w:t:n:p:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
