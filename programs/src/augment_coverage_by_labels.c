@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
     bool isPredictionAvailable = predictionPath != NULL || header->isPredictionAvailable;
 
     CoverageHeader *newHeader = CoverageHeader_constructByAttributes(header->annotationNames,
-                                                                     header->coveragePerRegion,
+                                                                     header->regionCoverages,
                                                                      header->numberOfRegions,
                                                                      numberOfLabels,
                                                                      isTruthAvailable,
