@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 
-bool testParsingCov(char *covPath) {
+bool testParsingCov(const char *covPath) {
     bool correct = true;
     int truthValuesCtg1[7][6] = {{1,  10,  4,  4,  4,  0},
                                  {11, 15,  6,  0,  0,  0},
