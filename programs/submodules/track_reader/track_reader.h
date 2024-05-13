@@ -58,11 +58,11 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
 
 void CoverageHeader_destruct(CoverageHeader *header);
 
-void CoverageHeader_parseNumberOfAnnotations(CoverageHeader *header);
+void CoverageHeader_updateNumberOfAnnotations(CoverageHeader *header);
 
 void CoverageHeader_updateAnnotationNames(CoverageHeader *header);
 
-void CoverageHeader_parseNumberOfRegions(CoverageHeader *header);
+void CoverageHeader_updateNumberOfRegions(CoverageHeader *header);
 
 void CoverageHeader_updateRegionCoverages(CoverageHeader *header);
 

@@ -177,7 +177,7 @@ void CoverageHeader_destruct(CoverageHeader *header) {
 }
 
 
-void CoverageHeader_parseNumberOfAnnotations(CoverageHeader *header) {
+void CoverageHeader_updateNumberOfAnnotations(CoverageHeader *header) {
     stList *headerLines = header->headerLines;
     char *token;
     for (int i = 0; i < stList_length(headerLines); i++) {
@@ -195,7 +195,7 @@ void CoverageHeader_parseNumberOfAnnotations(CoverageHeader *header) {
 }
 
 void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
-    CoverageHeader_parseNumberOfAnnotations(header);
+    CoverageHeader_updateNumberOfAnnotations(header);
     if (header->annotationNames != NULL) {
         stList_destruct(header->annotationNames);
     }
@@ -221,7 +221,7 @@ void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
     }
 }
 
-void CoverageHeader_parseNumberOfRegions(CoverageHeader *header) {
+void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
     stList *headerLines = header->headerLines;
     char *token;
     for (int i = 0; i < stList_length(headerLines); i++) {
@@ -239,7 +239,7 @@ void CoverageHeader_parseNumberOfRegions(CoverageHeader *header) {
 }
 
 void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
-    header_parseNumberOfRegions(header);
+    header_updateNumberOfRegions(header);
     header->regionCoverages = (int *) malloc(header->numberOfRegions * sizeof(int));
     stList *headerLines = header->headerLines;
     char *token;
