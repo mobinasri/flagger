@@ -1734,7 +1734,7 @@ stHash *ptBlock_parse_inference_label_blocks(char *bedPath, bool isLabelTruth) {
 
 
 stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
-    CoverageHeader *header = CoverageInfo_construct(filePath);
+    CoverageHeader *header = CoverageHeader_construct(filePath);
     TrackReader *trackReader = TrackReader_construct(filePath, NULL, true); //0-based coors = true
     stHash *coverage_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                            (void (*)(void *)) stList_destruct);
