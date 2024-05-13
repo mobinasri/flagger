@@ -146,48 +146,34 @@ int main(int argc, char *argv[]) {
 
 
     // parse information from header
-    ChunksCreator *chunksCreator = ChunksCreator_constructEmpty();
-    chunksCreator->covPath = copyString(inputPath);
-    // parse attributes from header lines
-    ChunksCreator_parseRegionCoverages(chunksCreator);
-    ChunksCreator_parseAnnotationNames(chunksCreator);
-    ChunksCreator_parseNumberOfLabels(chunksCreator);
-    ChunksCreator_parseTruthAvailability(chunksCreator);
-    ChunksCreator_parsePredictionAvailability(chunksCreator);
+    CoverageHeader *header = CoverageHeader_construct(inputPath);
 
-    if (numberOfLabels != chunksCreator->numberOfLabels) {
+    if (numberOfLabels != header->numberOfLabels) {
         fprintf(stderr,
                 "[%s] Warning: The number of labels in the header of the input file (%d) does not match --numberOfLabels %d. It will be overwritten to %d.\n",
-                get_timestamp(), chunksCreator->numberOfLabels, numberOfLabels, numberOfLabels);
-    }
-
-    fprintf(stderr, "numberOfRegions=%d\n", chunksCreator->numberOfRegions);
-    for (int i = 0; i++; i < chunksCreator->numberOfRegions) {
-        fprintf(stderr, "reg[%d]\n", chunksCreator->regionCoverages[i]);
+                get_timestamp(), header->numberOfLabels, numberOfLabels, numberOfLabels);
+        header->numberOfLabels = numberOfLabels;
     }
     // create a list of header lines
-    bool isTruthAvailable = truthPath != NULL || chunksCreator->isTruthAvailable;
-    bool isPredictionAvailable = predictionPath != NULL || chunksCreator->isPredictionAvailable;
-    stList *headerLines = ptBlock_create_headers(chunksCreator->annotationNames,
-                                                 chunksCreator->regionCoverages,
-                                                 chunksCreator->numberOfRegions,
-                                                 numberOfLabels,
-                                                 isTruthAvailable,
-                                                 isPredictionAvailable);
+    header->isTruthAvailable = truthPath != NULL || header->isTruthAvailable;
+    header->isPredictionAvailable = predictionPath != NULL || header->isPredictionAvailable;
 
     fprintf(stderr, "[%s] Writing %s.\n", get_timestamp(), outputPath);
     // write header and tracks into output file
-    ptBlock_write_blocks_per_contig(finalBlockTable, outputPath, "all", ctgToLen, headerLines);
+    // all means write all available columns
+    ptBlock_write_blocks_per_contig(finalBlockTable, outputPath, "all", ctgToLen, header);
 
-    ChunksCreator_destruct(chunksCreator);
-    stList_destruct(headerLines);
+    // free memory
+    CoverageHeader_destruct(header);
     stHash_destruct(blockTable);
     stHash_destruct(finalBlockTable);
     stHash_destruct(ctgToLen);
     free(outputExtension);
     free(inputExtension);
+
     fprintf(stderr, "[%s] Done!\n", get_timestamp());
 
+    // log used time/resources
     double realtime = System_getRealTimePoint() - realtimeStart;
     double cputime = System_getCpuTime();
     double rssgb = System_getPeakRSSInGB();

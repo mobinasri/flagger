@@ -84,11 +84,7 @@ void Chunk_destruct(Chunk *chunk) {
 ChunksCreator *ChunksCreator_constructEmpty() {
     ChunksCreator *chunksCreator = malloc(sizeof(ChunksCreator));
     chunksCreator->covPath = NULL;
-    chunksCreator->numberOfRegions = 0;
-    chunksCreator->regionCoverages = NULL;
-    chunksCreator->numberOfAnnotations = 0;
-    chunksCreator->annotationNames = NULL;
-    chunksCreator->numberOfLabels = 0;
+    chunksCreator->header = CoverageHeader_construct(NULL);
 
     chunksCreator->nextChunkIndexToRead = 0;
     chunksCreator->nThreads = 1;
@@ -144,16 +140,8 @@ ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalL
     }
     chunksCreator->covPath = copyString(covPath);
     // parse attributes from header lines
-    fprintf(stderr, "[%s] Parsing region coverages.\n", get_timestamp());
-    ChunksCreator_parseRegionCoverages(chunksCreator);
-    fprintf(stderr, "[%s] Parsing annotation names.\n", get_timestamp());
-    ChunksCreator_parseAnnotationNames(chunksCreator);
-    fprintf(stderr, "[%s] Parsing number of labels.\n", get_timestamp());
-    ChunksCreator_parseNumberOfLabels(chunksCreator);
-    fprintf(stderr, "[%s] Parsing truth availability.\n", get_timestamp());
-    ChunksCreator_parseTruthAvailability(chunksCreator);
-    fprintf(stderr, "[%s] Parsing prediction availability.\n", get_timestamp());
-    ChunksCreator_parsePredictionAvailability(chunksCreator);
+    fprintf(stderr, "[%s] Parsing header info.\n", get_timestamp());
+    chunksCreator->header = CoverageHeader_construct(covPath);
 
     chunksCreator->nextChunkIndexToRead = 0;
     chunksCreator->nThreads = nThreads;
@@ -281,151 +269,10 @@ stList *ChunksCreator_parseCovIndex(char *covIndexPath) {
     return templateChunks;
 }
 
-void ChunksCreator_parseNumberOfAnnotations(ChunksCreator *chunksCreator) {
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
-    stList *headerLines = trackReader->headerLines;
-    char *token;
-    for (int i = 0; i < stList_length(headerLines); i++) {
-        char *headerLine = stList_get(headerLines, i);
-        if (strncmp("#annotation:len", headerLine, strlen("#annotation:len")) == 0) {
-            Splitter *splitter = Splitter_construct(headerLine, ':');
-            token = Splitter_getToken(splitter); //#annotation
-            token = Splitter_getToken(splitter); //len
-            token = Splitter_getToken(splitter); //number
-            chunksCreator->numberOfAnnotations = atoi(token);
-            Splitter_destruct(splitter);
-            break;
-        }
-    }
-    TrackReader_destruct(trackReader);
-}
-
-void ChunksCreator_parseAnnotationNames(ChunksCreator *chunksCreator) {
-    ChunksCreator_parseNumberOfAnnotations(chunksCreator);
-    chunksCreator->annotationNames = stList_construct3(chunksCreator->numberOfAnnotations, free);
-    for (int annotationIndex = 0; annotationIndex < chunksCreator->numberOfAnnotations; annotationIndex++) {
-        stList_set(chunksCreator->annotationNames, annotationIndex, copyString("NA"));
-    }
-
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
-    stList *headerLines = trackReader->headerLines;
-    char *token;
-    for (int i = 0; i < stList_length(headerLines); i++) {
-        char *headerLine = stList_get(headerLines, i);
-        if (strncmp("#annotation:name:", headerLine, strlen("#annotation:name:")) == 0) {
-            Splitter *splitter = Splitter_construct(headerLine, ':');
-            token = Splitter_getToken(splitter); //'#annotation'
-            token = Splitter_getToken(splitter); //'name'
-            token = Splitter_getToken(splitter); // index
-            int annotationIndex = atoi(token);
-            token = Splitter_getToken(splitter); //name
-            stList_set(chunksCreator->annotationNames, annotationIndex, copyString(token));
-            Splitter_destruct(splitter);
-        }
-    }
-    TrackReader_destruct(trackReader);
-}
-
-void ChunksCreator_parseNumberOfRegions(ChunksCreator *chunksCreator) {
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
-    stList *headerLines = trackReader->headerLines;
-    char *token;
-    for (int i = 0; i < stList_length(headerLines); i++) {
-        char *headerLine = stList_get(headerLines, i);
-        if (strncmp("#region:len", headerLine, strlen("#region:len")) == 0) {
-            Splitter *splitter = Splitter_construct(headerLine, ':');
-            token = Splitter_getToken(splitter); //#region
-            token = Splitter_getToken(splitter); //len
-            token = Splitter_getToken(splitter); //number
-            chunksCreator->numberOfRegions = atoi(token);
-            Splitter_destruct(splitter);
-            break;
-        }
-    }
-    TrackReader_destruct(trackReader);
-}
-
-void ChunksCreator_parseRegionCoverages(ChunksCreator *chunksCreator) {
-    ChunksCreator_parseNumberOfRegions(chunksCreator);
-    chunksCreator->regionCoverages = (int *) malloc(chunksCreator->numberOfRegions * sizeof(int));
-
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
-    stList *headerLines = trackReader->headerLines;
-    char *token;
-    for (int i = 0; i < stList_length(headerLines); i++) {
-        char *headerLine = stList_get(headerLines, i);
-        if (strncmp("#region:coverage:", headerLine, strlen("#region:coverage:")) == 0) {
-            Splitter *splitter = Splitter_construct(headerLine, ':');
-            token = Splitter_getToken(splitter); //'#region'
-            token = Splitter_getToken(splitter); //'coverage'
-            token = Splitter_getToken(splitter); // index
-            int regionIndex = atoi(token);
-            token = Splitter_getToken(splitter); // coverage
-            chunksCreator->regionCoverages[regionIndex] = atoi(token);
-            Splitter_destruct(splitter);
-        }
-    }
-    TrackReader_destruct(trackReader);
-}
-
-void ChunksCreator_parseNumberOfLabels(ChunksCreator *chunksCreator) {
-    // set it to zero in case no label line existed in header
-    chunksCreator->numberOfLabels = 0;
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
-    stList *headerLines = trackReader->headerLines;
-    char *token;
-    for (int i = 0; i < stList_length(headerLines); i++) {
-        char *headerLine = stList_get(headerLines, i);
-        if (strncmp("#label:len", headerLine, strlen("#label:len")) == 0) {
-            Splitter *splitter = Splitter_construct(headerLine, ':');
-            token = Splitter_getToken(splitter); //#label
-            token = Splitter_getToken(splitter); //len
-            token = Splitter_getToken(splitter); //number
-            chunksCreator->numberOfLabels = atoi(token);
-            Splitter_destruct(splitter);
-            break;
-        }
-    }
-    TrackReader_destruct(trackReader);
-}
-
-void ChunksCreator_parseTruthAvailability(ChunksCreator *chunksCreator) {
-    // set it to false in case no label line existed in header
-    chunksCreator->isTruthAvailable = false;
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
-    stList *headerLines = trackReader->headerLines;
-    char *token;
-    for (int i = 0; i < stList_length(headerLines); i++) {
-        char *headerLine = stList_get(headerLines, i);
-        if (strncmp("#truth:true", headerLine, strlen("#truth:true")) == 0) {
-            chunksCreator->isTruthAvailable = true;
-            break;
-        }
-    }
-    TrackReader_destruct(trackReader);
-}
-
-void ChunksCreator_parsePredictionAvailability(ChunksCreator *chunksCreator) {
-    // set it to false in case no label line existed in header
-    chunksCreator->isPredictionAvailable = false;
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, true);
-    stList *headerLines = trackReader->headerLines;
-    char *token;
-    for (int i = 0; i < stList_length(headerLines); i++) {
-        char *headerLine = stList_get(headerLines, i);
-        if (strncmp("#truth:true", headerLine, strlen("#prediction:true")) == 0) {
-            chunksCreator->isPredictionAvailable = true;
-            break;
-        }
-    }
-    TrackReader_destruct(trackReader);
-}
-
 void ChunksCreator_destruct(ChunksCreator *chunksCreator) {
-    if (chunksCreator->annotationNames != NULL) {
-        stList_destruct(chunksCreator->annotationNames);
+    if (chunksCreator->header != NULL) {
+        CoverageHeader_destruct(chunksCreator->header);
     }
-    free(chunksCreator->regionCoverages);
     if (chunksCreator->chunks != NULL) {
         stList_destruct(chunksCreator->chunks);
     }
@@ -628,13 +475,18 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
     FILE *fp = fopen(binPath, "wb+");
 
     int numberOfChunks = stList_length(chunks);
-    int numberOfAnnotations = chunksCreator->numberOfAnnotations;
-    stList *annotationNames = chunksCreator->annotationNames;
-    int *regionCoverages = chunksCreator->regionCoverages;
-    int numberOfRegions = chunksCreator->numberOfRegions;
-    int numberOfLabels = chunksCreator->numberOfLabels;
-    bool isTruthAvailable = chunksCreator->isTruthAvailable;
-    bool isPredictionAvailable = chunksCreator->isPredictionAvailable;
+    if(chunksCreator->header == NULL){
+        fprintf(stderr, "[%s] Error: header cannot be undefined for writing chunks in binary.\n",get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+    CoverageHeader *header = chunksCreator->header;
+    int numberOfAnnotations = header->numberOfAnnotations;
+    stList *annotationNames = header->annotationNames;
+    int *regionCoverages = header->regionCoverages;
+    int numberOfRegions = header->numberOfRegions;
+    int numberOfLabels = header->numberOfLabels;
+    bool isTruthAvailable = header->isTruthAvailable;
+    bool isPredictionAvailable = header->isPredictionAvailable;
 
     // write number of annotations
     fwrite(&numberOfAnnotations, sizeof(int32_t), 1, fp);
@@ -715,7 +567,6 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
 
 // pass the output of ChunksCreator_constructEmpty() to this function
 void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *binPath) {
-
     if (!file_exists(binPath)) {
         fprintf(stderr,
                 "[%s ] Error: The bin file %s does not exist. Please use create_bin_chunks for creating the bin file.\n",
@@ -724,26 +575,30 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
     }
     FILE *fp = fopen(binPath, "rb");
 
+    CoverageHeader *header = chunksCreator->header;
+
     // read number of annotations
-    fread(&chunksCreator->numberOfAnnotations, sizeof(int32_t), 1, fp);
+    fread(&header->numberOfAnnotations, sizeof(int32_t), 1, fp);
     // read annotation names
-    chunksCreator->annotationNames = stList_construct3(chunksCreator->numberOfAnnotations, free);
+    stList_destruct(header->annotationNames);
+    header->annotationNames = stList_construct3(chunksCreator->numberOfAnnotations, free);
     for (int annotationIndex = 0; annotationIndex < chunksCreator->numberOfAnnotations; annotationIndex++) {
         char *annotationName = malloc(1000 * sizeof(char)); // assuming 1000 is enough for a name
         fgets(annotationName, 1000, fp);
-        stList_set(chunksCreator->annotationNames, annotationIndex, annotationName);
+        stList_set(header->annotationNames, annotationIndex, annotationName);
     }
     // read number of regions
-    fread(&chunksCreator->numberOfRegions, sizeof(int32_t), 1, fp);
+    fread(&header->numberOfRegions, sizeof(int32_t), 1, fp);
     // read region coverages
-    chunksCreator->regionCoverages = Int_construct1DArray(chunksCreator->numberOfRegions);
-    fread(&chunksCreator->regionCoverages, sizeof(int32_t), chunksCreator->numberOfRegions, fp);
+    free(header->regionCoverages);
+    header->regionCoverages = Int_construct1DArray(chunksCreator->numberOfRegions);
+    fread(&header->regionCoverages, sizeof(int32_t), chunksCreator->numberOfRegions, fp);
     // read number of labels (will be non-zero if there are truth/prediction labels in the input coverage file)
-    fread(&chunksCreator->numberOfLabels, sizeof(int32_t), 1, fp);
+    fread(&header->numberOfLabels, sizeof(int32_t), 1, fp);
     // read truth availability one bit
-    fread(&chunksCreator->isTruthAvailable, sizeof(bool), 1, fp);
+    fread(&header->isTruthAvailable, sizeof(bool), 1, fp);
     // read prediction availability one bit
-    fread(&chunksCreator->isPredictionAvailable, sizeof(bool), 1, fp);
+    fread(&header->isPredictionAvailable, sizeof(bool), 1, fp);
 
     // read chunk length attributes
     fread(&chunksCreator->chunkCanonicalLen, sizeof(int32_t), 1, fp);

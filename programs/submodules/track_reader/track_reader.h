@@ -20,7 +20,6 @@ typedef enum TrackFileFormat {
 
 typedef struct TrackReader {
     TrackFileFormat trackFileFormat;
-    stList *headerLines;
     stHash *contigLengthTable;
     void *fileReaderPtr;
     char ctg[1000];
@@ -32,13 +31,55 @@ typedef struct TrackReader {
     bool zeroBasedCoors;
 } TrackReader;
 
+
+typedef struct CoverageHeader {
+    stList *headerLines;
+    int numberOfAnnotations;
+    stList *annotationNames;
+    int numberOfRegions;
+    int *regionCoverages;
+    int numberOfLabels;
+    bool isTruthAvailable;
+    bool isPredictionAvailable;
+} CoverageHeader;
+
+void CoverageHeader_construct(char *filePath);
+
+void CoverageHeader_writeIntoFile(CoverageHeader *header,
+                                  void *filePtr,
+                                  bool isCompressed);
+
+CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
+                                                     int *regionCoverages,
+                                                     int numberOfRegions,
+                                                     int numberOfLabels,
+                                                     bool isTruthAvailable,
+                                                     bool isPredictionAvailable);
+
+void CoverageHeader_destruct(CoverageHeader *header);
+
+void CoverageHeader_parseNumberOfAnnotations(CoverageHeader *header);
+
+void CoverageHeader_updateAnnotationNames(CoverageHeader *header);
+
+void CoverageHeader_parseNumberOfRegions(CoverageHeader *header);
+
+void CoverageHeader_updateRegionCoverages(CoverageHeader *header);
+
+void CoverageHeader_updateNumberOfLabels(CoverageHeader *header);
+
+void CoverageHeader_updateTruthAvailability(CoverageHeader *header);
+
+void CoverageHeader_updatePredictionAvailability(CoverageHeader *header);
+
+
 void *TrackReader_openFile(char *filePath, TrackFileFormat format);
+
+stList *TrackReader_parseHeaderLines(TrackReader *trackReader);
 
 TrackFileFormat TrackReader_getTrackFileFormat(char *filePath);
 
 int TrackReader_readLine(TrackReader *trackReader, char **line, int maxSize);
-
-void TrackReader_updateHeaderLines(TrackReader *trackReader);
 
 int64_t TrackReader_getFilePosition(TrackReader *trackReader);
 

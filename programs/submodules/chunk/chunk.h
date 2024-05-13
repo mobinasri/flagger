@@ -29,14 +29,8 @@ typedef struct Chunk {
 
 typedef struct ChunksCreator {
     char *covPath;
-    // attributes that should be parsed from header lines
-    int numberOfAnnotations;
-    stList *annotationNames;
-    int numberOfRegions;
-    int *regionCoverages;
-    int numberOfLabels;
-    bool isTruthAvailable;
-    bool isPredictionAvailable;
+    // header information
+    CoverageHeader *header;
     // Constant attributes
     int nThreads;
     int chunkCanonicalLen;

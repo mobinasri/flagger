@@ -88,8 +88,8 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(stderr, "[%s] Parsing %s.\n", get_timestamp(), faiPath);
-    stHash *ctg_to_len = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    fprintf(stderr, "[%s] Parsing contig lengths from %s.\n", get_timestamp(), faiPath);
+    stHash *ctgToLen = ptBlock_get_contig_length_stHash_from_fai(faiPath);
 
     char trackName2[100];
     char color[100];
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
         memcpy(prefix, outputPath, strlen(outputPath) - 9);
         prefix[strlen(outputPath) - 9] = '\0';
 
-        int chunkCanonicalLen = ptBlock_get_max_contig_length(ctg_to_len);
+        int chunkCanonicalLen = ptBlock_get_max_contig_length(ctgToLen);
         ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLen, nThreads,
                                                                       windowLen);
         ChunksCreator_parseChunks(chunksCreator);
@@ -110,81 +110,67 @@ int main(int argc, char *argv[]) {
         // then each contig is parsed in a single chunk
         sprintf(trackName2, "%s_total", trackName);
         sprintf(outputPath2, "%s.bedgraph", prefix);
-        ChunksCreator_writeChunksIntoBedGraph(chunksCreator, outputPath2, trackName2, CoverageInfo_getCoverage, "w",
+        ChunksCreator_writeChunksIntoBedGraph(chunksCreator,
+                                              outputPath2,
+                                              trackName2,
+                                              CoverageInfo_getCoverage,
                                               "51,51,255");
 
         sprintf(trackName2, "%s_high_mapq", trackName);
         sprintf(outputPath2, "%s.high_mapq.bedgraph", prefix);
-        ChunksCreator_writeChunksIntoBedGraph(chunksCreator, outputPath2, trackName2, CoverageInfo_getCoverageHighMapq,
-                                              "w", "0,0,153");
+        ChunksCreator_writeChunksIntoBedGraph(chunksCreator,
+                                              outputPath2,
+                                              trackName2,
+                                              CoverageInfo_getCoverageHighMapq,
+                                              "0,0,153");
 
         sprintf(trackName2, "%s_high_clip", trackName);
         sprintf(outputPath2, "%s.high_clip.bedgraph", prefix);
-        ChunksCreator_writeChunksIntoBedGraph(chunksCreator, outputPath2, trackName2, CoverageInfo_getCoverageHighClip,
-                                              "w", "204,0,204");
+        ChunksCreator_writeChunksIntoBedGraph(chunksCreator,
+                                              outputPath2,
+                                              trackName2,
+                                              CoverageInfo_getCoverageHighClip,
+                                              "204,0,204");
 
         sprintf(trackName2, "%s_region_idx", trackName);
         sprintf(outputPath2, "%s.region_idx.bedgraph", prefix);
-        ChunksCreator_writeChunksIntoBedGraph(chunksCreator, outputPath2, trackName2, CoverageInfo_getRegionIndex, "w",
+        ChunksCreator_writeChunksIntoBedGraph(chunksCreator,
+                                              outputPath2,
+                                              trackName2,
+                                              CoverageInfo_getRegionIndex,
                                               "64,64,64");
 
         ChunksCreator_destruct(chunksCreator);
-        stHash_destruct(ctg_to_len);
+        stHash_destruct(ctgToLen);
         free(outputExtension);
         fprintf(stderr, "[%s] Done!\n", get_timestamp());
         return 0;
     }
 
-    fprintf(stderr, "[%s] Parsing %s.\n", get_timestamp(), inputPath);
-    stHash *coverage_blocks_per_contig = ptBlock_parse_coverage_info_blocks(inputPath);
+    fprintf(stderr, "[%s] Parsing header from %s.\n", get_timestamp(), inputPath);
+    CoverageHeader *header = CoverageHeader_construct(inputPath);
+
+    fprintf(stderr, "[%s] Parsing tracks from %s.\n", get_timestamp(), inputPath);
+    stHash *blockTable = ptBlock_parse_coverage_info_blocks(inputPath);
 
     fprintf(stderr, "[%s] Writing %s.\n", get_timestamp(), outputPath);
-    if (strcmp(outputExtension, "cov") == 0) {
-        FILE *fp = fopen(outputPath, "w");
-        if (fp == NULL) {
-            fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outputPath);
-        }
-        ptBlock_print_blocks_stHash_in_cov(coverage_blocks_per_contig,
-                                           get_string_cov_info_data_format_2,
-                                           fp,
-                                           false,
-                                           ctg_to_len);
-        fclose(fp);
-    } else if (strcmp(outputExtension, "cov.gz") == 0) {
-        gzFile fp = gzopen(outputPath, "w6h");
-        if (fp == Z_NULL) {
-            fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outputPath);
-        }
-        ptBlock_print_blocks_stHash_in_cov(coverage_blocks_per_contig,
-                                           get_string_cov_info_data_format_2,
-                                           &fp,
-                                           true,
-                                           ctg_to_len);
-        gzclose(fp);
+    // write header and tracks into output file
+    // all means write all available columns
+    ptBlock_write_blocks_per_contig(blockTable, outputPath, "all", ctgToLen, header);
 
-    } else if (strcmp(outputExtension, "bed") == 0) {
-        FILE *fp = fopen(outputPath, "w");
-        if (fp == NULL) {
-            fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outputPath);
-        }
-        ptBlock_print_blocks_stHash_in_bed(coverage_blocks_per_contig,
-                                           get_string_cov_info_data_format_2,
-                                           fp,
-                                           false);
-        fclose(fp);
-    } else if (strcmp(outputExtension, "bed.gz") == 0) {
-        gzFile fp = gzopen(outputPath, "w6h");
-        if (fp == Z_NULL) {
-            fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outputPath);
-        }
-        ptBlock_print_blocks_stHash_in_bed(coverage_blocks_per_contig,
-                                           get_string_cov_info_data_format_2,
-                                           &fp,
-                                           true);
-        gzclose(fp);
-    }
-    stHash_destruct(coverage_blocks_per_contig);
-    stHash_destruct(ctg_to_len);
+    // free memory
+    CoverageHeader_destruct(header);
+    stHash_destruct(blockTable);
+    stHash_destruct(ctgToLen);
     free(outputExtension);
     fprintf(stderr, "[%s] Done!\n", get_timestamp());
+
+    // log used time/resources
+    double realtime = System_getRealTimePoint() - realtimeStart;
+    double cputime = System_getCpuTime();
+    double rssgb = System_getPeakRSSInGB();
+    double usage = System_getCpuUsage(cputime, realtime);
+    // copied from https://github.com/chhylp123/hifiasm/blob/70fd9a0b1fea45e442eb5f331922ea91ef4f71ae/main.cpp#L73
+    fprintf(stderr, "Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB; CPU usage: %.1f\%\n", realtime, cputime,
+            rssgb, usage * 100.0);
 }

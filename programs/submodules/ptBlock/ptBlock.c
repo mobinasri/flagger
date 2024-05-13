@@ -389,7 +389,52 @@ char *get_string_cov_info_data_format_2(void *src_) {
             annotation_entry_str,
             CoverageInfo_getRegionIndex(src));
 
-    if (src->data != NULL) {
+    free(annotation_indices);
+    free(annotation_entry_str);
+    return str;
+}
+
+char *get_string_cov_info_data_format_with_truth(void *src_) {
+    CoverageInfo *src = src_;
+
+    int len = 0;
+    int *annotation_indices = CoverageInfo_getAnnotationIndices(src, &len);
+    char *annotation_entry_str = String_joinIntArray(annotation_indices, len, ',');
+
+    char *str = malloc(200);
+
+    if (src->data == NULL) {
+        fprintf(stderr, "[%s] Error: Inference data does not exist for formatting!\n", get_timestamp());
+        exit(EXIT_FAILURE);
+    }else{
+        Inference *infer = src->data;
+        sprintf(str,
+                "%d\t%d\t%d\t%s\t%d\t%d",
+                src->coverage,
+                src->coverage_high_mapq,
+                src->coverage_high_clip,
+                annotation_entry_str,
+                CoverageInfo_getRegionIndex(src),
+                infer->truth);
+    }
+    free(annotation_indices);
+    free(annotation_entry_str);
+    return str;
+}
+
+char *get_string_cov_info_data_format_with_truth_and_prediction(void *src_) {
+    CoverageInfo *src = src_;
+
+    int len = 0;
+    int *annotation_indices = CoverageInfo_getAnnotationIndices(src, &len);
+    char *annotation_entry_str = String_joinIntArray(annotation_indices, len, ',');
+
+    char *str = malloc(200);
+
+    if (src->data == NULL) {
+        fprintf(stderr, "[%s] Error: Inference data does not exist for formatting!\n", get_timestamp());
+        exit(EXIT_FAILURE);
+    }else{
         Inference *infer = src->data;
         sprintf(str,
                 "%d\t%d\t%d\t%s\t%d\t%d\t%d",
@@ -734,7 +779,7 @@ stHash *ptBlock_parse_bed(char *bed_path) {
     return blocks_per_contig;
 }
 
-void ptBlock_print_blocks_stHash_in_bed(stHash *blocks_per_contig,
+void ptBlock_write_blocks_stHash_in_bed(stHash *blocks_per_contig,
                                         char *(*get_string_function)(void *),
                                         void *file_ptr,
                                         bool is_compressed) {
@@ -786,96 +831,7 @@ stList *ptBlock_get_sorted_contig_list(stHash *blocks_per_contig) {
 }
 
 
-void ptBlock_print_headers_stList(stList *header_lines,
-                                  void *file_ptr,
-                                  bool is_compressed) {
-    for (int i = 0; i < stList_length(header_lines); i++) {
-        char *line = stList_get(header_lines, i);
-        if (is_compressed) {
-            gzFile *gzFile_ptr = file_ptr;
-            gzprintf(*gzFile_ptr, "%s\n", line);
-        } else {
-            FILE *fp = file_ptr;
-            fprintf(fp, "%s\n", line);
-        }
-    }
-}
-
-stList *ptBlock_create_headers(stList *annotation_names,
-                               int *region_coverages,
-                               int number_of_regions,
-                               int number_of_labels,
-                               bool is_truth_available,
-                               bool is_prediction_available) {
-
-    stList *header_lines = stList_construct3(0, free);
-    char line[1000];
-
-    // add header lines for annotation
-    sprintf(line, "#annotation:len:%d", stList_length(annotation_names));
-    stList_append(header_lines, copyString(line));
-    for (int i = 0; i < stList_length(annotation_names); i++) {
-        sprintf(line, "#annotation:name:%d:%s", i, (char *) stList_get(annotation_names, i));
-        stList_append(header_lines, copyString(line));
-    }
-
-    // add header lines for region
-    sprintf(line, "#region:len:%d", number_of_regions);
-    stList_append(header_lines, copyString(line));
-    for (int i = 0; i < number_of_regions; i++) {
-        sprintf(line, "#region:coverage:%d:%d", i, region_coverages[i]);
-        stList_append(header_lines, copyString(line));
-    }
-
-    // add number of labels for truth/prediction
-    if (0 < number_of_labels) {
-        // add header line for number of labels
-        sprintf(line, "#label:len:%d", number_of_labels);
-        stList_append(header_lines, copyString(line));
-    }
-
-    // are truth labels available
-    if (is_truth_available) {
-        sprintf(line, "#truth:true");
-        stList_append(header_lines, copyString(line));
-    } else {
-        sprintf(line, "#truth:false");
-        stList_append(header_lines, copyString(line));
-    }
-
-    // are truth labels available
-    if (is_prediction_available) {
-        sprintf(line, "#prediction:true");
-        stList_append(header_lines, copyString(line));
-    } else {
-        sprintf(line, "#prediction:false");
-        stList_append(header_lines, copyString(line));
-    }
-
-    return header_lines;
-}
-
-void ptBlock_create_and_print_headers(stList *annotation_names,
-                                      int *region_coverages,
-                                      int number_of_regions,
-                                      int number_of_labels,
-                                      bool is_truth_available,
-                                      bool is_prediction_available,
-                                      void *file_ptr,
-                                      bool is_compressed) {
-    stList *header_lines = ptBlock_create_headers(annotation_names,
-                                                  region_coverages,
-                                                  number_of_regions,
-                                                  number_of_labels,
-                                                  is_truth_available,
-                                                  is_prediction_available);
-    // write header lines
-    ptBlock_print_headers_stList(header_lines, file_ptr, is_compressed);
-    stList_destruct(header_lines);
-}
-
-
-void ptBlock_print_blocks_stHash_in_cov(stHash *blocks_per_contig,
+void ptBlock_write_blocks_stHash_in_cov(stHash *blocks_per_contig,
                                         char *(*get_string_function)(void *),
                                         void *file_ptr,
                                         bool is_compressed,
@@ -1724,7 +1680,7 @@ stList *parse_all_annotations_and_save_in_stList(const char *json_path, stHash *
     fprintf(stderr, "[%s] Number of created annotation block tables = %d\n", get_timestamp(),
             stList_length(block_table_list));
     //for(int i=0;i < stList_length(block_table_list);i++){
-    //    ptBlock_print_blocks_stHash_in_bed(stList_get(block_table_list, i), NULL, stderr, false);
+    //    ptBlock_write_blocks_stHash_in_bed(stList_get(block_table_list, i), NULL, stderr, false);
     //}
     return block_table_list;
 
@@ -1778,6 +1734,7 @@ stHash *ptBlock_parse_inference_label_blocks(char *bedPath, bool isLabelTruth) {
 
 
 stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
+    CoverageHeader *header = CoverageInfo_construct(filePath);
     TrackReader *trackReader = TrackReader_construct(filePath, NULL, true); //0-based coors = true
     stHash *coverage_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                            (void (*)(void *)) stList_destruct);
@@ -1800,13 +1757,11 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
         // set region index
         CoverageInfo_setRegionIndex(cov_info_data, atoi(trackReader->attrbs[4]));
         // add inference data if exists
-        int8_t truth = 6 <= trackReader->attrbsLen ? atoi(trackReader->attrbs[5]) : -1;
+        int8_t truth = (header->isTruthAvailable && 6 <= trackReader->attrbsLen) ? atoi(trackReader->attrbs[5]) : -1;
         // parse prediction label if it exists (optional attribute)
-        int8_t prediction = 7 <= trackReader->attrbsLen ? atoi(trackReader->attrbs[6]) : -1;
+        int8_t prediction = (header->isPredictionAvailable && 7 <= trackReader->attrbsLen) ? atoi(trackReader->attrbs[6]) : -1;
         // at least one of truth or prediction labels should be defined to add the inference data
-        if (truth != -1 || prediction != -1) {
-            CoverageInfo_addInferenceData(cov_info_data, truth, prediction);
-        }
+        CoverageInfo_addInferenceData(cov_info_data,truth,prediction);
 
         // add coverageInfo data to block
         ptBlock_set_data(block, cov_info_data,
@@ -1823,6 +1778,7 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
         }
         stList_append(blocks, block);
     }
+    CoverageHeader_destruct(header);
     TrackReader_destruct(trackReader);
     ptBlock_sort_stHash_by_rfs(coverage_blocks_per_contig);
     return coverage_blocks_per_contig;
@@ -1946,8 +1902,11 @@ void ptBlock_set_region_indices_by_mapping(stHash *blocks_per_contig, int *annot
     ptBlockItrPerContig_destruct(block_iter);
 }
 
-void ptBlock_write_blocks_per_contig(stHash *blockTable, const char *outPath, const char *format, stHash *ctgToLen,
-                                     stList *headerLines) {
+void ptBlock_write_blocks_per_contig(stHash *blockTable,
+                                     const char *outPath,
+                                     const char *format,
+                                     stHash *ctgToLen,
+                                     CoverageHeader *header) {
 
     char *extension = extractFileExtension(outPath);
     bool isCompressed = strcmp(extension, "cov.gz") == 0 || strcmp(extension, "bed.gz") == 0;
@@ -1988,29 +1947,53 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable, const char *outPath, co
     // write
     if (isFormatCov) { // if file extension is either cov or cov.gz
         if (strcmp(format, "only_total") == 0) {
-            ptBlock_print_blocks_stHash_in_cov(blockTable,
+            ptBlock_write_blocks_stHash_in_cov(blockTable,
                                                get_string_cov_info_data_format_only_total,
                                                filePtr,
                                                isCompressed,
                                                ctgToLen);
         } else if (strcmp(format, "only_high_mapq") == 0) {
-            ptBlock_print_blocks_stHash_in_cov(blockTable,
+            ptBlock_write_blocks_stHash_in_cov(blockTable,
                                                get_string_cov_info_data_format_only_high_mapq,
                                                filePtr,
                                                isCompressed,
                                                ctgToLen);
         } else if (strcmp(format, "all") == 0) {
-            ptBlock_print_headers_stList(headerLines, filePtr, isCompressed);
-            ptBlock_print_blocks_stHash_in_cov(blockTable,
-                                               get_string_cov_info_data_format_2,
-                                               filePtr,
-                                               isCompressed,
-                                               ctgToLen);
+            // write header
+            CoverageHeader_writeIntoFile(header, filePtr, isCompressed);
+            // write tracks
+            // if prediction was available
+            if(header->isPredictionAvailable) {
+                ptBlock_write_blocks_stHash_in_cov(blockTable,
+                                                   get_string_cov_info_data_format_with_truth_and_prediction,
+                                                   filePtr,
+                                                   isCompressed,
+                                                   ctgToLen);
+            }
+            // if truth was available with no prediction column
+            else if(header->isTruthAvailable){
+                ptBlock_write_blocks_stHash_in_cov(blockTable,
+                                                   get_string_cov_info_data_format_with_truth,
+                                                   filePtr,
+                                                   isCompressed,
+                                                   ctgToLen);
+            }
+            // if no truth/prediction was available
+            else{
+                ptBlock_write_blocks_stHash_in_cov(blockTable,
+                                                   get_string_cov_info_data_format_2,
+                                                   filePtr,
+                                                   isCompressed,
+                                                   ctgToLen);
+            }
+
         }
     } else if (isFormatBed) { // if file extension is either bed or bed.gz
-        ptBlock_print_headers_stList(headerLines, filePtr, isCompressed);
-        ptBlock_print_blocks_stHash_in_bed(blockTable,
-                                           get_string_cov_info_data_format_1,
+        // write header
+        CoverageHeader_writeIntoFile(header, filePtr, isCompressed);
+        // write tracks
+        ptBlock_write_blocks_stHash_in_bed(blockTable,
+                                           get_string_cov_info_data_format_2,
                                            filePtr,
                                            isCompressed);
     }

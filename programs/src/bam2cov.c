@@ -250,14 +250,14 @@ int main(int argc, char *argv[]) {
     int numberOfLabels = 0;
     bool isTruthAvailable = false;
     bool isPredictionAvailable = false;
-    stList *headerLines = ptBlock_create_headers(annotationNames,
-                                                 coveragePerRegion,
-                                                 numberOfRegions,
-                                                 numberOfLabels,
-                                                 isTruthAvailable,
-                                                 isPredictionAvailable);
+    CoverageHeader *header = CoverageHeader_constructByAttributes(annotationNames,
+                                                                  coveragePerRegion,
+                                                                  numberOfRegions,
+                                                                  numberOfLabels,
+                                                                  isTruthAvailable,
+                                                                  isPredictionAvailable);
     // write header and tracks into output file
-    ptBlock_write_blocks_per_contig(blockTable, outPath, format, ctgToLen, headerLines);
+    ptBlock_write_blocks_per_contig(blockTable, outPath, format, ctgToLen, header);
 
     free(extension);
     stList_destruct(headerLines);

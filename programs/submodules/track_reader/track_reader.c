@@ -31,6 +31,280 @@ TrackFileFormat TrackReader_getTrackFileFormat(char *filePath) {
     return trackFileFormat;
 }
 
+stList *TrackReader_parseHeaderLines(TrackReader *trackReader) {
+    stList *headerLines = stList_construct3(0, free);
+    char *line = malloc(LINE_MAX_SIZE);
+    ssize_t read;
+    // set pointer to the start of the file
+    TrackReader_setFilePosition(trackReader, 0);
+    while (0 < (read = TrackReader_readLine(trackReader, &line, LINE_MAX_SIZE))) {
+        if (line[0] == '#') {
+            stList_append(header->headerLines, copyString(line));
+        }
+    }
+    return headerLines;
+}
+
+CoverageHeader *CoverageHeader_construct(char *filePath) {
+    CoverageHeader *header = malloc(sizeof(CoverageHeader));
+
+    header->numberOfAnnotations = 0;
+    header->annotationNames = stList_construct3(0, free);
+    header->numberOfRegions = 0;
+    header->regionCoverages = NULL;
+    header->numberOfLabels = 0;
+    header->isTruthAvailable = false;
+    header->isPredictionAvailable = false;
+
+    if (filePath != NULL) {
+        TrackReader *trackReader = TrackReader_construct(filePath, NULL, false);
+        header->headerLines = TrackReader_parseHeaderLines(TrackReader * trackReader);
+
+        CoverageHeader_updateAnnotationNames(header);
+        CoverageHeader_updateRegionCoverages(header);
+        CoverageHeader_updateNumberOfLabels(header);
+        CoverageHeader_updateTruthAvailability(header);
+        CoverageHeader_updatePredictionAvailability(header);
+
+        TrackReader_destruct(trackReader);
+    } else {
+        header->headerLines = stList_construct3(0, free);
+    }
+
+    return header;
+}
+
+
+void CoverageHeader_writeIntoFile(CoverageHeader *header,
+                                  void *filePtr,
+                                  bool isCompressed) {
+    for (int i = 0; i < stList_length(header->headerLines); i++) {
+        char *line = stList_get(header->headerLines, i);
+        if (isCompressed) {
+            gzFile *gzFilePtr = filePtr;
+            gzprintf(*gzFilePtr, "%s\n", line);
+        } else {
+            FILE *fp = filePtr;
+            fprintf(fp, "%s\n", line);
+        }
+    }
+}
+
+CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
+                                                     int *regionCoverages,
+                                                     int numberOfRegions,
+                                                     int numberOfLabels,
+                                                     bool isTruthAvailable,
+                                                     bool isPredictionAvailable) {
+    
+    CoverageHeader *header = CoverageHeader_construct(NULL);
+
+    char line[1000];
+
+    header->numberOfAnnotations = stList_length(annotationNames);
+    header->numberOfRegions = numberOfRegions;
+    header->numberOfLabels = numberOfLabels;
+    header->isTruthAvailable = isTruthAvailable;
+    header->isPredictionAvailable = isPredictionAvailable;
+
+    // add header line for annotation length
+    sprintf(line, "#annotation:len:%d", stList_length(annotationNames));
+    stList_append(header->headerLines, copyString(line));
+
+    // update annotation attributes
+    for (int i = 0; i < stList_length(annotationNames); i++) {
+        // update annotation name
+        char *annotationName = (char *) stList_get(annotationNames, i));
+        stList_append(header->annotationNames, copyString(annotationName));
+        // add header line for annotation name
+        sprintf(line, "#annotation:name:%d:%s", i, annotationName);
+        stList_append(header->headerLines, copyString(line));
+    }
+
+    header->regionCoverages = Int_construct1DArray(numberOfRegions);
+    // add header line for number of regions
+    sprintf(line, "#region:len:%d", numberOfRegions);
+    stList_append(header->headerLines, copyString(line));
+
+    // update region attributes
+    for (int i = 0; i < numberOfRegions; i++) {
+        // update region coverage
+        header->regionCoverages[i] = regionCoverages[i];
+        // add header line for region coverage
+        sprintf(line, "#region:coverage:%d:%d", i, regionCoverages[i]);
+        stList_append(header->headerLines, copyString(line));
+    }
+
+    // add number of labels for truth/prediction
+    if (0 < numberOfLabels) {
+        // add header line for number of labels
+        sprintf(line, "#label:len:%d", numberOfLabels);
+        stList_append(header->headerLines, copyString(line));
+    }
+
+    // are truth labels available
+    if (isTruthAvailable) {
+        sprintf(line, "#truth:true");
+        stList_append(header->headerLines, copyString(line));
+    } else {
+        sprintf(line, "#truth:false");
+        stList_append(header->headerLines, copyString(line));
+    }
+
+    // are truth labels available
+    if (isPredictionAvailable) {
+        sprintf(line, "#prediction:true");
+        stList_append(header->headerLines, copyString(line));
+    } else {
+        sprintf(line, "#prediction:false");
+        stList_append(header->headerLines, copyString(line));
+    }
+
+    return header;
+}
+
+
+
+void CoverageHeader_destruct(CoverageHeader *header) {
+    if (header->headerLines != NULL) {
+        stList_destruct(header->headerLines);
+    }
+    if (header->annotationNames != NULL) {
+        stList_destruct(header->annotationNames);
+    }
+    free(header->regionCoverages);
+    free(header);
+}
+
+
+void CoverageHeader_parseNumberOfAnnotations(CoverageHeader *header) {
+    stList *headerLines = header->headerLines;
+    char *token;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#annotation:len", headerLine, strlen("#annotation:len")) == 0) {
+            Splitter *splitter = Splitter_construct(headerLine, ':');
+            token = Splitter_getToken(splitter); //#annotation
+            token = Splitter_getToken(splitter); //len
+            token = Splitter_getToken(splitter); //number
+            header->numberOfAnnotations = atoi(token);
+            Splitter_destruct(splitter);
+            break;
+        }
+    }
+}
+
+void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
+    CoverageHeader_parseNumberOfAnnotations(header);
+    if (header->annotationNames != NULL) {
+        stList_destruct(header->annotationNames);
+    }
+    header->annotationNames = stList_construct3(header->numberOfAnnotations, free);
+    for (int annotationIndex = 0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
+        stList_set(header->annotationNames, annotationIndex, copyString("NA"));
+    }
+
+    stList *headerLines = header->headerLines;
+    char *token;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#annotation:name:", headerLine, strlen("#annotation:name:")) == 0) {
+            Splitter *splitter = Splitter_construct(headerLine, ':');
+            token = Splitter_getToken(splitter); //'#annotation'
+            token = Splitter_getToken(splitter); //'name'
+            token = Splitter_getToken(splitter); // index
+            int annotationIndex = atoi(token);
+            token = Splitter_getToken(splitter); //name
+            stList_set(header->annotationNames, annotationIndex, copyString(token));
+            Splitter_destruct(splitter);
+        }
+    }
+}
+
+void CoverageHeader_parseNumberOfRegions(CoverageHeader *header) {
+    stList *headerLines = header->headerLines;
+    char *token;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#region:len", headerLine, strlen("#region:len")) == 0) {
+            Splitter *splitter = Splitter_construct(headerLine, ':');
+            token = Splitter_getToken(splitter); //#region
+            token = Splitter_getToken(splitter); //len
+            token = Splitter_getToken(splitter); //number
+            header->numberOfRegions = atoi(token);
+            Splitter_destruct(splitter);
+            break;
+        }
+    }
+}
+
+void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
+    header_parseNumberOfRegions(header);
+    header->regionCoverages = (int *) malloc(header->numberOfRegions * sizeof(int));
+    stList *headerLines = header->headerLines;
+    char *token;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#region:coverage:", headerLine, strlen("#region:coverage:")) == 0) {
+            Splitter *splitter = Splitter_construct(headerLine, ':');
+            token = Splitter_getToken(splitter); //'#region'
+            token = Splitter_getToken(splitter); //'coverage'
+            token = Splitter_getToken(splitter); // index
+            int regionIndex = atoi(token);
+            token = Splitter_getToken(splitter); // coverage
+            header->regionCoverages[regionIndex] = atoi(token);
+            Splitter_destruct(splitter);
+        }
+    }
+    TrackReader_destruct(trackReader);
+}
+
+void CoverageHeader_updateNumberOfLabels(CoverageHeader *header) {
+    // set it to zero in case no label line existed in header
+    header->numberOfLabels = 0;
+    stList *headerLines = header->headerLines;
+    char *token;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#label:len", headerLine, strlen("#label:len")) == 0) {
+            Splitter *splitter = Splitter_construct(headerLine, ':');
+            token = Splitter_getToken(splitter); //#label
+            token = Splitter_getToken(splitter); //len
+            token = Splitter_getToken(splitter); //number
+            header->numberOfLabels = atoi(token);
+            Splitter_destruct(splitter);
+            break;
+        }
+    }
+}
+
+void CoverageHeader_updateTruthAvailability(CoverageHeader *header) {
+    // set it to false in case no label line existed in header
+    header->isTruthAvailable = false;
+    stList *headerLines = header->headerLines;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#truth:true", headerLine, strlen("#truth:true")) == 0) {
+            header->isTruthAvailable = true;
+            break;
+        }
+    }
+}
+
+void CoverageHeader_updatePredictionAvailability(CoverageHeader *header) {
+    // set it to false in case no label line existed in header
+    header->isPredictionAvailable = false;
+    stList *headerLines = header->headerLines;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#truth:true", headerLine, strlen("#prediction:true")) == 0) {
+            header->isPredictionAvailable = true;
+            break;
+        }
+    }
+}
+
+
 void *TrackReader_openFile(char *filePath, TrackFileFormat format) {
     void *fileReaderPtr = NULL;
     if (format == TRACK_FILE_FORMAT_COV || format == TRACK_FILE_FORMAT_BED) {
@@ -89,32 +363,11 @@ int TrackReader_readLine(TrackReader *trackReader, char **linePtr, int maxSize) 
     }
 }
 
-void TrackReader_updateHeaderLines(TrackReader *trackReader) {
-    char *line = malloc(LINE_MAX_SIZE);
-    ssize_t read;
-    // set pointer to the start of the file
-    TrackReader_setFilePosition(trackReader, 0);
-    int64_t filePosition = TrackReader_getFilePosition(trackReader);
-    while (0 < (read = TrackReader_readLine(trackReader, &line, LINE_MAX_SIZE))) {
-        if (line[0] == '#') {
-            stList_append(trackReader->headerLines, copyString(line));
-            // update file position
-            filePosition = TrackReader_getFilePosition(trackReader);
-        } else {
-            // set file position to the beginning of this line
-            // since this line has information about the first contig
-            TrackReader_setFilePosition(trackReader, filePosition);
-            break;
-        }
-    }
-}
 
 TrackReader *TrackReader_construct(char *filePath, char *faiPath, bool zeroBasedCoors) {
     TrackReader *trackReader = malloc(sizeof(TrackReader));
     trackReader->trackFileFormat = TrackReader_getTrackFileFormat(filePath);
     trackReader->fileReaderPtr = TrackReader_openFile(filePath, trackReader->trackFileFormat);
-    trackReader->headerLines = stList_construct3(0, free);
-    TrackReader_updateHeaderLines(trackReader);
     if (faiPath != NULL) {
         trackReader->contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
     } else {
@@ -176,9 +429,6 @@ void TrackReader_destruct(TrackReader *trackReader) {
     if (trackReader->contigLengthTable != NULL) {
         stHash_destruct(trackReader->contigLengthTable);
     }
-    if (trackReader->headerLines != NULL) {
-        stList_destruct(trackReader->headerLines);
-    }
     free(trackReader);
 }
 
@@ -208,6 +458,9 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
         return read;
     }
     char *token;
+    if (line[0] == '#') { // skip header lines
+        return TrackReader_readNextTrackBed(trackReader);
+    }
     if (read == 0) {
         fprintf(stderr, "[Warning] TrackReader was empty. Go to the next line!\n");
         return TrackReader_readNextTrackBed(trackReader);
@@ -277,6 +530,11 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
     free(trackReader->attrbs);
     trackReader->attrbs = NULL;
     trackReader->attrbsLen = 0;
+
+    if (line[0] == '#') { // skip header lines
+        return TrackReader_readNextTrackBed(trackReader);
+    }
+
     if (read == 0) {
         fprintf(stderr, "[Warning] line read by TrackReader was empty. Go to the next line!\n");
         free(line);

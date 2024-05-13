@@ -49,6 +49,8 @@ typedef struct {
 typedef struct Inference {
     int8_t truth;
     int8_t prediction;
+    bool isTruthAvailableInFile;
+    bool isPredictionAvailableInFile;
 } Inference;
 
 void extend_inference_data(void *dest_, void *src_);
@@ -394,27 +396,6 @@ void ptBlock_add_block_to_stList_table(stHash *blocks_per_contig, ptBlock *block
 stList *ptBlock_split_into_batches(stHash *blocks_per_contig, int split_number);
 
 
-void ptBlock_print_headers_stList(stList *header_lines,
-                                  void *file_ptr,
-                                  bool is_compressed);
-
-
-stList *ptBlock_create_headers(stList *annotation_names,
-                               int *region_coverages,
-                               int number_of_regions,
-                               int number_of_labels,
-                               bool is_truth_available,
-                               bool is_prediction_available);
-
-void ptBlock_create_and_print_headers(stList *annotation_names,
-                                      int *region_coverages,
-                                      int number_of_regions,
-                                      int number_of_labels,
-                                      bool is_truth_available,
-                                      bool is_prediction_available,
-                                      void *file_ptr,
-                                      bool is_compressed);
-
 /**
  * Print all block in the given table. The blocks are printed in BED format. start is 0-based and end is 1-based
  *
@@ -427,7 +408,7 @@ void ptBlock_create_and_print_headers(stList *annotation_names,
  *                              it can also be a POINTER to the output of gzopen() for the compressed mode
  * @param is_compressed		    true if fp is of type gzFile*, false if stderr/stdout/FILE*
  */
-void ptBlock_print_blocks_stHash_in_bed(stHash *blocks_per_contig,
+void ptBlock_write_blocks_stHash_in_bed(stHash *blocks_per_contig,
                                         char *(*get_string_function)(void *),
                                         void *fp,
                                         bool is_compressed);
@@ -445,7 +426,7 @@ void ptBlock_print_blocks_stHash_in_bed(stHash *blocks_per_contig,
  * @param is_compressed		    true if fp is of type gzFile*, false if stderr/stdout/FILE*
  * @param ctg_to_len            stHash table to convert contig name to contig length (each value is of type int*)
  */
-void ptBlock_print_blocks_stHash_in_cov(stHash *blocks_per_contig,
+void ptBlock_write_blocks_stHash_in_cov(stHash *blocks_per_contig,
                                         char *(*get_string_function)(void *),
                                         void *fp,
                                         bool is_compressed,
@@ -697,8 +678,11 @@ void ptBlock_set_region_indices_by_mapping(stHash *blocks_per_contig,
                                            int annotation_to_region_map_length);
 
 
-void ptBlock_write_blocks_per_contig(stHash *blockTable, const char *outPath, const char *format, stHash *ctgToLen,
-                                     stList *headerLines);
+void ptBlock_write_blocks_per_contig(stHash *blockTable,
+                                     const char *outPath,
+                                     const char *format,
+                                     stHash *ctgToLen,
+                                     CoverageHeader *header);
 
 #endif /* PT_BLOCK_H */
 
