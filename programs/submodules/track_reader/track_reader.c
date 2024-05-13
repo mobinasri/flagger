@@ -239,7 +239,7 @@ void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
 }
 
 void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
-    header_updateNumberOfRegions(header);
+    CoverageHeader_updateNumberOfRegions(header);
     header->regionCoverages = (int *) malloc(header->numberOfRegions * sizeof(int));
     stList *headerLines = header->headerLines;
     char *token;
