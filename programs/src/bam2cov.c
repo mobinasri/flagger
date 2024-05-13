@@ -29,6 +29,7 @@
 #include "cJSON.h"
 #include "stdlib.h"
 #include "bias_detector.h"
+#include "track_reader.h"
 
 
 static struct option long_options[] =

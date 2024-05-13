@@ -16,6 +16,7 @@
 #include "stdlib.h"
 #include "sonLib.h"
 #include "chunk.h"
+#include "track_reader.h"
 
 
 static struct option long_options[] =

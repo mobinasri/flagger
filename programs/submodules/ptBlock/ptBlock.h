@@ -12,6 +12,7 @@
 #include <zlib.h>
 #include "tpool.h"
 #include "ptBlock.h"
+#include "track_reader.h"
 #include "cJSON.h"
 
 /*! @typedef
