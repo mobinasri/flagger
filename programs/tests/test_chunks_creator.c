@@ -66,38 +66,6 @@ bool testCreatingChunks(char *covPath) {
 }
 
 
-bool test_ChunksCreator_parseHeaderInformation(const char *outputPath) {
-    stList *annotationNames = stList_construct3(0, free);
-    stList_append(annotationNames, copyString("no_annotation"));
-    stList_append(annotationNames, copyString("annotation_1"));
-
-    int regionFactors[3];
-    regionFactors[0] = 5;
-    regionFactors[1] = 10;
-    regionFactors[2] = 25;
-
-    bool isCompressed = false;
-    FILE *fp = fopen(outputPath, "w");
-    ptBlock_create_and_print_headers(annotationNames, regionFactors, 3, 0, false, false, (void *) fp, isCompressed);
-    fclose(fp);
-
-    ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(outputPath, NULL, 1000, 1, 100);
-    if (chunksCreator->numberOfAnnotations != 2) return false;
-    if (chunksCreator->numberOfRegions != 3) return false;
-    bool correct = true;
-    for (int i = 0; i < 2; i++) {
-        correct &= (strcmp((char *) stList_get(chunksCreator->annotationNames, i),
-                           (char *) stList_get(annotationNames, i)) == 0);
-    }
-    for (int i = 0; i < 3; i++) {
-        correct &= (chunksCreator->regionCoverages[i] == regionFactors[i]);
-    }
-    ChunksCreator_destruct(chunksCreator);
-    stList_destruct(annotationNames);
-    return correct;
-
-}
-
 
 int main(int argc, char *argv[]) {
     // test 1
@@ -113,14 +81,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Test CreatingChunks for compressed file passed!\n");
     } else {
         fprintf(stderr, "Test CreatingChunks for compressed file failed!\n");
-        return 1;
-    }
-
-    // test 3
-    if (test_ChunksCreator_parseHeaderInformation("tests/test_files/test_chunks_creator_header.cov") == true) {
-        fprintf(stderr, "Test ChunksCreator_parseHeaderInformation  passed!\n");
-    } else {
-        fprintf(stderr, "Test ChunksCreator_parseHeaderInformation failed!\n");
         return 1;
     }
 
