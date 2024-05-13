@@ -39,7 +39,7 @@ stList *TrackReader_parseHeaderLines(TrackReader *trackReader) {
     TrackReader_setFilePosition(trackReader, 0);
     while (0 < (read = TrackReader_readLine(trackReader, &line, LINE_MAX_SIZE))) {
         if (line[0] == '#') {
-            stList_append(header->headerLines, copyString(line));
+            stList_append(headerLines, copyString(line));
         }
     }
     return headerLines;
@@ -58,7 +58,7 @@ CoverageHeader *CoverageHeader_construct(char *filePath) {
 
     if (filePath != NULL) {
         TrackReader *trackReader = TrackReader_construct(filePath, NULL, false);
-        header->headerLines = TrackReader_parseHeaderLines(TrackReader * trackReader);
+        header->headerLines = TrackReader_parseHeaderLines(trackReader);
 
         CoverageHeader_updateAnnotationNames(header);
         CoverageHeader_updateRegionCoverages(header);
@@ -114,7 +114,7 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
     // update annotation attributes
     for (int i = 0; i < stList_length(annotationNames); i++) {
         // update annotation name
-        char *annotationName = (char *) stList_get(annotationNames, i));
+        char *annotationName = (char *) stList_get(annotationNames, i);
         stList_append(header->annotationNames, copyString(annotationName));
         // add header line for annotation name
         sprintf(line, "#annotation:name:%d:%s", i, annotationName);
@@ -256,7 +256,6 @@ void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
             Splitter_destruct(splitter);
         }
     }
-    TrackReader_destruct(trackReader);
 }
 
 void CoverageHeader_updateNumberOfLabels(CoverageHeader *header) {
