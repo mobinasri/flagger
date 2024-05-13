@@ -67,6 +67,9 @@ int main(int argc, char *argv[]) {
                 return 1;
         }
     }
+
+    double realtimeStart = System_getRealTimePoint();
+
     char *inputExtension = extractFileExtension(inputPath);
     char *outputExtension = extractFileExtension(outputPath);
     if (strcmp(outputExtension, "cov") != 0 &&

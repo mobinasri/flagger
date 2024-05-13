@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
     ptBlock_write_blocks_per_contig(blockTable, outPath, format, ctgToLen, header);
 
     free(extension);
-    stList_destruct(headerLines);
+    CoverageHeader_destruct(header);
     stHash_destruct(blockTable);
     stHash_destruct(ctgToLen);
     stList_destruct(annotationNames);
