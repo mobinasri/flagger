@@ -153,19 +153,26 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,
                 "[%s] Warning: The number of labels in the header of the input file (%d) does not match --numberOfLabels %d. It will be overwritten to %d.\n",
                 get_timestamp(), header->numberOfLabels, numberOfLabels, numberOfLabels);
-        header->numberOfLabels = numberOfLabels;
     }
-    // create a list of header lines
-    header->isTruthAvailable = truthPath != NULL || header->isTruthAvailable;
-    header->isPredictionAvailable = predictionPath != NULL || header->isPredictionAvailable;
+    // create a new header with update attributes
+    bool isTruthAvailable = truthPath != NULL || header->isTruthAvailable;
+    bool isPredictionAvailable = predictionPath != NULL || header->isPredictionAvailable;
+
+    CoverageHeader *newHeader = CoverageHeader_constructByAttributes(header->annotationNames,
+                                                                     header->coveragePerRegion,
+                                                                     header->numberOfRegions,
+                                                                     numberOfLabels,
+                                                                     isTruthAvailable,
+                                                                     isPredictionAvailable);
 
     fprintf(stderr, "[%s] Writing %s.\n", get_timestamp(), outputPath);
     // write header and tracks into output file
     // all means write all available columns
-    ptBlock_write_blocks_per_contig(finalBlockTable, outputPath, "all", ctgToLen, header);
+    ptBlock_write_blocks_per_contig(finalBlockTable, outputPath, "all", ctgToLen, newHeader);
 
     // free memory
     CoverageHeader_destruct(header);
+    CoverageHeader_destruct(newHeader);
     stHash_destruct(blockTable);
     stHash_destruct(finalBlockTable);
     stHash_destruct(ctgToLen);
