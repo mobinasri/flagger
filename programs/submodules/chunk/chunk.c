@@ -331,7 +331,6 @@ int Chunk_addWindow(Chunk *chunk) {
     int8_t prediction = Chunk_getWindowPrediction(chunk);
     int regionIndex = Chunk_getWindowRegion(chunk);
 
-    fprintf(stderr, "truth=%d, pred=%d, reg=%d\n", truth, prediction, regionIndex);
     // set region bits
     CoverageInfo_setRegionIndex(chunk->coverageInfoSeq[chunk->coverageInfoSeqLen], regionIndex);
 
