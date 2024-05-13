@@ -99,7 +99,7 @@ bool test_CoverageHeader_write_and_read_uncompressed(const char *outputPath) {
 
     bool isCompressed = false;
     FILE *fp = fopen(outputPath, "w");
-    ptBlock_print_headers_stList(headerLines, (void *) fp, isCompressed);
+    CoverageHeader_writeIntoFile(header1, (void *) &fp, isCompressed);
     fclose(fp);
 
     // read the created file
