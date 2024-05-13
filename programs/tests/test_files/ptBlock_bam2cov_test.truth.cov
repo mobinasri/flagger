@@ -11,6 +11,7 @@
 #region:coverage:1:2
 #region:coverage:2:2
 #truth:false
+#prediction:false
 >contig_1 100
 1	4	0	0	0	0	0
 5	7	0	0	0	5	0

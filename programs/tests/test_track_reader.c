@@ -19,10 +19,7 @@ bool testParsingCov(const char *covPath) {
     int trackIndexCtg2 = -1;
     bool zeroBasedCoors = false;
     TrackReader *trackReader = TrackReader_construct(covPath, NULL, zeroBasedCoors);
-    fprintf(stderr, "1\n");
     while (0 < TrackReader_next(trackReader)) {
-        fprintf(stderr, "2\n");
-        fprintf(stderr, "%s:%d-%d\n", trackReader->ctg, trackReader->s, trackReader->e);
         if (strcmp(trackReader->ctg, "ctg1") == 0) {
             trackIndexCtg1 += 1;
             int *truthValues = truthValuesCtg1[trackIndexCtg1];
@@ -55,9 +52,7 @@ bool testParsingCov(const char *covPath) {
             correct &= (atoi(trackReader->attrbs[2]) == truthValues[4]);
             correct &= (atoi(trackReader->attrbs[4]) == truthValues[5]);
         }
-        fprintf(stderr, "**2\n");
     }
-    fprintf(stderr, "***2\n");
     TrackReader_destruct(trackReader);
     return correct;
 }
@@ -67,8 +62,8 @@ bool test_CoverageHeader_write_and_read_compressed(const char *outputPath) {
     // create header and write into file
     CoverageHeader *header1 = CoverageHeader_construct(NULL);
     stList_append(header1->headerLines, copyString("#annotation:len:2"));
-    stList_append(header1->headerLines, copyString("#annotation:0:no_annotation"));
-    stList_append(header1->headerLines, copyString("#annotation:1:annotation_1"));
+    stList_append(header1->headerLines, copyString("#annotation:name:0:no_annotation"));
+    stList_append(header1->headerLines, copyString("#annotation:name:1:annotation_1"));
 
     bool isCompressed = true;
     gzFile fp = gzopen(outputPath, "w6h");
@@ -94,12 +89,12 @@ bool test_CoverageHeader_write_and_read_uncompressed(const char *outputPath) {
     // create header and write into file
     CoverageHeader *header1 = CoverageHeader_construct(NULL);
     stList_append(header1->headerLines, copyString("#annotation:len:2"));
-    stList_append(header1->headerLines, copyString("#annotation:0:no_annotation"));
-    stList_append(header1->headerLines, copyString("#annotation:1:annotation_1"));
+    stList_append(header1->headerLines, copyString("#annotation:name:0:no_annotation"));
+    stList_append(header1->headerLines, copyString("#annotation:name:1:annotation_1"));
 
     bool isCompressed = false;
     FILE *fp = fopen(outputPath, "w");
-    CoverageHeader_writeIntoFile(header1, (void *) &fp, isCompressed);
+    CoverageHeader_writeIntoFile(header1, (void *) fp, isCompressed);
     fclose(fp);
 
     // read the created file
@@ -133,17 +128,20 @@ bool test_CoverageHeader_createByAttributes(const char *outputPath) {
     bool isPredictionAvailable = false;
     int numberOfLabels = 0;
     FILE *fp = fopen(outputPath, "w");
+    // create a header object
     CoverageHeader *header1 = CoverageHeader_constructByAttributes(annotationNames,
                                                                    regionCoverages,
                                                                    numberOfRegions,
                                                                    numberOfLabels,
                                                                    isTruthAvailable,
                                                                    isPredictionAvailable);
+    // write header into file
     CoverageHeader_writeIntoFile(header1, (void *) fp, isCompressed);
     fclose(fp);
     CoverageHeader_destruct(header1);
 
 
+    // read header from file
     CoverageHeader *header2 = CoverageHeader_construct(outputPath);
     if (stList_length(header2->annotationNames) != stList_length(annotationNames)) return false;
     if (header2->numberOfAnnotations != stList_length(annotationNames)) return false;
@@ -158,12 +156,12 @@ bool test_CoverageHeader_createByAttributes(const char *outputPath) {
         correct &= header2->regionCoverages[i] == regionCoverages[i];
     }
 
-    correct &= header2->numberOfLabels != numberOfLabels;
-    correct &= header2->isTruthAvailable != isTruthAvailable;
-    correct &= header2->isPredictionAvailable != isPredictionAvailable;
+
+    correct &= header2->numberOfLabels == numberOfLabels;
+    correct &= header2->isTruthAvailable == isTruthAvailable;
+    correct &= header2->isPredictionAvailable == isPredictionAvailable;
 
     stList_destruct(annotationNames);
-    CoverageHeader_destruct(header1);
     CoverageHeader_destruct(header2);
     return correct;
 }

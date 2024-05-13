@@ -222,6 +222,7 @@ void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
 }
 
 void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
+    header->numberOfRegions = 0;
     stList *headerLines = header->headerLines;
     char *token;
     for (int i = 0; i < stList_length(headerLines); i++) {
@@ -240,6 +241,10 @@ void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
 
 void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
     CoverageHeader_updateNumberOfRegions(header);
+    if (header->numberOfRegions == 0){
+	    header->regionCoverages = NULL;
+	    return;
+    }
     header->regionCoverages = (int *) malloc(header->numberOfRegions * sizeof(int));
     stList *headerLines = header->headerLines;
     char *token;
@@ -409,6 +414,7 @@ void TrackReader_setFilePosition(TrackReader *trackReader, int64_t filePosition)
 
 
 void TrackReader_destruct(TrackReader *trackReader) {
+    fprintf(stderr, "rrrrr1\n");
     // free trackReader attrbs
     for (int i = 0; i < trackReader->attrbsLen; i++) {
         free(trackReader->attrbs[i]);
@@ -429,6 +435,7 @@ void TrackReader_destruct(TrackReader *trackReader) {
         stHash_destruct(trackReader->contigLengthTable);
     }
     free(trackReader);
+    fprintf(stderr, "rrrrr\n");
 }
 
 
@@ -457,11 +464,14 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
         return read;
     }
     char *token;
-    if (line[0] == '#') { // skip header lines
-        return TrackReader_readNextTrackBed(trackReader);
-    }
+
     if (read == 0) {
         fprintf(stderr, "[Warning] TrackReader was empty. Go to the next line!\n");
+        return TrackReader_readNextTrackBed(trackReader);
+    }
+
+
+    if (line[0] == '#') { // skip header lines
         return TrackReader_readNextTrackBed(trackReader);
     }
     // free trackReader attrbs to fill it with new ones
@@ -530,15 +540,16 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
     trackReader->attrbs = NULL;
     trackReader->attrbsLen = 0;
 
-    if (line[0] == '#') { // skip header lines
-        return TrackReader_readNextTrackBed(trackReader);
-    }
-
     if (read == 0) {
         fprintf(stderr, "[Warning] line read by TrackReader was empty. Go to the next line!\n");
         free(line);
         return TrackReader_readNextTrackCov(trackReader);
     }
+
+    if (line[0] == '#') { // skip header lines
+        return TrackReader_readNextTrackCov(trackReader);
+    }
+
     if (line[0] == '>') { // contig name and size is after '>'
         Splitter *splitter = Splitter_construct(line, ' ');
         token = Splitter_getToken(splitter);
