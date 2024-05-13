@@ -43,7 +43,7 @@ typedef struct CoverageHeader {
     bool isPredictionAvailable;
 } CoverageHeader;
 
-void CoverageHeader_construct(char *filePath);
+CoverageHeader *CoverageHeader_construct(char *filePath);
 
 void CoverageHeader_writeIntoFile(CoverageHeader *header,
                                   void *filePtr,
