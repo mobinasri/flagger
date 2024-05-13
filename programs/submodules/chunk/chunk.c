@@ -581,8 +581,8 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
     fread(&header->numberOfAnnotations, sizeof(int32_t), 1, fp);
     // read annotation names
     stList_destruct(header->annotationNames);
-    header->annotationNames = stList_construct3(chunksCreator->numberOfAnnotations, free);
-    for (int annotationIndex = 0; annotationIndex < chunksCreator->numberOfAnnotations; annotationIndex++) {
+    header->annotationNames = stList_construct3(header->numberOfAnnotations, free);
+    for (int annotationIndex = 0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
         char *annotationName = malloc(1000 * sizeof(char)); // assuming 1000 is enough for a name
         fgets(annotationName, 1000, fp);
         stList_set(header->annotationNames, annotationIndex, annotationName);
@@ -591,8 +591,8 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
     fread(&header->numberOfRegions, sizeof(int32_t), 1, fp);
     // read region coverages
     free(header->regionCoverages);
-    header->regionCoverages = Int_construct1DArray(chunksCreator->numberOfRegions);
-    fread(&header->regionCoverages, sizeof(int32_t), chunksCreator->numberOfRegions, fp);
+    header->regionCoverages = Int_construct1DArray(header->numberOfRegions);
+    fread(&header->regionCoverages, sizeof(int32_t), header->numberOfRegions, fp);
     // read number of labels (will be non-zero if there are truth/prediction labels in the input coverage file)
     fread(&header->numberOfLabels, sizeof(int32_t), 1, fp);
     // read truth availability one bit
