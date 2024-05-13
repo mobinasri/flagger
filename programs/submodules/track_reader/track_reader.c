@@ -414,7 +414,6 @@ void TrackReader_setFilePosition(TrackReader *trackReader, int64_t filePosition)
 
 
 void TrackReader_destruct(TrackReader *trackReader) {
-    fprintf(stderr, "rrrrr1\n");
     // free trackReader attrbs
     for (int i = 0; i < trackReader->attrbsLen; i++) {
         free(trackReader->attrbs[i]);
@@ -435,7 +434,6 @@ void TrackReader_destruct(TrackReader *trackReader) {
         stHash_destruct(trackReader->contigLengthTable);
     }
     free(trackReader);
-    fprintf(stderr, "rrrrr\n");
 }
 
 

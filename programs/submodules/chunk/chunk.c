@@ -140,7 +140,7 @@ ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalL
     }
     chunksCreator->covPath = copyString(covPath);
     // parse attributes from header lines
-    fprintf(stderr, "[%s] Parsing header info.\n", get_timestamp());
+    fprintf(stderr, "[%s] Parsing header info for ChunksCreator.\n", get_timestamp());
     chunksCreator->header = CoverageHeader_construct(covPath);
 
     chunksCreator->nextChunkIndexToRead = 0;
@@ -373,9 +373,7 @@ int Chunk_addTrack(Chunk *chunk, TrackReader *trackReader) {
         int *annotationIndices = Splitter_getIntArray(trackReader->attrbs[3], ',', &len);
         // use OR operation to keep all overlapping annotations
         chunk->windowAnnotationFlag |= CoverageInfo_getAnnotationFlagFromArray(annotationIndices, len);
-        fprintf(stderr, "annot=%s\n", trackReader->attrbs[3]);
         free(annotationIndices);
-        fprintf(stderr, "region=%d\n", atoi(trackReader->attrbs[4]));
         // the first attribute right after annotation indices is the region index
         chunk->windowRegionArray[chunk->windowItr] = atoi(trackReader->attrbs[4]);
         // parse truth label if it exists (optional attribute)
@@ -383,8 +381,6 @@ int Chunk_addTrack(Chunk *chunk, TrackReader *trackReader) {
         // parse prediction label if it exists (optional attribute)
         chunk->windowPredictionArray[chunk->windowItr] =
                 7 <= trackReader->attrbsLen ? atoi(trackReader->attrbs[6]) : -1;
-        fprintf(stderr, "%d,%d,%d\n", chunk->windowAnnotationFlag, chunk->windowRegionArray[chunk->windowItr],
-                chunk->windowTruthArray[chunk->windowItr]);
         if (chunk->windowItr == chunk->windowLen - 1) { // the window is fully iterated
             int ret = Chunk_addWindow(chunk);
             if (ret == 1) {
@@ -445,7 +441,6 @@ void ChunksCreator_parseOneChunk(void *chunksCreator_) {
     chunk->ctgLen = templateChunk->ctgLen;
     // iterate over the tracks in the cov file
     while (0 < TrackReader_next(trackReader)) {
-        fprintf(stderr, "s=%d,e=%d\n", trackReader->s, trackReader->e);
         // if the trackReader overlaps the chunk
         if (chunk->s <= trackReader->e && trackReader->s <= chunk->e) {
             assert(0 < Chunk_addTrack(chunk, trackReader));
