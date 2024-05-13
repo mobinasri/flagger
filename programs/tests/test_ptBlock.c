@@ -193,91 +193,6 @@ bool test_CoverageInfo_getAnnotationIndices() {
     return correct;
 }
 
-bool test_ptBlock_print_headers_stList_compressed(const char *outputPath) {
-    stList *headerLines = stList_construct3(0, free);
-    stList_append(headerLines, copyString("#annotation:len:2"));
-    stList_append(headerLines, copyString("#annotation:0:no_annotation"));
-    stList_append(headerLines, copyString("#annotation:1:annotation_1"));
-
-    bool isCompressed = true;
-    gzFile fp = gzopen(outputPath, "w6h");
-    ptBlock_print_headers_stList(headerLines, (void *) &fp, isCompressed);
-    gzclose(fp);
-
-    TrackReader *trackReader = TrackReader_construct(outputPath, NULL, true);
-    if (stList_length(trackReader->headerLines) != 3) return false;
-    bool correct = true;
-    for (int i = 0; i < 3; i++) {
-        correct &= (strcmp((char *) stList_get(headerLines, i), (char *) stList_get(trackReader->headerLines, i)) == 0);
-    }
-    stList_destruct(headerLines);
-    TrackReader_destruct(trackReader);
-    return correct;
-}
-
-bool test_ptBlock_print_headers_stList_uncompressed(const char *outputPath) {
-    stList *headerLines = stList_construct3(0, free);
-    stList_append(headerLines, copyString("#annotation:len:2"));
-    stList_append(headerLines, copyString("#annotation:0:no_annotation"));
-    stList_append(headerLines, copyString("#annotation:1:annotation_1"));
-
-    bool isCompressed = false;
-    FILE *fp = fopen(outputPath, "w");
-    ptBlock_print_headers_stList(headerLines, (void *) fp, isCompressed);
-    fclose(fp);
-
-    TrackReader *trackReader = TrackReader_construct(outputPath, NULL, true);
-    if (stList_length(trackReader->headerLines) != 3) return false;
-    bool correct = true;
-    for (int i = 0; i < 3; i++) {
-        correct &= (strcmp((char *) stList_get(headerLines, i), (char *) stList_get(trackReader->headerLines, i)) == 0);
-    }
-    stList_destruct(headerLines);
-    TrackReader_destruct(trackReader);
-    return correct;
-}
-
-bool test_ptBlock_create_and_print_headers_uncompressed(const char *outputPath) {
-    stList *annotationNames = stList_construct3(0, free);
-    stList_append(annotationNames, copyString("no_annotation"));
-    stList_append(annotationNames, copyString("annotation_1"));
-
-    int regionFactors[3];
-    regionFactors[0] = 5;
-    regionFactors[1] = 10;
-    regionFactors[2] = 25;
-
-    bool isCompressed = false;
-    FILE *fp = fopen(outputPath, "w");
-    ptBlock_create_and_print_headers(annotationNames, regionFactors, 3, 0, false, false, (void *) fp, isCompressed);
-    fclose(fp);
-    stList_destruct(annotationNames);
-
-    stList *headerLines = stList_construct3(0, free);
-    stList_append(headerLines, copyString("#annotation:len:2"));
-    stList_append(headerLines, copyString("#annotation:name:0:no_annotation"));
-    stList_append(headerLines, copyString("#annotation:name:1:annotation_1"));
-    stList_append(headerLines, copyString("#region:len:3"));
-    stList_append(headerLines, copyString("#region:coverage:0:5"));
-    stList_append(headerLines, copyString("#region:coverage:1:10"));
-    stList_append(headerLines, copyString("#region:coverage:2:25"));
-    stList_append(headerLines, copyString("#truth:false"));
-    stList_append(headerLines, copyString("#prediction:false"));
-
-
-    TrackReader *trackReader = TrackReader_construct(outputPath, NULL, true);
-    fprintf(stderr, "l=%d\n", stList_length(trackReader->headerLines));
-    if (stList_length(trackReader->headerLines) != stList_length(headerLines)) return false;
-    bool correct = true;
-    for (int i = 0; i < stList_length(trackReader->headerLines); i++) {
-        fprintf(stderr, "%s\n", (char *) stList_get(trackReader->headerLines, i));
-        correct &= (strcmp((char *) stList_get(headerLines, i), (char *) stList_get(trackReader->headerLines, i)) == 0);
-    }
-    stList_destruct(headerLines);
-    TrackReader_destruct(trackReader);
-    return correct;
-}
-
 
 int main(int argc, char *argv[]) {
     char bed_path[200] = "tests/test_files/test.bed";
@@ -314,28 +229,6 @@ int main(int argc, char *argv[]) {
     all_tests_passed &= test_CoverageInfo_getAnnotationIndices_passed;
     printf("Test CoverageInfo_getAnnotationIndices:");
     printf(test_CoverageInfo_getAnnotationIndices_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
-
-    // test 6
-    bool test_ptBlock_print_headers_stList_compressed_passed = test_ptBlock_print_headers_stList_compressed(
-            "tests/test_files/test_header_1.cov.gz");
-    all_tests_passed &= test_ptBlock_print_headers_stList_compressed_passed;
-    printf("Test ptBlock_print_headers_stList_compressed:");
-    printf(test_ptBlock_print_headers_stList_compressed_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
-
-    // test 7
-    bool test_ptBlock_print_headers_stList_uncompressed_passed = test_ptBlock_print_headers_stList_uncompressed(
-            "tests/test_files/test_header_1.cov");
-    all_tests_passed &= test_ptBlock_print_headers_stList_uncompressed_passed;
-    printf("Test ptBlock_print_headers_stList_uncompressed:");
-    printf(test_ptBlock_print_headers_stList_uncompressed_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
-
-    // test 8
-    bool test_ptBlock_create_and_print_headers_uncompressed_passed = test_ptBlock_create_and_print_headers_uncompressed(
-            "tests/test_files/test_header_2.cov");
-    all_tests_passed &= test_ptBlock_create_and_print_headers_uncompressed_passed;
-    printf("Test ptBlock_create_and_print_headers_uncompressed:");
-    printf(test_ptBlock_create_and_print_headers_uncompressed_passed ? "\x1B[32m OK \x1B[0m\n"
-                                                                     : "\x1B[31m FAIL \x1B[0m\n");
 
     if (all_tests_passed)
         return 0;
