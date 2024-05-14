@@ -301,7 +301,7 @@ void CoverageHeader_updatePredictionAvailability(CoverageHeader *header) {
     stList *headerLines = header->headerLines;
     for (int i = 0; i < stList_length(headerLines); i++) {
         char *headerLine = stList_get(headerLines, i);
-        if (strncmp("#truth:true", headerLine, strlen("#prediction:true")) == 0) {
+        if (strncmp("#prediction:true", headerLine, strlen("#prediction:true")) == 0) {
             header->isPredictionAvailable = true;
             break;
         }

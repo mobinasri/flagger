@@ -233,7 +233,7 @@ void *copy_cov_info_data(void *src_);
 char *get_string_cov_info_data_format_1(void *src_);
 
 // format 2 is compatible for HMM-Flagger
-char *get_string_cov_info_data_format_2(void *src_);
+char *get_string_cov_info_data_format_default(void *src_);
 
 // these formats can be used for the original implementation of Flagger
 char *get_string_cov_info_data_format_only_total(void *src_);
