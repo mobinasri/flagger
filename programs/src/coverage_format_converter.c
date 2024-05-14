@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
     stHash *ctgToLen = NULL;
     if (faiPath != NULL) {
         fprintf(stderr, "[%s] Parsing contig lengths from %s.\n", get_timestamp(), faiPath);
-        stHash *ctgToLen = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+        ctgToLen = ptBlock_get_contig_length_stHash_from_fai(faiPath);
     }else{
         fprintf(stderr, "[%s] Warning: Skip parsing fai file.\n", get_timestamp());
     }
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
     // free memory
     CoverageHeader_destruct(header);
     stHash_destruct(blockTable);
-    stHash_destruct(ctgToLen);
+    if (ctgToLen != NULL) stHash_destruct(ctgToLen);
     free(outputExtension);
     fprintf(stderr, "[%s] Done!\n", get_timestamp());
 
