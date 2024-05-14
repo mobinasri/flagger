@@ -178,7 +178,7 @@ void CoverageInfo_reset(CoverageInfo *coverageInfo) {
     coverageInfo->coverage = 0;
     coverageInfo->coverage_high_mapq = 0;
     coverageInfo->coverage_high_clip = 0;
-    if(coverageInfo->data != NULL){
+    if (coverageInfo->data != NULL) {
         reset_inference_data(coverageInfo->data);
     }
 }
@@ -382,7 +382,7 @@ char *get_string_cov_info_data_format_1(void *src_) {
     return str;
 }
 
-char *get_string_cov_info_data_format_2(void *src_) {
+char *get_string_cov_info_data_format_default(void *src_) {
     CoverageInfo *src = src_;
 
     int len = 0;
@@ -415,7 +415,7 @@ char *get_string_cov_info_data_format_with_truth(void *src_) {
     if (src->data == NULL) {
         fprintf(stderr, "[%s] Error: Inference data does not exist for formatting!\n", get_timestamp());
         exit(EXIT_FAILURE);
-    }else{
+    } else {
         Inference *infer = src->data;
         sprintf(str,
                 "%d\t%d\t%d\t%s\t%d\t%d",
@@ -443,7 +443,7 @@ char *get_string_cov_info_data_format_with_truth_and_prediction(void *src_) {
     if (src->data == NULL) {
         fprintf(stderr, "[%s] Error: Inference data does not exist for formatting!\n", get_timestamp());
         exit(EXIT_FAILURE);
-    }else{
+    } else {
         Inference *infer = src->data;
         sprintf(str,
                 "%d\t%d\t%d\t%s\t%d\t%d\t%d",
@@ -854,7 +854,8 @@ void ptBlock_write_blocks_stHash_in_cov(stHash *blocks_per_contig,
         // get the contig length and print it beside the contig header
         int *ctg_len_ptr = stHash_search(ctg_to_len, ctg_name);
         if (ctg_len_ptr == NULL) {
-            fprintf(stderr, "[%s] Error: contig '%s' is not present in the bam/sam header or fai file\n", get_timestamp(),
+            fprintf(stderr, "[%s] Error: contig '%s' is not present in the bam/sam header or fai file\n",
+                    get_timestamp(),
                     ctg_name);
             exit(EXIT_FAILURE);
         }
@@ -1768,9 +1769,10 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
         // add inference data if exists
         int8_t truth = (header->isTruthAvailable && 6 <= trackReader->attrbsLen) ? atoi(trackReader->attrbs[5]) : -1;
         // parse prediction label if it exists (optional attribute)
-        int8_t prediction = (header->isPredictionAvailable && 7 <= trackReader->attrbsLen) ? atoi(trackReader->attrbs[6]) : -1;
+        int8_t prediction = (header->isPredictionAvailable && 7 <= trackReader->attrbsLen) ? atoi(
+                trackReader->attrbs[6]) : -1;
         // at least one of truth or prediction labels should be defined to add the inference data
-        CoverageInfo_addInferenceData(cov_info_data,truth,prediction);
+        CoverageInfo_addInferenceData(cov_info_data, truth, prediction);
 
         // add coverageInfo data to block
         ptBlock_set_data(block, cov_info_data,
@@ -1953,56 +1955,46 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable,
     }
 
     fprintf(stderr, "[%s] Started writing to %s.\n", get_timestamp(), outPath);
+
+    // get the appropriate function that converts a coverage info to a string
+    char *(*get_string_function)(void *);
+
+    if (strcmp(format, "only_total") == 0) {
+        get_string_function = get_string_cov_info_data_format_only_total;
+    } else if (strcmp(format, "only_high_mapq") == 0) {
+        get_string_function = get_string_cov_info_data_format_only_high_mapq;
+    } else if (strcmp(format, "all") == 0) {
+        // if prediction was available (in that case truth column will be written in any case)
+        if (header->isPredictionAvailable) {
+            get_string_function = get_string_cov_info_data_format_with_truth_and_prediction;
+        } else if (header->isTruthAvailable) { // if truth was available with no prediction column
+            get_string_function = get_string_cov_info_data_format_with_truth;
+        } else { // if no truth/prediction was available
+            get_string_function = get_string_cov_info_data_format_default;
+        }
+    } else {
+        fprintf(stderr, "[%s] Error: format %s is not valid.\n", format);
+        exit(EXIT_FAILURE);
+    }
+
     // write
     if (isFormatCov) { // if file extension is either cov or cov.gz
-        if (strcmp(format, "only_total") == 0) {
-            ptBlock_write_blocks_stHash_in_cov(blockTable,
-                                               get_string_cov_info_data_format_only_total,
-                                               filePtr,
-                                               isCompressed,
-                                               ctgToLen);
-        } else if (strcmp(format, "only_high_mapq") == 0) {
-            ptBlock_write_blocks_stHash_in_cov(blockTable,
-                                               get_string_cov_info_data_format_only_high_mapq,
-                                               filePtr,
-                                               isCompressed,
-                                               ctgToLen);
-        } else if (strcmp(format, "all") == 0) {
+        if (strcmp(format, "all") == 0) {
             // write header
             CoverageHeader_writeIntoFile(header, filePtr, isCompressed);
-            // write tracks
-            // if prediction was available
-            if(header->isPredictionAvailable) {
-                ptBlock_write_blocks_stHash_in_cov(blockTable,
-                                                   get_string_cov_info_data_format_with_truth_and_prediction,
-                                                   filePtr,
-                                                   isCompressed,
-                                                   ctgToLen);
-            }
-            // if truth was available with no prediction column
-            else if(header->isTruthAvailable){
-                ptBlock_write_blocks_stHash_in_cov(blockTable,
-                                                   get_string_cov_info_data_format_with_truth,
-                                                   filePtr,
-                                                   isCompressed,
-                                                   ctgToLen);
-            }
-            // if no truth/prediction was available
-            else{
-                ptBlock_write_blocks_stHash_in_cov(blockTable,
-                                                   get_string_cov_info_data_format_2,
-                                                   filePtr,
-                                                   isCompressed,
-                                                   ctgToLen);
-            }
-
         }
+        // write tracks
+        ptBlock_write_blocks_stHash_in_cov(blockTable,
+                                           get_string_function,
+                                           filePtr,
+                                           isCompressed,
+                                           ctgToLen);
     } else if (isFormatBed) { // if file extension is either bed or bed.gz
         // write header
         CoverageHeader_writeIntoFile(header, filePtr, isCompressed);
         // write tracks
         ptBlock_write_blocks_stHash_in_bed(blockTable,
-                                           get_string_cov_info_data_format_2,
+                                           get_string_function,
                                            filePtr,
                                            isCompressed);
     }
