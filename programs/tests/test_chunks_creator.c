@@ -123,14 +123,14 @@ bool testCreatingChunksWithLabels(char *covPath) {
                                       1};
     int truthAnnotationsLenCtg2[1] = {2};
 
-    int truthLabelsCtg1[6] = {{1, 1},
+    int truthLabelsCtg1[6][2] = {{1, 1},
                               {2, 3},
                               {2, 3},
                               {3, 3},
                               {3, 3},
                               {3, 3}};
 
-    int truthLabelsCtg2[1] = {{2, 2}};
+    int truthLabelsCtg2[1][2] = {{2, 2}};
 
     int windowLen = 20;
     int chunkCanonicalLen = 40;
@@ -169,6 +169,7 @@ bool testCreatingChunksWithLabels(char *covPath) {
                 for (int i = 0; i < len; i++) {
                     correct &= (annotationIndices[i] == truthAnnotations[i]);
                 }
+		free(annotationIndices);
 
                 // check labels
                 int *labels = truthLabelsCtg1[trackIndexCtg1];
@@ -176,7 +177,6 @@ bool testCreatingChunksWithLabels(char *covPath) {
                 Inference *inference = coverageInfo->data;
                 correct &= (inference->truth == labels[0]);
                 correct &= (inference->prediction == labels[1]);
-                free(annotationIndices);
             }
         }
         if (strcmp(chunk->ctg, "ctg2") == 0) {
@@ -211,7 +211,6 @@ bool testCreatingChunksWithLabels(char *covPath) {
                 Inference *inference = coverageInfo->data;
                 correct &= (inference->truth == labels[0]);
                 correct &= (inference->prediction == labels[1]);
-                free(annotationIndices);
             }
         }
     }
