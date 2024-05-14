@@ -68,16 +68,20 @@ bool test_BiasDetector_getAnnotationToRegionMap(char *bamPath, char *jsonPath) {
 
 
 int main(int argc, char *argv[]) {
-    char bamPath[1000] = "tests/test_files/ptBlock_bam2cov_test.bam";
-    char jsonPath[1000] = "tests/test_files/ptBlock_bam2cov_test.json";
+    char bamPath[1000] = "tests/test_files/bias_detector/test.bam";
+    char jsonPath[1000] = "tests/test_files/bias_detector/test.json";
 
-    if (test_BiasDetector_getAnnotationToRegionMap(bamPath, jsonPath) == true) {
-        fprintf(stderr, "Test BiasDetector_getAnnotationToRegionMap passed!\n");
-    } else {
-        fprintf(stderr, "Test BiasDetector_getAnnotationToRegionMap failed!\n");
+    bool allTestsPassed = true;
+
+    // test 1
+    bool test1Passed = test_BiasDetector_getAnnotationToRegionMap(bamPath, jsonPath);
+    printf("[bias_detector] Test bias detection and getting annotation to region map:");
+    printf(test1Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test1Passed;
+
+    if (allTestsPassed)
+        return 0;
+    else
         return 1;
-    }
-
-    return 0;
 
 }

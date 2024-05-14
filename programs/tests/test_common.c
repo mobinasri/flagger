@@ -89,48 +89,49 @@ bool test_Splitter_getIntArray() {
 
 
 int main(int argc, char *argv[]) {
-    char test1Path[1000] = "tests/test_files/test_common_1.txt";
-    if (test_Splitter_parseLinesIntoList(test1Path) == true) {
-        fprintf(stderr, "test_Splitter_parseLinesIntoList for %s passed!\n", test1Path);
-    } else {
-        fprintf(stderr, "test_Splitter_parseLinesIntoList for %s failed!\n", test1Path);
-        return 1;
-    }
+    char test1Path[1000] = "tests/test_files/common/test_common_1.txt";
 
-    if (test_String_joinDoubleArray()) {
-        fprintf(stderr, "test_String_joinDoubleArray passed!\n");
-    } else {
-        fprintf(stderr, "test_String_joinDoubleArray failed!\n");
-        return 1;
-    }
+    bool allTestsPassed = true;
 
-    if (test_String_joinIntArray()) {
-        fprintf(stderr, "test_String_joinIntArray passed!\n");
-    } else {
-        fprintf(stderr, "test_String_joinIntArray failed!\n");
-        return 1;
-    }
+    // test 1
+    bool test1Passed = test_Splitter_parseLinesIntoList(test1Path);
+    printf("[common] Test parsing file into stList:");
+    printf(test1Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test1Passed;
 
-    if (test_String_joinStringArray()) {
-        fprintf(stderr, "test_String_joinStringArray passed!\n");
-    } else {
-        fprintf(stderr, "test_String_joinStringArray failed!\n");
-        return 1;
-    }
+    // test 2
+    bool test2Passed = test_String_joinDoubleArray();
+    printf("[common] Test String_joinDoubleArray:");
+    printf(test2Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test2Passed;
 
-    if (test_Splitter_getIntArray()) {
-        fprintf(stderr, "test_Splitter_getIntArray passed!\n");
-    } else {
-        fprintf(stderr, "test_Splitter_getIntArray failed!\n");
-        return 1;
-    }
+    // test 3
+    bool test3Passed = test_String_joinIntArray();
+    printf("[common] Test String_joinIntArray:");
+    printf(test3Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test3Passed;
 
-    if (test_Splitter_getDoubleArray()) {
-        fprintf(stderr, "test_Splitter_getDoubleArray passed!\n");
-    } else {
-        fprintf(stderr, "test_Splitter_getDoubleArray failed!\n");
-        return 1;
-    }
-    return 0;
 
+    // test 4
+    bool test4Passed = test_String_joinStringArray();
+    printf("[common] Test String_joinStringArray:");
+    printf(test4Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test4Passed;
+
+    // test 5
+    bool test5Passed = test_Splitter_getIntArray();
+    printf("[common] Test Splitter_getIntArray:");
+    printf(test5Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test5Passed;
+
+    // test 6
+    bool test6Passed = test_Splitter_getDoubleArray();
+    printf("[common] Test Splitter_getDoubleArray:");
+    printf(test6Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test6Passed;
+
+    if (allTestsPassed)
+        return 0;
+    else
+        return 1;
 }

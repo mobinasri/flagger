@@ -8,13 +8,13 @@
 
 bool testCreatingChunks(char *covPath) {
     bool correct = true;
-    int truthValuesCtg1[6][6] = {{1,   20,  5,  2,  2,  0},
-                                 {21,  40,  10, 10, 10, 1},
-                                 {41,  60,  10, 10, 10, 1},
-                                 {61,  80,  15, 15, 13, 1},
-                                 {81,  100, 16, 16, 16, 1},
-                                 {101, 110, 16, 16, 16, 1}};
-    int truthValuesCtg2[1][6] = {{1, 10, 7, 7, 1, 0}};
+    int truthValuesCtg1[6][6] = {{0,   19,  5,  2,  2,  0},
+                                 {20,  39,  10, 10, 10, 1},
+                                 {40,  59,  10, 10, 10, 1},
+                                 {60,  79,  15, 15, 13, 1},
+                                 {80,  99, 16, 16, 16, 1},
+                                 {100, 109, 16, 16, 16, 1}};
+    int truthValuesCtg2[1][6] = {{0, 9, 7, 7, 1, 0}};
     int windowLen = 20;
     int chunkCanonicalLen = 40;
     int nThreads = 2;
@@ -34,8 +34,10 @@ bool testCreatingChunks(char *covPath) {
                 trackIndexCtg1 += 1;
                 CoverageInfo *coverageInfo = chunk->coverageInfoSeq[windowIndex];
                 int *truthValues = truthValuesCtg1[trackIndexCtg1];
-                correct &= (chunk->s == (truthValues[0] - 1));
-                correct &= (chunk->e == (truthValues[1] - 1));
+		int s = chunk->s + windowLen * windowIndex;
+		int e = min(chunk->e, s + windowLen - 1);
+                correct &= (s == truthValues[0]);
+                correct &= (e == truthValues[1]);
                 correct &= (coverageInfo->coverage == truthValues[2]);
                 correct &= (coverageInfo->coverage_high_mapq == truthValues[3]);
                 correct &= (coverageInfo->coverage_high_clip == truthValues[4]);
@@ -47,8 +49,10 @@ bool testCreatingChunks(char *covPath) {
                 trackIndexCtg2 += 1;
                 CoverageInfo *coverageInfo = chunk->coverageInfoSeq[windowIndex];
                 int *truthValues = truthValuesCtg2[trackIndexCtg2];
-                correct &= (chunk->s == (truthValues[0] - 1));
-                correct &= (chunk->e == (truthValues[1] - 1));
+		int s = chunk->s + windowLen * windowIndex;
+                int e = min(chunk->e, s + windowLen - 1);
+                correct &= (s == truthValues[0]);
+                correct &= (e == truthValues[1]);
                 correct &= (coverageInfo->coverage == truthValues[2]);
                 correct &= (coverageInfo->coverage_high_mapq == truthValues[3]);
                 correct &= (coverageInfo->coverage_high_clip == truthValues[4]);
@@ -63,22 +67,23 @@ bool testCreatingChunks(char *covPath) {
 
 
 int main(int argc, char *argv[]) {
+     
+    bool allTestsPassed = true;
+
     // test 1
-    if (testCreatingChunks("tests/test_files/test_1.cov") == true) {
-        fprintf(stderr, "Test CreatingChunks for uncompressed file passed!\n");
-    } else {
-        fprintf(stderr, "Test CreatingChunks for uncompressed file failed!\n");
-        return 1;
-    }
+    bool test1Passed = testCreatingChunks("tests/test_files/chunks_creator/test_1.cov");
+    printf("[chunks_creator] Test creating chunks from uncompressed file:");
+    printf(test1Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test1Passed; 
 
     // test 2
-    if (testCreatingChunks("tests/test_files/test_1.cov.gz") == true) {
-        fprintf(stderr, "Test CreatingChunks for compressed file passed!\n");
-    } else {
-        fprintf(stderr, "Test CreatingChunks for compressed file failed!\n");
+    bool test2Passed = testCreatingChunks("tests/test_files/chunks_creator/test_1.cov.gz");
+    printf("[chunks_creator] Test creating chunks from compressed file:");
+    printf(test2Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test2Passed;
+
+    if (allTestsPassed)
+        return 0;
+    else
         return 1;
-    }
-
-    return 0;
-
 }

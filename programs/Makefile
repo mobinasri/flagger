@@ -32,11 +32,18 @@ ${BIN_DIR}:
 %.o: %.c %.h
 	$(CC) -c -o$@ $< $(CCFLAGS)
 
-run_tests: bin/test_track_reader 
+run_tests: 
 	./bin/test_track_reader	
 	./bin/test_chunks_creator
 	./bin/test_common
 	./bin/test_ptBlock
 	./bin/test_bias_detector
-	./bin/bam2cov --bam tests/test_files/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/ptBlock_bam2cov_test.json --output tests/test_files/ptBlock_bam2cov_test.output.cov --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1 && cmp tests/test_files/ptBlock_bam2cov_test.output.cov tests/test_files/ptBlock_bam2cov_test.truth.cov
-	./bin/bam2cov --bam tests/test_files/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/ptBlock_bam2cov_test.json --output tests/test_files/ptBlock_bam2cov_test.output.cov.gz --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1 && zcmp tests/test_files/ptBlock_bam2cov_test.output.cov.gz tests/test_files/ptBlock_bam2cov_test.truth.cov.gz
+	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1;\
+	       	cmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov; \
+		if [ $$? -eq 0 ]; then printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_OK ; else printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_FAIL ; fi
+	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1; \
+	       	zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov.gz; \
+		if [ $$? -eq 0 ]; then printf "Testing bam2cov with compressed cov file:" && ./bin/print_OK ; else printf "Testing bam2cov with compressed cov file:" && ./bin/print_FAIL ; fi
+	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1; \
+                zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.bed; \
+                if [ $$? -eq 0 ]; then printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_OK ; else printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_FAIL ; fi

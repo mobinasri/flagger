@@ -144,7 +144,6 @@ bool test_CoverageInfo_getAnnotationFlagFromArray() {
     x[1] = 3;
     x[2] = 9;
     uint64_t flag = CoverageInfo_getAnnotationFlagFromArray(x, 3);
-    fprintf(stderr, "%x\n", flag);
     return flag == 0x105;
 }
 
@@ -195,7 +194,7 @@ bool test_CoverageInfo_getAnnotationIndices() {
 
 
 int main(int argc, char *argv[]) {
-    char bed_path[200] = "tests/test_files/test.bed";
+    char bed_path[200] = "tests/test_files/ptBlock/test.bed";
 
     bool all_tests_passed = true;
     // test 1
