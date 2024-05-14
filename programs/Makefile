@@ -38,12 +38,70 @@ run_tests:
 	./bin/test_common
 	./bin/test_ptBlock
 	./bin/test_bias_detector
-	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1;\
-	       	cmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov; \
-		if [ $$? -eq 0 ]; then printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_OK ; else printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_FAIL ; fi
-	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1; \
-	       	zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov.gz; \
-		if [ $$? -eq 0 ]; then printf "Testing bam2cov with compressed cov file:" && ./bin/print_OK ; else printf "Testing bam2cov with compressed cov file:" && ./bin/print_FAIL ; fi
-	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 --baselineAnnotation annot_1; \
-                zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.bed; \
-                if [ $$? -eq 0 ]; then printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_OK ; else printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_FAIL ; fi
+	# convert bam to cov with annotations
+	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam \
+		      --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json \
+		      --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov \
+		      --runBiasDetection \
+		      --minBiasCoverage 1 \
+		      --minBiasLength 1 \
+		      --baselineAnnotation annot_1;\
+		      cmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov \
+		          tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov; \
+		      if [ $$? -eq 0 ]; then printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_OK ; \
+		                        else printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_FAIL ; fi
+	# convert bam to cov.gz with annotations
+	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam \
+		      --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json \
+		      --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz \
+		      --runBiasDetection \
+		      --minBiasCoverage 1 \
+		      --minBiasLength 1 \
+		      --baselineAnnotation annot_1; \
+		      zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz \
+		           tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov.gz; \
+		      if [ $$? -eq 0 ]; then printf "Testing bam2cov with compressed cov file:" && ./bin/print_OK ; \
+		                        else printf "Testing bam2cov with compressed cov file:" && ./bin/print_FAIL ; fi
+	# convert bam to bed with annotations
+	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam \
+		      --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json \
+		      --output tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed \
+		      --runBiasDetection \
+		      --minBiasCoverage 1 \
+		      --minBiasLength 1 \
+		      --baselineAnnotation annot_1; \
+		      zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed \
+		           tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.bed; \
+		      if [ $$? -eq 0 ]; then printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_OK ; \
+		                        else printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_FAIL ; fi
+	# convert cov to bed with both labels
+	./bin/coverage_format_converter -i tests/test_files/coverage_format_converter/test_1_with_labels.cov \
+                                        -o tests/test_files/coverage_format_converter/test_1_with_labels.output.bed; \
+                                        cmp tests/test_files/coverage_format_converter/test_1_with_labels.output.bed \
+                                             tests/test_files/coverage_format_converter/truth/test_1_with_labels.truth.bed; \
+                                        if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bed (both labels):" && ./bin/print_OK ; \
+                                                          else printf "Testing coverage_format_converter for cov -> bed (both labels):" && ./bin/print_FAIL ; fi
+	# convert bed to cov with both labels
+	./bin/coverage_format_converter -i tests/test_files/coverage_format_converter/test_1_with_labels.bed \
+                                        -o tests/test_files/coverage_format_converter/test_1_with_labels.output.cov \
+                                        -f tests/test_files/coverage_format_converter/test_1.fa.fai; \
+                                        cmp tests/test_files/coverage_format_converter/test_1_with_labels.output.cov \
+                                             tests/test_files/coverage_format_converter/truth/test_1_with_labels.truth.cov; \
+					     if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for bed -> cov (both labels):" && ./bin/print_OK ; \
+					                       else printf "Testing coverage_format_converter for bed -> cov (both labels):" && ./bin/print_FAIL ; fi
+	# convert cov to bed with only truth labels
+	./bin/coverage_format_converter -i tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.cov \
+                                        -o tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.output.bed \
+                                        -f tests/test_files/coverage_format_converter/test_1.fa.fai; \
+                                        cmp tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.output.cov \
+                                             tests/test_files/coverage_format_converter/truth/test_1_with_only_truth_labels.truth.cov; \
+                                        if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bed (only truth labels):" && ./bin/print_OK ; \
+                                                          else printf "Testing coverage_format_converter for cov -> bed (only truth labels):" && ./bin/print_FAIL ; fi
+	# convert bed to cov with only truth labels
+	./bin/coverage_format_converter -i tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.bed \
+		                        -o tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.output.cov \
+					-f tests/test_files/coverage_format_converter/test_1.fa.fai; \
+					cmp tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.output.cov \
+					     tests/test_files/coverage_format_converter/truth/test_1_with_only_truth_labels.truth.cov; \
+					if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for bed -> cov (only truth labels):" && ./bin/print_OK ; \
+					                  else printf "Testing coverage_format_converter for bed -> cov (only truth labels):" && ./bin/print_FAIL ; fi
