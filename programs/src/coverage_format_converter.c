@@ -103,6 +103,10 @@ int main(int argc, char *argv[]) {
     char trackName2[100];
     char color[100];
     if (strcmp(outputExtension, "bedgraph") == 0) {
+        if (ctgToLen == NULL){
+            fprintf(stderr, "[%s] Error: for writing a bedgraph file pass a fai file (-f)\n", get_timestamp());
+            exit(EXIT_FAILURE);
+        }
         char outputPath2[1000];
         char prefix[1000];
         memcpy(prefix, outputPath, strlen(outputPath) - 9);
