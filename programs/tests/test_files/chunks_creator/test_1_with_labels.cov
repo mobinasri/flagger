@@ -1,0 +1,21 @@
+#annot:len:3
+#annot:0:NO_ANNOTATION
+#annot:1:annotation_1
+#annot:2:annotation_2
+#region:len:2
+#region:0:5
+#region:1:10
+#label:len:4
+#truth:true
+#prediction:true
+>ctg1 110
+1	10	4	4	4	0	0	1	1
+11	15	6	0	0	0	0	0	1
+16	20	6	0	0	1	1	1	1
+21	60	10	10	10	1	1	2	3
+61	64	14	14	10	1,2	1	-1	3
+65	70	14	14	10	0	0	1	-1
+71	110	16	16	16	2	1	3	3
+>ctg2 10
+1	2	4	4	4	1,2	1	-1	1
+3	10	8	8	0	0	0	2	2
