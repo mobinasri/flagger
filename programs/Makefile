@@ -105,3 +105,18 @@ run_tests:
 					     tests/test_files/coverage_format_converter/truth/test_1_with_only_truth_labels.truth.cov; \
 					if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for bed -> cov (only truth labels):" && ./bin/print_OK ; \
 					                  else printf "Testing coverage_format_converter for bed -> cov (only truth labels):" && ./bin/print_FAIL ; fi
+	# convert cov to bedgraph
+	./bin/coverage_format_converter -i tests/test_files/coverage_format_converter/test_1_with_labels.cov \
+		                        -o tests/test_files/coverage_format_converter/test_1_with_labels.w_20.output.bedgraph \
+                                        -f tests/test_files/coverage_format_converter/test_1.fa.fai \
+	                                -w 20; \
+                                        cmp tests/test_files/coverage_format_converter/test_1_with_labels.w_20.output.bedgraph \
+                                            tests/test_files/coverage_format_converter/truth/test_1_with_labels.w_20.truth.bedgraph && \
+					cmp tests/test_files/coverage_format_converter/test_1_with_labels.w_20.output.high_mapq.bedgraph \
+                                            tests/test_files/coverage_format_converter/truth/test_1_with_labels.w_20.truth.high_mapq.bedgraph && \
+					cmp tests/test_files/coverage_format_converter/test_1_with_labels.w_20.output.high_clip.bedgraph \
+                                            tests/test_files/coverage_format_converter/truth/test_1_with_labels.w_20.truth.high_clip.bedgraph && \
+					cmp tests/test_files/coverage_format_converter/test_1_with_labels.w_20.output.region_idx.bedgraph \
+                                            tests/test_files/coverage_format_converter/truth/test_1_with_labels.w_20.truth.region_idx.bedgraph && \
+                                        if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bedgraph:" && ./bin/print_OK ; \
+                                                          else printf "Testing coverage_format_converter for cov -> bedgraph:" && ./bin/print_FAIL ; fi
