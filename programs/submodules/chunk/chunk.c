@@ -467,8 +467,8 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
     FILE *fp = fopen(binPath, "wb+");
 
     int numberOfChunks = stList_length(chunks);
-    if(chunksCreator->header == NULL){
-        fprintf(stderr, "[%s] Error: header cannot be undefined for writing chunks in binary.\n",get_timestamp());
+    if (chunksCreator->header == NULL) {
+        fprintf(stderr, "[%s] Error: header cannot be undefined for writing chunks in binary.\n", get_timestamp());
         exit(EXIT_FAILURE);
     }
     CoverageHeader *header = chunksCreator->header;
@@ -664,7 +664,7 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
 void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
                                            const char *outputPath,
                                            const char *trackName,
-                                           u_int16_t (* getCoverageInfoAttribute)(CoverageInfo *),
+                                           u_int16_t (*getCoverageInfoAttribute)(CoverageInfo *),
                                            const char *color) {
     FILE *fp = fopen(outputPath, "w");
     if (fp == NULL) {
