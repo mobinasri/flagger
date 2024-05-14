@@ -120,3 +120,34 @@ run_tests:
                                             tests/test_files/coverage_format_converter/truth/test_1_with_labels.w_20.truth.region_idx.bedgraph;\
                                         if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bedgraph:" && ./bin/print_OK ; \
                                                           else printf "Testing coverage_format_converter for cov -> bedgraph:" && ./bin/print_FAIL ; fi
+	# augment with both truth and prediction labels
+	./bin/augment_coverage_by_labels -i tests/test_files/augment_coverage_by_labels/test_1.cov \
+		                         -t tests/test_files/augment_coverage_by_labels/test_1.truth_labels.bed \
+		                         -p tests/test_files/augment_coverage_by_labels/test_1.prediction_labels.bed \
+					 -n 4 \
+					 -o tests/test_files/augment_coverage_by_labels/test_1.with_labels.output.cov \
+					 -f tests/test_files/augment_coverage_by_labels/test_1.fa.fai ;\
+					 cmp tests/test_files/augment_coverage_by_labels/test_1.with_labels.output.cov \
+					     tests/test_files/augment_coverage_by_labels/truth/test_1.with_labels.truth.cov; \
+					 if [ $$? -eq 0 ]; then printf "Testing augment_coverage_by_labels for both truth and prediction labels:" && ./bin/print_OK ; \
+                                                           else printf "Testing augment_coverage_by_labels for both truth and prediction labels:" && ./bin/print_FAIL ; fi
+	# augment with only truth labels
+	./bin/augment_coverage_by_labels -i tests/test_files/augment_coverage_by_labels/test_1.cov \
+                                         -t tests/test_files/augment_coverage_by_labels/test_1.truth_labels.bed \
+                                         -n 4 \
+                                         -o tests/test_files/augment_coverage_by_labels/test_1.with_only_truth_labels.output.cov \
+                                         -f tests/test_files/augment_coverage_by_labels/test_1.fa.fai ;\
+	                                 cmp tests/test_files/augment_coverage_by_labels/test_1.with_only_truth_labels.output.cov \
+                                             tests/test_files/augment_coverage_by_labels/truth/test_1.with_only_truth_labels.truth.cov; \
+                                         if [ $$? -eq 0 ]; then printf "Testing augment_coverage_by_labels for only truth labels:" && ./bin/print_OK ; \
+                                                           else printf "Testing augment_coverage_by_labels for only truth labels:" && ./bin/print_FAIL ; fi
+	# augment with only prediction labels
+	./bin/augment_coverage_by_labels -i tests/test_files/augment_coverage_by_labels/test_1.cov \
+                                         -p tests/test_files/augment_coverage_by_labels/test_1.prediction_labels.bed \
+                                         -n 4 \
+                                         -o tests/test_files/augment_coverage_by_labels/test_1.with_only_prediction_labels.output.cov \
+                                         -f tests/test_files/augment_coverage_by_labels/test_1.fa.fai ;\
+                                         cmp tests/test_files/augment_coverage_by_labels/test_1.with_only_prediction_labels.output.cov \
+                                             tests/test_files/augment_coverage_by_labels/truth/test_1.with_only_prediction_labels.truth.cov; \
+                                         if [ $$? -eq 0 ]; then printf "Testing augment_coverage_by_labels for only prediction labels:" && ./bin/print_OK ; \
+                                                           else printf "Testing augment_coverage_by_labels for only prediction labels:" && ./bin/print_FAIL ; fi
