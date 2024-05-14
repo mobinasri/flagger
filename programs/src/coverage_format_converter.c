@@ -92,8 +92,13 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(stderr, "[%s] Parsing contig lengths from %s.\n", get_timestamp(), faiPath);
-    stHash *ctgToLen = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    stHash *ctgToLen = NULL;
+    if (faiPath != NULL) {
+        fprintf(stderr, "[%s] Parsing contig lengths from %s.\n", get_timestamp(), faiPath);
+        stHash *ctgToLen = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    }else{
+        fprintf(stderr, "[%s] Warning: Skip parsing fai file.\n", get_timestamp());
+    }
 
     char trackName2[100];
     char color[100];
