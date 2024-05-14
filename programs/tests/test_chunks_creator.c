@@ -17,13 +17,16 @@ bool testCreatingChunks(char *covPath) {
                                  {100, 109, 16, 16, 16, 1}};
     // annotation indices
     int truthValuesCtg2[1][6] = {{0, 9, 7, 7, 1, 0}};
-    int truthAnnotationsCtg1[6][2] = {{0,1},
+    int truthAnnotationsCtg1[6][2] = {{1,-1},
                                       {1,-1},
                                       {1,-1},
                                       {1,2},
                                       {2,-1},
                                       {2,-1}};
     int truthAnnotationsCtg2[1][2] = {{1,2}};
+
+    int truthAnnotationsLenCtg1[6] = {1,1,1,2,1,1};
+    int truthAnnotationsLenCtg2[1] = {2};
 
     int windowLen = 20;
     int chunkCanonicalLen = 40;
@@ -45,6 +48,7 @@ bool testCreatingChunks(char *covPath) {
                 CoverageInfo *coverageInfo = chunk->coverageInfoSeq[windowIndex];
                 int *truthValues = truthValuesCtg1[trackIndexCtg1];
                 int *truthAnnotations = truthAnnotationsCtg1[trackIndexCtg1];
+		int truthAnnnotationsLen = truthAnnotationsLenCtg1[trackIndexCtg1];
                 int s = chunk->s + windowLen * windowIndex;
                 int e = min(chunk->e, s + windowLen - 1);
                 correct &= (s == truthValues[0]);
@@ -55,7 +59,7 @@ bool testCreatingChunks(char *covPath) {
                 correct &= (CoverageInfo_getRegionIndex(coverageInfo) == truthValues[5]);
                 int len;
                 int *annotationIndices = CoverageInfo_getAnnotationIndices(coverageInfo, &len);
-                if (len > 2) return false;
+                if (len != truthAnnnotationsLen) return false;
                 for(int i=0; i < len; i++){
                     correct &= (annotationIndices[i] == truthAnnotations[i]);
                 }
@@ -68,6 +72,7 @@ bool testCreatingChunks(char *covPath) {
                 CoverageInfo *coverageInfo = chunk->coverageInfoSeq[windowIndex];
                 int *truthValues = truthValuesCtg2[trackIndexCtg2];
                 int *truthAnnotations = truthAnnotationsCtg2[trackIndexCtg2];
+		int truthAnnnotationsLen = truthAnnotationsLenCtg2[trackIndexCtg2];
                 int s = chunk->s + windowLen * windowIndex;
                 int e = min(chunk->e, s + windowLen - 1);
                 correct &= (s == truthValues[0]);
@@ -78,7 +83,7 @@ bool testCreatingChunks(char *covPath) {
                 correct &= (CoverageInfo_getRegionIndex(coverageInfo) == truthValues[5]);
                 int len;
                 int *annotationIndices = CoverageInfo_getAnnotationIndices(coverageInfo, &len);
-                if (len > 2) return false;
+		if (len != truthAnnnotationsLen) return false;
                 for(int i=0; i < len; i++){
                     correct &= (annotationIndices[i] == truthAnnotations[i]);
                 }
