@@ -117,6 +117,6 @@ run_tests:
 					cmp tests/test_files/coverage_format_converter/test_1_with_labels.w_20.output.high_clip.bedgraph \
                                             tests/test_files/coverage_format_converter/truth/test_1_with_labels.w_20.truth.high_clip.bedgraph && \
 					cmp tests/test_files/coverage_format_converter/test_1_with_labels.w_20.output.region_idx.bedgraph \
-                                            tests/test_files/coverage_format_converter/truth/test_1_with_labels.w_20.truth.region_idx.bedgraph && \
+                                            tests/test_files/coverage_format_converter/truth/test_1_with_labels.w_20.truth.region_idx.bedgraph;\
                                         if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bedgraph:" && ./bin/print_OK ; \
                                                           else printf "Testing coverage_format_converter for cov -> bedgraph:" && ./bin/print_FAIL ; fi
