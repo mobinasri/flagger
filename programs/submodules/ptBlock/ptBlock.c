@@ -128,6 +128,12 @@ void *copy_inference_data(void *src_) {
     return dest;
 }
 
+void reset_inference_data(void *src_) {
+    Inference *src = src_;
+    src->truth = -1;
+    src->prediction = -1;
+}
+
 
 CoverageInfo *CoverageInfo_construct(uint64_t annotation_flag,
                                      u_int16_t coverage,
@@ -172,6 +178,9 @@ void CoverageInfo_reset(CoverageInfo *coverageInfo) {
     coverageInfo->coverage = 0;
     coverageInfo->coverage_high_mapq = 0;
     coverageInfo->coverage_high_clip = 0;
+    if(coverageInfo->data != NULL){
+        reset_inference_data(coverageInfo->data);
+    }
 }
 
 

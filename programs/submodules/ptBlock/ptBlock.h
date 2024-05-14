@@ -60,6 +60,8 @@ void destruct_inference_data(void *src);
 
 void *copy_inference_data(void *src_);
 
+void reset_inference_data(void *src_);
+
 /*! @typedef
  * @abstract Structure for keeping useful information about a block with the same coverage/annotation
  * @field annotation_flag     a 64-bit flag where each bit represents a single annotation. Therefore it can only

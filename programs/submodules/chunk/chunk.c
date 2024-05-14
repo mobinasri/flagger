@@ -339,6 +339,7 @@ int Chunk_addWindow(Chunk *chunk) {
 
     chunk->coverageInfoSeqLen += 1;
     chunk->windowItr = -1;
+    chunk->windowAnnotationFlag = 0ULL;
 
     CoverageInfo_reset(windowSumCoverageInfo);
     return 0;
