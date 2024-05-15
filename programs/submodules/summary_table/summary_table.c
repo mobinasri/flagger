@@ -111,7 +111,6 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
     int numberOfCategories1 = stList_length(categoryNames1);
     int numberOfCategories2 = stList_length(categoryNames2);
     int totalNumberOfTables = numberOfCategories1 * numberOfCategories2;
-    fprintf(stderr ,"#1\n");
     summaryTableList->numberOfCategories1 = numberOfCategories1;
     summaryTableList->numberOfCategories2 = numberOfCategories2;
     summaryTableList->totalNumberOfTables = totalNumberOfTables;
