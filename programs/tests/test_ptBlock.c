@@ -223,6 +223,36 @@ bool test_CoverageInfo_getStartingAnnotationIndices() {
 }
 
 
+bool test_CoverageInfo_getEndingAnnotationIndices() {
+    bool correct = true;
+
+    CoverageInfo *prev = CoverageInfo_construct(0, 0, 0, 0);
+    int x[3];
+    x[0] = 1;
+    x[1] = 3;
+    x[2] = 9;
+    prev->annotation_flag = CoverageInfo_getAnnotationFlagFromArray(x, 3);
+
+    CoverageInfo *curr = CoverageInfo_construct(0, 0, 0, 0);
+    int y[4];
+    y[0] = 1;
+    y[1] = 3;
+    y[2] = 6;
+    y[3] = 8;
+    curr->annotation_flag = CoverageInfo_getAnnotationFlagFromArray(y, 4);
+
+    int len = -1;
+    int *endingIndices = CoverageInfo_getEndingAnnotationIndices(prev, curr, &len);
+    if (len != 1) return false;
+    correct &= (endingIndices[0] == 9);
+
+    free(endingIndices);
+    CoverageInfo_destruct(prev);
+    CoverageInfo_destruct(curr);
+    return correct;
+}
+
+
 
 int main(int argc, char *argv[]) {
     char bed_path[200] = "tests/test_files/ptBlock/test.bed";
@@ -267,6 +297,11 @@ int main(int argc, char *argv[]) {
     printf("Test CoverageInfo_getStartingAnnotationIndices:");
     printf(test_CoverageInfo_getStartingAnnotationIndices_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
 
+    // test 7
+    bool test_CoverageInfo_getEndingAnnotationIndices_passed = test_CoverageInfo_getEndingAnnotationIndices();
+    all_tests_passed &= test_CoverageInfo_getEndingAnnotationIndices_passed;
+    printf("Test CoverageInfo_getEndingAnnotationIndices:");
+    printf(test_CoverageInfo_getEndingAnnotationIndices_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
 
     if (all_tests_passed)
         return 0;

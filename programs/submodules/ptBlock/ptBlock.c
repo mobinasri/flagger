@@ -331,10 +331,10 @@ int *CoverageInfo_getEndingAnnotationIndices(CoverageInfo *prev, CoverageInfo *c
     int actualSize = 0;
     int * endingIndices = NULL;
     for (int i = 0; i < prevLen; i++) {
-        int annotationIndex = currIndices[i];
+        int annotationIndex = prevIndices[i];
         // if this annotation does not overlap curr
         if (!CoverageInfo_overlapAnnotationIndex(curr, annotationIndex)) {
-            endingIndices = (int *) realloc(startingIndices, (actualSize + 1) * sizeof(int));
+            endingIndices = (int *) realloc(endingIndices, (actualSize + 1) * sizeof(int));
             endingIndices[actualSize] = annotationIndex;
             actualSize++;
         }
