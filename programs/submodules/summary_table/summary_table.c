@@ -36,13 +36,13 @@ void SummaryTable_destruct(SummaryTable *summaryTable) {
 }
 
 void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int columnIndex, double value) {
-    if (value < 0){
+    if (value < 0) {
         fprintf(stderr, "[%s] Warning: summary table is taking a negative value %.2e\n", get_timestamp(), value);
     }
     summaryTable->table[rowIndex][columnIndex] += value;
     summaryTable->totalPerRow[rowIndex] += value;
     for (int j = 0; j < summaryTable->numberOfColumns; j++) {
-        if ( 0 < summaryTable->totalPerRow[rowIndex]) {
+        if (0 < summaryTable->totalPerRow[rowIndex]) {
             summaryTable->tablePercentage[rowIndex][j] =
                     summaryTable->table[rowIndex][j] / summaryTable->totalPerRow[rowIndex] * 100.0;
         }
@@ -50,31 +50,61 @@ void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int column
 }
 
 char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter) {
-    return String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex], summaryTable->numberOfColumns, delimiter, "%.2f");
+    return String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex], summaryTable->numberOfColumns, delimiter,
+                                            "%.2f");
 }
 
 char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter) {
-    return String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex], summaryTable->numberOfColumns, delimiter, "%.2f");
+    return String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex], summaryTable->numberOfColumns,
+                                            delimiter, "%.2f");
 }
 
 
-int SummaryTableList_getTableIndex(SummaryTableList * summaryTableList, int catIndex1, int catIndex2) {
+int SummaryTableList_getTableIndex(SummaryTableList *summaryTableList, int catIndex1, int catIndex2) {
     return catIndex1 * summaryTableList->numberOfCategories1 + catIndex2;
 }
 
-SummaryTable *SummaryTableList_getTable(SummaryTableList * summaryTableList, int catIndex1, int catIndex2) {
+SummaryTable *SummaryTableList_getTable(SummaryTableList *summaryTableList, int catIndex1, int catIndex2) {
     int tableIndex = SummaryTableList_getTableIndex(summaryTableList, catIndex1, catIndex2);
     return stList_get(summaryTableList->summaryTables, tableIndex);
 }
 
+void SummaryTableList_increment(SummaryTableList *summaryTableList,
+                                int catIndex1,
+                                int catIndex2,
+                                int rowIndex,
+                                int columnIndex,
+                                double value) {
+    SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
+    SummaryTableList_increment(summaryTable, rowIndex, columnIndex, value);
+}
+
+double SummaryTableList_getValue(SummaryTableList *summaryTableList,
+                                 int catIndex1,
+                                 int catIndex2,
+                                 int rowIndex,
+                                 int columnIndex) {
+    SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
+    return summaryTable->table[rowIndex][columnIndex];
+}
+
+double SummaryTableList_getValuePercentage(SummaryTableList *summaryTableList,
+                                           int catIndex1,
+                                           int catIndex2,
+                                           int rowIndex,
+                                           int columnIndex) {
+    SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
+    return summaryTable->tablePercentage[rowIndex][columnIndex];
+}
+
 SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
-                                             stList* categoryNames2,
+                                             stList *categoryNames2,
                                              int numberOfRows,
                                              int numberOfColumns) {
     SummaryTableList *summaryTableList = malloc(sizeof(SummaryTableList));
     int numberOfCategories1 = stList_length(categoryNames1);
     int numberOfCategories2 = stList_length(categoryNames2);
-    int totalNumberOfTables = numberOfCategories1 *  numberOfCategories2;
+    int totalNumberOfTables = numberOfCategories1 * numberOfCategories2;
     summaryTableList->numberOfCategories1 = numberOfCategories1;
     summaryTableList->numberOfCategories2 = numberOfCategories2;
     summaryTableList->totalNumberOfTables = totalNumberOfTables;
@@ -82,8 +112,8 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
     summaryTableList->numberOfColumns = numberOfColumns;
     // construct tables
     summaryTableList->summaryTables = stList_construct3(totalNumberOfTables, SummaryTable_destruct);
-    for(int c1=0; c1 < numberOfCategories1; c1++){
-        for(int c2=0; c2 < numberOfCategories2; c2++) {
+    for (int c1 = 0; c1 < numberOfCategories1; c1++) {
+        for (int c2 = 0; c2 < numberOfCategories2; c2++) {
             int tableIndex = SummaryTableList_getTableIndex(summaryTableList, c1, c2);
             SummaryTable *summaryTable = SummaryTable_construct(numberOfRows, numberOfColumns);
             stList_set(summaryTableList->summaryTables, tableIndex, summaryTable);
@@ -91,18 +121,18 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
     }
     // copy category names 1
     summaryTableList->categoryNames1 = stList_construct3(0, free);
-    for(int i=0; i < stList_length(categoryNames1); i++){
+    for (int i = 0; i < stList_length(categoryNames1); i++) {
         stList_append(summaryTableList->categoryNames1, stList_get(categoryNames1, i));
     }
     // copy category names 2
     summaryTableList->categoryNames2 = stList_construct3(0, free);
-    for(int i=0; i < stList_length(categoryNames2); i++){
+    for (int i = 0; i < stList_length(categoryNames2); i++) {
         stList_append(summaryTableList->categoryNames2, stList_get(categoryNames2, i));
     }
     return summaryTableList;
 }
 
-char *SummaryTableList_getRowString(SummaryTableList * summaryTableList,
+char *SummaryTableList_getRowString(SummaryTableList *summaryTableList,
                                     int catIndex1,
                                     int catIndex2,
                                     int rowIndex,
@@ -111,7 +141,7 @@ char *SummaryTableList_getRowString(SummaryTableList * summaryTableList,
     SummaryTable_getRowString(summaryTable, rowIndex, delimiter);
 }
 
-char *SummaryTableList_getRowStringPercentage(SummaryTableList * summaryTableList,
+char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList,
                                               int catIndex1,
                                               int catIndex2,
                                               int rowIndex,
@@ -120,10 +150,10 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList * summaryTableLis
     SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter);
 }
 
-void SummaryTableList_destruct(SummaryTableList * summaryTableList) {
-    if(summaryTableList->summaryTables != NULL) stList_destruct(summaryTableList->summaryTables);
-    if(summaryTableList->categoryNames1 != NULL) stList_destruct(summaryTableList->categoryNames1);
-    if(summaryTableList->categoryNames2 != NULL) stList_destruct(summaryTableList->categoryNames2);
+void SummaryTableList_destruct(SummaryTableList *summaryTableList) {
+    if (summaryTableList->summaryTables != NULL) stList_destruct(summaryTableList->summaryTables);
+    if (summaryTableList->categoryNames1 != NULL) stList_destruct(summaryTableList->categoryNames1);
+    if (summaryTableList->categoryNames2 != NULL) stList_destruct(summaryTableList->categoryNames2);
     free(summaryTableList);
 }
 

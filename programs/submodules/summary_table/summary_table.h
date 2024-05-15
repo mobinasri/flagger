@@ -53,6 +53,25 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
                                              int numberOfRows,
                                              int numberOfColumns);
 
+void SummaryTableList_increment(SummaryTableList *summaryTableList,
+                                int catIndex1,
+                                int catIndex2,
+                                int rowIndex,
+                                int columnIndex,
+                                double value);
+
+double SummaryTableList_getValue(SummaryTableList *summaryTableList,
+                                 int catIndex1,
+                                 int catIndex2,
+                                 int rowIndex,
+                                 int columnIndex);
+
+double SummaryTableList_getValuePercentage(SummaryTableList *summaryTableList,
+                                           int catIndex1,
+                                           int catIndex2,
+                                           int rowIndex,
+                                           int columnIndex);
+
 char *SummaryTableList_getRowString(SummaryTableList * summaryTableList,
                                     int catIndex1,
                                     int catIndex2,
