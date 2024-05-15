@@ -87,9 +87,45 @@ bool test_Splitter_getIntArray() {
 
 }
 
+bool test_IntBinArray_constructFromFile(char *filePath) {
+    IntBinArray *binArray = IntBinArray_constructFromFile(filePath);
+    bool correct = true;
+    // check some bin indices
+    correct &= (IntBinArray_getBinIndex(binArray, 0)  == 0);
+    correct &= (IntBinArray_getBinIndex(binArray, 50)  == 0);
+    correct &= (IntBinArray_getBinIndex(binArray, 100)  == 1);
+    correct &= (IntBinArray_getBinIndex(binArray, 200)  == 2);
+    correct &= (IntBinArray_getBinIndex(binArray, 1000)  == 2);
+    // check some names
+    correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 0), "0-100") == 0);
+    correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 1), "100-200") == 0);
+    correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 2), "200<") == 0);
+    // by value
+    correct &= (strcmp(IntBinArray_getBinNameByValue(binArray, 0), "0-100") == 0);
+    correct &= (strcmp(IntBinArray_getBinNameByValue(binArray, 1000), "200<") == 0);
+    IntBinArray_destruct(binArray);
+    return correct;
+
+}
+
+bool test_IntBinArray_constructSingleBin() {
+    IntBinArray *binArray = IntBinArray_constructSingleBin(0,1e10,"all");
+    bool correct = true;
+    // check some bin indices
+    correct &= (IntBinArray_getBinIndex(binArray, 0)  == 0);
+    correct &= (IntBinArray_getBinIndex(binArray, 500)  == 0);
+    // check some names
+    correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 500), "all") == 0);
+    // by value
+    correct &= (strcmp(IntBinArray_getBinNameByValue(binArray, 0), "all") == 0);
+    IntBinArray_destruct(binArray);
+    return correct;
+
+}
 
 int main(int argc, char *argv[]) {
     char test1Path[1000] = "tests/test_files/common/test_common_1.txt";
+    char test2Path[1000] = "tests/test_files/common/test_common_bin_array.txt";
 
     bool allTestsPassed = true;
 
@@ -129,6 +165,18 @@ int main(int argc, char *argv[]) {
     printf("[common] Test Splitter_getDoubleArray:");
     printf(test6Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test6Passed;
+
+    // test 7
+    bool test7Passed = test_IntBinArray_constructFromFile(test2Path);
+    printf("[common] Test IntBinArray_constructFromFile:");
+    printf(test7Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test7Passed;
+
+    // test 8
+    bool test8Passed = test_IntBinArray_constructSingleBin();
+    printf("[common] Test IntBinArray_constructSingleBin:");
+    printf(test8Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test8Passed;
 
     if (allTestsPassed)
         return 0;
