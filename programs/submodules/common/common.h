@@ -107,6 +107,8 @@ double Double_getMaxValue2DArray(double **array, int length1, int length2);
 
 int Double_getArgMaxIndex1DArray(double *array, int length);
 
+
+
 int *Int_construct1DArray(int length);
 
 int **Int_construct2DArray(int length1, int length2);
@@ -162,6 +164,22 @@ char *String_joinIntArray(int *array, int length, char delimiter);
 char *String_joinStringArray(const char **array, int elementMaxSize, int length, char delimiter);
 
 stList *Splitter_parseLinesIntoList(const char *filepath);
+
+
+typedef struct IntBinArray {
+    int *starts;
+    int *ends;
+    stList *names;
+    int numberOfBins;
+} IntBinArray;
+
+IntBinArray *IntBinArray_constructSingleBin(int start, int end, char *name);
+IntBinArray *IntBinArray_constructFromFile(const char *filePath);
+void IntBinArray_checkBins(IntBinArray *binArray);
+int IntBinArray_getBinIndex(IntBinArray *binArray, int value);
+char *IntBinArray_getBinNameByIndex(IntBinArray *binArray, int binIndex);
+char *IntBinArray_getBinNameByValue(IntBinArray *binArray, int value);
+void IntBinArray_destruct(IntBinArray *binArray);
 
 #endif
 

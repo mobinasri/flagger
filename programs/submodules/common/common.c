@@ -549,3 +549,87 @@ stList *Splitter_parseLinesIntoList(const char *filepath) {
     free(line);
     return lines;
 }
+
+
+IntBinArray *IntBinArray_constructSingleBin(int start, int end, char *name) {
+    IntBinArray *binArray = malloc(sizeof(IntBinArray));
+    binArray->starts = Int_construct1DArray(1);
+    binArray->ends = Int_construct1DArray(1);
+    binArray->names = stList_construct3(0, free);
+    stList_append(binArray->names, copyString(name));
+    binArray->numberOfBins = 1;
+    return binArray;
+}
+
+// it takes a path to a tsv file (tab-delimited)
+// like this
+//#start    end name
+//0 1000    0-1Kb
+//1000  2000    1-2Kb
+//2000  10000   2Kb<
+IntBinArray *IntBinArray_constructFromFile(const char *filePath){
+    IntBinArray *binArray = malloc(sizeof(IntBinArray));
+    stList *lines = Splitter_parseLinesIntoList(filePath);
+    int numberOfBins = 0;
+    for(int i=0; i < stList_length(lines); i++) {
+        // get line
+        char *line = stList_get(lines, i);
+        if (line[0] != '#') numberOfBins += 1;
+    }
+    // set attributes
+    binArray->names = stList_construct3(0, free);
+    binArray->starts = Int_construct1DArray(numberOfBins);
+    binArray->ends = Int_construct1DArray(numberOfBins);
+    binArray->numberOfBins = numberOfBins;
+    for(int i=0; i < stList_length(lines); i++){
+        // get line
+        char *line = stList_get(lines, i);
+        if(line[0] == '#') continue;
+        Splitter *splitter = Splitter_construct(line,"\t");
+        // fetch columns
+        int start = atoi(Splitter_getToken(splitter)); //first column
+        int end = atoi(Splitter_getToken(splitter)); // second column
+        char *name = copyString(Splitter_getToken(splitter)); // third column
+        // set attributes
+        stList_append(binArray->names, name);
+        binArray->starts[i] = start;
+        binArray->ends[i] = end;
+        Splitter_destruct(splitter);
+    }
+    stList_destruct(lines);
+    return binArray;
+}
+
+void IntBinArray_checkBins(IntBinArray *binArray) {
+    for(int i=1; i < binArray->numberOfBins; i++){
+        if(binArray->starts[i] < binArray->ends[i-1]) {
+            fprintf(stderr, "[%s] Error: Bins cannot have overlap with each other.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+int IntBinArray_getBinIndex(IntBinArray *binArray, int value) {
+    for(int i=0; i < binArray->numberOfBins; i++){
+        if(binArray->starts[i] <= value && value < binArray->ends[i]) return i;
+    }
+    fprintf(stderr, "[%s] Error: Value %d does not fit into the given bins.\n", get_timestamp());
+    exit(EXIT_FAILURE);
+}
+
+char *IntBinArray_getBinNameByIndex(IntBinArray *binArray, int binIndex) {
+    return (char *)stList_get(binArray->names, binIndex);
+}
+
+char *IntBinArray_getBinNameByValue(IntBinArray *binArray, int value) {
+    int binIndex = IntBinArray_getBinIndex(binArray, value);
+    return IntBinArray_getBinNameByIndex(binArray, binIndex);
+}
+
+void IntBinArray_destruct(IntBinArray *binArray) {
+    free(binArray->starts);
+    free(binArray->ends);
+    if (binArray->names != NULL) stList_destruct(binArray);
+    free(binArray);
+}
+
