@@ -5,12 +5,6 @@
 #include <assert.h>
 #include "sonLib.h"
 
-/*
-char *String_joinDoubleArray(double *array, int length, char delimiter);
-char *String_joinIntArray(int *array, int length, char delimiter);
-char *String_joinStringArray(const char** array, int elementMaxSize, int length, char delimiter);
-stList *Splitter_parseLinesIntoList(const char *filepath);
-*/
 
 bool test_Splitter_parseLinesIntoList(const char *filepath) {
     bool correct = true;
