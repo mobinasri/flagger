@@ -58,7 +58,6 @@ char *SummaryTableList_getRowString(SummaryTableList * summaryTableList,
                                     int catIndex2,
                                     int rowIndex,
                                     char delimiter);
-}
 
 char *SummaryTableList_getRowStringPercentage(SummaryTableList * summaryTableList,
                                               int catIndex1,
