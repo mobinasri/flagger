@@ -233,6 +233,7 @@ int CoverageInfo_getFirstAnnotationIndex(CoverageInfo *coverageInfo) {
 }
 
 bool CoverageInfo_overlapAnnotationIndex(CoverageInfo *coverageInfo, int annotationIndex) {
+    if (coverageInfo == NULL || annotationIndex == -1) return false;
     if (CoverageInfo_getAnnotationBits(coverageInfo) == 0ULL && annotationIndex == 0) return 1;
     uint64_t annotationFlag = CoverageInfo_getAnnotationFlag(annotationIndex);
     return (annotationFlag & coverageInfo->annotation_flag) ? 1 : 0;
