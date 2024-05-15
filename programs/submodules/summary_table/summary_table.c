@@ -138,7 +138,7 @@ char *SummaryTableList_getRowString(SummaryTableList *summaryTableList,
                                     int rowIndex,
                                     char delimiter) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    SummaryTable_getRowString(summaryTable, rowIndex, delimiter);
+    return SummaryTable_getRowString(summaryTable, rowIndex, delimiter);
 }
 
 char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList,
@@ -147,7 +147,7 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
                                               int rowIndex,
                                               char delimiter) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter);
+    return SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter);
 }
 
 void SummaryTableList_destruct(SummaryTableList *summaryTableList) {
