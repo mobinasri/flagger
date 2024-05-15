@@ -589,9 +589,9 @@ IntBinArray *IntBinArray_constructFromFile(const char *filePath){
         char *line = stList_get(lines, i);
         if(line[0] == '#') continue;
         Splitter *splitter = Splitter_construct(line,'\t');
-        // fetch columns
-        int start = atoi(Splitter_getToken(splitter)); //first column
-        int end = atoi(Splitter_getToken(splitter)); // second column
+        // fetch columns using atof to handle scientific notation here
+        int start = (int) atof(Splitter_getToken(splitter)); //first column
+        int end = (int) atof(Splitter_getToken(splitter)); // second column
         char *name = copyString(Splitter_getToken(splitter)); // third column
         // set attributes
         stList_append(binArray->names, name);
@@ -633,7 +633,7 @@ char *IntBinArray_getBinNameByValue(IntBinArray *binArray, int value) {
 void IntBinArray_destruct(IntBinArray *binArray) {
     free(binArray->starts);
     free(binArray->ends);
-    if (binArray->names != NULL) stList_destruct(binArray);
+    if (binArray->names != NULL) stList_destruct(binArray->names);
     free(binArray);
 }
 
