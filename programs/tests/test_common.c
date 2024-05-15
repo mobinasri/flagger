@@ -115,9 +115,9 @@ bool test_IntBinArray_constructSingleBin() {
     correct &= (IntBinArray_getBinIndex(binArray, 0)  == 0);
     correct &= (IntBinArray_getBinIndex(binArray, 500)  == 0);
     // check some names
-    correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 500), "all") == 0);
+    correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 0), "all") == 0);
     // by value
-    correct &= (strcmp(IntBinArray_getBinNameByValue(binArray, 0), "all") == 0);
+    correct &= (strcmp(IntBinArray_getBinNameByValue(binArray, 500), "all") == 0);
     IntBinArray_destruct(binArray);
     return correct;
 
