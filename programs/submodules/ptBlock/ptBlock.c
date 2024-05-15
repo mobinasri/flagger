@@ -302,6 +302,49 @@ int *CoverageInfo_getAnnotationIndices(CoverageInfo *coverageInfo, int *length) 
     return indices;
 }
 
+
+int *CoverageInfo_getStartingAnnotationIndices(CoverageInfo *prev, CoverageInfo *curr, int *len) {
+    int currLen = 0;
+    int *currIndices = CoverageInfo_getAnnotationIndices(curr, &currLen);
+
+    int actualSize = 0;
+    int * startingIndices = NULL;
+    for (int i = 0; i < currLen; i++) {
+        int annotationIndex = currIndices[i];
+        // if this annotation does not overlap prev
+        if (!CoverageInfo_overlapAnnotationIndex(prev, annotationIndex)) {
+            startingIndices = (int *) realloc(startingIndices, (actualSize + 1) * sizeof(int));
+            startingIndices[actualSize] = annotationIndex;
+            actualSize++;
+        }
+    }
+
+    *len = actualSize;
+    free(currIndices);
+    return startingIndices;
+}
+
+int *CoverageInfo_getEndingAnnotationIndices(CoverageInfo *prev, CoverageInfo *curr, int *len) {
+    int prevLen = 0;
+    int *prevIndices = CoverageInfo_getAnnotationIndices(prev, &prevLen);
+
+    int actualSize = 0;
+    int * endingIndices = NULL;
+    for (int i = 0; i < prevLen; i++) {
+        int annotationIndex = currIndices[i];
+        // if this annotation does not overlap curr
+        if (!CoverageInfo_overlapAnnotationIndex(curr, annotationIndex)) {
+            endingIndices = (int *) realloc(startingIndices, (actualSize + 1) * sizeof(int));
+            endingIndices[actualSize] = annotationIndex;
+            actualSize++;
+        }
+    }
+
+    *len = actualSize;
+    free(prevIndices);
+    return endingIndices;
+}
+
 u_int16_t CoverageInfo_getCoverage(CoverageInfo *coverageInfo) {
     return coverageInfo->coverage;
 }

@@ -192,6 +192,11 @@ void CoverageInfo_setRegionIndexByMapping(CoverageInfo *coverageInfo, int *annot
 
 int *CoverageInfo_getAnnotationIndices(CoverageInfo *coverageInfo, int *length);
 
+int *CoverageInfo_getStartingAnnotationIndices(CoverageInfo *prev, CoverageInfo *curr, int *len);
+
+int *CoverageInfo_getEndingAnnotationIndices(CoverageInfo *prev, CoverageInfo *curr, int *len);
+
+
 u_int16_t CoverageInfo_getCoverage(CoverageInfo *coverageInfo);
 
 u_int16_t CoverageInfo_getCoverageHighMapq(CoverageInfo *coverageInfo);
