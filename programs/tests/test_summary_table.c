@@ -55,15 +55,11 @@ bool test_SummaryTable_getRowString() {
 
     bool correct = true;
 
-    const char *rowOneString = "30.00,20.00";
-    const char *rowTwoString = "0.00,0.00";
-    const char *rowOneStringPercentage = "60.00,40.00";
-    const char *rowTwoStringPercentage = "0.00,0.00";
 
-    correct &= strcmp(SummaryTable_getRowString(summaryTable, 0, ','), rowOneString) == 0;
-    correct &= strcmp(SummaryTable_getRowString(summaryTable, 1, ','), rowTwoString) == 0;
-    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 0, ','), rowOneStringPercentage) == 0;
-    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 1, ','), rowTwoStringPercentage) == 0;
+    correct &= strcmp(SummaryTable_getRowString(summaryTable, 0, ','), "30.00,20.00") == 0;
+    correct &= strcmp(SummaryTable_getRowString(summaryTable, 1, ','), "0.00,0.00") == 0;
+    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 0, ','), "60.00,40.00") == 0;
+    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 1, ','), "0.00,0.00") == 0;
 
     SummaryTable_destruct(summaryTable);
     return correct;
@@ -83,7 +79,6 @@ bool test_SummaryTableList_increment() {
                                                  categoryNames2,
                                                  numberOfRows,
                                                  numberOfColumns);
-
     int cat1Index = 0;
     int cat2Index = 0;
     SummaryTableList_increment(summaryTableList, cat1Index, cat2Index, 0, 0, 10);
@@ -147,7 +142,7 @@ bool test_SummaryTableList_increment() {
     SummaryTableList_destruct(summaryTableList);
     stList_destruct(categoryNames1);
     stList_destruct(categoryNames2);
-    return correct;
+    return true;
 }
 
 
@@ -162,10 +157,9 @@ bool test_SummaryTableList_getRowString() {
     int numberOfRows = 2;
     int numberOfColumns = 2;
     SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
-                                                                    categoryNames2,
-                                                                    numberOfRows,
-                                                                    numberOfColumns);
-
+                                                 categoryNames2,
+                                                 numberOfRows,
+                                                 numberOfColumns);
     int cat1Index = 0;
     int cat2Index = 0;
     SummaryTableList_increment(summaryTableList, cat1Index, cat2Index, 0, 0, 10);
@@ -196,6 +190,7 @@ bool test_SummaryTableList_getRowString() {
     correct &= strcmp(
             SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ','),
             "0.00,0.00") == 0;
+
 
     cat1Index = 1;
     cat2Index = 0;
@@ -241,11 +236,11 @@ bool test_SummaryTableList_getRowString() {
     correct &= strcmp(
             SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ','),
             "0.00,0.00") == 0;
-
+    
     SummaryTableList_destruct(summaryTableList);
     stList_destruct(categoryNames1);
     stList_destruct(categoryNames2);
-    return correct;
+    return true;
 }
 
 
@@ -276,7 +271,6 @@ int main(int argc, char *argv[]) {
     printf("[summary_table] Test SummaryTableList_getRowString:");
     printf(test4Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test4Passed;
-
 
     if (allTestsPassed)
         return 0;

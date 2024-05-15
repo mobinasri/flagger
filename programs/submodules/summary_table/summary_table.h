@@ -22,6 +22,7 @@ typedef struct SummaryTable {
     double *totalPerRow;
     int numberOfRows;
     int numberOfColumns;
+    char rowString[1000];
 } SummaryTable;
 
 
