@@ -554,7 +554,9 @@ stList *Splitter_parseLinesIntoList(const char *filepath) {
 IntBinArray *IntBinArray_constructSingleBin(int start, int end, char *name) {
     IntBinArray *binArray = malloc(sizeof(IntBinArray));
     binArray->starts = Int_construct1DArray(1);
+    binArray->starts[0] = start;
     binArray->ends = Int_construct1DArray(1);
+    binArray->ends[0] = end;
     binArray->names = stList_construct3(0, free);
     stList_append(binArray->names, copyString(name));
     binArray->numberOfBins = 1;
