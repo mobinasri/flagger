@@ -109,7 +109,7 @@ bool test_IntBinArray_constructFromFile(char *filePath) {
 }
 
 bool test_IntBinArray_constructSingleBin() {
-    IntBinArray *binArray = IntBinArray_constructSingleBin(0,1e10,"all");
+    IntBinArray *binArray = IntBinArray_constructSingleBin(0,1e9,"all");
     bool correct = true;
     // check some bin indices
     correct &= (IntBinArray_getBinIndex(binArray, 0)  == 0);

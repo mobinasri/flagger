@@ -581,19 +581,21 @@ IntBinArray *IntBinArray_constructFromFile(const char *filePath){
     binArray->starts = Int_construct1DArray(numberOfBins);
     binArray->ends = Int_construct1DArray(numberOfBins);
     binArray->numberOfBins = numberOfBins;
+    int binIndex = 0;
     for(int i=0; i < stList_length(lines); i++){
         // get line
         char *line = stList_get(lines, i);
         if(line[0] == '#') continue;
-        Splitter *splitter = Splitter_construct(line,"\t");
+        Splitter *splitter = Splitter_construct(line,'\t');
         // fetch columns
         int start = atoi(Splitter_getToken(splitter)); //first column
         int end = atoi(Splitter_getToken(splitter)); // second column
         char *name = copyString(Splitter_getToken(splitter)); // third column
         // set attributes
         stList_append(binArray->names, name);
-        binArray->starts[i] = start;
-        binArray->ends[i] = end;
+        binArray->starts[binIndex] = start;
+        binArray->ends[binIndex] = end;
+        binIndex += 1; // bin index might be different from i due to header
         Splitter_destruct(splitter);
     }
     stList_destruct(lines);
