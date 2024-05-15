@@ -50,11 +50,11 @@ void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int column
 }
 
 char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter) {
-    return String_joinDoubleArray(summaryTable->table[rowIndex], summaryTable->numberOfColumns, delimiter);
+    return String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex], summaryTable->numberOfColumns, delimiter, "%.2f");
 }
 
 char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter) {
-    return String_joinDoubleArray(summaryTable->tablePercentage[rowIndex], summaryTable->numberOfColumns, delimiter);
+    return String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex], summaryTable->numberOfColumns, delimiter, "%.2f");
 }
 
 

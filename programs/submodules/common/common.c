@@ -502,6 +502,17 @@ char *String_joinDoubleArray(double *array, int length, char delimiter) {
     str[strlen(str)] = '\0';
     return str;
 }
+char *String_joinDoubleArrayWithFormat(double *array, int length, char delimiter, const char *numberFormat) {
+    char *str = malloc(length * 10 * sizeof(char));
+    str[0] = '\0';
+    for (int i = 0; i < length - 1; i++) {
+        sprintf(str + strlen(str), numberFormat, array[i]);
+        sprintf(str + strlen(str), "%c", delimiter);
+    }
+    sprintf(str + strlen(str), numberFormat, array[length - 1]);
+    str[strlen(str)] = '\0';
+    return str;
+}
 
 char *String_joinIntArray(int *array, int length, char delimiter) {
     char *str = malloc(length * 10 * sizeof(char));

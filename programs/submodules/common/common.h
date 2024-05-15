@@ -159,6 +159,8 @@ char *String_copy(const char *src);
 
 char *String_joinDoubleArray(double *array, int length, char delimiter);
 
+char *String_joinDoubleArrayWithFormat(double *array, int length, char delimiter, const char *numberFormat);
+
 char *String_joinIntArray(int *array, int length, char delimiter);
 
 char *String_joinStringArray(const char **array, int elementMaxSize, int length, char delimiter);
