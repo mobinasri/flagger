@@ -33,8 +33,8 @@ ${BIN_DIR}:
 	$(CC) -c -o$@ $< $(CCFLAGS)
 
 run_tests:
-     ./bin/test_summary_table
-	./bin/test_track_reader	
+	./bin/test_summary_table
+	./bin/test_track_reader
 	./bin/test_chunks_creator
 	./bin/test_common
 	./bin/test_ptBlock
