@@ -52,6 +52,19 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
                                              stList *categoryNames2,
                                              int numberOfRows,
                                              int numberOfColumns);
+
+char *SummaryTableList_getRowString(SummaryTableList * summaryTableList,
+                                    int catIndex1,
+                                    int catIndex2,
+                                    int rowIndex,
+                                    char delimiter);
+}
+
+char *SummaryTableList_getRowStringPercentage(SummaryTableList * summaryTableList,
+                                              int catIndex1,
+                                              int catIndex2,
+                                              int rowIndex,
+                                              char delimiter);
 void SummaryTableList_destruct(SummaryTableList *summaryTableList);
 
 #endif //FLAGGER_SUMMARY_TABLE_H

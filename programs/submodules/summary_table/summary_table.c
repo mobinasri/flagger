@@ -102,14 +102,22 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
     return summaryTableList;
 }
 
-char *SummaryTableList_getRowString(SummaryTableList * summaryTableList, int catIndex1, int catIndex2, int rowIndex) {
+char *SummaryTableList_getRowString(SummaryTableList * summaryTableList,
+                                    int catIndex1,
+                                    int catIndex2,
+                                    int rowIndex,
+                                    char delimiter) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    SummaryTable_getRowString(summaryTable, rowIndex);
+    SummaryTable_getRowString(summaryTable, rowIndex, delimiter);
 }
 
-char *SummaryTableList_getRowStringPercentage(SummaryTableList * summaryTableList, int catIndex1, int catIndex2, int rowIndex) {
+char *SummaryTableList_getRowStringPercentage(SummaryTableList * summaryTableList,
+                                              int catIndex1,
+                                              int catIndex2,
+                                              int rowIndex,
+                                              char delimiter) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    SummaryTable_getRowStringPercentage(summaryTable, rowIndex);
+    SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter);
 }
 
 void SummaryTableList_destruct(SummaryTableList * summaryTableList) {
