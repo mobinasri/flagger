@@ -76,7 +76,7 @@ void SummaryTableList_increment(SummaryTableList *summaryTableList,
                                 int columnIndex,
                                 double value) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    SummaryTableList_increment(summaryTable, rowIndex, columnIndex, value);
+    SummaryTable_increment(summaryTable, rowIndex, columnIndex, value);
 }
 
 double SummaryTableList_getValue(SummaryTableList *summaryTableList,

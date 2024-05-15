@@ -74,12 +74,12 @@ bool test_SummaryTableList_increment() {
     stList_append(categoryNames1, copyString("cat1_0"));
     stList_append(categoryNames1, copyString("cat1_1"));
     stList *categoryNames2 = stList_construct3(0,free);
-    stList_append(categoryNames1, copyString("cat2_0"));
-    stList_append(categoryNames1, copyString("cat2_1"));
+    stList_append(categoryNames2, copyString("cat2_0"));
+    stList_append(categoryNames2, copyString("cat2_1"));
 
     int numberOfRows = 2;
     int numberOfColumns = 2;
-    SummaryTableList *SummaryTableList_construct(categoryNames1,
+    SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
                                                  categoryNames2,
                                                  numberOfRows,
                                                  numberOfColumns);
@@ -144,7 +144,7 @@ bool test_SummaryTableList_increment() {
     correct &= SummaryTableList_getValuePercentage(summaryTableList, cat1Index, cat2Index, 1, 0) == 0.0;
     correct &= SummaryTableList_getValuePercentage(summaryTableList, cat1Index, cat2Index, 1, 1) == 0.0;
 
-    SummaryTable_destruct(summaryTable);
+    SummaryTableList_destruct(summaryTableList);
     stList_destruct(categoryNames1);
     stList_destruct(categoryNames2);
     return correct;
