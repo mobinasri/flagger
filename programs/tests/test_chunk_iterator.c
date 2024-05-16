@@ -59,10 +59,10 @@ bool testChunkIterator(char *covPath) {
     char ctg[200];
     ptBlock *block = NULL;
 
-    while ((block = getNextBlock(chunkIterator, ctg)) != NULL) {
+    while ((block = ChunkIterator_getNextPtBlock(chunkIterator, ctg)) != NULL) {
         if (strcmp(ctg, "ctg1") == 0) {
             trackIndexCtg1 += 1;
-            CoverageInfo *coverageInfo = chunk->coverageInfoSeq[windowIndex];
+            CoverageInfo *coverageInfo = block->data;
             int *truthValues = truthValuesCtg1[trackIndexCtg1];
             int s = block->rfs;
             int e = block->rfe;
@@ -91,9 +91,9 @@ bool testChunkIterator(char *covPath) {
             correct &= (inference->truth == labels[0]);
             correct &= (inference->prediction == labels[1]);
         }
-        if (strcmp(chunk->ctg, "ctg2") == 0) {
+        if (strcmp(ctg, "ctg2") == 0) {
             trackIndexCtg2 += 1;
-            CoverageInfo *coverageInfo = chunk->coverageInfoSeq[windowIndex];
+            CoverageInfo *coverageInfo = block->data;
             int *truthValues = truthValuesCtg2[trackIndexCtg2];
             int s = block->rfs;
             int e = block->rfe;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
     bool allTestsPassed = true;
 
     // test 1
-    bool test1Passed = testChunkIterator("tests/test_files/chunks_iterator/test_1_with_labels.cov");
+    bool test1Passed = testChunkIterator("tests/test_files/chunk_iterator/test_1_with_labels.cov");
     printf("[chunk_iterator] Test iterating over chunks with ChunkIterator:");
     printf(test1Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test1Passed;
