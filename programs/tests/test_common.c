@@ -85,11 +85,11 @@ bool test_IntBinArray_constructFromFile(char *filePath) {
     IntBinArray *binArray = IntBinArray_constructFromFile(filePath);
     bool correct = true;
     // check some bin indices
-    correct &= (IntBinArray_getBinIndex(binArray, 0)  == 0);
-    correct &= (IntBinArray_getBinIndex(binArray, 50)  == 0);
-    correct &= (IntBinArray_getBinIndex(binArray, 100)  == 1);
-    correct &= (IntBinArray_getBinIndex(binArray, 200)  == 2);
-    correct &= (IntBinArray_getBinIndex(binArray, 1000)  == 2);
+    correct &= (IntBinArray_getBinIndex(binArray, 0) == 0);
+    correct &= (IntBinArray_getBinIndex(binArray, 50) == 0);
+    correct &= (IntBinArray_getBinIndex(binArray, 100) == 1);
+    correct &= (IntBinArray_getBinIndex(binArray, 200) == 2);
+    correct &= (IntBinArray_getBinIndex(binArray, 1000) == 2);
     // check some names
     correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 0), "0-100") == 0);
     correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 1), "100-200") == 0);
@@ -103,16 +103,33 @@ bool test_IntBinArray_constructFromFile(char *filePath) {
 }
 
 bool test_IntBinArray_constructSingleBin() {
-    IntBinArray *binArray = IntBinArray_constructSingleBin(0,1e9,"all");
+    IntBinArray *binArray = IntBinArray_constructSingleBin(0, 1e9, "all");
     bool correct = true;
     // check some bin indices
-    correct &= (IntBinArray_getBinIndex(binArray, 0)  == 0);
-    correct &= (IntBinArray_getBinIndex(binArray, 500)  == 0);
+    correct &= (IntBinArray_getBinIndex(binArray, 0) == 0);
+    correct &= (IntBinArray_getBinIndex(binArray, 500) == 0);
     // check some names
     correct &= (strcmp(IntBinArray_getBinNameByIndex(binArray, 0), "all") == 0);
     // by value
     correct &= (strcmp(IntBinArray_getBinNameByValue(binArray, 500), "all") == 0);
     IntBinArray_destruct(binArray);
+    return correct;
+
+}
+
+bool test_Double_equality2DArray() {
+    double array1[2][4] = {{2, 0, 3, 0},
+                           {0, 0, 0, 0}};
+    double array2[2][4] = {{2, 0, 3, 0},
+                           {0, 0, 0, 0}};
+    double array3[2][4] = {{2, 0, 3, 0},
+                           {0, 0, 1, 0}};
+
+    bool correct = true;
+
+    correct &= Double_equality2DArray(array1, array2, 2, 4) == true;
+    correct &= Double_equality2DArray(array1, array3, 2, 4) == false;
+
     return correct;
 
 }
@@ -171,6 +188,12 @@ int main(int argc, char *argv[]) {
     printf("[common] Test IntBinArray_constructSingleBin:");
     printf(test8Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test8Passed;
+
+    // test 9
+    bool test9Passed = test_Double_equality2DArray();
+    printf("[common] Test Double_equality2DArray:");
+    printf(test9Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test9Passed;
 
     if (allTestsPassed)
         return 0;

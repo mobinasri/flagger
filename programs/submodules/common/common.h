@@ -107,6 +107,9 @@ double Double_getMaxValue2DArray(double **array, int length1, int length2);
 
 int Double_getArgMaxIndex1DArray(double *array, int length);
 
+bool Double_equality1DArray(double *array1, double *array2, int length1);
+
+bool Double_equality2DArray(double **array1, double **array2, int length1, int length2);
 
 
 int *Int_construct1DArray(int length);

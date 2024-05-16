@@ -247,6 +247,26 @@ double Double_getMaxValue2DArray(double **array, int length1, int length2) {
     return maxValue;
 }
 
+bool Double_equality1DArray(double *array1, double *array2, int length1) {
+    assert(length1 > 0);
+    for (int i = 0; i < length1; i++) {
+        if (array1[i] != array2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Double_equality2DArray(double **array1, double **array2, int length1, int length2) {
+    assert(length1 > 0 && length2 > 0);
+    for (int i = 0; i < length1; i++) {
+        if (!Double_equality1DArray(array1[i], array2[i], length2)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int Double_getArgMaxIndex1DArray(double *array, int length) {
     assert(length > 0);
     double maxValue = array[0];
@@ -502,6 +522,7 @@ char *String_joinDoubleArray(double *array, int length, char delimiter) {
     str[strlen(str)] = '\0';
     return str;
 }
+
 char *String_joinDoubleArrayWithFormat(double *array, int length, char delimiter, const char *numberFormat) {
     char *str = malloc(length * 10 * sizeof(char));
     str[0] = '\0';
@@ -580,11 +601,11 @@ IntBinArray *IntBinArray_constructSingleBin(int start, int end, char *name) {
 //0 1000    0-1Kb
 //1000  2000    1-2Kb
 //2000  10000   2Kb<
-IntBinArray *IntBinArray_constructFromFile(const char *filePath){
+IntBinArray *IntBinArray_constructFromFile(const char *filePath) {
     IntBinArray *binArray = malloc(sizeof(IntBinArray));
     stList *lines = Splitter_parseLinesIntoList(filePath);
     int numberOfBins = 0;
-    for(int i=0; i < stList_length(lines); i++) {
+    for (int i = 0; i < stList_length(lines); i++) {
         // get line
         char *line = stList_get(lines, i);
         if (line[0] != '#') numberOfBins += 1;
@@ -595,11 +616,11 @@ IntBinArray *IntBinArray_constructFromFile(const char *filePath){
     binArray->ends = Int_construct1DArray(numberOfBins);
     binArray->numberOfBins = numberOfBins;
     int binIndex = 0;
-    for(int i=0; i < stList_length(lines); i++){
+    for (int i = 0; i < stList_length(lines); i++) {
         // get line
         char *line = stList_get(lines, i);
-        if(line[0] == '#') continue;
-        Splitter *splitter = Splitter_construct(line,'\t');
+        if (line[0] == '#') continue;
+        Splitter *splitter = Splitter_construct(line, '\t');
         // fetch columns using atof to handle scientific notation here
         int start = (int) atof(Splitter_getToken(splitter)); //first column
         int end = (int) atof(Splitter_getToken(splitter)); // second column
@@ -616,8 +637,8 @@ IntBinArray *IntBinArray_constructFromFile(const char *filePath){
 }
 
 void IntBinArray_checkBins(IntBinArray *binArray) {
-    for(int i=1; i < binArray->numberOfBins; i++){
-        if(binArray->starts[i] < binArray->ends[i-1]) {
+    for (int i = 1; i < binArray->numberOfBins; i++) {
+        if (binArray->starts[i] < binArray->ends[i - 1]) {
             fprintf(stderr, "[%s] Error: Bins cannot have overlap with each other.\n");
             exit(EXIT_FAILURE);
         }
@@ -625,15 +646,15 @@ void IntBinArray_checkBins(IntBinArray *binArray) {
 }
 
 int IntBinArray_getBinIndex(IntBinArray *binArray, int value) {
-    for(int i=0; i < binArray->numberOfBins; i++){
-        if(binArray->starts[i] <= value && value < binArray->ends[i]) return i;
+    for (int i = 0; i < binArray->numberOfBins; i++) {
+        if (binArray->starts[i] <= value && value < binArray->ends[i]) return i;
     }
     fprintf(stderr, "[%s] Error: Value %d does not fit into the given bins.\n", get_timestamp());
     exit(EXIT_FAILURE);
 }
 
 char *IntBinArray_getBinNameByIndex(IntBinArray *binArray, int binIndex) {
-    return (char *)stList_get(binArray->names, binIndex);
+    return (char *) stList_get(binArray->names, binIndex);
 }
 
 char *IntBinArray_getBinNameByValue(IntBinArray *binArray, int value) {
