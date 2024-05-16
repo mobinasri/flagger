@@ -56,19 +56,19 @@ void ptBlock_set_data(ptBlock *block, void *data, void (*destruct_data)(void *),
 }
 
 void ptBlock_extend_data(ptBlock *block, void *data) {
-    if (block->extend_data != NULL) {
+    if (block->extend_data != NULL && block->data != NULL) {
         block->extend_data(block->data, data);
     }
 }
 
 void ptBlock_destruct_data(ptBlock *block) {
-    if (block->destruct_data != NULL) {
+    if (block->destruct_data != NULL && block->data != NULL) {
         block->destruct_data(block->data);
     }
 }
 
 void *ptBlock_copy_data(ptBlock *block) {
-    if (block->copy_data != NULL) {
+    if (block->copy_data != NULL && block->data != NULL) {
         return block->copy_data(block->data);
     } else {
         return NULL;
