@@ -118,12 +118,12 @@ bool test_IntBinArray_constructSingleBin() {
 }
 
 bool test_Double_equality2DArray() {
-    double array1[2][4] = {{2, 0, 3, 0},
-                           {0, 0, 0, 0}};
-    double array2[2][4] = {{2, 0, 3, 0},
-                           {0, 0, 0, 0}};
-    double array3[2][4] = {{2, 0, 3, 0},
-                           {0, 0, 1, 0}};
+    double array1[2][4] = {{2.0, 0.0, 3.0, 0.0},
+                           {0.0, 0.0, 0.0, 0.0}};
+    double array2[2][4] = {{2.0, 0.0, 3.0, 0.0},
+                           {0.0, 0.0, 0.0, 0.0}};
+    double array3[2][4] = {{2.0, 0.0, 3.0, 0.0},
+                           {0.0, 0.0, 1.0, 0.0}};
 
     bool correct = true;
 
