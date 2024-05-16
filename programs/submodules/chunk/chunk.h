@@ -98,3 +98,18 @@ void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
 void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *binPath);
 
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath);
+
+
+typedef struct ChunkIterator {
+    ChunksCreator *chunksCreator;
+    int nextChunkIndex;
+    int nextWindowIndex;
+    ptBlock *block;
+    int numberOfChunks;
+} ChunkIterator;
+
+ChunkIterator *ChunkIterator_construct(ChunksCreator *chunksCreator);
+
+void ChunkIterator_destruct(ChunkIterator *chunkIterator);
+
+ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_name);

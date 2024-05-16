@@ -688,3 +688,61 @@ void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
     fclose(fp);
 }
 
+
+ChunkIterator *ChunkIterator_construct(ChunksCreator *chunksCreator) {
+    ChunkIterator *chunkIterator = malloc(sizeof(ChunkIterator));
+    chunkIterator->numberOfChunks = stList_length(chunksCreator->chunks);
+    chunkIterator->chunksCreator = chunksCreator;
+    chunkIterator->nextChunkIndex = 0;
+    chunkIterator->nextWindowIndex = 0;
+    chunkIterator->block = ptBlock_construct(0, 0, 0, 0, 0, 0);
+    // set coverage info data initially to NULL
+    // set the related functions
+    ptBlock_set_data(chunkIterator->block,
+                     NULL,
+                     destruct_cov_info_data,
+                     copy_cov_info_data,
+                     extend_cov_info_data);
+    return chunkIterator;
+}
+
+void ChunkIterator_destruct(ChunkIterator *chunkIterator) {
+    if (chunkIterator->block != NULL) {
+        chunkIterator->block->data = NULL; // this data is coming from another source (not copied)
+        ptBlock_destruct(chunkIterator->block);
+    }
+    free(chunkIterator);
+}
+
+ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_name) {
+    if (chunkIterator->nextChunkIndex == chunkIterator->numberOfChunks) {
+        ctg_name[0] = '\0';
+        chunkIterator->block = NULL;
+        return chunkIterator->block;
+    }
+    Chunk *chunk = stList_get(chunkIterator->chunks, chunkIterator->nextChunkIndex);
+    // this chunk is finished
+    if (chunkIterator->nextWindowIndex == chunk->coverageInfoSeqLen) {
+        chunkIterator->nextChunkIndex += 1;
+        chunkIterator->nextWindowIndex = 0;
+        return ChunkIterator_getNextPtBlock(chunkIterator, ctg_name);
+    }
+
+    int start = chunk->s + i * chunk->windowLen; //0-based inclusive
+    int end = min(chunk->s + (i + 1) * chunk->windowLen - 1, chunk->e); //0-based inclusive
+    CoverageInfo *coverageInfo = chunk->coverageInfoSeq[chunkIterator->nextWindowIndex];
+
+    // update block attributes based on the current window
+    chunkIterator->block->data = coverageInfo;
+    chunkIterator->block->rfs = start;
+    chunkIterator->block->rfe = end;
+    // update ctg name
+    strcpy(ctg_name, chunk->ctg);
+
+    // go to the next window, if it is out of bound
+    // it will be handled in the next call
+    chunkIterator->nextWindowIndex += 1;
+
+    // return update block
+    return chunkIterator->block;
+}
