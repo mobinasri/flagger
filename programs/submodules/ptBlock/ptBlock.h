@@ -62,6 +62,10 @@ void *copy_inference_data(void *src_);
 
 void reset_inference_data(void *src_);
 
+int get_inference_truth_label(Inference * src);
+
+int get_inference_prediction_label(Inference * src);
+
 /*! @typedef
  * @abstract Structure for keeping useful information about a block with the same coverage/annotation
  * @field annotation_flag     a 64-bit flag where each bit represents a single annotation. Therefore it can only
@@ -691,6 +695,14 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable,
                                      const char *format,
                                      stHash *ctgToLen,
                                      CoverageHeader *header);
+
+void ptBlock_updateSummaryTableList(void *blockIterator,
+                                    ptBlock *(*getNextBlock)(void *, char *),
+                                    SummaryTableList *summaryTableList,
+                                    IntBinArray *sizeBinArray,
+                                    int annotationIndex,
+                                    int8_t (*getRefLabelFunction)(Inference *),
+                                    int8_t (*getQueryLabelFunction)(Inference *));
 
 #endif /* PT_BLOCK_H */
 

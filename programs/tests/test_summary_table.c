@@ -1,5 +1,7 @@
 #include "common.h"
 #include "summary_table.h"
+#include "ptBlock.h"
+#include "chunk.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,19 +68,19 @@ bool test_SummaryTable_getRowString() {
 }
 
 bool test_SummaryTableList_increment() {
-    stList *categoryNames1 = stList_construct3(0,free);
+    stList *categoryNames1 = stList_construct3(0, free);
     stList_append(categoryNames1, copyString("cat1_0"));
     stList_append(categoryNames1, copyString("cat1_1"));
-    stList *categoryNames2 = stList_construct3(0,free);
+    stList *categoryNames2 = stList_construct3(0, free);
     stList_append(categoryNames2, copyString("cat2_0"));
     stList_append(categoryNames2, copyString("cat2_1"));
 
     int numberOfRows = 2;
     int numberOfColumns = 2;
     SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
-                                                 categoryNames2,
-                                                 numberOfRows,
-                                                 numberOfColumns);
+                                                                    categoryNames2,
+                                                                    numberOfRows,
+                                                                    numberOfColumns);
     int cat1Index = 0;
     int cat2Index = 0;
     SummaryTableList_increment(summaryTableList, cat1Index, cat2Index, 0, 0, 10);
@@ -147,19 +149,19 @@ bool test_SummaryTableList_increment() {
 
 
 bool test_SummaryTableList_getRowString() {
-    stList *categoryNames1 = stList_construct3(0,free);
+    stList *categoryNames1 = stList_construct3(0, free);
     stList_append(categoryNames1, copyString("cat1_0"));
     stList_append(categoryNames1, copyString("cat1_1"));
-    stList *categoryNames2 = stList_construct3(0,free);
+    stList *categoryNames2 = stList_construct3(0, free);
     stList_append(categoryNames2, copyString("cat2_0"));
     stList_append(categoryNames2, copyString("cat2_1"));
 
     int numberOfRows = 2;
     int numberOfColumns = 2;
     SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
-                                                 categoryNames2,
-                                                 numberOfRows,
-                                                 numberOfColumns);
+                                                                    categoryNames2,
+                                                                    numberOfRows,
+                                                                    numberOfColumns);
     int cat1Index = 0;
     int cat2Index = 0;
     SummaryTableList_increment(summaryTableList, cat1Index, cat2Index, 0, 0, 10);
@@ -236,13 +238,107 @@ bool test_SummaryTableList_getRowString() {
     correct &= strcmp(
             SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ','),
             "0.00,0.00") == 0;
-    
+
     SummaryTableList_destruct(summaryTableList);
     stList_destruct(categoryNames1);
     stList_destruct(categoryNames2);
     return true;
 }
 
+int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, const char *binArrayFilePath) {
+    // whole genome
+    double **wholeGenomeBin1 = Double_construct2DArray(4, 4);
+    wholeGenomeBin1[0][0] = 2.0;
+    wholeGenomeBin1[2][1] = 1.0;
+
+    double **wholeGenomeBin2 = Double_construct2DArray(4, 4);
+    wholeGenomeBin2[2][2] = 6.0;
+    wholeGenomeBin2[3][3] = 3.0;
+
+    // annotation 1
+    double **annotation1Bin1 = Double_construct2DArray(4, 4);
+    annotation1Bin1[0][0] = 2.0;
+    annotation1Bin1[2][1] = 1.0;
+    double **annotation1Bin2 = Double_construct2DArray(4, 4);
+
+    // annotation 2
+    double **annotation2Bin1 = Double_construct2DArray(4, 4);
+    double **annotation2Bin2 = Double_construct2DArray(4, 4);
+    annotation2Bin2[2][2] = 6.0;
+    annotation2Bin2[3][3] = 3.0;
+
+    int windowLen = 1;
+    int chunkCanonicalLen = 10;
+    int nThreads = 2;
+    ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(covPath,
+                                                                  NULL,
+                                                                  chunkCanonicalLen,
+                                                                  nThreads,
+                                                                  windowLen);
+    if (ChunksCreator_parseChunks(chunksCreator) != 0) {
+        return false;
+    }
+
+    CoverageHeader *header = chunksCreator->header;
+    IntBinArray *binArray = IntBinArray_constructFromFile(binArrayFilePath);
+
+    int numberOfLabels = header->numberOfLabels;
+    stList *categoryNames1 = header->annotationNames;
+    stList *categoryNames2 = binArray->names;
+
+    int numberOfRows = numberOfLabels;
+    int numberOfColumns = numberOfLabels;
+    SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
+                                                                    categoryNames2,
+                                                                    numberOfRows,
+                                                                    numberOfColumns);
+
+    ChunkIterator *chunkIterator = ChunkIterator_construct(chunksCreator);
+
+    for(int annotationIndex=0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
+        ptBlock_updateSummaryTableList((void *) chunkIterator,
+                                       ChunkIterator_getNextPtBlock,
+                                       summaryTableList,
+                                       binArray,
+                                       annotationIndex,
+                                       get_inference_prediction_label,
+                                       get_inference_truth_label);
+    }
+
+    bool correct = true;
+
+    SummaryTable *summaryTable;
+    // whole genome bin 1
+    summaryTable = SummaryTableList_getTable(summaryTableList, 1, 0);
+    correct &= Double_equality2DArray(wholeGenomeBin1, summaryTable->table);
+
+    // whole genome bin 2
+    summaryTable = SummaryTableList_getTable(summaryTableList, 1, 1);
+    correct &= Double_equality2DArray(wholeGenomeBin2, summaryTable->table);
+
+    // annotation 1 bin 1
+    summaryTable = SummaryTableList_getTable(summaryTableList, 2, 0);
+    correct &= Double_equality2DArray(annotation1Bin1, summaryTable->table);
+
+    // annotation 1 bin 2
+    summaryTable = SummaryTableList_getTable(summaryTableList, 2, 1);
+    correct &= Double_equality2DArray(annotation1Bin2, summaryTable->table);
+
+    // annotation 2 bin 1
+    summaryTable = SummaryTableList_getTable(summaryTableList, 3, 0);
+    correct &= Double_equality2DArray(annotation2Bin1, summaryTable->table);
+
+    // annotation 2 bin 2
+    summaryTable = SummaryTableList_getTable(summaryTableList, 3, 1);
+    correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table);
+
+    SummaryTableList_destruct(summaryTableList);
+    ChunkIterator_destruct(chunkIterator);
+    ChunksCreator_destruct(chunksCreator);
+    IntBinArray_destruct(binArray);
+
+    return correct;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -271,6 +367,15 @@ int main(int argc, char *argv[]) {
     printf("[summary_table] Test SummaryTableList_getRowString:");
     printf(test4Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test4Passed;
+
+
+    // test 5
+    bool test5Passed = test_ptBlock_updateSummaryTableListFromChunkIterator("tests/test_files/summary_table/test_1.cov",
+                                                                            "tests/test_files/summary_table/test_1_bin_array.txt");
+    printf("[summary_table] Test ptBlock_updateSummaryTableListFromChunkIterator:");
+    printf(test5Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test5Passed;
+
 
     if (allTestsPassed)
         return 0;
