@@ -118,17 +118,23 @@ bool test_IntBinArray_constructSingleBin() {
 }
 
 bool test_Double_equality2DArray() {
-    double array1[2][4] = {{2.0, 0.0, 3.0, 0.0},
-                           {0.0, 0.0, 0.0, 0.0}};
-    double array2[2][4] = {{2.0, 0.0, 3.0, 0.0},
-                           {0.0, 0.0, 0.0, 0.0}};
-    double array3[2][4] = {{2.0, 0.0, 3.0, 0.0},
-                           {0.0, 0.0, 1.0, 0.0}};
+    double **array1 = Double_construct2DArray(2,3);
+    double **array2 = Double_construct2DArray(2,3);
+    double **array3 = Double_construct2DArray(2,3);
+
+    array1[0][0] = 1.0;
+    array1[1][2] = 2.0;
+
+    array2[0][0] = 1.0;
+    array2[1][2] = 2.0;
+
+    array3[0][0] = 1.0;
+    array3[1][2] = 3.0;
 
     bool correct = true;
 
-    correct &= Double_equality2DArray(array1, array2, 2, 4) == true;
-    correct &= Double_equality2DArray(array1, array3, 2, 4) == false;
+    correct &= Double_equality2DArray(array1, array2, 2, 3) == true;
+    correct &= Double_equality2DArray(array1, array3, 2, 3) == false;
 
     return correct;
 
