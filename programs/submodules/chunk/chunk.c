@@ -720,7 +720,7 @@ ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_na
         chunkIterator->block = NULL;
         return chunkIterator->block;
     }
-    Chunk *chunk = stList_get(chunkIterator->chunks, chunkIterator->nextChunkIndex);
+    Chunk *chunk = stList_get(chunkIterator->chunksCreator->chunks, chunkIterator->nextChunkIndex);
     // this chunk is finished
     if (chunkIterator->nextWindowIndex == chunk->coverageInfoSeqLen) {
         chunkIterator->nextChunkIndex += 1;
@@ -728,6 +728,7 @@ ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_na
         return ChunkIterator_getNextPtBlock(chunkIterator, ctg_name);
     }
 
+    int i = chunkIterator->nextWindowIndex;
     int start = chunk->s + i * chunk->windowLen; //0-based inclusive
     int end = min(chunk->s + (i + 1) * chunk->windowLen - 1, chunk->e); //0-based inclusive
     CoverageInfo *coverageInfo = chunk->coverageInfoSeq[chunkIterator->nextWindowIndex];
