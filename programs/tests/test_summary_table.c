@@ -247,29 +247,26 @@ bool test_SummaryTableList_getRowString() {
 
 int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, const char *binArrayFilePath) {
 
-	fprintf(stderr, "1\n");
     // whole genome
     double **wholeGenomeBin1 = Double_construct2DArray(4, 4);
-    wholeGenomeBin1[0][0] = 2.0;
-    wholeGenomeBin1[2][1] = 1.0;
 
     double **wholeGenomeBin2 = Double_construct2DArray(4, 4);
+    wholeGenomeBin2[0][0] = 2.0;
+    wholeGenomeBin2[2][1] = 1.0;
     wholeGenomeBin2[2][2] = 6.0;
     wholeGenomeBin2[3][3] = 3.0;
 
     // annotation 1
     double **annotation1Bin1 = Double_construct2DArray(4, 4);
     annotation1Bin1[0][0] = 2.0;
-    annotation1Bin1[2][1] = 1.0;
     double **annotation1Bin2 = Double_construct2DArray(4, 4);
+    annotation1Bin2[2][1] = 1.0;
 
     // annotation 2
     double **annotation2Bin1 = Double_construct2DArray(4, 4);
     double **annotation2Bin2 = Double_construct2DArray(4, 4);
-    annotation2Bin2[2][2] = 6.0;
+    annotation2Bin2[2][2] = 4.0;
     annotation2Bin2[3][3] = 3.0;
-
-    fprintf(stderr, "2\n");
 
     int windowLen = 1;
     int chunkCanonicalLen = 10;
@@ -283,13 +280,9 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
         return false;
     }
 
-    fprintf(stderr, "3\n");
-
     CoverageHeader *header = chunksCreator->header;
     IntBinArray *binArray = IntBinArray_constructFromFile(binArrayFilePath);
 
-    fprintf(stderr, "4\n");
-    
     int numberOfLabels = header->numberOfLabels;
     stList *categoryNames1 = header->annotationNames;
     stList *categoryNames2 = binArray->names;
@@ -304,6 +297,8 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
     ChunkIterator *chunkIterator = ChunkIterator_construct(chunksCreator);
 
     for(int annotationIndex=0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
+	// reset iterator since we use the same iterator for all annotations
+        ChunkIterator_reset(chunkIterator);
         ptBlock_updateSummaryTableList((void *) chunkIterator,
                                        ChunkIterator_getNextPtBlock,
                                        summaryTableList,
@@ -344,6 +339,13 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
     ChunkIterator_destruct(chunkIterator);
     ChunksCreator_destruct(chunksCreator);
     IntBinArray_destruct(binArray);
+    Double_destruct2DArray(wholeGenomeBin1, 4);
+    Double_destruct2DArray(wholeGenomeBin2, 4);
+    Double_destruct2DArray(annotation1Bin1, 4);
+    Double_destruct2DArray(annotation2Bin1, 4);
+    Double_destruct2DArray(annotation1Bin2, 4);
+    Double_destruct2DArray(annotation2Bin2, 4);
+
 
     return correct;
 }
