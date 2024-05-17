@@ -292,12 +292,12 @@ void ChunksCreator_sortChunks(ChunksCreator *chunksCreator) {
 
 int Chunk_getWindowTruth(Chunk *chunk) {
     // we will not have more than 10 states/labels for sure
-    return Int_getModeValue1DArray(chunk->windowTruthArray, (chunk->windowItr + 1), 0, 10);
+    return Int_getModeValue1DArray(chunk->windowTruthArray, (chunk->windowItr + 1), -1, 10);
 }
 
 int Chunk_getWindowPrediction(Chunk *chunk) {
     // we will not have more than 10 states/labels for sure
-    return Int_getModeValue1DArray(chunk->windowPredictionArray, (chunk->windowItr + 1), 0, 10);
+    return Int_getModeValue1DArray(chunk->windowPredictionArray, (chunk->windowItr + 1), -1, 10);
 }
 
 
@@ -705,6 +705,21 @@ ChunkIterator *ChunkIterator_construct(ChunksCreator *chunksCreator) {
                      extend_cov_info_data);
     return chunkIterator;
 }
+
+void ChunkIterator_reset(ChunkIterator *chunkIterator) {
+    chunkIterator->nextChunkIndex = 0;
+    chunkIterator->nextWindowIndex = 0;
+    chunkIterator->block->rfs = 0;
+    chunkIterator->block->rfe = 0;
+    // set coverage info data initially to NULL
+    // set the related functions
+    ptBlock_set_data(chunkIterator->block,
+                     NULL,
+                     destruct_cov_info_data,
+                     copy_cov_info_data,
+                     extend_cov_info_data);
+}
+
 
 void ChunkIterator_destruct(ChunkIterator *chunkIterator) {
     if (chunkIterator->block != NULL) {

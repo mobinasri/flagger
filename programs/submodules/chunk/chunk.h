@@ -113,3 +113,5 @@ ChunkIterator *ChunkIterator_construct(ChunksCreator *chunksCreator);
 void ChunkIterator_destruct(ChunkIterator *chunkIterator);
 
 ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_name);
+
+void ChunkIterator_reset(ChunkIterator *chunkIterator);
