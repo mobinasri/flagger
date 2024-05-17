@@ -5,6 +5,7 @@
 #annotation:name:3:annotation_2
 #region:len:1
 #region:coverage:0:10
+#label:len:4
 #truth:true
 #prediction:true
 >ctg1 20
