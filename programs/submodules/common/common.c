@@ -649,7 +649,7 @@ int IntBinArray_getBinIndex(IntBinArray *binArray, int value) {
     for (int i = 0; i < binArray->numberOfBins; i++) {
         if (binArray->starts[i] <= value && value < binArray->ends[i]) return i;
     }
-    fprintf(stderr, "[%s] Error: Value %d does not fit into the given bins.\n", get_timestamp());
+    fprintf(stderr, "[%s] Error: Value %d does not fit into the given bins.\n", get_timestamp(), value);
     exit(EXIT_FAILURE);
 }
 
