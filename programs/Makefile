@@ -36,6 +36,7 @@ run_tests:
 	./bin/test_summary_table
 	./bin/test_track_reader
 	./bin/test_chunks_creator
+	./bin/test_chunk_iterator
 	./bin/test_common
 	./bin/test_ptBlock
 	./bin/test_bias_detector
