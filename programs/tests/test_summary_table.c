@@ -246,14 +246,16 @@ bool test_SummaryTableList_getRowString() {
 }
 
 int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, const char *binArrayFilePath) {
-
     // whole genome
     double **wholeGenomeBin1 = Double_construct2DArray(4, 4);
+    wholeGenomeBin1[1][3] = 2.0;
 
     double **wholeGenomeBin2 = Double_construct2DArray(4, 4);
     wholeGenomeBin2[0][0] = 2.0;
     wholeGenomeBin2[2][1] = 1.0;
     wholeGenomeBin2[2][2] = 6.0;
+    wholeGenomeBin2[3][0] = 1.0;
+    wholeGenomeBin2[3][1] = 4.0;
     wholeGenomeBin2[3][3] = 3.0;
 
     // annotation 1
@@ -264,8 +266,11 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
 
     // annotation 2
     double **annotation2Bin1 = Double_construct2DArray(4, 4);
+    annotation2Bin1[1][3] = 2.0;
+
     double **annotation2Bin2 = Double_construct2DArray(4, 4);
     annotation2Bin2[2][2] = 4.0;
+    annotation2Bin2[3][1] = 4.0;
     annotation2Bin2[3][3] = 3.0;
 
     int windowLen = 1;
