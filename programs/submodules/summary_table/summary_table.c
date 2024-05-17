@@ -67,7 +67,7 @@ char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowInd
 
 
 int SummaryTableList_getTableIndex(SummaryTableList *summaryTableList, int catIndex1, int catIndex2) {
-    return catIndex1 * summaryTableList->numberOfCategories1 + catIndex2;
+    return catIndex1 * summaryTableList->numberOfCategories2 + catIndex2;
 }
 
 SummaryTable *SummaryTableList_getTable(SummaryTableList *summaryTableList, int catIndex1, int catIndex2) {
@@ -117,12 +117,12 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
     summaryTableList->numberOfRows = numberOfRows;
     summaryTableList->numberOfColumns = numberOfColumns;
     // construct tables
-    summaryTableList->summaryTables = stList_construct3(0, SummaryTable_destruct);
+    summaryTableList->summaryTables = stList_construct3(summaryTableList->totalNumberOfTables, SummaryTable_destruct);
     for (int c1 = 0; c1 < numberOfCategories1; c1++) {
         for (int c2 = 0; c2 < numberOfCategories2; c2++) {
             int tableIndex = SummaryTableList_getTableIndex(summaryTableList, c1, c2);
             SummaryTable *summaryTable = SummaryTable_construct(numberOfRows, numberOfColumns);
-            stList_append(summaryTableList->summaryTables, summaryTable);
+            stList_set(summaryTableList->summaryTables, tableIndex, summaryTable);
         }
     }
     // copy category names 1
