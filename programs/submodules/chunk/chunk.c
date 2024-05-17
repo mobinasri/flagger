@@ -695,7 +695,7 @@ ChunkIterator *ChunkIterator_construct(ChunksCreator *chunksCreator) {
     chunkIterator->chunksCreator = chunksCreator;
     chunkIterator->nextChunkIndex = 0;
     chunkIterator->nextWindowIndex = 0;
-    chunkIterator->block = ptBlock_construct(0, 0, 0, 0, 0, 0);
+    chunkIterator->block = ptBlock_construct(-1, -1, -1, -1, -1, -1);
     // set coverage info data initially to NULL
     // set the related functions
     ptBlock_set_data(chunkIterator->block,
@@ -709,8 +709,11 @@ ChunkIterator *ChunkIterator_construct(ChunksCreator *chunksCreator) {
 void ChunkIterator_reset(ChunkIterator *chunkIterator) {
     chunkIterator->nextChunkIndex = 0;
     chunkIterator->nextWindowIndex = 0;
-    chunkIterator->block->rfs = 0;
-    chunkIterator->block->rfe = 0;
+    if(chunkIterator->block != NULL){
+	    chunkIterator->block->data = NULL;
+	    ptBlock_destruct(chunkIterator->block);
+    }
+    chunkIterator->block = ptBlock_construct(-1, -1, -1, -1, -1, -1);
     // set coverage info data initially to NULL
     // set the related functions
     ptBlock_set_data(chunkIterator->block,
@@ -732,7 +735,11 @@ void ChunkIterator_destruct(ChunkIterator *chunkIterator) {
 ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_name) {
     if (chunkIterator->nextChunkIndex == chunkIterator->numberOfChunks) {
         ctg_name[0] = '\0';
-        chunkIterator->block = NULL;
+	if (chunkIterator->block != NULL){
+		chunkIterator->block->data = NULL;
+		ptBlock_destruct(chunkIterator->block);
+		chunkIterator->block = NULL;
+	}
         return chunkIterator->block;
     }
     Chunk *chunk = stList_get(chunkIterator->chunksCreator->chunks, chunkIterator->nextChunkIndex);
