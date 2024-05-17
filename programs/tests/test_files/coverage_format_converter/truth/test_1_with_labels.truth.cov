@@ -3,8 +3,8 @@
 #annotation:name:1:annotation_1
 #annotation:name:2:annotation_2
 #region:len:2
-#region:0:5
-#region:1:10
+#region:coverage:0:5
+#region:coverage:1:10
 #label:len:4
 #truth:true
 #prediction:true
