@@ -1,10 +1,10 @@
-#annot:len:4
-#annot:0:no_annotation
-#annot:1:whole_genome
-#annot:2:annotation_1
-#annot:3:annotation_2
+#annotation:len:4
+#annotation:name:0:no_annotation
+#annotation:name:1:whole_genome
+#annotation:name:2:annotation_1
+#annotation:name:3:annotation_2
 #region:len:1
-#region:0:10
+#region:coverage:0:10
 #truth:true
 #prediction:true
 >ctg1 20
