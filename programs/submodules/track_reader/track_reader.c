@@ -178,8 +178,10 @@ void CoverageHeader_destruct(CoverageHeader *header) {
 
 
 void CoverageHeader_updateNumberOfAnnotations(CoverageHeader *header) {
+    header->numberOfAnnotations = 0;
     stList *headerLines = header->headerLines;
     char *token;
+    bool lineFound = false;
     for (int i = 0; i < stList_length(headerLines); i++) {
         char *headerLine = stList_get(headerLines, i);
         if (strncmp("#annotation:len", headerLine, strlen("#annotation:len")) == 0) {
@@ -189,11 +191,18 @@ void CoverageHeader_updateNumberOfAnnotations(CoverageHeader *header) {
             token = Splitter_getToken(splitter); //number
             header->numberOfAnnotations = atoi(token);
             Splitter_destruct(splitter);
+	    lineFound = true;
             break;
         }
     }
-    fprintf(stderr, "[%s] Error: No '#annotation:len:' found in the header. annotation len should be at least 1.\n",get_timestamp());
-    exit(EXIT_FAILURE);
+    if(lineFound == false){
+	    fprintf(stderr, "[%s] Error: No '#annotation:len:' found in the header. annotation len should be at least 1.\n",get_timestamp());
+	    exit(EXIT_FAILURE);
+    }
+    if(header->numberOfAnnotations <= 0 && lineFound){
+	    fprintf(stderr, "[%s] Error: The value of '#annotation:len:' in the header should be at least 1.\n",get_timestamp());
+            exit(EXIT_FAILURE);
+    }
 }
 
 void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
@@ -232,6 +241,7 @@ void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
     header->numberOfRegions = 0;
     stList *headerLines = header->headerLines;
     char *token;
+    bool lineFound = false;
     for (int i = 0; i < stList_length(headerLines); i++) {
         char *headerLine = stList_get(headerLines, i);
         if (strncmp("#region:len", headerLine, strlen("#region:len")) == 0) {
@@ -241,12 +251,18 @@ void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
             token = Splitter_getToken(splitter); //number
             header->numberOfRegions = atoi(token);
             Splitter_destruct(splitter);
+	    lineFound = true;
             break;
         }
     }
-    fprintf(stderr, "[%s] Error: No '#region:len:' found in the header. region len should be at least 1.\n",get_timestamp());
-    exit(EXIT_FAILURE);
-
+    if(lineFound == false){
+	    fprintf(stderr, "[%s] Error: No '#region:len:' found in the header. region len should be at least 1.\n", get_timestamp());
+	    exit(EXIT_FAILURE);
+    }
+    if(header->numberOfRegions <=0 && lineFound){
+	    fprintf(stderr, "[%s] Error: The value of '#region:len:' in the header should be at least 1.\n", get_timestamp());
+            exit(EXIT_FAILURE);
+    }
 }
 
 void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
@@ -258,6 +274,7 @@ void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
     header->regionCoverages = (int *) malloc(header->numberOfRegions * sizeof(int));
     stList *headerLines = header->headerLines;
     char *token;
+    int numberOfParsedCoverages = 0;
     for (int i = 0; i < stList_length(headerLines); i++) {
         char *headerLine = stList_get(headerLines, i);
         if (strncmp("#region:coverage:", headerLine, strlen("#region:coverage:")) == 0) {
@@ -268,8 +285,13 @@ void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
             int regionIndex = atoi(token);
             token = Splitter_getToken(splitter); // coverage
             header->regionCoverages[regionIndex] = atoi(token);
+	    numberOfParsedCoverages += 1;
             Splitter_destruct(splitter);
         }
+    }
+    if(numberOfParsedCoverages != header->numberOfRegions){
+	    fprintf(stderr, "[%s] Error: Number of parsed region coverages (%d) does not match '#region:len:%d' in the header line.\n", get_timestamp(), numberOfParsedCoverages, header->numberOfRegions);
+	    exit(EXIT_FAILURE);
     }
 }
 
@@ -278,6 +300,7 @@ void CoverageHeader_updateNumberOfLabels(CoverageHeader *header) {
     header->numberOfLabels = 0;
     stList *headerLines = header->headerLines;
     char *token;
+    bool lineFound = false;
     for (int i = 0; i < stList_length(headerLines); i++) {
         char *headerLine = stList_get(headerLines, i);
         if (strncmp("#label:len", headerLine, strlen("#label:len")) == 0) {
@@ -287,10 +310,13 @@ void CoverageHeader_updateNumberOfLabels(CoverageHeader *header) {
             token = Splitter_getToken(splitter); //number
             header->numberOfLabels = atoi(token);
             Splitter_destruct(splitter);
+	    lineFound = true;
             break;
         }
     }
-    fprintf(stderr, "[%s] Warning: No '#label:len:' found in the header. Setting number of labels to 0.\n",get_timestamp());
+    if (lineFound == false){
+	    fprintf(stderr, "[%s] Warning: No '#label:len:' was found in the header. Setting number of labels to 0.\n",get_timestamp());
+    }
 }
 
 void CoverageHeader_updateTruthAvailability(CoverageHeader *header) {
@@ -304,7 +330,9 @@ void CoverageHeader_updateTruthAvailability(CoverageHeader *header) {
             break;
         }
     }
-    fprintf(stderr, "[%s] No '#truth:true' found in the header so truth labels will be ignored.\n",get_timestamp());
+    if(header->isTruthAvailable = false){
+	    fprintf(stderr, "[%s] No '#truth:true' was found in the header or '#truth:' was set to false in the header so truth labels will be ignored.\n",get_timestamp());
+    }
 }
 
 void CoverageHeader_updatePredictionAvailability(CoverageHeader *header) {
@@ -318,7 +346,9 @@ void CoverageHeader_updatePredictionAvailability(CoverageHeader *header) {
             break;
         }
     }
-    fprintf(stderr, "[%s] No '#prediction:true' found in the header so prediction labels will be ignored.\n",get_timestamp());
+    if(header->isPredictionAvailable = false){
+	    fprintf(stderr, "[%s] No '#prediction:true' was found in the header or '#prediction:' was set to false so prediction labels will be ignored.\n",get_timestamp());
+    }
 }
 
 
