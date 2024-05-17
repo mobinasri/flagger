@@ -64,6 +64,9 @@ bool test_CoverageHeader_write_and_read_compressed(const char *outputPath) {
     stList_append(header1->headerLines, copyString("#annotation:len:2"));
     stList_append(header1->headerLines, copyString("#annotation:name:0:no_annotation"));
     stList_append(header1->headerLines, copyString("#annotation:name:1:annotation_1"));
+    stList_append(header1->headerLines, copyString("#region:len:2"));
+    stList_append(header1->headerLines, copyString("#region:coverage:0:10"));
+    stList_append(header1->headerLines, copyString("#region:coverage:1:20"));
 
     bool isCompressed = true;
     gzFile fp = gzopen(outputPath, "w6h");
@@ -91,6 +94,9 @@ bool test_CoverageHeader_write_and_read_uncompressed(const char *outputPath) {
     stList_append(header1->headerLines, copyString("#annotation:len:2"));
     stList_append(header1->headerLines, copyString("#annotation:name:0:no_annotation"));
     stList_append(header1->headerLines, copyString("#annotation:name:1:annotation_1"));
+    stList_append(header1->headerLines, copyString("#region:len:2"));
+    stList_append(header1->headerLines, copyString("#region:coverage:0:10"));
+    stList_append(header1->headerLines, copyString("#region:coverage:1:20"));
 
     bool isCompressed = false;
     FILE *fp = fopen(outputPath, "w");
