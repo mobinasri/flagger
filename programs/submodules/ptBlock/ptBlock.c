@@ -2161,7 +2161,7 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
         }
 
 
-        prevCoverageInfo = coverageInfo;
+        preCoverageInfo = coverageInfo;
         preRefLabel = refLabel;
         strcpy(preCtg, ctg);
         preBlockEnd = end;

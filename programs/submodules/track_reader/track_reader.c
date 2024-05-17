@@ -192,6 +192,8 @@ void CoverageHeader_updateNumberOfAnnotations(CoverageHeader *header) {
             break;
         }
     }
+    fprintf(stderr, "[%s] Error: No '#annotation:len:' found in the header. annotation len should be at least 1.\n",get_timestamp());
+    exit(EXIT_FAILURE);
 }
 
 void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
@@ -206,6 +208,7 @@ void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
 
     stList *headerLines = header->headerLines;
     char *token;
+    int numberOfParsedNames = 0;
     for (int i = 0; i < stList_length(headerLines); i++) {
         char *headerLine = stList_get(headerLines, i);
         if (strncmp("#annotation:name:", headerLine, strlen("#annotation:name:")) == 0) {
@@ -216,8 +219,12 @@ void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
             int annotationIndex = atoi(token);
             token = Splitter_getToken(splitter); //name
             stList_set(header->annotationNames, annotationIndex, copyString(token));
+	    numberOfParsedNames += 1;
             Splitter_destruct(splitter);
         }
+    }
+    if (numberOfParsedNames != header->numberOfAnnotations){
+	    fprintf(stderr, "[%s] Warning: Number of parsed annotation names (%d) does not match '#annotation:len:%d' header line. Unnamed annotations will have the name 'NA'.\n",get_timestamp(), numberOfParsedNames, header->numberOfAnnotations);
     }
 }
 
@@ -237,6 +244,9 @@ void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
             break;
         }
     }
+    fprintf(stderr, "[%s] Error: No '#region:len:' found in the header. region len should be at least 1.\n",get_timestamp());
+    exit(EXIT_FAILURE);
+
 }
 
 void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
@@ -280,6 +290,7 @@ void CoverageHeader_updateNumberOfLabels(CoverageHeader *header) {
             break;
         }
     }
+    fprintf(stderr, "[%s] Warning: No '#label:len:' found in the header. Setting number of labels to 0.\n",get_timestamp());
 }
 
 void CoverageHeader_updateTruthAvailability(CoverageHeader *header) {
@@ -293,6 +304,7 @@ void CoverageHeader_updateTruthAvailability(CoverageHeader *header) {
             break;
         }
     }
+    fprintf(stderr, "[%s] No '#truth:true' found in the header so truth labels will be ignored.\n",get_timestamp());
 }
 
 void CoverageHeader_updatePredictionAvailability(CoverageHeader *header) {
@@ -306,6 +318,7 @@ void CoverageHeader_updatePredictionAvailability(CoverageHeader *header) {
             break;
         }
     }
+    fprintf(stderr, "[%s] No '#prediction:true' found in the header so prediction labels will be ignored.\n",get_timestamp());
 }
 
 

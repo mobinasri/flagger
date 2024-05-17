@@ -246,6 +246,8 @@ bool test_SummaryTableList_getRowString() {
 }
 
 int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, const char *binArrayFilePath) {
+
+	fprintf(stderr, "1\n");
     // whole genome
     double **wholeGenomeBin1 = Double_construct2DArray(4, 4);
     wholeGenomeBin1[0][0] = 2.0;
@@ -267,6 +269,8 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
     annotation2Bin2[2][2] = 6.0;
     annotation2Bin2[3][3] = 3.0;
 
+    fprintf(stderr, "2\n");
+
     int windowLen = 1;
     int chunkCanonicalLen = 10;
     int nThreads = 2;
@@ -279,9 +283,13 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
         return false;
     }
 
+    fprintf(stderr, "3\n");
+
     CoverageHeader *header = chunksCreator->header;
     IntBinArray *binArray = IntBinArray_constructFromFile(binArrayFilePath);
 
+    fprintf(stderr, "4\n");
+    
     int numberOfLabels = header->numberOfLabels;
     stList *categoryNames1 = header->annotationNames;
     stList *categoryNames2 = binArray->names;
@@ -310,27 +318,27 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
     SummaryTable *summaryTable;
     // whole genome bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 1, 0);
-    correct &= Double_equality2DArray(wholeGenomeBin1, summaryTable->table);
+    correct &= Double_equality2DArray(wholeGenomeBin1, summaryTable->table, 4, 4);
 
     // whole genome bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 1, 1);
-    correct &= Double_equality2DArray(wholeGenomeBin2, summaryTable->table);
+    correct &= Double_equality2DArray(wholeGenomeBin2, summaryTable->table, 4, 4);
 
     // annotation 1 bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 2, 0);
-    correct &= Double_equality2DArray(annotation1Bin1, summaryTable->table);
+    correct &= Double_equality2DArray(annotation1Bin1, summaryTable->table, 4, 4);
 
     // annotation 1 bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 2, 1);
-    correct &= Double_equality2DArray(annotation1Bin2, summaryTable->table);
+    correct &= Double_equality2DArray(annotation1Bin2, summaryTable->table, 4, 4);
 
     // annotation 2 bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 3, 0);
-    correct &= Double_equality2DArray(annotation2Bin1, summaryTable->table);
+    correct &= Double_equality2DArray(annotation2Bin1, summaryTable->table, 4, 4);
 
     // annotation 2 bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 3, 1);
-    correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table);
+    correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table, 4, 4);
 
     SummaryTableList_destruct(summaryTableList);
     ChunkIterator_destruct(chunkIterator);
