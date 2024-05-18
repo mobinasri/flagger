@@ -214,6 +214,14 @@ void CoverageInfo_addInferenceData(CoverageInfo *cov_info,
 
 stHash *ptBlock_parse_inference_label_blocks(char *bedPath, bool isLabelTruth);
 
+/**
+ * Receives the path to a cov or bed file (could be gz-compressed) that was created with bam2cov
+ * Parse all the tracks in the file and fill their related coverage info attributes based on the
+ * available columns in the file
+ *
+ * @param The path to a cov or bed file (could be gz-compressed) that was created with bam2cov
+ * @return a stHash table that has contig names as keys and stLists of ptBlock as values
+ */
 stHash *ptBlock_parse_coverage_info_blocks(char *filePath);
 
 /**
