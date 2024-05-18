@@ -245,7 +245,7 @@ bool test_SummaryTableList_getRowString() {
     return true;
 }
 
-int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, const char *binArrayFilePath) {
+int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const char *binArrayFilePath, bool useChunkIterator) {
     // whole genome
     double **wholeGenomeBin1 = Double_construct2DArray(4, 4);
     wholeGenomeBin1[1][3] = 2.0;
@@ -273,19 +273,36 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
     annotation2Bin2[3][1] = 4.0;
     annotation2Bin2[3][3] = 3.0;
 
-    int windowLen = 1;
-    int chunkCanonicalLen = 10;
-    int nThreads = 2;
-    ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(covPath,
-                                                                  NULL,
-                                                                  chunkCanonicalLen,
-                                                                  nThreads,
-                                                                  windowLen);
-    if (ChunksCreator_parseChunks(chunksCreator) != 0) {
-        return false;
+    void *iterator;
+    ptBlock * (*getNextBlock)(void *, char *);
+    ptBlock * (*resetIterator)(void *);
+    CoverageHeader *header = NULL;
+    ChunksCreator *chunksCreator = NULL;
+    stHash* blocksPerContig = NULL;
+
+    if (useChunkIterator) {
+        int windowLen = 1;
+        int chunkCanonicalLen = 10;
+        int nThreads = 2;
+        chunksCreator = ChunksCreator_constructFromCov(covPath,
+                                                       NULL,
+                                                       chunkCanonicalLen,
+                                                       nThreads,
+                                                       windowLen);
+        if (ChunksCreator_parseChunks(chunksCreator) != 0) {
+            return false;
+        }
+        iterator = (void *) ChunkIterator_construct(chunksCreator);
+        resetIterator = ChunkIterator_reset;
+        header = chunksCreator->header;
+    }else{
+        stHash *blocksPerContig = ptBlock_parse_coverage_info_blocks(covPath);
+        iterator = (void *) ptBlockItrPerContig_construct(blocksPerContig);
+        resetIterator = ptBlockItrPerContig_reset;
+        header = CoverageHeader_construct(covPath);
     }
 
-    CoverageHeader *header = chunksCreator->header;
+
     IntBinArray *binArray = IntBinArray_constructFromFile(binArrayFilePath);
 
     int numberOfLabels = header->numberOfLabels;
@@ -299,13 +316,11 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
                                                                     numberOfRows,
                                                                     numberOfColumns);
 
-    ChunkIterator *chunkIterator = ChunkIterator_construct(chunksCreator);
-
-    for(int annotationIndex=0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
-	// reset iterator since we use the same iterator for all annotations
-        ChunkIterator_reset(chunkIterator);
+    for (int annotationIndex = 0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
+        // reset iterator since we use the same iterator for all annotations
+        resetIterator(iterator);
         ptBlock_updateSummaryTableList((void *) chunkIterator,
-                                       ChunkIterator_getNextPtBlock,
+                                       getNextBlock,
                                        summaryTableList,
                                        binArray,
                                        annotationIndex,
@@ -341,8 +356,21 @@ int test_ptBlock_updateSummaryTableListFromChunkIterator(const char *covPath, co
     correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table, 4, 4);
 
     SummaryTableList_destruct(summaryTableList);
-    ChunkIterator_destruct(chunkIterator);
-    ChunksCreator_destruct(chunksCreator);
+
+    if(chunksCreator != NULL) {
+        // free iterator
+        ChunkIterator_destruct(chunkIterator);
+        // free blocks/chunks
+        ChunksCreator_destruct(chunksCreator);
+    }
+    if(blocksPerContig != NULL){
+        // free iterator
+        ptBlockItrPerContig_construct(iterator);
+        // free blocks/chunks
+        stHash_destruct(blocksPerContig);
+        // free header
+        CoverageHeader_destruct(header);
+    }
     IntBinArray_destruct(binArray);
     Double_destruct2DArray(wholeGenomeBin1, 4);
     Double_destruct2DArray(wholeGenomeBin2, 4);
@@ -385,11 +413,20 @@ int main(int argc, char *argv[]) {
 
 
     // test 5
-    bool test5Passed = test_ptBlock_updateSummaryTableListFromChunkIterator("tests/test_files/summary_table/test_1.cov",
-                                                                            "tests/test_files/summary_table/test_1_bin_array.txt");
-    printf("[summary_table] Test ptBlock_updateSummaryTableListFromChunkIterator:");
+    bool test5Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
+                                                                       "tests/test_files/summary_table/test_1_bin_array.txt",
+                                                                       true);
+    printf("[summary_table] Test updating SummaryTableList with ChunkIterator:");
     printf(test5Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test5Passed;
+
+    // test 6
+    bool test6Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
+                                                                       "tests/test_files/summary_table/test_1_bin_array.txt",
+                                                                       false);
+    printf("[summary_table] Test updating SummaryTableList with ptBlockItrPerContig:");
+    printf(test6Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test6Passed;
 
 
     if (allTestsPassed)
