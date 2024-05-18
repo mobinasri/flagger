@@ -62,9 +62,9 @@ CoverageHeader *CoverageHeader_construct(char *filePath) {
 
         CoverageHeader_updateAnnotationNames(header);
         CoverageHeader_updateRegionCoverages(header);
-        CoverageHeader_updateNumberOfLabels(header);
         CoverageHeader_updateTruthAvailability(header);
         CoverageHeader_updatePredictionAvailability(header);
+        CoverageHeader_updateNumberOfLabels(header);
 
         TrackReader_destruct(trackReader);
     } else {
@@ -96,7 +96,7 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
                                                      int numberOfLabels,
                                                      bool isTruthAvailable,
                                                      bool isPredictionAvailable) {
-    
+
     CoverageHeader *header = CoverageHeader_construct(NULL);
 
     char line[1000];
@@ -164,7 +164,6 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
 }
 
 
-
 void CoverageHeader_destruct(CoverageHeader *header) {
     if (header->headerLines != NULL) {
         stList_destruct(header->headerLines);
@@ -191,17 +190,19 @@ void CoverageHeader_updateNumberOfAnnotations(CoverageHeader *header) {
             token = Splitter_getToken(splitter); //number
             header->numberOfAnnotations = atoi(token);
             Splitter_destruct(splitter);
-	    lineFound = true;
+            lineFound = true;
             break;
         }
     }
-    if(lineFound == false){
-	    fprintf(stderr, "[%s] Error: No '#annotation:len:' found in the header. annotation len should be at least 1.\n",get_timestamp());
-	    exit(EXIT_FAILURE);
+    if (lineFound == false) {
+        fprintf(stderr, "[%s] Error: No '#annotation:len:' found in the header. annotation len should be at least 1.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
     }
-    if(header->numberOfAnnotations <= 0 && lineFound){
-	    fprintf(stderr, "[%s] Error: The value of '#annotation:len:' in the header should be at least 1.\n",get_timestamp());
-            exit(EXIT_FAILURE);
+    if (header->numberOfAnnotations <= 0 && lineFound) {
+        fprintf(stderr, "[%s] Error: The value of '#annotation:len:' in the header should be at least 1.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -228,12 +229,14 @@ void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
             int annotationIndex = atoi(token);
             token = Splitter_getToken(splitter); //name
             stList_set(header->annotationNames, annotationIndex, copyString(token));
-	    numberOfParsedNames += 1;
+            numberOfParsedNames += 1;
             Splitter_destruct(splitter);
         }
     }
-    if (numberOfParsedNames != header->numberOfAnnotations){
-	    fprintf(stderr, "[%s] Warning: Number of parsed annotation names (%d) does not match '#annotation:len:%d' header line. Unnamed annotations will have the name 'NA'.\n",get_timestamp(), numberOfParsedNames, header->numberOfAnnotations);
+    if (numberOfParsedNames != header->numberOfAnnotations) {
+        fprintf(stderr,
+                "[%s] Warning: Number of parsed annotation names (%d) does not match '#annotation:len:%d' header line. Unnamed annotations will have the name 'NA'.\n",
+                get_timestamp(), numberOfParsedNames, header->numberOfAnnotations);
     }
 }
 
@@ -251,25 +254,27 @@ void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
             token = Splitter_getToken(splitter); //number
             header->numberOfRegions = atoi(token);
             Splitter_destruct(splitter);
-	    lineFound = true;
+            lineFound = true;
             break;
         }
     }
-    if(lineFound == false){
-	    fprintf(stderr, "[%s] Error: No '#region:len:' found in the header. region len should be at least 1.\n", get_timestamp());
-	    exit(EXIT_FAILURE);
+    if (lineFound == false) {
+        fprintf(stderr, "[%s] Error: No '#region:len:' found in the header. region len should be at least 1.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
     }
-    if(header->numberOfRegions <=0 && lineFound){
-	    fprintf(stderr, "[%s] Error: The value of '#region:len:' in the header should be at least 1.\n", get_timestamp());
-            exit(EXIT_FAILURE);
+    if (header->numberOfRegions <= 0 && lineFound) {
+        fprintf(stderr, "[%s] Error: The value of '#region:len:' in the header should be at least 1.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
     }
 }
 
 void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
     CoverageHeader_updateNumberOfRegions(header);
-    if (header->numberOfRegions == 0){
-	    header->regionCoverages = NULL;
-	    return;
+    if (header->numberOfRegions == 0) {
+        header->regionCoverages = NULL;
+        return;
     }
     header->regionCoverages = (int *) malloc(header->numberOfRegions * sizeof(int));
     stList *headerLines = header->headerLines;
@@ -285,16 +290,19 @@ void CoverageHeader_updateRegionCoverages(CoverageHeader *header) {
             int regionIndex = atoi(token);
             token = Splitter_getToken(splitter); // coverage
             header->regionCoverages[regionIndex] = atoi(token);
-	    numberOfParsedCoverages += 1;
+            numberOfParsedCoverages += 1;
             Splitter_destruct(splitter);
         }
     }
-    if(numberOfParsedCoverages != header->numberOfRegions){
-	    fprintf(stderr, "[%s] Error: Number of parsed region coverages (%d) does not match '#region:len:%d' in the header line.\n", get_timestamp(), numberOfParsedCoverages, header->numberOfRegions);
-	    exit(EXIT_FAILURE);
+    if (numberOfParsedCoverages != header->numberOfRegions) {
+        fprintf(stderr,
+                "[%s] Error: Number of parsed region coverages (%d) does not match '#region:len:%d' in the header line.\n",
+                get_timestamp(), numberOfParsedCoverages, header->numberOfRegions);
+        exit(EXIT_FAILURE);
     }
 }
 
+// make sure to set truth and prediction availability before calling this function
 void CoverageHeader_updateNumberOfLabels(CoverageHeader *header) {
     // set it to zero in case no label line existed in header
     header->numberOfLabels = 0;
@@ -310,12 +318,15 @@ void CoverageHeader_updateNumberOfLabels(CoverageHeader *header) {
             token = Splitter_getToken(splitter); //number
             header->numberOfLabels = atoi(token);
             Splitter_destruct(splitter);
-	    lineFound = true;
+            lineFound = true;
             break;
         }
     }
-    if (lineFound == false){
-	    fprintf(stderr, "[%s] Warning: No '#label:len:' was found in the header. Setting number of labels to 0.\n",get_timestamp());
+    if (lineFound == false && (header->isTruthAvailable || header->isPredictionAvailable)) {
+        fprintf(stderr,
+                "[%s] Error: '#label:len' should be set to a non-zero number if at least one of truth or prediction tags is set to true in the header.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -330,8 +341,10 @@ void CoverageHeader_updateTruthAvailability(CoverageHeader *header) {
             break;
         }
     }
-    if(header->isTruthAvailable == false){
-        fprintf(stderr, "[%s] Truth tag was set to false (or not defined) so truth labels will not be parsed from file.\n",get_timestamp());
+    if (header->isTruthAvailable == false) {
+        fprintf(stderr,
+                "[%s] Truth tag was set to false (or not defined) so truth labels will not be parsed from file.\n",
+                get_timestamp());
     }
 }
 
@@ -346,8 +359,10 @@ void CoverageHeader_updatePredictionAvailability(CoverageHeader *header) {
             break;
         }
     }
-    if(header->isPredictionAvailable == false){
-	    fprintf(stderr, "[%s] Prediction tag was set to false (or not defined) so prediction labels will not be parsed from file.\n",get_timestamp());
+    if (header->isPredictionAvailable == false) {
+        fprintf(stderr,
+                "[%s] Prediction tag was set to false (or not defined) so prediction labels will not be parsed from file.\n",
+                get_timestamp());
     }
 }
 
