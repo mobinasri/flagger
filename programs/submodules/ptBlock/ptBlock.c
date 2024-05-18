@@ -704,6 +704,11 @@ ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig) {
     return block_iter;
 }
 
+void ptBlockItrPerContig_reset(ptBlockItrPerContig *block_iter) {
+    block_iter->ctg_index = 0;
+    block_iter->block_index = 0;
+}
+
 
 ptBlock *ptBlockItrPerContig_next(ptBlockItrPerContig *block_iter, char *ctg_name) {
     ptBlock *block;

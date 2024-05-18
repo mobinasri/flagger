@@ -364,6 +364,13 @@ bool ptBlock_is_equal_stHash(stHash *blocks_per_contig_1, stHash *blocks_per_con
  */
 ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig);
 
+/**
+ * Reset the iterator to start from the beginning
+ *
+ * @param block_iter        the block iterator
+ */
+void ptBlockItrPerContig_reset(ptBlockItrPerContig *block_iter);
+
 
 /**
  * Return the next block and update the contig name
