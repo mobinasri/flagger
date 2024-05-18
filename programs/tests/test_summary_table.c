@@ -245,7 +245,8 @@ bool test_SummaryTableList_getRowString() {
     return true;
 }
 
-int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const char *binArrayFilePath, bool useChunkIterator) {
+int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const char *binArrayFilePath,
+                                                    bool useChunkIterator) {
     // whole genome
     double **wholeGenomeBin1 = Double_construct2DArray(4, 4);
     wholeGenomeBin1[1][3] = 2.0;
@@ -274,11 +275,12 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     annotation2Bin2[3][3] = 3.0;
 
     void *iterator;
-    ptBlock * (*getNextBlock)(void *, char *);
+    ptBlock * (*getNextBlock)(
+    void *, char *);
     void (*resetIterator)(void *);
     CoverageHeader *header = NULL;
     ChunksCreator *chunksCreator = NULL;
-    stHash* blocksPerContig = NULL;
+    stHash *blocksPerContig = NULL;
 
     if (useChunkIterator) {
         int windowLen = 1;
@@ -294,13 +296,13 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
         }
         iterator = (void *) ChunkIterator_construct(chunksCreator);
         resetIterator = ChunkIterator_reset;
-	getNextBlock = ChunkIterator_getNextPtBlock;
+        getNextBlock = ChunkIterator_getNextPtBlock;
         header = chunksCreator->header;
-    }else{
+    } else {
         stHash *blocksPerContig = ptBlock_parse_coverage_info_blocks(covPath);
         iterator = (void *) ptBlockItrPerContig_construct(blocksPerContig);
         resetIterator = ptBlockItrPerContig_reset;
-	getNextBlock = ptBlockItrPerContig_next;
+        getNextBlock = ptBlockItrPerContig_next;
         header = CoverageHeader_construct(covPath);
     }
 
@@ -359,13 +361,13 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
 
     SummaryTableList_destruct(summaryTableList);
 
-    if(chunksCreator != NULL) {
+    if (chunksCreator != NULL) {
         // free iterator
         ChunkIterator_destruct((ChunkIterator *) iterator);
         // free blocks/chunks
         ChunksCreator_destruct(chunksCreator);
     }
-    if(blocksPerContig != NULL){
+    if (blocksPerContig != NULL) {
         // free iterator
         ptBlockItrPerContig_construct((ptBlockItrPerContig *) iterator);
         // free blocks/chunks
