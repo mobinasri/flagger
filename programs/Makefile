@@ -33,13 +33,28 @@ ${BIN_DIR}:
 	$(CC) -c -o$@ $< $(CCFLAGS)
 
 run_tests:
-	./bin/test_summary_table
-	./bin/test_track_reader
-	./bin/test_chunks_creator
-	./bin/test_chunk_iterator
-	./bin/test_common
-	./bin/test_ptBlock
-	./bin/test_bias_detector
+	printf "#Test_name\tStatus\n" > tests_status.txt
+	./bin/test_summary_table; \
+		if [ $$? -eq 0 ]; then printf "API:summary_table\tOK\n" >> tests_status.txt; \
+				else printf "API:summary_table\tFAILED\n" >> tests_status.txt; fi	
+	./bin/test_track_reader; \
+		if [ $$? -eq 0 ]; then printf "API:track_reader\tOK\n" >> tests_status.txt; \
+				else printf "API:track_reader\tFAILED\n" >> tests_status.txt; fi
+	./bin/test_chunks_creator; \
+		if [ $$? -eq 0 ]; then printf "API:chunks_creator\tOK\n" >> tests_status.txt; \
+				else printf "API:chunks_creator\tFAILED\n" >> tests_status.txt; fi
+	./bin/test_chunk_iterator; \
+		if [ $$? -eq 0 ]; then printf "API:chunk_iterator\tOK\n" >> tests_status.txt; \
+				else printf "API:chunk_iterator\tFAILED\n" >> tests_status.txt; fi
+	./bin/test_common; \
+		if [ $$? -eq 0 ]; then printf "API:common\tOK\n" >> tests_status.txt; \
+				else printf "API:common\tFAILED\n" >> tests_status.txt; fi
+	./bin/test_ptBlock; \
+		if [ $$? -eq 0 ]; then printf "API:ptBlock\tOK\n" >> tests_status.txt; \
+				else printf "API:ptBlock\tFAILED\n" >> tests_status.txt; fi
+	./bin/test_bias_detector; \
+		if [ $$? -eq 0 ]; then printf "API:bias_detector\tOK\n" >> tests_status.txt; \
+                                else printf "API:bias_detector\tFAILED\n" >> tests_status.txt; fi
 	# convert bam to cov with annotations
 	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam \
 		      --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json \
@@ -50,8 +65,11 @@ run_tests:
 		      --baselineAnnotation annot_1;\
 		      cmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov \
 		          tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov; \
-		      if [ $$? -eq 0 ]; then printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_OK ; \
-		                        else printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_FAIL ; fi
+		      return_code=$$?; \
+		      if [ $$return_code -eq 0 ]; then printf "PROGRAM:bam2cov_with_uncompressed_cov_file\tOK\n" >> tests_status.txt; \
+		      		                  else printf "PROGRAM:bam2cov_with_uncompressed_cov_file\tFAILED\n" >> tests_status.txt; fi ;\
+		      if [ $$return_code -eq 0 ]; then printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_OK ; \
+		                                  else printf "Testing bam2cov with uncompressed cov file:" && ./bin/print_FAIL ; fi
 	# convert bam to cov.gz with annotations
 	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam \
 		      --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json \
@@ -62,8 +80,11 @@ run_tests:
 		      --baselineAnnotation annot_1; \
 		      zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz \
 		           tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov.gz; \
-		      if [ $$? -eq 0 ]; then printf "Testing bam2cov with compressed cov file:" && ./bin/print_OK ; \
-		                        else printf "Testing bam2cov with compressed cov file:" && ./bin/print_FAIL ; fi
+		      return_code=$$?; \
+		      if [ $$return_code -eq 0 ]; then printf "PROGRAM:bam2cov_with_compressed_cov_file\tOK\n" >> tests_status.txt; \
+                                                  else printf "PROGRAM:bam2cov_with_compressed_cov_file\tFAILED\n" >> tests_status.txt; fi ;\
+		      if [ $$return_code -eq 0 ]; then printf "Testing bam2cov with compressed cov file:" && ./bin/print_OK ; \
+		                                  else printf "Testing bam2cov with compressed cov file:" && ./bin/print_FAIL ; fi
 	# convert bam to bed with annotations
 	./bin/bam2cov --bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam \
 		      --annotationJson tests/test_files/bam2cov/ptBlock_bam2cov_test.json \
@@ -74,13 +95,20 @@ run_tests:
 		      --baselineAnnotation annot_1; \
 		      zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed \
 		           tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.bed; \
-		      if [ $$? -eq 0 ]; then printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_OK ; \
+	              return_code=$$?; \
+		      if [ $$return_code -eq 0 ]; then printf "PROGRAM:bam2cov_with_ucompressed_bed_file\tOK\n" >> tests_status.txt; \
+                                                  else printf "PROGRAM:bam2cov_with_ucompressed_bed_file\tFAILED\n" >> tests_status.txt; fi ;\
+		      if [ $$return_code -eq 0 ]; then printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_OK ; \
 		                        else printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_FAIL ; fi
 	# convert cov to bed with both labels
 	./bin/coverage_format_converter -i tests/test_files/coverage_format_converter/test_1_with_labels.cov \
                                         -o tests/test_files/coverage_format_converter/test_1_with_labels.output.bed; \
                                         cmp tests/test_files/coverage_format_converter/test_1_with_labels.output.bed \
                                              tests/test_files/coverage_format_converter/truth/test_1_with_labels.truth.bed; \
+					return_code=$$?; \
+						if [ $$return_code -eq 0 ]; then printf "PROGRAM:bam2cov_with_ucompressed_bed_file\tOK\n" >> tests_status.txt; \
+                                                  else printf "PROGRAM:bam2cov_with_ucompressed_bed_file\tFAILED\n" >> tests_status.txt; fi ;\
+
                                         if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bed (both labels):" && ./bin/print_OK ; \
                                                           else printf "Testing coverage_format_converter for cov -> bed (both labels):" && ./bin/print_FAIL ; fi
 	# convert bed to cov with both labels
@@ -153,3 +181,5 @@ run_tests:
                                              tests/test_files/augment_coverage_by_labels/truth/test_1.with_only_prediction_labels.truth.cov; \
                                          if [ $$? -eq 0 ]; then printf "Testing augment_coverage_by_labels for only prediction labels:" && ./bin/print_OK ; \
                                                            else printf "Testing augment_coverage_by_labels for only prediction labels:" && ./bin/print_FAIL ; fi
+	@printf "\nTest Summary:\n\n"
+	@cat tests_status.txt
