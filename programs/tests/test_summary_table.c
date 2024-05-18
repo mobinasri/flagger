@@ -319,7 +319,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     for (int annotationIndex = 0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
         // reset iterator since we use the same iterator for all annotations
         resetIterator(iterator);
-        ptBlock_updateSummaryTableList((void *) chunkIterator,
+        ptBlock_updateSummaryTableList(iterator,
                                        getNextBlock,
                                        summaryTableList,
                                        binArray,
