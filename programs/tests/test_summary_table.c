@@ -275,7 +275,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
 
     void *iterator;
     ptBlock * (*getNextBlock)(void *, char *);
-    ptBlock * (*resetIterator)(void *);
+    void (*resetIterator)(void *);
     CoverageHeader *header = NULL;
     ChunksCreator *chunksCreator = NULL;
     stHash* blocksPerContig = NULL;
@@ -294,11 +294,13 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
         }
         iterator = (void *) ChunkIterator_construct(chunksCreator);
         resetIterator = ChunkIterator_reset;
+	getNextBlock = ChunkIterator_getNextPtBlock;
         header = chunksCreator->header;
     }else{
         stHash *blocksPerContig = ptBlock_parse_coverage_info_blocks(covPath);
         iterator = (void *) ptBlockItrPerContig_construct(blocksPerContig);
         resetIterator = ptBlockItrPerContig_reset;
+	getNextBlock = ptBlockItrPerContig_next;
         header = CoverageHeader_construct(covPath);
     }
 
@@ -359,13 +361,13 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
 
     if(chunksCreator != NULL) {
         // free iterator
-        ChunkIterator_destruct(chunkIterator);
+        ChunkIterator_destruct((ChunkIterator *) iterator);
         // free blocks/chunks
         ChunksCreator_destruct(chunksCreator);
     }
     if(blocksPerContig != NULL){
         // free iterator
-        ptBlockItrPerContig_construct(iterator);
+        ptBlockItrPerContig_construct((ptBlockItrPerContig *) iterator);
         // free blocks/chunks
         stHash_destruct(blocksPerContig);
         // free header
