@@ -331,7 +331,7 @@ void CoverageHeader_updateTruthAvailability(CoverageHeader *header) {
         }
     }
     if(header->isTruthAvailable == false){
-	    fprintf(stderr, "[%s] No '#truth:true' was found in the header or '#truth:' was set to false in the header so truth labels will be ignored.\n",get_timestamp());
+        fprintf(stderr, "[%s] Truth tag was set to false (or not defined) so truth labels will not be parsed from file.\n",get_timestamp());
     }
 }
 
@@ -347,7 +347,7 @@ void CoverageHeader_updatePredictionAvailability(CoverageHeader *header) {
         }
     }
     if(header->isPredictionAvailable == false){
-	    fprintf(stderr, "[%s] No '#prediction:true' was found in the header or '#prediction:' was set to false so prediction labels will be ignored.\n",get_timestamp());
+	    fprintf(stderr, "[%s] Prediction tag was set to false (or not defined) so prediction labels will not be parsed from file.\n",get_timestamp());
     }
 }
 
