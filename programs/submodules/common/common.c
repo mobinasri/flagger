@@ -274,7 +274,9 @@ char *Double_getString2DArray(double **array, int length1, int length2, const ch
     for (int i = 0; i < length1; i++) {
         for (int j = 0; j < length2; j++) {
             sprintf(str + strlen(str), format, array[i][j]);
-            sprintf(str + strlen(str), "%c", delimiter);
+            if (j < length2 - 1) {
+                sprintf(str + strlen(str), "%c", delimiter);
+            }
         }
         if (i < length1 - 1) {
             sprintf(str + strlen(str), "\n");
