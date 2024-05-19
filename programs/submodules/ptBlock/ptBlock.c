@@ -2237,7 +2237,7 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
                                            overlapThreshold);
         }
         // iterating over query labels
-        for (int q = 0; q < numberOfQueryLabels + 1; q++) {
+        for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
             int catIndex1 = annotationIndex;
             int catIndex2 = binIndex;
             int rowIndex = preRefLabel;
