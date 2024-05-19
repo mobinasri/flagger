@@ -256,7 +256,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     wholeGenomeBin2[0][4] = 1.0; // undefined label
     wholeGenomeBin2[2][1] = 1.0;
     wholeGenomeBin2[2][2] = 6.0;
-    wholeGenomeBin2[2][4] = 2.0; // undefined label
+    wholeGenomeBin2[2][4] = 6.0; // undefined label
     wholeGenomeBin2[3][0] = 1.0;
     wholeGenomeBin2[3][1] = 4.0;
     wholeGenomeBin2[3][3] = 3.0;
