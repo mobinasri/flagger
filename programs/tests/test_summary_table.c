@@ -262,7 +262,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
         wholeGenomeBin2[2][2] = 1.0;
         wholeGenomeBin2[2][4] = 1.0; // undefined label
         wholeGenomeBin2[3][1] = 1.0;
-        wholeGenomeBin2[3][3] = 3.0;
+        wholeGenomeBin2[3][3] = 1.0;
     }else{
         wholeGenomeBin2[0][0] = 2.0;
         wholeGenomeBin2[0][4] = 1.0; // undefined label
@@ -277,9 +277,9 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     // annotation 1
     double **annotation1Bin1 = Double_construct2DArray(4, 5);
     if(isMetricOverlapBased) {
-        annotation1Bin1[0][0] = 2.0;
-    }else{
         annotation1Bin1[0][0] = 1.0;
+    }else{
+        annotation1Bin1[0][0] = 2.0;
     }
 
     double **annotation1Bin2 = Double_construct2DArray(4, 5);
