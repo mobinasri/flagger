@@ -111,6 +111,7 @@ bool Double_equality1DArray(double *array1, double *array2, int length1);
 
 bool Double_equality2DArray(double **array1, double **array2, int length1, int length2);
 
+char *Double_getString2DArray(double **array, int length1, int length2, const char *format, int maxEntrySize, char delimiter);
 
 int *Int_construct1DArray(int length);
 

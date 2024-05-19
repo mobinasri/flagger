@@ -140,6 +140,21 @@ bool test_Double_equality2DArray() {
 
 }
 
+
+bool test_Double_getString2DArray() {
+    double **array = Double_construct2DArray(2,3);
+    array[0][0] = 1.0;
+    array[1][2] = 2.0;
+
+    char *str = Double_getString2DArray(array,2, 3, "%.2f", 10, '\t');
+
+    bool correct = strcmp(str, "1.00\t0.00\t0.00\n0.00\t0.00\t2.00") == 0;
+
+    free(str);
+    return correct;
+}
+
+
 int main(int argc, char *argv[]) {
     char test1Path[1000] = "tests/test_files/common/test_common_1.txt";
     char test2Path[1000] = "tests/test_files/common/test_common_bin_array.txt";
@@ -200,6 +215,12 @@ int main(int argc, char *argv[]) {
     printf("[common] Test Double_equality2DArray:");
     printf(test9Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test9Passed;
+
+    // test 10
+    bool test10Passed = test_Double_getString2DArray();
+    printf("[common] Test Double_getString2DArray:");
+    printf(test10Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test10Passed;
 
     if (allTestsPassed)
         return 0;

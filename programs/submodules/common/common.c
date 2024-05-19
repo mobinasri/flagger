@@ -267,6 +267,20 @@ bool Double_equality2DArray(double **array1, double **array2, int length1, int l
     return true;
 }
 
+char *Double_getString2DArray(double **array, int length1, int length2, const char *format, int maxEntrySize, char delimiter) {
+    assert(length1 > 0 && length2 > 0);
+    char * str = malloc(length1 * length2 * (maxEntrySize + 4) * sizeof(char));
+    str[0] = '\0';
+    for (int i = 0; i < length1; i++) {
+        for (int j = 0; j < length2; j++) {
+            sprintf(str + strlen(str), format, array[i][j]);
+            sprintf(str + strlen(str), "%c", delimiter);
+        }
+        sprintf(str + strlen(str), "\n");
+    }
+    return str;
+}
+
 int Double_getArgMaxIndex1DArray(double *array, int length) {
     assert(length > 0);
     double maxValue = array[0];
