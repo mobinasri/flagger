@@ -246,41 +246,73 @@ bool test_SummaryTableList_getRowString() {
 }
 
 int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const char *binArrayFilePath,
-                                                    bool useChunkIterator) {
+                                                    bool useChunkIterator, bool isMetricOverlapBased) {
     // whole genome
     double **wholeGenomeBin1 = Double_construct2DArray(4, 5);
-    wholeGenomeBin1[1][3] = 2.0;
+    if(isMetricOverlapBased){
+        wholeGenomeBin1[1][3] = 1.0;
+    }
+    else {
+        wholeGenomeBin1[1][3] = 2.0;
+    }
 
     double **wholeGenomeBin2 = Double_construct2DArray(4, 5);
-    wholeGenomeBin2[0][0] = 2.0;
-    wholeGenomeBin2[0][4] = 1.0; // undefined label
-    wholeGenomeBin2[2][1] = 1.0;
-    wholeGenomeBin2[2][2] = 6.0;
-    wholeGenomeBin2[2][4] = 6.0; // undefined label
-    wholeGenomeBin2[3][0] = 1.0;
-    wholeGenomeBin2[3][1] = 4.0;
-    wholeGenomeBin2[3][3] = 3.0;
+    if(isMetricOverlapBased) {
+        wholeGenomeBin2[0][0] = 1.0;
+        wholeGenomeBin2[2][2] = 1.0;
+        wholeGenomeBin2[2][4] = 1.0; // undefined label
+        wholeGenomeBin2[3][1] = 1.0;
+        wholeGenomeBin2[3][3] = 3.0;
+    }else{
+        wholeGenomeBin2[0][0] = 2.0;
+        wholeGenomeBin2[0][4] = 1.0; // undefined label
+        wholeGenomeBin2[2][1] = 1.0;
+        wholeGenomeBin2[2][2] = 6.0;
+        wholeGenomeBin2[2][4] = 6.0; // undefined label
+        wholeGenomeBin2[3][0] = 1.0;
+        wholeGenomeBin2[3][1] = 4.0;
+        wholeGenomeBin2[3][3] = 3.0;
+    }
 
     // annotation 1
     double **annotation1Bin1 = Double_construct2DArray(4, 5);
-    annotation1Bin1[0][0] = 2.0;
+    if(isMetricOverlapBased) {
+        annotation1Bin1[0][0] = 2.0;
+    }else{
+        annotation1Bin1[0][0] = 1.0;
+    }
+
     double **annotation1Bin2 = Double_construct2DArray(4, 5);
-    annotation1Bin2[2][1] = 1.0;
-    annotation1Bin2[2][4] = 2.0; // undefined label
+    if(isMetricOverlapBased) {
+        annotation1Bin2[2][4] = 1.0; // undefined label
+    }else{
+        annotation1Bin2[2][1] = 1.0;
+        annotation1Bin2[2][4] = 2.0; // undefined label
+    }
 
     // annotation 2
     double **annotation2Bin1 = Double_construct2DArray(4, 5);
-    annotation2Bin1[1][3] = 2.0;
+    if(isMetricOverlapBased) {
+        annotation2Bin1[1][3] = 1.0;
+    } else{
+        annotation2Bin1[1][3] = 2.0;
+    }
 
     double **annotation2Bin2 = Double_construct2DArray(4, 5);
-    annotation2Bin2[2][2] = 4.0;
-    annotation2Bin2[2][4] = 4.0; // undefined label
-    annotation2Bin2[3][1] = 4.0;
-    annotation2Bin2[3][3] = 3.0;
+    if(isMetricOverlapBased) {
+        annotation2Bin2[2][2] = 1.0;
+        annotation2Bin2[2][4] = 1.0; // undefined label
+        annotation2Bin2[3][1] = 1.0;
+        annotation2Bin2[3][3] = 1.0;
+    }else{
+        annotation2Bin2[2][2] = 4.0;
+        annotation2Bin2[2][4] = 4.0; // undefined label
+        annotation2Bin2[3][1] = 4.0;
+        annotation2Bin2[3][3] = 3.0;
+    }
 
     void *iterator;
-    ptBlock *(*getNextBlock)(
-            void *, char *);
+    ptBlock *(*getNextBlock)(void *, char *);
     void (*resetIterator)(void *);
     CoverageHeader *header = NULL;
     ChunksCreator *chunksCreator = NULL;
@@ -325,8 +357,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
                                                                     numberOfColumns +
                                                                     1); // +1 for undefined state (label = -1)
 
-    bool isMetricOverlapBased = false;
-    double overlapThreshold = 0.0;
+    double overlapThreshold = 0.4;
     for (int annotationIndex = 0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
         // reset iterator since we use the same iterator for all annotations
         resetIterator(iterator);
@@ -428,7 +459,8 @@ int main(int argc, char *argv[]) {
     // test 5
     bool test5Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
                                                                        "tests/test_files/summary_table/test_1_bin_array.txt",
-                                                                       true);
+                                                                       true,
+                                                                       false);
     printf("[summary_table] Test updating SummaryTableList with ChunkIterator:");
     printf(test5Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test5Passed;
@@ -436,11 +468,29 @@ int main(int argc, char *argv[]) {
     // test 6
     bool test6Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
                                                                        "tests/test_files/summary_table/test_1_bin_array.txt",
+                                                                       false,
                                                                        false);
     printf("[summary_table] Test updating SummaryTableList with ptBlockItrPerContig:");
     printf(test6Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test6Passed;
 
+    // test 7
+    bool test7Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
+                                                                       "tests/test_files/summary_table/test_1_bin_array.txt",
+                                                                       true,
+                                                                       true);
+    printf("[summary_table] Test updating SummaryTableList with ChunkIterator (overlap-based):");
+    printf(test7Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test7Passed;
+
+    // test 8
+    bool test8Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
+                                                                       "tests/test_files/summary_table/test_1_bin_array.txt",
+                                                                       false,
+                                                                       true);
+    printf("[summary_table] Test updating SummaryTableList with ptBlockItrPerContig (overlap-based):");
+    printf(test8Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test8Passed;
 
     if (allTestsPassed)
         return 0;

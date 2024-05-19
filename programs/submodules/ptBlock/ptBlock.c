@@ -2072,9 +2072,17 @@ void convertBaseLevelToOverlapBased(int *refLabelConfusionRow,
                                     int columnSize,
                                     int refLabelBlockLength,
                                     double overlapThreshold){
+    bool atLeastOneHit = false;
     for(int i=0; i < columnSize; i++){
         double overlapRatio = (double) refLabelConfusionRow[i] / refLabelBlockLength;
+        if(overlapThreshold < overlapRatio) atLeastOneHit = true;
         refLabelConfusionRow[i] = overlapThreshold < overlapRatio ? 1 : 0;
+    }
+    // if no hit was found set the last column to 1
+    // last column is reserved for not defined labels
+    // it should rarely happen that no hit is found
+    if (atLeastOneHit == false){
+        refLabelConfusionRow[columnSize - 1] = 1;
     }
 }
 
