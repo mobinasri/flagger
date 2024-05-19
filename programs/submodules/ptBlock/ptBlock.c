@@ -2067,6 +2067,16 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable,
     }
 }
 
+// It will modify confusion row in place
+void convertBaseLevelToOverlapBased(int *refLabelConfusionRow,
+                                    int columnSize,
+                                    int refLabelBlockLength,
+                                    double overlapThreshold){
+    for(int i=0; i < columnSize; i++){
+        double overlapRatio = (double) refLabelConfusionRow[i] / refLabelBlockLength;
+        refLabelConfusionRow[i] = overlapThreshold < overlapRatio ? 1 : 0;
+    }
+}
 
 // blockIterator can be created by either
 // ChunkIterator_construct or ptBlockItrPerContig_construct
@@ -2076,12 +2086,21 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
                                     IntBinArray *sizeBinArray,
                                     int annotationIndex,
                                     int8_t (*getRefLabelFunction)(Inference *),
-                                    int8_t (*getQueryLabelFunction)(Inference *)) {
+                                    int8_t (*getQueryLabelFunction)(Inference *),
+                                    bool isMetricOverlapBased,
+                                    double overlapThreshold) {
 
-    int numberOfQueryLabels = summaryTableList->numberOfColumns;
+    if(summaryTableList->numberOfCategories1 <= annotationIndex){
+        fprintf(stderr, "[%s] Error: annotation index (%d) for updating category 1 is greater than or equal to the size of the category (%d).",
+                get_timestamp(),
+                annotationIndex,
+                summaryTableList->numberOfCategories1);
+        exit(EXIT_FAILURE);
+    }
 
-    int *refLabelConfusionRow = Int_construct1DArray(numberOfQueryLabels);
-    Int_fill1DArray(refLabelConfusionRow, numberOfQueryLabels, 0);
+    // +1 for undefined query labels
+    int *refLabelConfusionRow = Int_construct1DArray(summaryTableList->numberOfColumns);
+    Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
 
     int refLabelStart = -1;
     int preRefLabel = -1;
@@ -2120,18 +2139,18 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
         bool annotationEnded = !annotationInCurrent && annotationInPrevious;
 
         bool preRefLabelIsValid = preRefLabel != -1;
-	/*
-	fprintf(stderr, "%s %d-%d annot = %d \n", ctg, start, end, annotationIndex);
-	fprintf(stderr, "\t rlabel = %d\n", refLabel);
-	fprintf(stderr, "\t qlabel = %d\n", queryLabel);
-	fprintf(stderr, "\t contigChanged = %d\n", contigChanged);
-	fprintf(stderr, "\t refLabelChanged = %d\n", refLabelChanged);
-	fprintf(stderr, "\t annotationInCurrent = %d\n", annotationInCurrent);
-	fprintf(stderr, "\t annotationInPrevious = %d\n", annotationInPrevious);
-	fprintf(stderr, "\t annotationContinued = %d\n", annotationContinued);
-	fprintf(stderr, "\t annotationStarted = %d\n", annotationStarted);
-	fprintf(stderr, "\t annotationEnded = %d\n", annotationEnded);
-	fprintf(stderr, "\t preRefLabelIsValid = %d\n", preRefLabelIsValid);*/
+        /*
+        fprintf(stderr, "%s %d-%d annot = %d \n", ctg, start, end, annotationIndex);
+        fprintf(stderr, "\t rlabel = %d\n", refLabel);
+        fprintf(stderr, "\t qlabel = %d\n", queryLabel);
+        fprintf(stderr, "\t contigChanged = %d\n", contigChanged);
+        fprintf(stderr, "\t refLabelChanged = %d\n", refLabelChanged);
+        fprintf(stderr, "\t annotationInCurrent = %d\n", annotationInCurrent);
+        fprintf(stderr, "\t annotationInPrevious = %d\n", annotationInPrevious);
+        fprintf(stderr, "\t annotationContinued = %d\n", annotationContinued);
+        fprintf(stderr, "\t annotationStarted = %d\n", annotationStarted);
+        fprintf(stderr, "\t annotationEnded = %d\n", annotationEnded);
+        fprintf(stderr, "\t preRefLabelIsValid = %d\n", preRefLabelIsValid);*/
 
         // one annotation-ref-label block has ended
         // update summary table
@@ -2140,16 +2159,21 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
                 (annotationInPrevious && contigChanged) ||
                 annotationEnded)
                 ) {
-            int blockLen = preBlockEnd - refLabelStart + 1;
-            int binIndex = IntBinArray_getBinIndex(sizeBinArray, blockLen);
+            int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
+            int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
+            if (isMetricOverlapBased){
+                convertBaseLevelToOverlapBased(refLabelConfusionRow,
+                                               summaryTableList->numberOfColumns,
+                                               refLabelBlockLen,
+                                               overlapThreshold);
+            }
             // iterating over query labels
-            for (int q = 0; q < numberOfQueryLabels; q++) {
+            for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
                 int catIndex1 = annotationIndex;
                 int catIndex2 = binIndex;
                 int rowIndex = preRefLabel;
                 int columnIndex = q;
-		//fprintf(stderr, "block len = %d, [%d][%d] [%d][%d] += %d\n", blockLen, catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
-
+		        //fprintf(stderr, "block len = %d, [%d][%d] [%d][%d] += %d\n", blockLen, catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
                 SummaryTableList_increment(summaryTableList,
                                            catIndex1,
                                            catIndex2,
@@ -2163,7 +2187,7 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
         if ((!annotationInCurrent && contigChanged) ||
             annotationEnded) {
             refLabelStart = -1;
-            Int_fill1DArray(refLabelConfusionRow, numberOfQueryLabels, 0);
+            Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
         }
 
         // reset confusion row and update start location
@@ -2171,12 +2195,18 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
             (annotationInCurrent && contigChanged) ||
             annotationStarted) {
             refLabelStart = start;
-            Int_fill1DArray(refLabelConfusionRow, numberOfQueryLabels, 0);
+            Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
         }
 
         // update confusion row
-        if (annotationInCurrent && 0 <= queryLabel) {
-            refLabelConfusionRow[queryLabel] += end - start + 1;
+        if (annotationInCurrent) {
+            if (queryLabel < 0){
+                // last index is reserved for undefined labels
+                refLabelConfusionRow[summaryTableList->numberOfColumns - 1] += end - start + 1;
+            }
+            else if (queryLabel < summaryTableList->numberOfColumns - 1){
+                refLabelConfusionRow[queryLabel] += end - start + 1;
+            }
         }
 
 
@@ -2190,15 +2220,21 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
     // check last window and update summary tables if it had overlap with annotation
     bool annotationInLastWindow = CoverageInfo_overlapAnnotationIndex(preCoverageInfo, annotationIndex);
     if (annotationInLastWindow && preRefLabelIsValid) {
-        int blockLen = preBlockEnd - refLabelStart + 1;
-        int binIndex = IntBinArray_getBinIndex(sizeBinArray, blockLen);
+        int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
+        int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
+        if (isMetricOverlapBased){
+            convertBaseLevelToOverlapBased(refLabelConfusionRow,
+                                           summaryTableList->numberOfColumns,
+                                           refLabelBlockLen,
+                                           overlapThreshold);
+        }
         // iterating over query labels
-        for (int q = 0; q < numberOfQueryLabels; q++) {
+        for (int q = 0; q < numberOfQueryLabels + 1; q++) {
             int catIndex1 = annotationIndex;
             int catIndex2 = binIndex;
             int rowIndex = preRefLabel;
             int columnIndex = q;
-	    //fprintf(stderr, "[%d][%d] [%d][%d] += %d\n", catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
+	        //fprintf(stderr, "[%d][%d] [%d][%d] += %d\n", catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
             SummaryTableList_increment(summaryTableList,
                                        catIndex1,
                                        catIndex2,

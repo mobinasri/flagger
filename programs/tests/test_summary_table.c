@@ -248,35 +248,39 @@ bool test_SummaryTableList_getRowString() {
 int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const char *binArrayFilePath,
                                                     bool useChunkIterator) {
     // whole genome
-    double **wholeGenomeBin1 = Double_construct2DArray(4, 4);
+    double **wholeGenomeBin1 = Double_construct2DArray(4, 5);
     wholeGenomeBin1[1][3] = 2.0;
 
-    double **wholeGenomeBin2 = Double_construct2DArray(4, 4);
+    double **wholeGenomeBin2 = Double_construct2DArray(4, 5);
     wholeGenomeBin2[0][0] = 2.0;
+    wholeGenomeBin2[0][4] = 1.0; // undefined label
     wholeGenomeBin2[2][1] = 1.0;
     wholeGenomeBin2[2][2] = 6.0;
+    wholeGenomeBin2[2][4] = 2.0; // undefined label
     wholeGenomeBin2[3][0] = 1.0;
     wholeGenomeBin2[3][1] = 4.0;
     wholeGenomeBin2[3][3] = 3.0;
 
     // annotation 1
-    double **annotation1Bin1 = Double_construct2DArray(4, 4);
+    double **annotation1Bin1 = Double_construct2DArray(4, 5);
     annotation1Bin1[0][0] = 2.0;
-    double **annotation1Bin2 = Double_construct2DArray(4, 4);
+    double **annotation1Bin2 = Double_construct2DArray(4, 5);
     annotation1Bin2[2][1] = 1.0;
+    annotation1Bin2[2][4] = 2.0; // undefined label
 
     // annotation 2
-    double **annotation2Bin1 = Double_construct2DArray(4, 4);
+    double **annotation2Bin1 = Double_construct2DArray(4, 5);
     annotation2Bin1[1][3] = 2.0;
 
-    double **annotation2Bin2 = Double_construct2DArray(4, 4);
+    double **annotation2Bin2 = Double_construct2DArray(4, 5);
     annotation2Bin2[2][2] = 4.0;
+    annotation2Bin2[2][4] = 4.0; // undefined label
     annotation2Bin2[3][1] = 4.0;
     annotation2Bin2[3][3] = 3.0;
 
     void *iterator;
-    ptBlock * (*getNextBlock)(
-    void *, char *);
+    ptBlock *(*getNextBlock)(
+            void *, char *);
     void (*resetIterator)(void *);
     CoverageHeader *header = NULL;
     ChunksCreator *chunksCreator = NULL;
@@ -318,8 +322,11 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
                                                                     categoryNames2,
                                                                     numberOfRows,
-                                                                    numberOfColumns);
+                                                                    numberOfColumns +
+                                                                    1); // +1 for undefined state (label = -1)
 
+    bool isMetricOverlapBased = false;
+    double overlapThreshold = 0.0;
     for (int annotationIndex = 0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
         // reset iterator since we use the same iterator for all annotations
         resetIterator(iterator);
@@ -329,7 +336,9 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
                                        binArray,
                                        annotationIndex,
                                        get_inference_prediction_label,
-                                       get_inference_truth_label);
+                                       get_inference_truth_label,
+                                       isMetricOverlapBased,
+                                       overlapThreshold);
     }
 
     bool correct = true;
@@ -337,27 +346,27 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     SummaryTable *summaryTable;
     // whole genome bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 1, 0);
-    correct &= Double_equality2DArray(wholeGenomeBin1, summaryTable->table, 4, 4);
+    correct &= Double_equality2DArray(wholeGenomeBin1, summaryTable->table, 4, 5);
 
     // whole genome bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 1, 1);
-    correct &= Double_equality2DArray(wholeGenomeBin2, summaryTable->table, 4, 4);
+    correct &= Double_equality2DArray(wholeGenomeBin2, summaryTable->table, 4, 5);
 
     // annotation 1 bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 2, 0);
-    correct &= Double_equality2DArray(annotation1Bin1, summaryTable->table, 4, 4);
+    correct &= Double_equality2DArray(annotation1Bin1, summaryTable->table, 4, 5);
 
     // annotation 1 bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 2, 1);
-    correct &= Double_equality2DArray(annotation1Bin2, summaryTable->table, 4, 4);
+    correct &= Double_equality2DArray(annotation1Bin2, summaryTable->table, 4, 5);
 
     // annotation 2 bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 3, 0);
-    correct &= Double_equality2DArray(annotation2Bin1, summaryTable->table, 4, 4);
+    correct &= Double_equality2DArray(annotation2Bin1, summaryTable->table, 4, 5);
 
     // annotation 2 bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 3, 1);
-    correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table, 4, 4);
+    correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table, 4, 5);
 
     SummaryTableList_destruct(summaryTableList);
 

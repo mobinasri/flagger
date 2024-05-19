@@ -712,13 +712,20 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable,
                                      stHash *ctgToLen,
                                      CoverageHeader *header);
 
+void convertBaseLevelToOverlapBased(int *refLabelConfusionRow,
+                                    int columnSize,
+                                    int refLabelBlockLength,
+                                    double overlapThreshold);
+
 void ptBlock_updateSummaryTableList(void *blockIterator,
                                     ptBlock *(*getNextBlock)(void *, char *),
                                     SummaryTableList *summaryTableList,
                                     IntBinArray *sizeBinArray,
                                     int annotationIndex,
                                     int8_t (*getRefLabelFunction)(Inference *),
-                                    int8_t (*getQueryLabelFunction)(Inference *));
+                                    int8_t (*getQueryLabelFunction)(Inference *),
+                                    bool isMetricOverlapBased,
+                                    double overlapThreshold);
 
 #endif /* PT_BLOCK_H */
 
