@@ -706,6 +706,23 @@ ChunkIterator *ChunkIterator_construct(ChunksCreator *chunksCreator) {
     return chunkIterator;
 }
 
+ChunkIterator *ChunkIterator_copy(ChunkIterator *src) {
+    ChunkIterator *dest = malloc(sizeof(ChunkIterator));
+    dest->numberOfChunks = src->numberOfChunks;
+    dest->chunksCreator = src->chunksCreator;
+    dest->nextChunkIndex = src->nextChunkIndex;
+    dest->nextWindowIndex = src->nextWindowIndex;
+    dest->block = ptBlock_construct(src->block->rfs, src->block->rfe, -1, -1, -1, -1);
+    // set coverage info data initially to NULL
+    // set the related functions
+    ptBlock_set_data(dest->block,
+                     src->block->data,
+                     destruct_cov_info_data,
+                     copy_cov_info_data,
+                     extend_cov_info_data);
+    return dest;
+}
+
 void ChunkIterator_reset(ChunkIterator *chunkIterator) {
     chunkIterator->nextChunkIndex = 0;
     chunkIterator->nextWindowIndex = 0;

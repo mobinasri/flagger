@@ -110,6 +110,8 @@ typedef struct ChunkIterator {
 
 ChunkIterator *ChunkIterator_construct(ChunksCreator *chunksCreator);
 
+ChunkIterator *ChunkIterator_copy(ChunkIterator *src);
+
 void ChunkIterator_destruct(ChunkIterator *chunkIterator);
 
 ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_name);
