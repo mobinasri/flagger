@@ -96,7 +96,7 @@ bool testCreatingChunks(char *covPath) {
 }
 
 
-bool testCreatingChunksWithLabels(char *covPath) {
+bool testCreatingChunksWithLabels(char *covPath, bool doWriteAndRead) {
     bool correct = true;
     // start (0-based), end (0-based), coverage, high_mapq, high_clip, region_index
     int truthValuesCtg1[6][6] = {{0,   19,  5,  2,  2,  0},
@@ -142,6 +142,17 @@ bool testCreatingChunksWithLabels(char *covPath) {
     if (ChunksCreator_parseChunks(chunksCreator) != 0) {
         return false;
     }
+
+    if(doWriteAndRead){
+        ChunksCreator_writeChunksIntoBinaryFile(chunksCreator, "tests/test_files/chunks_creator/tmp.bin");
+
+        // free previous ChunksCreator and make an empty for parsing the saved binary file
+        ChunksCreator_destruct(chunksCreator);
+        chunksCreator = ChunksCreator_constructEmpty();
+        ChunkCreator_parseChunksFromBinaryFile(chunksCreator, "tests/test_files/chunks_creator/tmp.bin");
+    }
+
+
     stList *chunks = chunksCreator->chunks;
     int numberOfChunks = stList_length(chunks);
     for (int chunkIndex = 0; chunkIndex < numberOfChunks; chunkIndex++) {
@@ -236,10 +247,17 @@ int main(int argc, char *argv[]) {
     allTestsPassed &= test2Passed;
 
     // test 3
-    bool test3Passed = testCreatingChunksWithLabels("tests/test_files/chunks_creator/test_1_with_labels.cov");
+    bool test3Passed = testCreatingChunksWithLabels("tests/test_files/chunks_creator/test_1_with_labels.cov", false);
     printf("[chunks_creator] Test creating chunks from uncompressed file with labels:");
     printf(test3Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test3Passed;
+
+    // test 3
+    bool test4Passed = testCreatingChunksWithLabels("tests/test_files/chunks_creator/test_1_with_labels.cov", true);
+    printf("[chunks_creator] Test creating chunks from uncompressed file with labels (also checked writing and reading):");
+    printf(test4Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test4Passed;
+
 
     if (allTestsPassed)
         return 0;
