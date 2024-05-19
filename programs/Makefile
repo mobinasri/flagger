@@ -104,7 +104,7 @@ run_tests:
 		if [ $$return_code -eq 0 ]; then printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_OK ; \
 		                            else printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_FAIL ; fi
 	# convert cov to bed with both labels
-	./bin/coverage_format_converter \ 
+	./bin/coverage_format_converter \
 		-i tests/test_files/coverage_format_converter/test_1_with_labels.cov \
 		-o tests/test_files/coverage_format_converter/test_1_with_labels.output.bed; \
 		cmp tests/test_files/coverage_format_converter/test_1_with_labels.output.bed \
@@ -112,8 +112,8 @@ run_tests:
 		return_code=$$?; \
 		if [ $$return_code -eq 0 ]; then printf "PROGRAM:coverage_format_converter:for_cov_to_bed_both_labels\tOK\n" >> tests_status.txt; \
 		                            else printf "PROGRAM:coverage_format_converter:for_cov_to_bed_both_labels\tFAILED\n" >> tests_status.txt; fi ;\
-		if [ $$? -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bed (both labels):" && ./bin/print_OK ; \
-		                  else printf "Testing coverage_format_converter for cov -> bed (both labels):" && ./bin/print_FAIL ; fi
+		if [ $$return_code -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bed (both labels):" && ./bin/print_OK ; \
+		                            else printf "Testing coverage_format_converter for cov -> bed (both labels):" && ./bin/print_FAIL ; fi
 	# convert bed to cov with both labels
 	./bin/coverage_format_converter \
 		-i tests/test_files/coverage_format_converter/test_1_with_labels.bed \
