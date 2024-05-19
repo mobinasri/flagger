@@ -276,7 +276,9 @@ char *Double_getString2DArray(double **array, int length1, int length2, const ch
             sprintf(str + strlen(str), format, array[i][j]);
             sprintf(str + strlen(str), "%c", delimiter);
         }
-        sprintf(str + strlen(str), "\n");
+        if (i < length1 - 1) {
+            sprintf(str + strlen(str), "\n");
+        }
     }
     return str;
 }
