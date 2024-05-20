@@ -249,21 +249,20 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
                                                     bool useChunkIterator, bool isMetricOverlapBased) {
     // whole genome
     double **wholeGenomeBin1 = Double_construct2DArray(4, 5);
-    if(isMetricOverlapBased){
+    if (isMetricOverlapBased) {
         wholeGenomeBin1[1][3] = 1.0;
-    }
-    else {
+    } else {
         wholeGenomeBin1[1][3] = 2.0;
     }
 
     double **wholeGenomeBin2 = Double_construct2DArray(4, 5);
-    if(isMetricOverlapBased) {
+    if (isMetricOverlapBased) {
         wholeGenomeBin2[0][0] = 1.0;
         wholeGenomeBin2[2][2] = 1.0;
         wholeGenomeBin2[2][4] = 1.0; // undefined label
         wholeGenomeBin2[3][1] = 1.0;
         wholeGenomeBin2[3][3] = 1.0;
-    }else{
+    } else {
         wholeGenomeBin2[0][0] = 2.0;
         wholeGenomeBin2[0][4] = 1.0; // undefined label
         wholeGenomeBin2[2][1] = 1.0;
@@ -276,35 +275,35 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
 
     // annotation 1
     double **annotation1Bin1 = Double_construct2DArray(4, 5);
-    if(isMetricOverlapBased) {
+    if (isMetricOverlapBased) {
         annotation1Bin1[0][0] = 1.0;
-    }else{
+    } else {
         annotation1Bin1[0][0] = 2.0;
     }
 
     double **annotation1Bin2 = Double_construct2DArray(4, 5);
-    if(isMetricOverlapBased) {
+    if (isMetricOverlapBased) {
         annotation1Bin2[2][4] = 1.0; // undefined label
-    }else{
+    } else {
         annotation1Bin2[2][1] = 1.0;
         annotation1Bin2[2][4] = 2.0; // undefined label
     }
 
     // annotation 2
     double **annotation2Bin1 = Double_construct2DArray(4, 5);
-    if(isMetricOverlapBased) {
+    if (isMetricOverlapBased) {
         annotation2Bin1[1][3] = 1.0;
-    } else{
+    } else {
         annotation2Bin1[1][3] = 2.0;
     }
 
     double **annotation2Bin2 = Double_construct2DArray(4, 5);
-    if(isMetricOverlapBased) {
+    if (isMetricOverlapBased) {
         annotation2Bin2[2][2] = 1.0;
         annotation2Bin2[2][4] = 1.0; // undefined label
         annotation2Bin2[3][1] = 1.0;
         annotation2Bin2[3][3] = 1.0;
-    }else{
+    } else {
         annotation2Bin2[2][2] = 4.0;
         annotation2Bin2[2][4] = 4.0; // undefined label
         annotation2Bin2[3][1] = 4.0;
@@ -313,6 +312,8 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
 
     void *iterator;
     ptBlock *(*getNextBlock)(void *, char *);
+    void *(*copyIterator)(void *);
+    void (*destructIterator)(void *);
     void (*resetIterator)(void *);
     CoverageHeader *header = NULL;
     ChunksCreator *chunksCreator = NULL;
@@ -331,12 +332,16 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
             return false;
         }
         iterator = (void *) ChunkIterator_construct(chunksCreator);
+        copyIterator = ChunkIterator_copy;
+        destructIterator = ChunkIterator_destruct;
         resetIterator = ChunkIterator_reset;
         getNextBlock = ChunkIterator_getNextPtBlock;
         header = chunksCreator->header;
     } else {
         stHash *blocksPerContig = ptBlock_parse_coverage_info_blocks(covPath);
         iterator = (void *) ptBlockItrPerContig_construct(blocksPerContig);
+        copyIterator = ptBlockItrPerContig_copy;
+        destructIterator = ptBlockItrPerContig_destruct;
         resetIterator = ptBlockItrPerContig_reset;
         getNextBlock = ptBlockItrPerContig_next;
         header = CoverageHeader_construct(covPath);
@@ -358,19 +363,23 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
                                                                     1); // +1 for undefined state (label = -1)
 
     double overlapThreshold = 0.4;
-    for (int annotationIndex = 0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
-        // reset iterator since we use the same iterator for all annotations
-        resetIterator(iterator);
-        ptBlock_updateSummaryTableList(iterator,
-                                       getNextBlock,
-                                       summaryTableList,
-                                       binArray,
-                                       annotationIndex,
-                                       get_inference_prediction_label,
-                                       get_inference_truth_label,
-                                       isMetricOverlapBased,
-                                       overlapThreshold);
-    }
+    SummaryTableUpdaterArgs *argsTemplate = SummaryTableUpdaterArgs_construct(iterator,
+                                                                              copyIterator,
+                                                                              resetIterator,
+                                                                              destructIterator,
+                                                                              getNextBlock,
+                                                                              summaryTableList,
+                                                                              binArray,
+                                                                              CoverageInfo_overlapAnnotationIndex,
+                                                                              -1,
+                                                                              get_inference_prediction_label,
+                                                                              get_inference_truth_label,
+                                                                              isMetricOverlapBased,
+                                                                              overlapThreshold);
+    int threads = 4;
+    // update all tables with multi-threading
+    ptBlock_updateSummaryTableListForAllCategory1(argsTemplate, header->numberOfAnnotations, threads);
+
 
     bool correct = true;
 

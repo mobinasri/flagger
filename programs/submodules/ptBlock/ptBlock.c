@@ -249,6 +249,10 @@ bool CoverageInfo_overlapAnnotationIndex(CoverageInfo *coverageInfo, int annotat
     return (annotationFlag & coverageInfo->annotation_flag) ? 1 : 0;
 }
 
+bool CoverageInfo_overlapRegionIndex(CoverageInfo *coverageInfo, int regionIndex) {
+    return regionIndex == CoverageInfo_getRegionIndex(coverageInfo);
+}
+
 // once we have an array (with its length equal to the number of available annotations)
 // and it maps annotation index to region index we can use this function
 // for setting region bits based on annotation bits
@@ -702,6 +706,21 @@ ptBlockItrPerContig *ptBlockItrPerContig_construct(stHash *blocks_per_contig) {
     block_iter->ctg_index = 0;
     block_iter->block_index = 0;
     return block_iter;
+}
+
+ptBlockItrPerContig *ptBlockItrPerContig_copy(ptBlockItrPerContig *src) {
+    ptBlockItrPerContig *dest = malloc(sizeof(ptBlockItrPerContig));
+    dest->blocks_per_contig = src->blocks_per_contig;
+    dest->ctg_list = stList_construct3(0, free);
+    stHashIterator *it = stHash_getIterator(dest->blocks_per_contig);
+    char *contig_name;
+    while ((contig_name = stHash_getNext(it)) != NULL) {
+        stList_append(dest->ctg_list, copyString(contig_name));
+    }
+    stList_sort(dest->ctg_list, (int (*)(const void *, const void *)) strcmp);
+    dest->ctg_index = src->ctg_index;
+    dest->block_index = src->block_index;
+    return dest;
 }
 
 void ptBlockItrPerContig_reset(ptBlockItrPerContig *block_iter) {
@@ -1664,8 +1683,7 @@ stList *parse_annotation_names_and_save_in_stList(const char *json_path, const c
     // each key is an index
     // each value is a path to a bed file
     cJSON *element = NULL;
-    cJSON_ArrayForEach(element, annotation_json)
-    {
+    cJSON_ArrayForEach(element, annotation_json) {
         char *annotation_name = element->string;
         stList_append(annotation_names, copyString(annotation_name));
     }
@@ -1699,8 +1717,7 @@ stList *parse_annotation_paths_and_save_in_stList(const char *json_path, const c
     // each key is an index
     // each value is a path to a bed file
     cJSON *element = NULL;
-    cJSON_ArrayForEach(element, annotation_json)
-    {
+    cJSON_ArrayForEach(element, annotation_json) {
         char *annotation_path = cJSON_GetStringValue(element);
         stList_append(annotation_paths, copyString(annotation_path));
     }
@@ -1734,8 +1751,7 @@ stList *parse_all_annotations_and_save_in_stList(const char *json_path, stHash *
         // each key is an index
         // each value is a path to a bed file
         cJSON *element = NULL;
-        cJSON_ArrayForEach(element, annotation_json)
-        {
+        cJSON_ArrayForEach(element, annotation_json) {
             if (cJSON_IsString(element)) {
                 char *bed_path = cJSON_GetStringValue(element);
                 stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
@@ -2071,37 +2087,134 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable,
 void convertBaseLevelToOverlapBased(int *refLabelConfusionRow,
                                     int columnSize,
                                     int refLabelBlockLength,
-                                    double overlapThreshold){
+                                    double overlapThreshold) {
     bool atLeastOneHit = false;
-    for(int i=0; i < columnSize; i++){
+    for (int i = 0; i < columnSize; i++) {
         double overlapRatio = (double) refLabelConfusionRow[i] / refLabelBlockLength;
-        if(overlapThreshold < overlapRatio) atLeastOneHit = true;
+        if (overlapThreshold < overlapRatio) atLeastOneHit = true;
         refLabelConfusionRow[i] = overlapThreshold < overlapRatio ? 1 : 0;
     }
     // if no hit was found set the last column to 1
     // last column is reserved for not defined labels
     // it should rarely happen that no hit is found
-    if (atLeastOneHit == false){
+    if (atLeastOneHit == false) {
         refLabelConfusionRow[columnSize - 1] = 1;
     }
 }
 
+SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_construct(void *blockIterator,
+                                                           void *(*copyBlockIterator)(void *),
+                                                           void *(*resetBlockIterator)(void *),
+                                                           void (*destructBlockIterator)(void *),
+                                                           ptBlock *(*getNextBlock)(void *, char *),
+                                                           SummaryTableList *summaryTableList,
+                                                           IntBinArray *sizeBinArray,
+                                                           int (*overlapFuncCategoryIndex1)(CoverageInfo *, int),
+                                                           int categoryIndex1,
+                                                           int8_t (*getRefLabelFunction)(Inference *),
+                                                           int8_t (*getQueryLabelFunction)(Inference *),
+                                                           bool isMetricOverlapBased,
+                                                           double overlapThreshold) {
+    SummaryTableUpdaterArgs *args = (SummaryTableUpdaterArgs *) malloc(1 * sizeof(SummaryTableUpdaterArgs));
+    args->blockIterator = blockIterator;
+    args->copyBlockIterator = copyBlockIterator;
+    args->resetBlockIterator = resetBlockIterator;
+    args->destructBlockIterator = destructBlockIterator;
+    args->getNextBlock = getNextBlock;
+    args->summaryTableList = summaryTableList;
+    args->sizeBinArray = sizeBinArray;
+    args->overlapFuncCategoryIndex1 = overlapFuncCategoryIndex1;
+    args->categoryIndex1 = categoryIndex1;
+    args->getRefLabelFunction = getRefLabelFunction;
+    args->getQueryLabelFunction = getQueryLabelFunction;
+    args->isMetricOverlapBased = isMetricOverlapBased;
+    args->overlapThreshold = overlapThreshold;
+    return args;
+}
+
+SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_copy(SummaryTableUpdaterArgs *src) {
+    SummaryTableUpdaterArgs *dest = (SummaryTableUpdaterArgs *) malloc(1 * sizeof(SummaryTableUpdaterArgs));
+    dest->blockIterator = src->blockIterator;
+    dest->copyBlockIterator = src->copyBlockIterator;
+    dest->resetBlockIterator = src->resetBlockIterator;
+    dest->destructBlockIterator = src->destructBlockIterator;
+    dest->getNextBlock = src->getNextBlock;
+    dest->summaryTableList = src->summaryTableList;
+    dest->sizeBinArray = src->sizeBinArray;
+    dest->overlapFuncCategoryIndex1 = src->overlapFuncCategoryIndex1;
+    dest->categoryIndex1 = src->categoryIndex1;
+    dest->getRefLabelFunction = src->getRefLabelFunction;
+    dest->getQueryLabelFunction = src->getQueryLabelFunction;
+    dest->isMetricOverlapBased = src->isMetricOverlapBased;
+    dest->overlapThreshold = src->overlapThreshold;
+    return dest;
+}
+
+void SummaryTableUpdaterArgs_destruct(SummaryTableUpdaterArgs *args) {
+    free(args);
+}
+
+
+void
+ptBlock_updateSummaryTableListForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, int sizeOfCategory1, int threads) {
+
+    // create a thread pool
+    tpool_t *tm = tpool_create(threads);
+    for (int categoryIndex1 = 0; categoryIndex1 < sizeOfCategory1; categoryIndex1++) {
+        // make a copy of args
+        SummaryTableUpdaterArgs *argsToRun = SummaryTableUpdaterArgs_copy(argsTemplate);
+        // set the category index 1 whose related summary table is going to be updated
+        argsToRun->categoryIndex1 = categoryIndex1;
+        // create arg struct for tpool
+        work_arg_t *argWork = malloc(sizeof(work_arg_t));
+        argWork->data = (void *) argsToRun;
+        // Add a new job to the thread pool
+        tpool_add_work(tm,
+                       ptBlock_updateSummaryTableListForTpool,
+                       (void *) argWork);
+        fprintf(stderr, "[%s] Created thread for updating summary table for category1 index %d (out of range [0-%d])\n",
+                get_timestamp(), categoryIndex1, sizeOfCategory1);
+    }
+    tpool_wait(tm);
+    tpool_destroy(tm);
+
+    fprintf(stderr, "[%s] Summary tables for all category 1 indices are updated.\n", get_timestamp());
+}
+
+void ptBlock_updateSummaryTableListForTpool(void *argWork_) {
+    // get the arguments
+    work_arg_t *argWork = argWork_;
+    SummaryTableUpdaterArgs *args = argWork->data;
+    ptBlock_updateSummaryTableList(args);
+    SummaryTableUpdaterArgs_destruct(args);
+}
+
 // blockIterator can be created by either
 // ChunkIterator_construct or ptBlockItrPerContig_construct
-void ptBlock_updateSummaryTableList(void *blockIterator,
-                                    ptBlock *(*getNextBlock)(void *, char *),
-                                    SummaryTableList *summaryTableList,
-                                    IntBinArray *sizeBinArray,
-                                    int annotationIndex,
-                                    int8_t (*getRefLabelFunction)(Inference *),
-                                    int8_t (*getQueryLabelFunction)(Inference *),
-                                    bool isMetricOverlapBased,
-                                    double overlapThreshold) {
+void ptBlock_updateSummaryTableList(SummaryTableUpdaterArgs *args) {
+    // fetch the arguments
+    void *(*copyBlockIterator)(void *) = args->copyBlockIterator;
+    void (*resetBlockIterator)(void *) = args->resetBlockIterator;
+    void (*destructBlockIterator)(void *) = args->destructBlockIterator;
+    ptBlock *(*getNextBlock)(void *, char *) = args->getNextBlock;
+    SummaryTableList *summaryTableList = args->summaryTableList;
+    IntBinArray *sizeBinArray = args->sizeBinArray;
+    int (*overlapFuncCategoryIndex1)(CoverageInfo *, int) = args->overlapFuncCategoryIndex1;
+    int categoryIndex1 = args->categoryIndex1;
+    int8_t(*getRefLabelFunction)(Inference * ) = args->getRefLabelFunction;
+    int8_t(*getQueryLabelFunction)(Inference * ) = args->getQueryLabelFunction;
+    bool isMetricOverlapBased = args->isMetricOverlapBased;
+    double overlapThreshold = args->overlapThreshold;
 
-    if(summaryTableList->numberOfCategories1 <= annotationIndex){
-        fprintf(stderr, "[%s] Error: annotation index (%d) for updating category 1 is greater than or equal to the size of the category (%d).",
+    // make a copy of iterator and reset it
+    void *blockIterator = copyBlockIterator(args->blockIterator);
+    resetBlockIterator(blockIterator);
+
+    if (summaryTableList->numberOfCategories1 <= categoryIndex1) {
+        fprintf(stderr,
+                "[%s] Error: annotation index (%d) for updating category 1 is greater than or equal to the size of the category (%d).",
                 get_timestamp(),
-                annotationIndex,
+                categoryIndex1,
                 summaryTableList->numberOfCategories1);
         exit(EXIT_FAILURE);
     }
@@ -2140,15 +2253,15 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
         bool contigChanged = (preCtg[0] != '\0') && (strcmp(preCtg, ctg) != 0);
         bool refLabelChanged = refLabel != preRefLabel;
 
-        bool annotationInCurrent = CoverageInfo_overlapAnnotationIndex(coverageInfo, annotationIndex);
-        bool annotationInPrevious = CoverageInfo_overlapAnnotationIndex(preCoverageInfo, annotationIndex);
+        bool annotationInCurrent = CoverageInfo_overlapcategoryIndex1(coverageInfo, categoryIndex1);
+        bool annotationInPrevious = CoverageInfo_overlapcategoryIndex1(preCoverageInfo, categoryIndex1);
         bool annotationContinued = annotationInCurrent && annotationInPrevious;
         bool annotationStarted = annotationInCurrent && !annotationInPrevious;
         bool annotationEnded = !annotationInCurrent && annotationInPrevious;
 
         bool preRefLabelIsValid = preRefLabel != -1;
         /*
-        fprintf(stderr, "%s %d-%d annot = %d \n", ctg, start, end, annotationIndex);
+        fprintf(stderr, "%s %d-%d annot = %d \n", ctg, start, end, categoryIndex1);
         fprintf(stderr, "\t rlabel = %d\n", refLabel);
         fprintf(stderr, "\t qlabel = %d\n", queryLabel);
         fprintf(stderr, "\t contigChanged = %d\n", contigChanged);
@@ -2158,7 +2271,8 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
         fprintf(stderr, "\t annotationContinued = %d\n", annotationContinued);
         fprintf(stderr, "\t annotationStarted = %d\n", annotationStarted);
         fprintf(stderr, "\t annotationEnded = %d\n", annotationEnded);
-        fprintf(stderr, "\t preRefLabelIsValid = %d\n", preRefLabelIsValid);*/
+        fprintf(stderr, "\t preRefLabelIsValid = %d\n", preRefLabelIsValid);
+         */
 
         // one annotation-ref-label block has ended
         // update summary table
@@ -2169,7 +2283,7 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
                 ) {
             int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
             int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
-            if (isMetricOverlapBased){
+            if (isMetricOverlapBased) {
                 convertBaseLevelToOverlapBased(refLabelConfusionRow,
                                                summaryTableList->numberOfColumns,
                                                refLabelBlockLen,
@@ -2177,11 +2291,11 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
             }
             // iterating over query labels
             for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
-                int catIndex1 = annotationIndex;
+                int catIndex1 = categoryIndex1;
                 int catIndex2 = binIndex;
                 int rowIndex = preRefLabel;
                 int columnIndex = q;
-		        //fprintf(stderr, "block len = %d, [%d][%d] [%d][%d] += %d\n", blockLen, catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
+                //fprintf(stderr, "block len = %d, [%d][%d] [%d][%d] += %d\n", blockLen, catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
                 SummaryTableList_increment(summaryTableList,
                                            catIndex1,
                                            catIndex2,
@@ -2208,11 +2322,10 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
 
         // update confusion row
         if (annotationInCurrent) {
-            if (queryLabel < 0){
+            if (queryLabel < 0) {
                 // last index is reserved for undefined labels
                 refLabelConfusionRow[summaryTableList->numberOfColumns - 1] += end - start + 1;
-            }
-            else if (queryLabel < summaryTableList->numberOfColumns - 1){
+            } else if (queryLabel < summaryTableList->numberOfColumns - 1) {
                 refLabelConfusionRow[queryLabel] += end - start + 1;
             }
         }
@@ -2226,11 +2339,11 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
 
     bool preRefLabelIsValid = preRefLabel != -1;
     // check last window and update summary tables if it had overlap with annotation
-    bool annotationInLastWindow = CoverageInfo_overlapAnnotationIndex(preCoverageInfo, annotationIndex);
+    bool annotationInLastWindow = CoverageInfo_overlapcategoryIndex1(preCoverageInfo, categoryIndex1);
     if (annotationInLastWindow && preRefLabelIsValid) {
         int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
         int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
-        if (isMetricOverlapBased){
+        if (isMetricOverlapBased) {
             convertBaseLevelToOverlapBased(refLabelConfusionRow,
                                            summaryTableList->numberOfColumns,
                                            refLabelBlockLen,
@@ -2238,11 +2351,11 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
         }
         // iterating over query labels
         for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
-            int catIndex1 = annotationIndex;
+            int catIndex1 = categoryIndex1;
             int catIndex2 = binIndex;
             int rowIndex = preRefLabel;
             int columnIndex = q;
-	        //fprintf(stderr, "[%d][%d] [%d][%d] += %d\n", catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
+            //fprintf(stderr, "[%d][%d] [%d][%d] += %d\n", catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
             SummaryTableList_increment(summaryTableList,
                                        catIndex1,
                                        catIndex2,
@@ -2253,5 +2366,6 @@ void ptBlock_updateSummaryTableList(void *blockIterator,
     }
 
     Int_destruct1DArray(refLabelConfusionRow);
+    destructBlockIterator(blockIterator);
 }
 
