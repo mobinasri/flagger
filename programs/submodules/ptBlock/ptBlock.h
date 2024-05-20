@@ -14,7 +14,6 @@
 #include "ptBlock.h"
 #include "track_reader.h"
 #include "cJSON.h"
-#include "summary_table.h"
 
 /*! @typedef
  * @abstract Structure for saving a block

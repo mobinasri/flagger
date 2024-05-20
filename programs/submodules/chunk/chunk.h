@@ -1,3 +1,6 @@
+#ifndef CHUNK_H
+#define CHUNK_H
+
 #include <stdint.h>
 #include "data_types.h"
 #include "ptBlock.h"
@@ -117,3 +120,5 @@ void ChunkIterator_destruct(ChunkIterator *chunkIterator);
 ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_name);
 
 void ChunkIterator_reset(ChunkIterator *chunkIterator);
+
+#endif /* CHUNK_H */

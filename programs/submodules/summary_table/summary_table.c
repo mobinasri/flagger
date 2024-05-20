@@ -512,7 +512,7 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
 
     // create summary table list
     stList *categoryNames1 = categoryNames;
-    stList *categoryNames2 = binArray->names;
+    stList *categoryNames2 = sizeBinArray->names;
 
     int sizeOfCategory1 = stList_length(categoryNames1);
     int numberOfRows = numberOfLabels;
@@ -530,7 +530,7 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                                               destructIterator,
                                                                               getNextBlock,
                                                                               summaryTableList,
-                                                                              binArray,
+                                                                              sizeBinArray,
                                                                               overlapFuncCategoryIndex1,
                                                                               -1,
                                                                               getRefLabelFunction,
@@ -538,7 +538,7 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                                               isMetricOverlapBased,
                                                                               overlapRatioThreshold);
     // update all tables with multi-threading
-    ptBlock_updateSummaryTableListForAllCategory1(argsTemplate, sizeOfCategory1, numberOfThreads);
+    SummaryTableList_updateForAllCategory1(argsTemplate, sizeOfCategory1, numberOfThreads);
 
     SummaryTableUpdaterArgs_destruct(argsTemplate);
 
