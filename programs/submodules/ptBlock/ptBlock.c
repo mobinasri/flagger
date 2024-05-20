@@ -2253,8 +2253,8 @@ void ptBlock_updateSummaryTableList(SummaryTableUpdaterArgs *args) {
         bool contigChanged = (preCtg[0] != '\0') && (strcmp(preCtg, ctg) != 0);
         bool refLabelChanged = refLabel != preRefLabel;
 
-        bool annotationInCurrent = CoverageInfo_overlapcategoryIndex1(coverageInfo, categoryIndex1);
-        bool annotationInPrevious = CoverageInfo_overlapcategoryIndex1(preCoverageInfo, categoryIndex1);
+        bool annotationInCurrent = overlapFuncCategoryIndex1(coverageInfo, categoryIndex1);
+        bool annotationInPrevious = overlapFuncCategoryIndex1(preCoverageInfo, categoryIndex1);
         bool annotationContinued = annotationInCurrent && annotationInPrevious;
         bool annotationStarted = annotationInCurrent && !annotationInPrevious;
         bool annotationEnded = !annotationInCurrent && annotationInPrevious;
@@ -2339,7 +2339,7 @@ void ptBlock_updateSummaryTableList(SummaryTableUpdaterArgs *args) {
 
     bool preRefLabelIsValid = preRefLabel != -1;
     // check last window and update summary tables if it had overlap with annotation
-    bool annotationInLastWindow = CoverageInfo_overlapcategoryIndex1(preCoverageInfo, categoryIndex1);
+    bool annotationInLastWindow = overlapFuncCategoryIndex1(preCoverageInfo, categoryIndex1);
     if (annotationInLastWindow && preRefLabelIsValid) {
         int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
         int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
