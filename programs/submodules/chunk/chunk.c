@@ -595,7 +595,7 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
     // read region coverages
     free(header->regionCoverages);
     header->regionCoverages = Int_construct1DArray(header->numberOfRegions);
-    fread(&header->regionCoverages, sizeof(int32_t), header->numberOfRegions, fp);
+    fread(header->regionCoverages, sizeof(int32_t), header->numberOfRegions, fp);
     // read number of labels (will be non-zero if there are truth/prediction labels in the input coverage file)
     fread(&header->numberOfLabels, sizeof(int32_t), 1, fp);
     // read truth availability one bit
