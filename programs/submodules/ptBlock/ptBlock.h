@@ -803,15 +803,7 @@ ptBlock_updateSummaryTableListForAllCategory1(SummaryTableUpdaterArgs *argsTempl
 
 void ptBlock_updateSummaryTableListForTpool(void *argWork_);
 
-void ptBlock_updateSummaryTableList(void *blockIterator,
-                                    ptBlock *(*getNextBlock)(void *, char *),
-                                    SummaryTableList *summaryTableList,
-                                    IntBinArray *sizeBinArray,
-                                    int annotationIndex,
-                                    int8_t (*getRefLabelFunction)(Inference *),
-                                    int8_t (*getQueryLabelFunction)(Inference *),
-                                    bool isMetricOverlapBased,
-                                    double overlapThreshold);
+void ptBlock_updateSummaryTableList(SummaryTableUpdaterArgs *args);
 
 #endif /* PT_BLOCK_H */
 
