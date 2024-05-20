@@ -50,16 +50,18 @@ void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int column
 }
 
 char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter) {
-    char* rowString = String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex], summaryTable->numberOfColumns, delimiter,
-                                            "%.2f");
+    char *rowString = String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex], summaryTable->numberOfColumns,
+                                                       delimiter,
+                                                       "%.2f");
     strcpy(summaryTable->rowString, rowString);
     free(rowString);
     return summaryTable->rowString;
 }
 
 char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter) {
-    char* rowString = String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex], summaryTable->numberOfColumns, delimiter,
-                                            "%.2f");
+    char *rowString = String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex],
+                                                       summaryTable->numberOfColumns, delimiter,
+                                                       "%.2f");
     strcpy(summaryTable->rowString, rowString);
     free(rowString);
     return summaryTable->rowString;
@@ -164,6 +166,383 @@ void SummaryTableList_destruct(SummaryTableList *summaryTableList) {
 }
 
 
+// It will modify confusion row in place
+void convertBaseLevelToOverlapBased(int *refLabelConfusionRow,
+                                    int columnSize,
+                                    int refLabelBlockLength,
+                                    double overlapThreshold) {
+    bool atLeastOneHit = false;
+    for (int i = 0; i < columnSize; i++) {
+        double overlapRatio = (double) refLabelConfusionRow[i] / refLabelBlockLength;
+        if (overlapThreshold < overlapRatio) atLeastOneHit = true;
+        refLabelConfusionRow[i] = overlapThreshold < overlapRatio ? 1 : 0;
+    }
+    // if no hit was found set the last column to 1
+    // last column is reserved for not defined labels
+    // it should rarely happen that no hit is found
+    if (atLeastOneHit == false) {
+        refLabelConfusionRow[columnSize - 1] = 1;
+    }
+}
 
+SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_construct(void *blockIterator,
+                                                           void *(*copyBlockIterator)(void *),
+                                                           void *(*resetBlockIterator)(void *),
+                                                           void (*destructBlockIterator)(void *),
+                                                           ptBlock *(*getNextBlock)(void *, char *),
+                                                           SummaryTableList *summaryTableList,
+                                                           IntBinArray *sizeBinArray,
+                                                           int (*overlapFuncCategoryIndex1)(CoverageInfo *, int),
+                                                           int categoryIndex1,
+                                                           int8_t (*getRefLabelFunction)(Inference *),
+                                                           int8_t (*getQueryLabelFunction)(Inference *),
+                                                           bool isMetricOverlapBased,
+                                                           double overlapThreshold) {
+    SummaryTableUpdaterArgs *args = (SummaryTableUpdaterArgs *) malloc(1 * sizeof(SummaryTableUpdaterArgs));
+    args->blockIterator = blockIterator;
+    args->copyBlockIterator = copyBlockIterator;
+    args->resetBlockIterator = resetBlockIterator;
+    args->destructBlockIterator = destructBlockIterator;
+    args->getNextBlock = getNextBlock;
+    args->summaryTableList = summaryTableList;
+    args->sizeBinArray = sizeBinArray;
+    args->overlapFuncCategoryIndex1 = overlapFuncCategoryIndex1;
+    args->categoryIndex1 = categoryIndex1;
+    args->getRefLabelFunction = getRefLabelFunction;
+    args->getQueryLabelFunction = getQueryLabelFunction;
+    args->isMetricOverlapBased = isMetricOverlapBased;
+    args->overlapThreshold = overlapThreshold;
+    return args;
+}
+
+SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_copy(SummaryTableUpdaterArgs *src) {
+    SummaryTableUpdaterArgs *dest = (SummaryTableUpdaterArgs *) malloc(1 * sizeof(SummaryTableUpdaterArgs));
+    dest->blockIterator = src->blockIterator;
+    dest->copyBlockIterator = src->copyBlockIterator;
+    dest->resetBlockIterator = src->resetBlockIterator;
+    dest->destructBlockIterator = src->destructBlockIterator;
+    dest->getNextBlock = src->getNextBlock;
+    dest->summaryTableList = src->summaryTableList;
+    dest->sizeBinArray = src->sizeBinArray;
+    dest->overlapFuncCategoryIndex1 = src->overlapFuncCategoryIndex1;
+    dest->categoryIndex1 = src->categoryIndex1;
+    dest->getRefLabelFunction = src->getRefLabelFunction;
+    dest->getQueryLabelFunction = src->getQueryLabelFunction;
+    dest->isMetricOverlapBased = src->isMetricOverlapBased;
+    dest->overlapThreshold = src->overlapThreshold;
+    return dest;
+}
+
+void SummaryTableUpdaterArgs_destruct(SummaryTableUpdaterArgs *args) {
+    free(args);
+}
+
+
+void
+SummaryTableList_updateForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, int sizeOfCategory1, int threads) {
+
+    // create a thread pool
+    tpool_t *tm = tpool_create(threads);
+    for (int categoryIndex1 = 0; categoryIndex1 < sizeOfCategory1; categoryIndex1++) {
+        // make a copy of args
+        SummaryTableUpdaterArgs *argsToRun = SummaryTableUpdaterArgs_copy(argsTemplate);
+        // set the category index 1 whose related summary table is going to be updated
+        argsToRun->categoryIndex1 = categoryIndex1;
+        // create arg struct for tpool
+        work_arg_t *argWork = malloc(sizeof(work_arg_t));
+        argWork->data = (void *) argsToRun;
+        // Add a new job to the thread pool
+        tpool_add_work(tm,
+                       SummaryTableList_updateByUpdaterArgsForThreadPool,
+                       (void *) argWork);
+        fprintf(stderr, "[%s] Created thread for updating summary table for category1 index %d (out of range [0-%d])\n",
+                get_timestamp(), categoryIndex1, sizeOfCategory1);
+    }
+    tpool_wait(tm);
+    tpool_destroy(tm);
+
+    fprintf(stderr, "[%s] Summary tables for all category 1 indices are updated.\n", get_timestamp());
+}
+
+void SummaryTableList_updateByUpdaterArgsForThreadPool(void *argWork_) {
+    // get the arguments
+    work_arg_t *argWork = argWork_;
+    SummaryTableUpdaterArgs *args = argWork->data;
+    SummaryTableList_updateByUpdaterArgs(args);
+    SummaryTableUpdaterArgs_destruct(args);
+}
+
+// blockIterator can be created by either
+// ChunkIterator_construct or ptBlockItrPerContig_construct
+void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
+    // fetch the arguments
+    void *(*copyBlockIterator)(void *) = args->copyBlockIterator;
+    void (*resetBlockIterator)(void *) = args->resetBlockIterator;
+    void (*destructBlockIterator)(void *) = args->destructBlockIterator;
+    ptBlock * (*getNextBlock)(
+    void *, char *) = args->getNextBlock;
+    SummaryTableList *summaryTableList = args->summaryTableList;
+    IntBinArray *sizeBinArray = args->sizeBinArray;
+    int (*overlapFuncCategoryIndex1)(CoverageInfo *, int) = args->overlapFuncCategoryIndex1;
+    int categoryIndex1 = args->categoryIndex1;
+    int8_t(*getRefLabelFunction)(Inference * ) = args->getRefLabelFunction;
+    int8_t(*getQueryLabelFunction)(Inference * ) = args->getQueryLabelFunction;
+    bool isMetricOverlapBased = args->isMetricOverlapBased;
+    double overlapThreshold = args->overlapThreshold;
+
+    // make a copy of iterator and reset it
+    void *blockIterator = copyBlockIterator(args->blockIterator);
+    resetBlockIterator(blockIterator);
+
+    if (summaryTableList->numberOfCategories1 <= categoryIndex1) {
+        fprintf(stderr,
+                "[%s] Error: annotation index (%d) for updating category 1 is greater than or equal to the size of the category (%d).",
+                get_timestamp(),
+                categoryIndex1,
+                summaryTableList->numberOfCategories1);
+        exit(EXIT_FAILURE);
+    }
+
+    // +1 for undefined query labels
+    int *refLabelConfusionRow = Int_construct1DArray(summaryTableList->numberOfColumns);
+    Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
+
+    int refLabelStart = -1;
+    int preRefLabel = -1;
+    int preBlockEnd = -1;
+    CoverageInfo *preCoverageInfo = NULL;
+
+    char ctg[200];
+    char preCtg[200];
+    preCtg[0] = '\0';
+
+    ptBlock *block = NULL;
+    while ((block = getNextBlock(blockIterator, ctg)) != NULL) {
+
+        // get coverage info for this block
+        CoverageInfo *coverageInfo = (CoverageInfo *) block->data;
+        int start = block->rfs;
+        int end = block->rfe;
+
+        // get labels
+        if (coverageInfo->data == NULL) {
+            fprintf(stderr, "[%s] Warning: inference data does not exist for updating summary tables.\n",
+                    get_timestamp());
+        }
+        Inference *inference = coverageInfo->data;
+        int refLabel = getRefLabelFunction(inference);
+        int queryLabel = getQueryLabelFunction(inference);
+
+        // set event flags
+        bool contigChanged = (preCtg[0] != '\0') && (strcmp(preCtg, ctg) != 0);
+        bool refLabelChanged = refLabel != preRefLabel;
+
+        bool annotationInCurrent = overlapFuncCategoryIndex1(coverageInfo, categoryIndex1);
+        bool annotationInPrevious = overlapFuncCategoryIndex1(preCoverageInfo, categoryIndex1);
+        bool annotationContinued = annotationInCurrent && annotationInPrevious;
+        bool annotationStarted = annotationInCurrent && !annotationInPrevious;
+        bool annotationEnded = !annotationInCurrent && annotationInPrevious;
+
+        bool preRefLabelIsValid = preRefLabel != -1;
+        /*
+        fprintf(stderr, "%s %d-%d annot = %d \n", ctg, start, end, categoryIndex1);
+        fprintf(stderr, "\t rlabel = %d\n", refLabel);
+        fprintf(stderr, "\t qlabel = %d\n", queryLabel);
+        fprintf(stderr, "\t contigChanged = %d\n", contigChanged);
+        fprintf(stderr, "\t refLabelChanged = %d\n", refLabelChanged);
+        fprintf(stderr, "\t annotationInCurrent = %d\n", annotationInCurrent);
+        fprintf(stderr, "\t annotationInPrevious = %d\n", annotationInPrevious);
+        fprintf(stderr, "\t annotationContinued = %d\n", annotationContinued);
+        fprintf(stderr, "\t annotationStarted = %d\n", annotationStarted);
+        fprintf(stderr, "\t annotationEnded = %d\n", annotationEnded);
+        fprintf(stderr, "\t preRefLabelIsValid = %d\n", preRefLabelIsValid);
+         */
+
+        // one annotation-ref-label block has ended
+        // update summary table
+        if (preRefLabelIsValid && (
+                (annotationContinued && refLabelChanged) ||
+                (annotationInPrevious && contigChanged) ||
+                annotationEnded)
+                ) {
+            int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
+            int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
+            if (isMetricOverlapBased) {
+                convertBaseLevelToOverlapBased(refLabelConfusionRow,
+                                               summaryTableList->numberOfColumns,
+                                               refLabelBlockLen,
+                                               overlapThreshold);
+            }
+            // iterating over query labels
+            for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
+                int catIndex1 = categoryIndex1;
+                int catIndex2 = binIndex;
+                int rowIndex = preRefLabel;
+                int columnIndex = q;
+                //fprintf(stderr, "block len = %d, [%d][%d] [%d][%d] += %d\n", blockLen, catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
+                SummaryTableList_increment(summaryTableList,
+                                           catIndex1,
+                                           catIndex2,
+                                           rowIndex,
+                                           columnIndex,
+                                           refLabelConfusionRow[q]);
+            }
+        }
+
+        // reset confusion row and update start location
+        if ((!annotationInCurrent && contigChanged) ||
+            annotationEnded) {
+            refLabelStart = -1;
+            Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
+        }
+
+        // reset confusion row and update start location
+        if ((annotationContinued && refLabelChanged) ||
+            (annotationInCurrent && contigChanged) ||
+            annotationStarted) {
+            refLabelStart = start;
+            Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
+        }
+
+        // update confusion row
+        if (annotationInCurrent) {
+            if (queryLabel < 0) {
+                // last index is reserved for undefined labels
+                refLabelConfusionRow[summaryTableList->numberOfColumns - 1] += end - start + 1;
+            } else if (queryLabel < summaryTableList->numberOfColumns - 1) {
+                refLabelConfusionRow[queryLabel] += end - start + 1;
+            }
+        }
+
+
+        preCoverageInfo = coverageInfo;
+        preRefLabel = refLabel;
+        strcpy(preCtg, ctg);
+        preBlockEnd = end;
+    }
+
+    bool preRefLabelIsValid = preRefLabel != -1;
+    // check last window and update summary tables if it had overlap with annotation
+    bool annotationInLastWindow = overlapFuncCategoryIndex1(preCoverageInfo, categoryIndex1);
+    if (annotationInLastWindow && preRefLabelIsValid) {
+        int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
+        int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
+        if (isMetricOverlapBased) {
+            convertBaseLevelToOverlapBased(refLabelConfusionRow,
+                                           summaryTableList->numberOfColumns,
+                                           refLabelBlockLen,
+                                           overlapThreshold);
+        }
+        // iterating over query labels
+        for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
+            int catIndex1 = categoryIndex1;
+            int catIndex2 = binIndex;
+            int rowIndex = preRefLabel;
+            int columnIndex = q;
+            //fprintf(stderr, "[%d][%d] [%d][%d] += %d\n", catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
+            SummaryTableList_increment(summaryTableList,
+                                       catIndex1,
+                                       catIndex2,
+                                       rowIndex,
+                                       columnIndex,
+                                       refLabelConfusionRow[q]);
+        }
+    }
+
+    Int_destruct1DArray(refLabelConfusionRow);
+    destructBlockIterator(blockIterator);
+}
+
+SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterator,
+                                                              BlockIteratorType blockIteratorType,
+                                                              stList *categoryNames,
+                                                              CategoryType categoryType,
+                                                              IntBinArray *sizeBinArray,
+                                                              MetricType metricType,
+                                                              double overlapRatioThreshold,
+                                                              int numberOfLabels,
+                                                              ComparisonType comparisonType,
+                                                              int numberOfThreads) {
+
+    ptBlock * (*getNextBlock)(
+    void *, char *);
+    void *(*copyIterator)(void *);
+    void (*destructIterator)(void *);
+    void (*resetIterator)(void *);
+    if (blockIteratorType == ITERATOR_BY_CHUNK) {
+        copyIterator = ChunkIterator_copy;
+        destructIterator = ChunkIterator_destruct;
+        resetIterator = ChunkIterator_reset;
+        getNextBlock = ChunkIterator_getNextPtBlock;
+    } else if (blockIteratorType == ITERATOR_BY_COV_BLOCK) {
+        copyIterator = ptBlockItrPerContig_copy;
+        destructIterator = ptBlockItrPerContig_destruct;
+        resetIterator = ptBlockItrPerContig_reset;
+        getNextBlock = ptBlockItrPerContig_next;
+    } else {
+        fprintf(stderr, "[%s] block iterator type is not valid.\n", get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+
+
+    bool (*overlapFuncCategoryIndex1)(CoverageInfo *, int);
+    if (categoryType == CATEGORY_ANNOTATION) {
+        overlapFuncCategoryIndex1 = CoverageInfo_overlapAnnotationIndex;
+    } else if (categoryType == CATEGORY_REGION) {
+        overlapFuncCategoryIndex1 = CoverageInfo_overlapRegionIndex;
+    } else {
+        fprintf(stderr, "[%s] category type is not valid.\n", get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+
+    int8_t(*getRefLabelFunction)(Inference * );
+    if (comparisonType == COMPARISON_TRUTH_VS_PREDICTION || comparisonType == COMPARISON_TRUTH_VS_TRUTH) {
+        getRefLabelFunction = get_inference_truth_label;
+    } else {
+        getRefLabelFunction = get_inference_prediction_label;
+    }
+
+
+    int8_t(*getQueryLabelFunction)(Inference * );
+    if (comparisonType == COMPARISON_TRUTH_VS_PREDICTION || comparisonType == COMPARISON_PREDICTION_VS_PREDICTION) {
+        getQueryLabelFunction = get_inference_prediction_label;
+    } else {
+        getQueryLabelFunction = get_inference_truth_label;
+    }
+
+    // create summary table list
+    stList *categoryNames1 = categoryNames;
+    stList *categoryNames2 = binArray->names;
+
+    int sizeOfCategory1 = stList_length(categoryNames1);
+    int numberOfRows = numberOfLabels;
+    int numberOfColumns = numberOfLabels;
+    SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
+                                                                    categoryNames2,
+                                                                    numberOfRows,
+                                                                    numberOfColumns +1); // +1 for undefined state (label = -1)
+
+    // create a template of update args with category 1 index set to -1
+    bool isMetricOverlapBased = metricType == METRIC_OVERLAP_BASED;
+    SummaryTableUpdaterArgs *argsTemplate = SummaryTableUpdaterArgs_construct((void *) blockIterator,
+                                                                              copyIterator,
+                                                                              resetIterator,
+                                                                              destructIterator,
+                                                                              getNextBlock,
+                                                                              summaryTableList,
+                                                                              binArray,
+                                                                              overlapFuncCategoryIndex1,
+                                                                              -1,
+                                                                              getRefLabelFunction,
+                                                                              getQueryLabelFunction,
+                                                                              isMetricOverlapBased,
+                                                                              overlapRatioThreshold);
+    // update all tables with multi-threading
+    ptBlock_updateSummaryTableListForAllCategory1(argsTemplate, sizeOfCategory1, numberOfThreads);
+
+    SummaryTableUpdaterArgs_destruct(argsTemplate);
+
+    return summaryTableList;
+}
 
 

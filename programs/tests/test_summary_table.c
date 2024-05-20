@@ -310,11 +310,9 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
         annotation2Bin2[3][3] = 3.0;
     }
 
+
     void *iterator;
-    ptBlock *(*getNextBlock)(void *, char *);
-    void *(*copyIterator)(void *);
-    void (*destructIterator)(void *);
-    void (*resetIterator)(void *);
+    BlockIteratorType blockIteratorType;
     CoverageHeader *header = NULL;
     ChunksCreator *chunksCreator = NULL;
     stHash *blocksPerContig = NULL;
@@ -332,53 +330,32 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
             return false;
         }
         iterator = (void *) ChunkIterator_construct(chunksCreator);
-        copyIterator = ChunkIterator_copy;
-        destructIterator = ChunkIterator_destruct;
-        resetIterator = ChunkIterator_reset;
-        getNextBlock = ChunkIterator_getNextPtBlock;
+        blockIteratorType = ITERATOR_BY_CHUNK;
         header = chunksCreator->header;
     } else {
         stHash *blocksPerContig = ptBlock_parse_coverage_info_blocks(covPath);
         iterator = (void *) ptBlockItrPerContig_construct(blocksPerContig);
-        copyIterator = ptBlockItrPerContig_copy;
-        destructIterator = ptBlockItrPerContig_destruct;
-        resetIterator = ptBlockItrPerContig_reset;
-        getNextBlock = ptBlockItrPerContig_next;
+        blockIteratorType = ITERATOR_BY_COV_BLOCK;
         header = CoverageHeader_construct(covPath);
     }
-
 
     IntBinArray *binArray = IntBinArray_constructFromFile(binArrayFilePath);
 
     int numberOfLabels = header->numberOfLabels;
-    stList *categoryNames1 = header->annotationNames;
-    stList *categoryNames2 = binArray->names;
 
-    int numberOfRows = numberOfLabels;
-    int numberOfColumns = numberOfLabels;
-    SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
-                                                                    categoryNames2,
-                                                                    numberOfRows,
-                                                                    numberOfColumns +
-                                                                    1); // +1 for undefined state (label = -1)
-
-    double overlapThreshold = 0.4;
-    SummaryTableUpdaterArgs *argsTemplate = SummaryTableUpdaterArgs_construct(iterator,
-                                                                              copyIterator,
-                                                                              resetIterator,
-                                                                              destructIterator,
-                                                                              getNextBlock,
-                                                                              summaryTableList,
-                                                                              binArray,
-                                                                              CoverageInfo_overlapAnnotationIndex,
-                                                                              -1,
-                                                                              get_inference_prediction_label,
-                                                                              get_inference_truth_label,
-                                                                              isMetricOverlapBased,
-                                                                              overlapThreshold);
     int threads = 4;
-    // update all tables with multi-threading
-    ptBlock_updateSummaryTableListForAllCategory1(argsTemplate, header->numberOfAnnotations, threads);
+    MetricType metricType = isMetricOverlapBased ? METRIC_OVERLAP_BASED : METRIC_BASE_LEVEL;
+    double overlapRatioThreshold = 0.4;
+    SummaryTableList *summaryTableList = SummaryTableList_constructAndFillByIterator(iterator,
+                                                                                     blockIteratorType,
+                                                                                     header->annotationNames,
+                                                                                     CATEGORY_ANNOTATION,
+                                                                                     binArray,
+                                                                                     metricType,
+                                                                                     overlapRatioThreshold,
+                                                                                     numberOfLabels,
+                                                                                     COMPARISON_PREDICTION_VS_TRUTH,
+                                                                                     threads);
 
 
     bool correct = true;
@@ -431,8 +408,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     Double_destruct2DArray(annotation2Bin1, 4);
     Double_destruct2DArray(annotation1Bin2, 4);
     Double_destruct2DArray(annotation2Bin2, 4);
-    SummaryTableUpdaterArgs_destruct(argsTemplate);
-
+    SummaryTableList_destruct(summaryTableList);
 
     return correct;
 }
