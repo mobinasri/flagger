@@ -431,6 +431,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     Double_destruct2DArray(annotation2Bin1, 4);
     Double_destruct2DArray(annotation1Bin2, 4);
     Double_destruct2DArray(annotation2Bin2, 4);
+    SummaryTableUpdaterArgs_destruct(argsTemplate);
 
 
     return correct;
