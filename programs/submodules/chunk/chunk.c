@@ -485,7 +485,12 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
     fwrite(&numberOfAnnotations, sizeof(int32_t), 1, fp);
     // write annotation names
     for (int i = 0; i < numberOfAnnotations; i++) {
-        fputs((char *) stList_get(annotationNames, i), fp);
+        char * annotationName = (char *) stList_get(annotationNames, i);
+        int annotationNameSize = strlen(annotationName) + 1;
+        // write number of chars in the string (+ null character)
+        fwrite(&annotationNameSize, sizeof(int32_t), 1, fp);
+        // write all chars ( + null character)
+        fwrite(annotationName, sizeof(char), annotationNameSize, fp);
     }
     // write number of regions
     fwrite(&numberOfRegions, sizeof(int32_t), 1, fp);
@@ -576,8 +581,13 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
     stList_destruct(header->annotationNames);
     header->annotationNames = stList_construct3(header->numberOfAnnotations, free);
     for (int annotationIndex = 0; annotationIndex < header->numberOfAnnotations; annotationIndex++) {
-        char *annotationName = malloc(1000 * sizeof(char)); // assuming 1000 is enough for a name
-        fgets(annotationName, 1000, fp);
+        // read size of annotation name
+        int annotationNameSize = 0;
+        fread(&annotationNameSize, sizeof(int32_t), 1, fp);
+        // read annotation name
+        char *annotationName = malloc(annotationNameSize * sizeof(char));
+        fread(annotationName, sizeof(char), annotationNameSize, fp);
+        // add annotation name to list
         stList_set(header->annotationNames, annotationIndex, annotationName);
     }
     // read number of regions
