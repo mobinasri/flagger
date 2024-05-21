@@ -602,6 +602,8 @@ void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *
     fread(&header->isTruthAvailable, sizeof(bool), 1, fp);
     // read prediction availability one bit
     fread(&header->isPredictionAvailable, sizeof(bool), 1, fp);
+    // update region names
+    CoverageHeader_updateRegionNames(header);
 
     // read chunk length attributes
     fread(&chunksCreator->chunkCanonicalLen, sizeof(int32_t), 1, fp);
