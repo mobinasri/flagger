@@ -152,7 +152,7 @@ char *SummaryTable_getTotalPerRowString(SummaryTable *summaryTable, char delimit
                                                        summaryTable->numberOfRows,
                                                        delimiter,
                                                        "%.2f");
-    strcpy(summaryTable->rowString, rowString);
+    strcpy(summaryTable->rowString + strlen(summaryTable->rowString), rowString);
     free(rowString);
     return summaryTable->rowString;
 }
@@ -168,7 +168,7 @@ char *SummaryTable_getTotalPerRowStringPercentage(SummaryTable *summaryTable, ch
                                                        summaryTable->numberOfRows,
                                                        delimiter,
                                                        "%.2f");
-    strcpy(summaryTable->rowString, rowString);
+    strcpy(summaryTable->rowString + strlen(summaryTable->rowString), rowString);
     free(rowString);
     return summaryTable->rowString;
 }
@@ -353,7 +353,7 @@ void SummaryTableList_writeTotalPerRowIntoFile(SummaryTableList *summaryTableLis
                                                                  c1,
                                                                  c2,
                                                                  '\t',
-                                                                 );
+                                                                 "ALL");
             fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
         }
     }
