@@ -152,7 +152,6 @@ int main(int argc, char *argv[]) {
     linePrefix[0] = '\0';
 
     int numberOfLabels = header->numberOfLabels;
-    double overlapRatioThreshold = 0.4;
     if (header->isTruthAvailable || header->isPredictionAvailable) {
 
         // iterate over comparison types such as precision and recall
