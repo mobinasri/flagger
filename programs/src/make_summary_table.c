@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
     }
 
     // The list of label names has an additional name "Unk" for handling labels with the value of -1
-    if (labelNames != NULL && stList_length(labelNamesWithUnknown) - 1 != header->numberOfLabels) {
+    if (labelNamesWithUnknown != NULL && stList_length(labelNamesWithUnknown) - 1 != header->numberOfLabels) {
         fprintf(stderr, "[%s] Error: Number of label names %d  does not match the number of labels in the header %d.\n",
                 get_timestamp(),
                 stList_length(labelNamesWithUnknown) - 1,
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
     sprintf(linePrefix, "#Statistic\tMetric_Type\tEntry_Type\tCategory_Type\tCategory_Name\tSize_Bin_Name\tRef_Label");
     for (int i = 0; i < numberOfLabelsWithUnknown; i++) {
         // use label names if they are given
-        if (labelNamesWithUnkown != NULL) {
+        if (labelNamesWithUnknown != NULL) {
             char *labelName = stList_get(labelNamesWithUnknown, i);
             sprintf(linePrefix + strlen(linePrefix), "\t%s", labelName);
         } else { // use label indices
