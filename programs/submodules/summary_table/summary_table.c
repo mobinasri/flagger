@@ -86,6 +86,8 @@ char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char d
         char *rowName = stList_get(summaryTable->rowNames, rowIndex);
         // copy name + delimiter
         sprintf(summaryTable->rowString, "%s%c", rowName, delimiter);
+    }else{
+        sprintf(summaryTable->rowString, "%d%c", rowIndex, delimiter);
     }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex],
                                                        summaryTable->numberOfColumns,
@@ -111,6 +113,8 @@ char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowInd
         char *rowName = stList_get(summaryTable->rowNames, rowIndex);
         // copy name + delimiter
         sprintf(summaryTable->rowString, "%s%c", rowName, delimiter);
+    }else{
+        sprintf(summaryTable->rowString, "%d%c", rowIndex, delimiter);
     }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex],
                                                        summaryTable->numberOfColumns,
@@ -244,7 +248,7 @@ void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp
             char *c2Name = stList_get(summaryTableList->categoryNames2, c2);
             for (int rowIndex = 0; rowIndex < summaryTableList->numberOfRows; rowIndex++) {
                 char *tableRowString = SummaryTableList_getRowString(summaryTableList, c1, c2, rowIndex, '\t');
-                fprintf(fp, "%s\t%s\t%s\t%d\t%s\n", linePrefix, c1Name, c2Name, rowIndex, tableRowString);
+                fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
             }
         }
     }
@@ -258,7 +262,7 @@ void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList
             for (int rowIndex = 0; rowIndex < summaryTableList->numberOfRows; rowIndex++) {
                 char *tableRowString = SummaryTableList_getRowStringPercentage(summaryTableList, c1, c2, rowIndex,
                                                                                '\t');
-                fprintf(fp, "%s\t%s\t%s\t%d\t%s\n", linePrefix, c1Name, c2Name, rowIndex, tableRowString);
+                fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
             }
         }
     }
