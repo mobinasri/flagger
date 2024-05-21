@@ -371,7 +371,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
                                                                                      metricType,
                                                                                      overlapRatioThreshold,
                                                                                      numberOfLabelsWithUnknown,
-                                                                                     labelNamesWithUnknown;
+                                                                                     labelNamesWithUnknown,
                                                                                      COMPARISON_PREDICTION_VS_TRUTH,
                                                                                      threads);
 
