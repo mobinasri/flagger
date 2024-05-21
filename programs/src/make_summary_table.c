@@ -27,6 +27,7 @@ static struct option long_options[] =
                 {"output",                required_argument, NULL, 'o'},
                 {"threads",               required_argument, NULL, 't'},
                 {"overlapRatioThreshold", required_argument, NULL, 'v'},
+                {"labelNames",            required_argument, NULL, 'l'},
                 {NULL,                    0,                 NULL, 0}
         };
 
@@ -37,10 +38,11 @@ int main(int argc, char *argv[]) {
     char *inputPath = NULL;
     char *outputPath = NULL;
     char *binArrayFilePath = NULL;
+    stList *labelNamesWithUnknown = NULL;
     int threads = 4;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:o:b:t:v:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:o:b:t:v:l:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -56,6 +58,10 @@ int main(int argc, char *argv[]) {
                 break;
             case 'v':
                 overlapRatioThreshold = atof(optarg);
+                break;
+            case 'l':
+                labelNamesWithUnknown = Splitter_getStringList(optarg, ',');
+                stList_append(labelNamesWithUnknown, copyString("Unk"));
                 break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
@@ -76,6 +82,9 @@ int main(int argc, char *argv[]) {
                         "(for example truth label for recall) and query label (for example prediction label for recall) [default: 0.4]\n");
                 fprintf(stderr,
                         "         -t, --threads                        Number of threads for parallelizing creating table for each annotation/region [default: 4]\n");
+                fprintf(stderr,
+                        "         -l, --labelNames                    (Optional) A comma-delimited string of label names (for example 'Err,Dup,Hap,Col'). It should match the number of labels in the header of the input file.[default: none]\n");
+
                 return 1;
         }
     }
@@ -139,20 +148,40 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    // The list of label names has an additional name "Unk" for handling labels with the value of -1
+    if (labelNames != NULL && stList_length(labelNamesWithUnknown) - 1 != header->numberOfLabels) {
+        fprintf(stderr, "[%s] Error: Number of label names %d  does not match the number of labels in the header %d.\n",
+                get_timestamp(),
+                stList_length(labelNamesWithUnknown) - 1,
+                header->numberOfLabels);
+        exit(EXIT_FAILURE);
+    }
 
-    // write column names in the first line
+
+    int numberOfLabelsWithUnknown = header->numberOfLabels + 1;
+
+    // write column names in the header line
     char linePrefix[1000];
     sprintf(linePrefix, "#Statistic\tMetric_Type\tEntry_Type\tCategory_Type\tCategory_Name\tSize_Bin_Name\tRef_Label");
-    for (int i = 0; i < header->numberOfLabels; i++) {
-        sprintf(linePrefix + strlen(linePrefix), "\tQuery_Label_%d", i);
+    for (int i = 0; i < numberOfLabelsWithUnknown; i++) {
+        // use label names if they are given
+        if (labelNamesWithUnkown != NULL) {
+            char *labelName = stList_get(labelNamesWithUnknown, i);
+            sprintf(linePrefix + strlen(linePrefix), "\t%s", labelName);
+        } else { // use label indices
+            if (i == numberOfLabelsWithUnknown - 1) { // last index is reserved for unknown label
+                sprintf(linePrefix + strlen(linePrefix), "\tlabel_unk");
+            } else {
+                sprintf(linePrefix + strlen(linePrefix), "\tlabel_%d", i);
+            }
+        }
     }
     fprintf(fout, "%s\n", linePrefix);
 
     //reset line
     linePrefix[0] = '\0';
 
-    int numberOfLabelsWithUnknown = header->numberOfLabels + 1;
-    stList *labelNamesWithUnknown = NULL;
+
     if (header->isTruthAvailable || header->isPredictionAvailable) {
 
         // iterate over comparison types such as precision and recall
@@ -169,7 +198,8 @@ int main(int argc, char *argv[]) {
             for (int categoryType = 0; categoryType < NUMBER_OF_CATEGORY_TYPES; categoryType++) {
                 // iterating over metric types; base-level and overlap-based
                 for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
-                    stList *categoryNames = categoryType == CATEGORY_REGION ? header->regionNames : header->annotationNames;
+                    stList *categoryNames =
+                            categoryType == CATEGORY_REGION ? header->regionNames : header->annotationNames;
                     SummaryTableList *summaryTableList =
                             SummaryTableList_constructAndFillByIterator(iterator,
                                                                         blockIteratorType,
