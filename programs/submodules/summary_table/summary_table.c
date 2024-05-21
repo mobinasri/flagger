@@ -158,6 +158,20 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
     return SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter);
 }
 
+void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char* linePrefix){
+    for(int c1=0; c1 < summaryTableList->numberOfCategories1; c1++){
+        char *c1Name = stList_get(summaryTableList->categoryNames1, c1);
+        for(int c2=0; c2 < summaryTableList->numberOfCategories2; c2++){
+            char *c2Name = stList_get(summaryTableList->categoryNames2, c2);
+            for(int rowIndex=0; rowIndex < summaryTableList->numberOfRows ; rowIndex++){
+                char *tableRowString = SummaryTableList_getRowString(summaryTableList,c1,c2,rowIndex,'\t');
+                fprintf(fp, "%s\t%s\t%s\t%d\t%s", linePrefix, c1Name, c2Name, rowIndex, tableRowString);
+                free(tableRowString);
+            }
+        }
+    }
+}
+
 void SummaryTableList_destruct(SummaryTableList *summaryTableList) {
     if (summaryTableList->summaryTables != NULL) stList_destruct(summaryTableList->summaryTables);
     if (summaryTableList->categoryNames1 != NULL) stList_destruct(summaryTableList->categoryNames1);

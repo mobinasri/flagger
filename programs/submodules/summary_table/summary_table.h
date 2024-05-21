@@ -114,6 +114,8 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
                                               int rowIndex,
                                               char delimiter);
 
+void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char* linePrefix);
+
 void SummaryTableList_destruct(SummaryTableList *summaryTableList);
 
 
