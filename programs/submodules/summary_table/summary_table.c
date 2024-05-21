@@ -24,7 +24,7 @@ SummaryTable *SummaryTable_construct(int numberOfRows, int numberOfColumns) {
     return summaryTable;
 }
 
-SummaryTable *SummaryTable_constructWithNames(stList *rowNames, stList *columnNames) {
+SummaryTable *SummaryTable_constructByNames(stList *rowNames, stList *columnNames) {
     SummaryTable *summaryTable = malloc(sizeof(SummaryTable));
     int numberOfRows = stList_length(rowNames);
     int numberOfColumns = stList_length(columnNames);
@@ -178,6 +178,37 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
         for (int c2 = 0; c2 < numberOfCategories2; c2++) {
             int tableIndex = SummaryTableList_getTableIndex(summaryTableList, c1, c2);
             SummaryTable *summaryTable = SummaryTable_construct(numberOfRows, numberOfColumns);
+            stList_set(summaryTableList->summaryTables, tableIndex, summaryTable);
+        }
+    }
+    // copy category names 1
+    summaryTableList->categoryNames1 = stList_copyStringList(categoryNames1);
+    // copy category names 2
+    summaryTableList->categoryNames2 = stList_copyStringList(categoryNames2);
+    return summaryTableList;
+}
+
+SummaryTableList *SummaryTableList_constructByNames(stList *categoryNames1,
+                                                    stList *categoryNames2,
+                                                    stList *rowNames,
+                                                    stList *columnNames) {
+    SummaryTableList *summaryTableList = malloc(sizeof(SummaryTableList));
+    int numberOfRows = stList_length(rowNames);
+    int numberOfColumns = stList_length(columnNames);
+    int numberOfCategories1 = stList_length(categoryNames1);
+    int numberOfCategories2 = stList_length(categoryNames2);
+    int totalNumberOfTables = numberOfCategories1 * numberOfCategories2;
+    summaryTableList->numberOfCategories1 = numberOfCategories1;
+    summaryTableList->numberOfCategories2 = numberOfCategories2;
+    summaryTableList->totalNumberOfTables = totalNumberOfTables;
+    summaryTableList->numberOfRows = numberOfRows;
+    summaryTableList->numberOfColumns = numberOfColumns;
+    // construct tables
+    summaryTableList->summaryTables = stList_construct3(summaryTableList->totalNumberOfTables, SummaryTable_destruct);
+    for (int c1 = 0; c1 < numberOfCategories1; c1++) {
+        for (int c2 = 0; c2 < numberOfCategories2; c2++) {
+            int tableIndex = SummaryTableList_getTableIndex(summaryTableList, c1, c2);
+            SummaryTable *summaryTable = SummaryTable_constructByNames(rowNames, columnNames);
             stList_set(summaryTableList->summaryTables, tableIndex, summaryTable);
         }
     }

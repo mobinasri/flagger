@@ -40,9 +40,9 @@ typedef enum ComparisonType {
 #define NUMBER_OF_METRIC_TYPES 2
 #define NUMBER_OF_COMPARISON_TYPES 4
 
-static const char* MetricTypeToString[2] = {"overlap_based", "base_level"};
-static const char* CategoryTypeToString[2] = {"region", "annotation"};
-static const char* ComparisonTypeToString[4] = {"recall", "precision", "truth", "prediction"};
+static const char *MetricTypeToString[2] = {"overlap_based", "base_level"};
+static const char *CategoryTypeToString[2] = {"region", "annotation"};
+static const char *ComparisonTypeToString[4] = {"recall", "precision", "truth", "prediction"};
 
 /*! @typedef
  * @abstract Structure for keeping a summary table
@@ -60,6 +60,8 @@ typedef struct SummaryTable {
 
 
 SummaryTable *SummaryTable_construct(int numberOfRows, int numberOfColumns);
+
+SummaryTable *SummaryTable_constructByNames(stList *rowNames, stList *columnNames);
 
 void SummaryTable_destruct(SummaryTable *summaryTable);
 
@@ -93,6 +95,11 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
                                              int numberOfRows,
                                              int numberOfColumns);
 
+SummaryTableList *SummaryTableList_constructByNames(stList *categoryNames1,
+                                                    stList *categoryNames2,
+                                                    stList *rowNames,
+                                                    stList *columnNames);
+
 void SummaryTableList_increment(SummaryTableList *summaryTableList,
                                 int catIndex1,
                                 int catIndex2,
@@ -124,8 +131,9 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
                                               int rowIndex,
                                               char delimiter);
 
-void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char* linePrefix);
-void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char* linePrefix);
+void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
+
+void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
 
 void SummaryTableList_destruct(SummaryTableList *summaryTableList);
 
