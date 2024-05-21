@@ -168,10 +168,11 @@ int main(int argc, char *argv[]) {
             for (int categoryType = 0; categoryType < NUMBER_OF_CATEGORY_TYPES; categoryType++) {
                 // iterating over metric types; base-level and overlap-based
                 for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
+                    stList *categoryNames = categoryType == CATEGORY_REGION ? header->regionNames : header->annotationNames;
                     SummaryTableList *summaryTableList =
                             SummaryTableList_constructAndFillByIterator(iterator,
                                                                         blockIteratorType,
-                                                                        header->annotationNames,
+                                                                        categoryNames,
                                                                         categoryType,
                                                                         binArray,
                                                                         metricType,

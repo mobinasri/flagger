@@ -38,6 +38,7 @@ typedef struct CoverageHeader {
     stList *annotationNames;
     int numberOfRegions;
     int *regionCoverages;
+    stList *regionNames;
     int numberOfLabels;
     bool isTruthAvailable;
     bool isPredictionAvailable;
@@ -65,6 +66,8 @@ void CoverageHeader_updateAnnotationNames(CoverageHeader *header);
 void CoverageHeader_updateNumberOfRegions(CoverageHeader *header);
 
 void CoverageHeader_updateRegionCoverages(CoverageHeader *header);
+
+void CoverageHeader_updateRegionNames(CoverageHeader *header);
 
 void CoverageHeader_updateNumberOfLabels(CoverageHeader *header);
 

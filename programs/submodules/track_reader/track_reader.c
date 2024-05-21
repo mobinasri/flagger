@@ -62,6 +62,7 @@ CoverageHeader *CoverageHeader_construct(char *filePath) {
 
         CoverageHeader_updateAnnotationNames(header);
         CoverageHeader_updateRegionCoverages(header);
+        CoverageHeader_updateRegionNames(header);
         CoverageHeader_updateTruthAvailability(header);
         CoverageHeader_updatePredictionAvailability(header);
         CoverageHeader_updateNumberOfLabels(header);
@@ -74,6 +75,18 @@ CoverageHeader *CoverageHeader_construct(char *filePath) {
     return header;
 }
 
+void CoverageHeader_updateRegionNames(CoverageHeader *header){
+    if(header->regionNames != NULL){
+        stList_destruct(header->regionNames);
+    }
+    header->regionNames = stList_construct3(0, free);
+    char name[100];
+    for(int i=0; i < header->numberOfRegions; i++){
+        sprintf(name, "region_%d", i);
+        stList_append(regionNames, copyString(name));
+    }
+    return regionNames;
+}
 
 void CoverageHeader_writeIntoFile(CoverageHeader *header,
                                   void *filePtr,
@@ -106,6 +119,7 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
     header->numberOfLabels = numberOfLabels;
     header->isTruthAvailable = isTruthAvailable;
     header->isPredictionAvailable = isPredictionAvailable;
+    CoverageHeader_updateRegionNames(header);
 
     // add header line for annotation length
     sprintf(line, "#annotation:len:%d", stList_length(annotationNames));
@@ -170,6 +184,9 @@ void CoverageHeader_destruct(CoverageHeader *header) {
     }
     if (header->annotationNames != NULL) {
         stList_destruct(header->annotationNames);
+    }
+    if (header->regionNames != NULL) {
+        stList_destruct(header->regionNames);
     }
     free(header->regionCoverages);
     free(header);
