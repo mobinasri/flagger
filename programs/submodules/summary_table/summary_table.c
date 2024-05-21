@@ -80,10 +80,9 @@ void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int column
     }
     // update totalPerRowPercentage
     if (0 < summaryTable->totalSum) {
-        Double_multiply1DArray(summaryTable->totalPerRowPercentage,
-                               summaryTable->numberOfRows,
-                               100.0 / summaryTable->totalSum);
-
+	for (int i = 0; i < summaryTable->numberOfRows; i++) {
+		summaryTable->totalPerRowPercentage[i] = summaryTable->totalPerRow[i] / summaryTable->totalSum * 100.0;
+	}
     }
 }
 
