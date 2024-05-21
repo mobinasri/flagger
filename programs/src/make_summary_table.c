@@ -219,7 +219,7 @@ int main(int argc, char *argv[]) {
                             CategoryTypeToString[categoryType]);
                     // for these comparisons a single row is enough
                     if (comparisonType == COMPARISON_TRUTH_VS_TRUTH ||
-                        comparisonType == COMPARISON_TRUTH_VS_PREDICTION) {
+                        comparisonType == COMPARISON_PREDICTION_VS_PREDICTION) {
                         SummaryTableList_writeTotalPerRowIntoFile(summaryTableList, fout, linePrefix);
                     } else {
                         SummaryTableList_writeIntoFile(summaryTableList, fout, linePrefix);
@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
                             CategoryTypeToString[categoryType]);
                     // for these comparisons a single row is enough
                     if (comparisonType == COMPARISON_TRUTH_VS_TRUTH ||
-                        comparisonType == COMPARISON_TRUTH_VS_PREDICTION) {
+                        comparisonType == COMPARISON_PREDICTION_VS_PREDICTION) {
                         SummaryTableList_writeTotalPerRowPercentageIntoFile(summaryTableList, fout, linePrefix);
                     } else {
                         SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
