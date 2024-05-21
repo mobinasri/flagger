@@ -250,6 +250,7 @@ bool CoverageInfo_overlapAnnotationIndex(CoverageInfo *coverageInfo, int annotat
 }
 
 bool CoverageInfo_overlapRegionIndex(CoverageInfo *coverageInfo, int regionIndex) {
+    if (coverageInfo == NULL || regionIndex < 0) return false;
     return regionIndex == CoverageInfo_getRegionIndex(coverageInfo);
 }
 
