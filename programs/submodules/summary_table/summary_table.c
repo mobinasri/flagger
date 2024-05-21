@@ -141,9 +141,13 @@ char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowInd
 }
 
 
-char *SummaryTable_getTotalPerRowString(SummaryTable *summaryTable, char delimiter) {
+char *SummaryTable_getTotalPerRowString(SummaryTable *summaryTable, char delimiter, const char *prefixEntry) {
     //reset row string
     summaryTable->rowString[0] = '\0';
+    if (prefixEntry != NULL) {
+        // copy entry + delimiter
+        sprintf(summaryTable->rowString, "%s%c", prefixEntry, delimiter);
+    }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->totalPerRow,
                                                        summaryTable->numberOfRows,
                                                        delimiter,
@@ -153,9 +157,13 @@ char *SummaryTable_getTotalPerRowString(SummaryTable *summaryTable, char delimit
     return summaryTable->rowString;
 }
 
-char *SummaryTable_getTotalPerRowStringPercentage(SummaryTable *summaryTable, char delimiter) {
+char *SummaryTable_getTotalPerRowStringPercentage(SummaryTable *summaryTable, char delimiter, const char *prefixEntry) {
     //reset row string
     summaryTable->rowString[0] = '\0';
+    if (prefixEntry != NULL) {
+        // copy entry + delimiter
+        sprintf(summaryTable->rowString, "%s%c", prefixEntry, delimiter);
+    }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->totalPerRowPercentage,
                                                        summaryTable->numberOfRows,
                                                        delimiter,
@@ -285,17 +293,19 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
 char *SummaryTableList_getTotalPerRowString(SummaryTableList *summaryTableList,
                                     int catIndex1,
                                     int catIndex2,
-                                    char delimiter) {
+                                    char delimiter,
+                                    const char *prefixEntry) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    return SummaryTable_getTotalPerRowString(summaryTable, delimiter);
+    return SummaryTable_getTotalPerRowString(summaryTable, delimiter, prefixEntry);
 }
 
 char *SummaryTableList_getTotalPerRowStringPercentage(SummaryTableList *summaryTableList,
                                               int catIndex1,
                                               int catIndex2,
-                                              char delimiter) {
+                                              char delimiter,
+                                              const char *prefixEntry) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    return SummaryTable_getTotalPerRowStringPercentage(summaryTable, delimiter);
+    return SummaryTable_getTotalPerRowStringPercentage(summaryTable, delimiter, prefixEntry);
 }
 
 void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix) {
@@ -330,6 +340,21 @@ void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList
                                                                                true);
                 fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
             }
+        }
+    }
+}
+
+void SummaryTableList_writeTotalPerRowIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix) {
+    for (int c1 = 0; c1 < summaryTableList->numberOfCategories1; c1++) {
+        char *c1Name = stList_get(summaryTableList->categoryNames1, c1);
+        for (int c2 = 0; c2 < summaryTableList->numberOfCategories2; c2++) {
+            char *c2Name = stList_get(summaryTableList->categoryNames2, c2);
+            char *tableRowString = SummaryTableList_getTotalPerRowString(summaryTableList,
+                                                                 c1,
+                                                                 c2,
+                                                                 '\t',
+                                                                 );
+            fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
         }
     }
 }
