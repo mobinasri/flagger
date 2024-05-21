@@ -151,6 +151,8 @@ int maxIntArray(int *a, int len);
 
 int minIntArray(int *a, int len);
 
+stList *Splitter_getStringList(char *str, char delimiter);
+
 // Takes a string and a delimiter that separates the integer numbers in the string
 // Returns the array of numbers and sets the array size
 int *Splitter_getIntArray(char *str, char delimiter, int *arraySize);

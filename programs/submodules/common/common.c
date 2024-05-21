@@ -493,6 +493,18 @@ char *Splitter_getToken(Splitter *splitter) {
     return splitter->token;
 }
 
+stList *Splitter_getStringList(char *str, char delimiter) {
+    Splitter *splitter = Splitter_construct(str, delimiter);
+    char *token;
+    int i = 0;
+    stList *stringList = stList_construct3(0, free);
+    while ((token = Splitter_getToken(splitter)) != NULL) {
+        stList_append(stringList, copyString(token));
+    }
+    Splitter_destruct(splitter);
+    return stringList;
+}
+
 int *Splitter_getIntArray(char *str, char delimiter, int *arraySize) {
     Splitter *splitter = Splitter_construct(str, delimiter);
     char *token;
