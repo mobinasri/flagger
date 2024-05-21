@@ -19,6 +19,22 @@ SummaryTable *SummaryTable_construct(int numberOfRows, int numberOfColumns) {
     summaryTable->totalPerRow = Double_construct1DArray(numberOfRows);
     summaryTable->numberOfRows = numberOfRows;
     summaryTable->numberOfColumns = numberOfColumns;
+    summaryTable->rowNames = NULL;
+    summaryTable->columnNames = NULL;
+    return summaryTable;
+}
+
+SummaryTable *SummaryTable_constructWithNames(stList *rowNames, stList *columnNames) {
+    SummaryTable *summaryTable = malloc(sizeof(SummaryTable));
+    int numberOfRows = stList_length(rowNames);
+    int numberOfColumns = stList_length(columnNames);
+    summaryTable->table = Double_construct2DArray(numberOfRows, numberOfColumns);
+    summaryTable->tablePercentage = Double_construct2DArray(numberOfRows, numberOfColumns);
+    summaryTable->totalPerRow = Double_construct1DArray(numberOfRows);
+    summaryTable->numberOfRows = numberOfRows;
+    summaryTable->numberOfColumns = numberOfColumns;
+    summaryTable->rowNames = stList_copyStringList(rowNames);
+    summaryTable->columnNames = stList_copyStringList(columnNames);
     return summaryTable;
 }
 
@@ -31,6 +47,12 @@ void SummaryTable_destruct(SummaryTable *summaryTable) {
     }
     if (summaryTable->totalPerRow != NULL) {
         Double_destruct1DArray(summaryTable->totalPerRow);
+    }
+    if (summaryTable->rowNames != NULL) {
+        stList_destruct(summaryTable->rowNames);
+    }
+    if (summaryTable->columnNames != NULL) {
+        stList_destruct(summaryTable->columnNames);
     }
     free(summaryTable);
 }
@@ -50,19 +72,51 @@ void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int column
 }
 
 char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter) {
-    char *rowString = String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex], summaryTable->numberOfColumns,
+    if (summaryTable->numberOfRows <= rowIndex) {
+        fprintf(stderr, "[%s] Error: row index %d cannot be greater than %d.\n",
+                get_timestamp(),
+                rowIndex,
+                summaryTable->numberOfRows - 1);
+        exit(EXIT_FAILURE);
+    }
+    //reset row string
+    summaryTable->rowString[0] = '\0';
+    // add row name first if row names exist
+    if (summaryTable->rowNames != NULL) {
+        char *rowName = stList_get(summaryTable->rowNames, rowIndex);
+        // copy name + delimiter
+        sprintf(summaryTable->rowString, "%s%c", rowName, delimiter);
+    }
+    char *rowString = String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex],
+                                                       summaryTable->numberOfColumns,
                                                        delimiter,
                                                        "%.2f");
-    strcpy(summaryTable->rowString, rowString);
+    strcpy(summaryTable->rowString + strlen(summaryTable->rowString), rowString);
     free(rowString);
     return summaryTable->rowString;
 }
 
 char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter) {
+    if (summaryTable->numberOfRows <= rowIndex) {
+        fprintf(stderr, "[%s] Error: row index %d cannot be greater than %d.\n",
+                get_timestamp(),
+                rowIndex,
+                summaryTable->numberOfRows - 1);
+        exit(EXIT_FAILURE);
+    }
+    //reset row string
+    summaryTable->rowString[0] = '\0';
+    // add row name first if row names exist
+    if (summaryTable->rowNames != NULL) {
+        char *rowName = stList_get(summaryTable->rowNames, rowIndex);
+        // copy name + delimiter
+        sprintf(summaryTable->rowString, "%s%c", rowName, delimiter);
+    }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex],
-                                                       summaryTable->numberOfColumns, delimiter,
+                                                       summaryTable->numberOfColumns,
+                                                       delimiter,
                                                        "%.2f");
-    strcpy(summaryTable->rowString, rowString);
+    strcpy(summaryTable->rowString + strlen(summaryTable->rowString), rowString);
     free(rowString);
     return summaryTable->rowString;
 }
@@ -158,26 +212,27 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
     return SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter);
 }
 
-void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char* linePrefix){
-    for(int c1=0; c1 < summaryTableList->numberOfCategories1; c1++){
+void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix) {
+    for (int c1 = 0; c1 < summaryTableList->numberOfCategories1; c1++) {
         char *c1Name = stList_get(summaryTableList->categoryNames1, c1);
-        for(int c2=0; c2 < summaryTableList->numberOfCategories2; c2++){
+        for (int c2 = 0; c2 < summaryTableList->numberOfCategories2; c2++) {
             char *c2Name = stList_get(summaryTableList->categoryNames2, c2);
-            for(int rowIndex=0; rowIndex < summaryTableList->numberOfRows ; rowIndex++){
-                char *tableRowString = SummaryTableList_getRowString(summaryTableList,c1,c2,rowIndex,'\t');
+            for (int rowIndex = 0; rowIndex < summaryTableList->numberOfRows; rowIndex++) {
+                char *tableRowString = SummaryTableList_getRowString(summaryTableList, c1, c2, rowIndex, '\t');
                 fprintf(fp, "%s\t%s\t%s\t%d\t%s\n", linePrefix, c1Name, c2Name, rowIndex, tableRowString);
             }
         }
     }
 }
 
-void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char* linePrefix){
-    for(int c1=0; c1 < summaryTableList->numberOfCategories1; c1++){
+void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix) {
+    for (int c1 = 0; c1 < summaryTableList->numberOfCategories1; c1++) {
         char *c1Name = stList_get(summaryTableList->categoryNames1, c1);
-        for(int c2=0; c2 < summaryTableList->numberOfCategories2; c2++){
+        for (int c2 = 0; c2 < summaryTableList->numberOfCategories2; c2++) {
             char *c2Name = stList_get(summaryTableList->categoryNames2, c2);
-            for(int rowIndex=0; rowIndex < summaryTableList->numberOfRows ; rowIndex++){
-                char *tableRowString = SummaryTableList_getRowStringPercentage(summaryTableList,c1,c2,rowIndex,'\t');
+            for (int rowIndex = 0; rowIndex < summaryTableList->numberOfRows; rowIndex++) {
+                char *tableRowString = SummaryTableList_getRowStringPercentage(summaryTableList, c1, c2, rowIndex,
+                                                                               '\t');
                 fprintf(fp, "%s\t%s\t%s\t%d\t%s\n", linePrefix, c1Name, c2Name, rowIndex, tableRowString);
             }
         }
@@ -305,7 +360,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
     void *(*copyBlockIterator)(void *) = args->copyBlockIterator;
     void (*resetBlockIterator)(void *) = args->resetBlockIterator;
     void (*destructBlockIterator)(void *) = args->destructBlockIterator;
-    ptBlock * (*getNextBlock)(void *, char *) = args->getNextBlock;
+    ptBlock *(*getNextBlock)(void *, char *) = args->getNextBlock;
     SummaryTableList *summaryTableList = args->summaryTableList;
     IntBinArray *sizeBinArray = args->sizeBinArray;
     int (*overlapFuncCategoryIndex1)(CoverageInfo *, int) = args->overlapFuncCategoryIndex1;
@@ -488,8 +543,8 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                               ComparisonType comparisonType,
                                                               int numberOfThreads) {
 
-    ptBlock * (*getNextBlock)(
-    void *, char *);
+    ptBlock *(*getNextBlock)(
+            void *, char *);
     void *(*copyIterator)(void *);
     void (*destructIterator)(void *);
     void (*resetIterator)(void *);

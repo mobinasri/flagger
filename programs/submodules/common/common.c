@@ -687,3 +687,12 @@ void IntBinArray_destruct(IntBinArray *binArray) {
     free(binArray);
 }
 
+stList *stList_copyStringList(stList *src){
+    stList *dest = stList_construct3(0,free);
+    for(int i=0; i < stList_length(src), i++){
+        char *str = stList_get(src, i);
+        stList_append(dest, copyString(str));
+    }
+    return dest;
+}
+

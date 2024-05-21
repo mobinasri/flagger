@@ -187,6 +187,9 @@ char *IntBinArray_getBinNameByIndex(IntBinArray *binArray, int binIndex);
 char *IntBinArray_getBinNameByValue(IntBinArray *binArray, int value);
 void IntBinArray_destruct(IntBinArray *binArray);
 
+
+stList *stList_copyStringList(stList *src);
+
 #endif
 
 

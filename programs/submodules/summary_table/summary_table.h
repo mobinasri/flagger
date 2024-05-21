@@ -53,6 +53,8 @@ typedef struct SummaryTable {
     double *totalPerRow;
     int numberOfRows;
     int numberOfColumns;
+    stList *rowNames;
+    stList *columnNames;
     char rowString[1000];
 } SummaryTable;
 
