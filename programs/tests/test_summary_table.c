@@ -144,7 +144,7 @@ bool test_SummaryTableList_increment() {
     SummaryTableList_destruct(summaryTableList);
     stList_destruct(categoryNames1);
     stList_destruct(categoryNames2);
-    return true;
+    return correct;
 }
 
 
@@ -274,7 +274,7 @@ bool test_SummaryTableList_getRowString() {
     SummaryTableList_destruct(summaryTableList);
     stList_destruct(categoryNames1);
     stList_destruct(categoryNames2);
-    return true;
+    return correct;
 }
 
 int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const char *binArrayFilePath,
