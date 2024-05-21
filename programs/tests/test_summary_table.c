@@ -58,10 +58,10 @@ bool test_SummaryTable_getRowString() {
     bool correct = true;
 
 
-    correct &= strcmp(SummaryTable_getRowString(summaryTable, 0, ','), "30.00,20.00") == 0;
-    correct &= strcmp(SummaryTable_getRowString(summaryTable, 1, ','), "0.00,0.00") == 0;
-    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 0, ','), "60.00,40.00") == 0;
-    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 1, ','), "0.00,0.00") == 0;
+    correct &= strcmp(SummaryTable_getRowString(summaryTable, 0, ',', false), "30.00,20.00") == 0;
+    correct &= strcmp(SummaryTable_getRowString(summaryTable, 1, ',', false ), "0.00,0.00") == 0;
+    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 0, ',', false), "60.00,40.00") == 0;
+    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 1, ',',false ), "0.00,0.00") == 0;
 
     SummaryTable_destruct(summaryTable);
     return correct;
@@ -181,62 +181,62 @@ bool test_SummaryTableList_getRowString() {
     cat1Index = 0;
     cat2Index = 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ','),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "30.00,20.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ','),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',',false ),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ','),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',',false),
             "60.00,40.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ','),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',',false ),
             "0.00,0.00") == 0;
 
 
     cat1Index = 1;
     cat2Index = 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ','),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',',false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ','),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',',false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ','),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',',false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ','),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',',false),
             "0.00,0.00") == 0;
 
     cat1Index = 0;
     cat2Index = 1;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ','),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',',false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ','),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',',false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ','),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',',false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ','),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',',false),
             "0.00,0.00") == 0;
 
     cat1Index = 1;
     cat2Index = 1;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ','),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',',false),
             "60.00,20.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ','),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',',false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ','),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',',false),
             "75.00,25.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ','),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',',false),
             "0.00,0.00") == 0;
 
     SummaryTableList_destruct(summaryTableList);

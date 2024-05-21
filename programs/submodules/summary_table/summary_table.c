@@ -71,7 +71,7 @@ void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int column
     }
 }
 
-char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter) {
+char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter, bool addRowIndex) {
     if (summaryTable->numberOfRows <= rowIndex) {
         fprintf(stderr, "[%s] Error: row index %d cannot be greater than %d.\n",
                 get_timestamp(),
@@ -86,7 +86,7 @@ char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char d
         char *rowName = stList_get(summaryTable->rowNames, rowIndex);
         // copy name + delimiter
         sprintf(summaryTable->rowString, "%s%c", rowName, delimiter);
-    }else{
+    }else if(addRowIndex){
         sprintf(summaryTable->rowString, "%d%c", rowIndex, delimiter);
     }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex],
@@ -98,7 +98,7 @@ char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char d
     return summaryTable->rowString;
 }
 
-char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter) {
+char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter, bool addRowIndex) {
     if (summaryTable->numberOfRows <= rowIndex) {
         fprintf(stderr, "[%s] Error: row index %d cannot be greater than %d.\n",
                 get_timestamp(),
@@ -113,7 +113,7 @@ char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowInd
         char *rowName = stList_get(summaryTable->rowNames, rowIndex);
         // copy name + delimiter
         sprintf(summaryTable->rowString, "%s%c", rowName, delimiter);
-    }else{
+    }else if(addRowIndex){
         sprintf(summaryTable->rowString, "%d%c", rowIndex, delimiter);
     }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex],
@@ -227,18 +227,20 @@ char *SummaryTableList_getRowString(SummaryTableList *summaryTableList,
                                     int catIndex1,
                                     int catIndex2,
                                     int rowIndex,
-                                    char delimiter) {
+                                    char delimiter,
+                                    bool addRowIndex) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    return SummaryTable_getRowString(summaryTable, rowIndex, delimiter);
+    return SummaryTable_getRowString(summaryTable, rowIndex, delimiter, addRowIndex);
 }
 
 char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList,
                                               int catIndex1,
                                               int catIndex2,
                                               int rowIndex,
-                                              char delimiter) {
+                                              char delimiter,
+                                              bool addRowIndex) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
-    return SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter);
+    return SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter, addRowIndex);
 }
 
 void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix) {
@@ -247,7 +249,12 @@ void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp
         for (int c2 = 0; c2 < summaryTableList->numberOfCategories2; c2++) {
             char *c2Name = stList_get(summaryTableList->categoryNames2, c2);
             for (int rowIndex = 0; rowIndex < summaryTableList->numberOfRows; rowIndex++) {
-                char *tableRowString = SummaryTableList_getRowString(summaryTableList, c1, c2, rowIndex, '\t');
+                char *tableRowString = SummaryTableList_getRowString(summaryTableList,
+                                                                     c1,
+                                                                     c2,
+                                                                     rowIndex,
+                                                                     '\t',
+                                                                     true);
                 fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
             }
         }
@@ -260,8 +267,12 @@ void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList
         for (int c2 = 0; c2 < summaryTableList->numberOfCategories2; c2++) {
             char *c2Name = stList_get(summaryTableList->categoryNames2, c2);
             for (int rowIndex = 0; rowIndex < summaryTableList->numberOfRows; rowIndex++) {
-                char *tableRowString = SummaryTableList_getRowStringPercentage(summaryTableList, c1, c2, rowIndex,
-                                                                               '\t');
+                char *tableRowString = SummaryTableList_getRowStringPercentage(summaryTableList,
+                                                                               c1,
+                                                                               c2,
+                                                                               rowIndex,
+                                                                               '\t',
+                                                                               true);
                 fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
             }
         }

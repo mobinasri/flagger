@@ -67,9 +67,9 @@ void SummaryTable_destruct(SummaryTable *summaryTable);
 
 void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int columnIndex, double value);
 
-char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter);
+char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter, bool addRowIndex);
 
-char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter);
+char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter, bool addRowIndex);
 
 
 /*! @typedef
@@ -123,13 +123,15 @@ char *SummaryTableList_getRowString(SummaryTableList *summaryTableList,
                                     int catIndex1,
                                     int catIndex2,
                                     int rowIndex,
-                                    char delimiter);
+                                    char delimiter,
+                                    bool addRowIndex);
 
 char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList,
                                               int catIndex1,
                                               int catIndex2,
                                               int rowIndex,
-                                              char delimiter);
+                                              char delimiter,
+                                              bool addRowIndex);
 
 void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
 
