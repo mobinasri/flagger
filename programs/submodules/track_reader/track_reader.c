@@ -50,6 +50,7 @@ CoverageHeader *CoverageHeader_construct(char *filePath) {
 
     header->numberOfAnnotations = 0;
     header->annotationNames = stList_construct3(0, free);
+    header->regionNames = stList_construct3(0,free);
     header->numberOfRegions = 0;
     header->regionCoverages = NULL;
     header->numberOfLabels = 0;
@@ -83,9 +84,8 @@ void CoverageHeader_updateRegionNames(CoverageHeader *header){
     char name[100];
     for(int i=0; i < header->numberOfRegions; i++){
         sprintf(name, "region_%d", i);
-        stList_append(regionNames, copyString(name));
+        stList_append(header->regionNames, copyString(name));
     }
-    return regionNames;
 }
 
 void CoverageHeader_writeIntoFile(CoverageHeader *header,
