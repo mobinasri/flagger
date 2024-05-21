@@ -51,6 +51,8 @@ typedef struct SummaryTable {
     double **table;
     double **tablePercentage;
     double *totalPerRow;
+    double *totalPerRowPercentage;
+    double totalSum;
     int numberOfRows;
     int numberOfColumns;
     stList *rowNames;
@@ -71,6 +73,9 @@ char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char d
 
 char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowIndex, char delimiter, bool addRowIndex);
 
+char *SummaryTable_getTotalPerRowString(SummaryTable *summaryTable, char delimiter);
+
+char *SummaryTable_getTotalPerRowStringPercentage(SummaryTable *summaryTable, char delimiter);
 
 /*! @typedef
  * @abstract Structure for keeping a list of summary tables
@@ -132,6 +137,16 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
                                               int rowIndex,
                                               char delimiter,
                                               bool addRowIndex);
+
+char *SummaryTableList_getTotalPerRowString(SummaryTableList *summaryTableList,
+                                            int catIndex1,
+                                            int catIndex2,
+                                            char delimiter);
+
+char *SummaryTableList_getTotalPerRowStringPercentage(SummaryTableList *summaryTableList,
+                                                      int catIndex1,
+                                                      int catIndex2,
+                                                      char delimiter);
 
 void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
 

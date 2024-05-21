@@ -17,6 +17,8 @@ SummaryTable *SummaryTable_construct(int numberOfRows, int numberOfColumns) {
     summaryTable->table = Double_construct2DArray(numberOfRows, numberOfColumns);
     summaryTable->tablePercentage = Double_construct2DArray(numberOfRows, numberOfColumns);
     summaryTable->totalPerRow = Double_construct1DArray(numberOfRows);
+    summaryTable->totalPerRowPercentage = Double_construct1DArray(numberOfRows);
+    summaryTable->totalSum = 0.0;
     summaryTable->numberOfRows = numberOfRows;
     summaryTable->numberOfColumns = numberOfColumns;
     summaryTable->rowNames = NULL;
@@ -31,6 +33,8 @@ SummaryTable *SummaryTable_constructByNames(stList *rowNames, stList *columnName
     summaryTable->table = Double_construct2DArray(numberOfRows, numberOfColumns);
     summaryTable->tablePercentage = Double_construct2DArray(numberOfRows, numberOfColumns);
     summaryTable->totalPerRow = Double_construct1DArray(numberOfRows);
+    summaryTable->totalPerRowPercentage = Double_construct1DArray(numberOfRows);
+    summaryTable->totalSum = 0.0;
     summaryTable->numberOfRows = numberOfRows;
     summaryTable->numberOfColumns = numberOfColumns;
     summaryTable->rowNames = stList_copyStringList(rowNames);
@@ -48,6 +52,9 @@ void SummaryTable_destruct(SummaryTable *summaryTable) {
     if (summaryTable->totalPerRow != NULL) {
         Double_destruct1DArray(summaryTable->totalPerRow);
     }
+    if (summaryTable->totalPerRowPercentage != NULL) {
+        Double_destruct1DArray(summaryTable->totalPerRowPercentage);
+    }
     if (summaryTable->rowNames != NULL) {
         stList_destruct(summaryTable->rowNames);
     }
@@ -63,11 +70,20 @@ void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int column
     }
     summaryTable->table[rowIndex][columnIndex] += value;
     summaryTable->totalPerRow[rowIndex] += value;
+    summaryTable->totalSum += value;
+    // update tablePercentage
     for (int j = 0; j < summaryTable->numberOfColumns; j++) {
         if (0 < summaryTable->totalPerRow[rowIndex]) {
             summaryTable->tablePercentage[rowIndex][j] =
                     summaryTable->table[rowIndex][j] / summaryTable->totalPerRow[rowIndex] * 100.0;
         }
+    }
+    // update totalPerRowPercentage
+    if (0 < summaryTable->totalSum) {
+        Double_multiply1DArray(summaryTable->totalPerRowPercentage,
+                               summaryTable->numberOfRows,
+                               100.0 / summaryTable->totalSum);
+
     }
 }
 
@@ -86,7 +102,7 @@ char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char d
         char *rowName = stList_get(summaryTable->rowNames, rowIndex);
         // copy name + delimiter
         sprintf(summaryTable->rowString, "%s%c", rowName, delimiter);
-    }else if(addRowIndex){
+    } else if (addRowIndex) {
         sprintf(summaryTable->rowString, "%d%c", rowIndex, delimiter);
     }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->table[rowIndex],
@@ -113,7 +129,7 @@ char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowInd
         char *rowName = stList_get(summaryTable->rowNames, rowIndex);
         // copy name + delimiter
         sprintf(summaryTable->rowString, "%s%c", rowName, delimiter);
-    }else if(addRowIndex){
+    } else if (addRowIndex) {
         sprintf(summaryTable->rowString, "%d%c", rowIndex, delimiter);
     }
     char *rowString = String_joinDoubleArrayWithFormat(summaryTable->tablePercentage[rowIndex],
@@ -125,6 +141,30 @@ char *SummaryTable_getRowStringPercentage(SummaryTable *summaryTable, int rowInd
     return summaryTable->rowString;
 }
 
+
+char *SummaryTable_getTotalPerRowString(SummaryTable *summaryTable, char delimiter) {
+    //reset row string
+    summaryTable->rowString[0] = '\0';
+    char *rowString = String_joinDoubleArrayWithFormat(summaryTable->totalPerRow,
+                                                       summaryTable->numberOfRows,
+                                                       delimiter,
+                                                       "%.2f");
+    strcpy(summaryTable->rowString, rowString);
+    free(rowString);
+    return summaryTable->rowString;
+}
+
+char *SummaryTable_getTotalPerRowStringPercentage(SummaryTable *summaryTable, char delimiter) {
+    //reset row string
+    summaryTable->rowString[0] = '\0';
+    char *rowString = String_joinDoubleArrayWithFormat(summaryTable->totalPerRowPercentage,
+                                                       summaryTable->numberOfRows,
+                                                       delimiter,
+                                                       "%.2f");
+    strcpy(summaryTable->rowString, rowString);
+    free(rowString);
+    return summaryTable->rowString;
+}
 
 int SummaryTableList_getTableIndex(SummaryTableList *summaryTableList, int catIndex1, int catIndex2) {
     return catIndex1 * summaryTableList->numberOfCategories2 + catIndex2;
@@ -241,6 +281,22 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
                                               bool addRowIndex) {
     SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
     return SummaryTable_getRowStringPercentage(summaryTable, rowIndex, delimiter, addRowIndex);
+}
+
+char *SummaryTableList_getTotalPerRowString(SummaryTableList *summaryTableList,
+                                    int catIndex1,
+                                    int catIndex2,
+                                    char delimiter) {
+    SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
+    return SummaryTable_getTotalPerRowString(summaryTable, delimiter);
+}
+
+char *SummaryTableList_getTotalPerRowStringPercentage(SummaryTableList *summaryTableList,
+                                              int catIndex1,
+                                              int catIndex2,
+                                              char delimiter) {
+    SummaryTable *summaryTable = SummaryTableList_getTable(summaryTableList, catIndex1, catIndex2);
+    return SummaryTable_getTotalPerRowStringPercentage(summaryTable, delimiter);
 }
 
 void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix) {
