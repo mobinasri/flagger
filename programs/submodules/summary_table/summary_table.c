@@ -182,15 +182,9 @@ SummaryTableList *SummaryTableList_construct(stList *categoryNames1,
         }
     }
     // copy category names 1
-    summaryTableList->categoryNames1 = stList_construct3(0, free);
-    for (int i = 0; i < stList_length(categoryNames1); i++) {
-        stList_append(summaryTableList->categoryNames1, copyString(stList_get(categoryNames1, i)));
-    }
+    summaryTableList->categoryNames1 = stList_copyStringList(categoryNames1);
     // copy category names 2
-    summaryTableList->categoryNames2 = stList_construct3(0, free);
-    for (int i = 0; i < stList_length(categoryNames2); i++) {
-        stList_append(summaryTableList->categoryNames2, copyString(stList_get(categoryNames2, i)));
-    }
+    summaryTableList->categoryNames2 = stList_copyStringList(categoryNames2);
     return summaryTableList;
 }
 
