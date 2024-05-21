@@ -102,6 +102,29 @@ bool test_IntBinArray_constructFromFile(char *filePath) {
 
 }
 
+bool test_IntBinArray_getBinIndices(char *filePath) {
+    IntBinArray *binArray = IntBinArray_constructFromFile(filePath);
+    bool correct = true;
+
+    int len1 = 0;
+    int *indices1 = IntBinArray_getBinIndices(binArray, 50, &len);
+    correct &= len1 == 2;
+    correct &= indices1[0] == 0;
+    correct &= indices1[1] == 1;
+    free(indices1);
+
+    int len2 = 0;
+    int *indices2 = IntBinArray_getBinIndices(binArray, 80, &len);
+    correct &= len2 == 1;
+    correct &= indices2[0] == 1;
+    free(indices2);
+
+    IntBinArray_destruct(binArray);
+    return correct;
+
+}
+
+
 bool test_IntBinArray_constructSingleBin() {
     IntBinArray *binArray = IntBinArray_constructSingleBin(0, 1e9, "all");
     bool correct = true;
@@ -118,9 +141,9 @@ bool test_IntBinArray_constructSingleBin() {
 }
 
 bool test_Double_equality2DArray() {
-    double **array1 = Double_construct2DArray(2,3);
-    double **array2 = Double_construct2DArray(2,3);
-    double **array3 = Double_construct2DArray(2,3);
+    double **array1 = Double_construct2DArray(2, 3);
+    double **array2 = Double_construct2DArray(2, 3);
+    double **array3 = Double_construct2DArray(2, 3);
 
     array1[0][0] = 1.0;
     array1[1][2] = 2.0;
@@ -142,11 +165,11 @@ bool test_Double_equality2DArray() {
 
 
 bool test_Double_getString2DArray() {
-    double **array = Double_construct2DArray(2,3);
+    double **array = Double_construct2DArray(2, 3);
     array[0][0] = 1.0;
     array[1][2] = 2.0;
 
-    char *str = Double_getString2DArray(array,2, 3, "%.2f", 10, '\t');
+    char *str = Double_getString2DArray(array, 2, 3, "%.2f", 10, '\t');
 
     bool correct = strcmp(str, "1.00\t0.00\t0.00\n0.00\t0.00\t2.00") == 0;
 
@@ -158,6 +181,7 @@ bool test_Double_getString2DArray() {
 int main(int argc, char *argv[]) {
     char test1Path[1000] = "tests/test_files/common/test_common_1.txt";
     char test2Path[1000] = "tests/test_files/common/test_common_bin_array.txt";
+    char test3Path[1000] = "tests/test_files/common/test_common_bin_array_2.txt";
 
     bool allTestsPassed = true;
 
@@ -221,6 +245,13 @@ int main(int argc, char *argv[]) {
     printf("[common] Test Double_getString2DArray:");
     printf(test10Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test10Passed;
+
+    // test 11
+    bool test11Passed = test_IntBinArray_getBinIndices(test3Path);
+    printf("[common] Test IntBinArray_getBinIndices:");
+    printf(test11Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
+    allTestsPassed &= test11Passed;
+
 
     if (allTestsPassed)
         return 0;

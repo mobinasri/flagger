@@ -185,6 +185,7 @@ IntBinArray *IntBinArray_constructSingleBin(int start, int end, char *name);
 IntBinArray *IntBinArray_constructFromFile(const char *filePath);
 void IntBinArray_checkBins(IntBinArray *binArray);
 int IntBinArray_getBinIndex(IntBinArray *binArray, int value);
+int* IntBinArray_getBinIndices(IntBinArray *binArray, int value, int *len);
 char *IntBinArray_getBinNameByIndex(IntBinArray *binArray, int binIndex);
 char *IntBinArray_getBinNameByValue(IntBinArray *binArray, int value);
 void IntBinArray_destruct(IntBinArray *binArray);

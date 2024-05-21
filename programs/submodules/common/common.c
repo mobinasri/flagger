@@ -669,8 +669,7 @@ IntBinArray *IntBinArray_constructFromFile(const char *filePath) {
 void IntBinArray_checkBins(IntBinArray *binArray) {
     for (int i = 1; i < binArray->numberOfBins; i++) {
         if (binArray->starts[i] < binArray->ends[i - 1]) {
-            fprintf(stderr, "[%s] Error: Bins cannot have overlap with each other.\n");
-            exit(EXIT_FAILURE);
+            fprintf(stderr, "[%s] Warning: Bins have overlap with each other.\n", get_timestamp());
         }
     }
 }
@@ -681,6 +680,20 @@ int IntBinArray_getBinIndex(IntBinArray *binArray, int value) {
     }
     fprintf(stderr, "[%s] Error: Value %d does not fit into the given bins.\n", get_timestamp(), value);
     exit(EXIT_FAILURE);
+}
+
+int* IntBinArray_getBinIndices(IntBinArray *binArray, int value, int *len) {
+    int *indices = NULL;
+    int indicesLength = 0;
+    for (int i = 0; i < binArray->numberOfBins; i++) {
+        if (binArray->starts[i] <= value && value < binArray->ends[i]) {
+            indicesLength += 1;
+            indices = (int *) realloc(indices, indicesLength * sizeof(int));
+            indices[indicesLength - 1] = i;
+        }
+    }
+    *len = indicesLength;
+    return indices;
 }
 
 char *IntBinArray_getBinNameByIndex(IntBinArray *binArray, int binIndex) {
