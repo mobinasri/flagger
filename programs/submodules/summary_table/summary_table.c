@@ -357,10 +357,10 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         Inference *inference = coverageInfo->data;
         int refLabel = getRefLabelFunction(inference);
         // if refLabel is -1 change it to numberOfRows - 1 since last row is for "Unk"
-        refLabel = refLabel == -1 ? summaryTableList->numberOfRows - 1 : refLabel
+        refLabel = refLabel == -1 ? summaryTableList->numberOfRows - 1 : refLabel;
         int queryLabel = getQueryLabelFunction(inference);
         // if queryLabel is -1 change it to numberOfColumns - 1 since last column is for "Unk"
-        queryLabel = queryLabel == -1 ? summaryTableList->numberOfColumns - 1 : queryLabel
+        queryLabel = queryLabel == -1 ? summaryTableList->numberOfColumns - 1 : queryLabel;
 
         // set event flags
         bool contigChanged = (preCtg[0] != '\0') && (strcmp(preCtg, ctg) != 0);
