@@ -230,7 +230,8 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                               IntBinArray *sizeBinArray,
                                                               MetricType metricType,
                                                               double overlapRatioThreshold,
-                                                              int numberOfLabels,
+                                                              int numberOfLabelsWithUnknown,
+                                                              stList *labelNamesWithUnknown,
                                                               ComparisonType comparisonType,
                                                               int numberOfThreads);
 

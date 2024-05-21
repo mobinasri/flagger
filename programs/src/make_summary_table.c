@@ -151,7 +151,8 @@ int main(int argc, char *argv[]) {
     //reset line
     linePrefix[0] = '\0';
 
-    int numberOfLabels = header->numberOfLabels;
+    int numberOfLabelsWithUnknown = header->numberOfLabels + 1;
+    stList *labelNamesWithUnknown = NULL;
     if (header->isTruthAvailable || header->isPredictionAvailable) {
 
         // iterate over comparison types such as precision and recall
@@ -177,7 +178,8 @@ int main(int argc, char *argv[]) {
                                                                         binArray,
                                                                         metricType,
                                                                         overlapRatioThreshold,
-                                                                        numberOfLabels,
+                                                                        numberOfLabelsWithUnknown,
+                                                                        labelNamesWithUnknown,
                                                                         comparisonType,
                                                                         threads);
                     // write count values

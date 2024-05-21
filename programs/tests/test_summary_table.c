@@ -357,11 +357,12 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
 
     IntBinArray *binArray = IntBinArray_constructFromFile(binArrayFilePath);
 
-    int numberOfLabels = header->numberOfLabels;
+    int numberOfLabelsWithUnknown = header->numberOfLabels + 1;
 
     int threads = 4;
     MetricType metricType = isMetricOverlapBased ? METRIC_OVERLAP_BASED : METRIC_BASE_LEVEL;
     double overlapRatioThreshold = 0.4;
+    stList *labelNamesWithUnknown = NULL;
     SummaryTableList *summaryTableList = SummaryTableList_constructAndFillByIterator(iterator,
                                                                                      blockIteratorType,
                                                                                      header->annotationNames,
@@ -369,7 +370,8 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
                                                                                      binArray,
                                                                                      metricType,
                                                                                      overlapRatioThreshold,
-                                                                                     numberOfLabels,
+                                                                                     numberOfLabelsWithUnknown,
+                                                                                     labelNamesWithUnknown;
                                                                                      COMPARISON_PREDICTION_VS_TRUTH,
                                                                                      threads);
 

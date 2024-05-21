@@ -564,12 +564,12 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                               IntBinArray *sizeBinArray,
                                                               MetricType metricType,
                                                               double overlapRatioThreshold,
-                                                              int numberOfLabels,
+                                                              int numberOfLabelsWithUnknown,
+                                                              stList *labelNamesWithUnknown,
                                                               ComparisonType comparisonType,
                                                               int numberOfThreads) {
 
-    ptBlock *(*getNextBlock)(
-            void *, char *);
+    ptBlock *(*getNextBlock)(void *, char *);
     void *(*copyIterator)(void *);
     void (*destructIterator)(void *);
     void (*resetIterator)(void *);
@@ -619,13 +619,20 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
     stList *categoryNames2 = sizeBinArray->names;
 
     int sizeOfCategory1 = stList_length(categoryNames1);
-    // +1 for "Unk" state (label = -1)
-    int numberOfRows = numberOfLabels + 1;
-    int numberOfColumns = numberOfLabels + 1;
-    SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
-                                                                    categoryNames2,
-                                                                    numberOfRows,
-                                                                    numberOfColumns);
+    int numberOfRows = numberOfLabelsWithUnknown;
+    int numberOfColumns = numberOfLabelsWithUnknown;
+    SummaryTableList *summaryTableList;
+    if (labelNamesWithUnknown == NULL) {
+        summaryTableList = SummaryTableList_construct(categoryNames1,
+                                                      categoryNames2,
+                                                      numberOfRows,
+                                                      numberOfColumns);
+    } else {
+        summaryTableList = SummaryTableList_constructByNames(categoryNames1,
+                                                             categoryNames2,
+                                                             labelNamesWithUnknown,
+                                                             labelNamesWithUnknown);
+    }
 
     // create a template of update args with category 1 index set to -1
     bool isMetricOverlapBased = metricType == METRIC_OVERLAP_BASED;
