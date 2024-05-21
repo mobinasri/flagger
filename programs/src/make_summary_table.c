@@ -217,13 +217,26 @@ int main(int argc, char *argv[]) {
                             ComparisonTypeToString[comparisonType],
                             MetricTypeToString[metricType],
                             CategoryTypeToString[categoryType]);
-                    SummaryTableList_writeIntoFile(summaryTableList, fout, linePrefix);
+                    // for these comparisons a single row is enough
+                    if (comparisonType == COMPARISON_TRUTH_VS_TRUTH ||
+                        comparisonType == COMPARISON_TRUTH_VS_PREDICTION) {
+                        SummaryTableList_writeTotalPerRowIntoFile(summaryTableList, fout, linePrefix)
+                    } else {
+                        SummaryTableList_writeIntoFile(summaryTableList, fout, linePrefix);
+                    }
+
                     // write percentages
                     sprintf(linePrefix, "%s\t%s\tpercentage\t%s",
                             ComparisonTypeToString[comparisonType],
                             MetricTypeToString[metricType],
                             CategoryTypeToString[categoryType]);
-                    SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
+                    // for these comparisons a single row is enough
+                    if (comparisonType == COMPARISON_TRUTH_VS_TRUTH ||
+                        comparisonType == COMPARISON_TRUTH_VS_PREDICTION) {
+                        SummaryTableList_writeTotalPerRowPercentageIntoFile(summaryTableList, fout, linePrefix)
+                    } else {
+                        SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
+                    }
                     // free summary table
                     SummaryTableList_destruct(summaryTableList);
                 }

@@ -154,6 +154,11 @@ void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp
 
 void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
 
+void SummaryTableList_writeTotalPerRowIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
+
+void SummaryTableList_writeTotalPerRowPercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
+
+
 void SummaryTableList_destruct(SummaryTableList *summaryTableList);
 
 
