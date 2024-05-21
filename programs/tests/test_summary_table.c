@@ -247,21 +247,28 @@ bool test_SummaryTableList_getRowString() {
 
 int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const char *binArrayFilePath,
                                                     bool useChunkIterator, bool isMetricOverlapBased) {
+    int dimension = 5;
     // whole genome
-    double **wholeGenomeBin1 = Double_construct2DArray(4, 5);
+    double **wholeGenomeBin1 = Double_construct2DArray(dimension, dimension);
     if (isMetricOverlapBased) {
         wholeGenomeBin1[1][3] = 1.0;
+        wholeGenomeBin1[4][1] = 1.0;
+        wholeGenomeBin1[4][4] = 1.0 + 1.0;
     } else {
         wholeGenomeBin1[1][3] = 2.0;
+        wholeGenomeBin1[4][1] = 1.0;
+        wholeGenomeBin1[4][4] = 1.0 + 2.0;
     }
 
-    double **wholeGenomeBin2 = Double_construct2DArray(4, 5);
+    double **wholeGenomeBin2 = Double_construct2DArray(dimension, dimension);
     if (isMetricOverlapBased) {
         wholeGenomeBin2[0][0] = 1.0;
         wholeGenomeBin2[2][2] = 1.0;
         wholeGenomeBin2[2][4] = 1.0; // undefined label
         wholeGenomeBin2[3][1] = 1.0;
         wholeGenomeBin2[3][3] = 1.0;
+        wholeGenomeBin2[4][0] = 1.0;
+        wholeGenomeBin2[4][4] = 1.0 + 1.0 + 1.0;
     } else {
         wholeGenomeBin2[0][0] = 2.0;
         wholeGenomeBin2[0][4] = 1.0; // undefined label
@@ -271,17 +278,24 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
         wholeGenomeBin2[3][0] = 1.0;
         wholeGenomeBin2[3][1] = 4.0;
         wholeGenomeBin2[3][3] = 3.0;
+        wholeGenomeBin2[4][0] = 3.0 + 1.0;
+        wholeGenomeBin2[4][2] = 1.0;
+        wholeGenomeBin2[4][4] = 2.0 + 2.0 + 7.0 + 2.0;
     }
 
     // annotation 1
-    double **annotation1Bin1 = Double_construct2DArray(4, 5);
+    double **annotation1Bin1 = Double_construct2DArray(dimension, dimension);
     if (isMetricOverlapBased) {
         annotation1Bin1[0][0] = 1.0;
+        annotation1Bin1[4][0] = 1.0;
+        annotation1Bin1[4][4] = 1.0;
     } else {
         annotation1Bin1[0][0] = 2.0;
+        annotation1Bin1[4][0] = 2.0;
+        annotation1Bin1[4][4] = 1.0;
     }
 
-    double **annotation1Bin2 = Double_construct2DArray(4, 5);
+    double **annotation1Bin2 = Double_construct2DArray(dimension, dimension);
     if (isMetricOverlapBased) {
         annotation1Bin2[2][4] = 1.0; // undefined label
     } else {
@@ -290,14 +304,16 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     }
 
     // annotation 2
-    double **annotation2Bin1 = Double_construct2DArray(4, 5);
+    double **annotation2Bin1 = Double_construct2DArray(dimension, dimension);
     if (isMetricOverlapBased) {
         annotation2Bin1[1][3] = 1.0;
+        annotation2Bin1[4][4] = 1.0 + 1.0;
     } else {
         annotation2Bin1[1][3] = 2.0;
+        annotation2Bin1[4][4] = 2.0 + 1.0;
     }
 
-    double **annotation2Bin2 = Double_construct2DArray(4, 5);
+    double **annotation2Bin2 = Double_construct2DArray(dimension, dimension);
     if (isMetricOverlapBased) {
         annotation2Bin2[2][2] = 1.0;
         annotation2Bin2[2][4] = 1.0; // undefined label
@@ -362,27 +378,27 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     SummaryTable *summaryTable;
     // whole genome bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 1, 0);
-    correct &= Double_equality2DArray(wholeGenomeBin1, summaryTable->table, 4, 5);
+    correct &= Double_equality2DArray(wholeGenomeBin1, summaryTable->table, dimension, dimension);
 
     // whole genome bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 1, 1);
-    correct &= Double_equality2DArray(wholeGenomeBin2, summaryTable->table, 4, 5);
+    correct &= Double_equality2DArray(wholeGenomeBin2, summaryTable->table, dimension, dimension);
 
     // annotation 1 bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 2, 0);
-    correct &= Double_equality2DArray(annotation1Bin1, summaryTable->table, 4, 5);
+    correct &= Double_equality2DArray(annotation1Bin1, summaryTable->table, dimension, dimension);
 
     // annotation 1 bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 2, 1);
-    correct &= Double_equality2DArray(annotation1Bin2, summaryTable->table, 4, 5);
+    correct &= Double_equality2DArray(annotation1Bin2, summaryTable->table, dimension, dimension);
 
     // annotation 2 bin 1
     summaryTable = SummaryTableList_getTable(summaryTableList, 3, 0);
-    correct &= Double_equality2DArray(annotation2Bin1, summaryTable->table, 4, 5);
+    correct &= Double_equality2DArray(annotation2Bin1, summaryTable->table, dimension, dimension);
 
     // annotation 2 bin 2
     summaryTable = SummaryTableList_getTable(summaryTableList, 3, 1);
-    correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table, 4, 5);
+    correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table, dimension, dimension);
 
     SummaryTableList_destruct(summaryTableList);
 
@@ -401,12 +417,12 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
         CoverageHeader_destruct(header);
     }
     IntBinArray_destruct(binArray);
-    Double_destruct2DArray(wholeGenomeBin1, 4);
-    Double_destruct2DArray(wholeGenomeBin2, 4);
-    Double_destruct2DArray(annotation1Bin1, 4);
-    Double_destruct2DArray(annotation2Bin1, 4);
-    Double_destruct2DArray(annotation1Bin2, 4);
-    Double_destruct2DArray(annotation2Bin2, 4);
+    Double_destruct2DArray(wholeGenomeBin1, dimension);
+    Double_destruct2DArray(wholeGenomeBin2, dimension);
+    Double_destruct2DArray(annotation1Bin1, dimension);
+    Double_destruct2DArray(annotation2Bin1, dimension);
+    Double_destruct2DArray(annotation1Bin2, dimension);
+    Double_destruct2DArray(annotation2Bin2, dimension);
 
     return correct;
 }

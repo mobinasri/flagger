@@ -305,8 +305,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
     void *(*copyBlockIterator)(void *) = args->copyBlockIterator;
     void (*resetBlockIterator)(void *) = args->resetBlockIterator;
     void (*destructBlockIterator)(void *) = args->destructBlockIterator;
-    ptBlock * (*getNextBlock)(
-    void *, char *) = args->getNextBlock;
+    ptBlock * (*getNextBlock)(void *, char *) = args->getNextBlock;
     SummaryTableList *summaryTableList = args->summaryTableList;
     IntBinArray *sizeBinArray = args->sizeBinArray;
     int (*overlapFuncCategoryIndex1)(CoverageInfo *, int) = args->overlapFuncCategoryIndex1;
@@ -357,7 +356,11 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         }
         Inference *inference = coverageInfo->data;
         int refLabel = getRefLabelFunction(inference);
+        // if refLabel is -1 change it to numberOfRows - 1 since last row is for "Unk"
+        refLabel = refLabel == -1 ? summaryTableList->numberOfRows - 1 : refLabel
         int queryLabel = getQueryLabelFunction(inference);
+        // if queryLabel is -1 change it to numberOfColumns - 1 since last column is for "Unk"
+        queryLabel = queryLabel == -1 ? summaryTableList->numberOfColumns - 1 : queryLabel
 
         // set event flags
         bool contigChanged = (preCtg[0] != '\0') && (strcmp(preCtg, ctg) != 0);
@@ -432,12 +435,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
 
         // update confusion row
         if (annotationInCurrent) {
-            if (queryLabel < 0) {
-                // last index is reserved for undefined labels
-                refLabelConfusionRow[summaryTableList->numberOfColumns - 1] += end - start + 1;
-            } else if (queryLabel < summaryTableList->numberOfColumns - 1) {
-                refLabelConfusionRow[queryLabel] += end - start + 1;
-            }
+            refLabelConfusionRow[queryLabel] += end - start + 1;
         }
 
 
@@ -541,12 +539,13 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
     stList *categoryNames2 = sizeBinArray->names;
 
     int sizeOfCategory1 = stList_length(categoryNames1);
-    int numberOfRows = numberOfLabels;
-    int numberOfColumns = numberOfLabels;
+    // +1 for "Unk" state (label = -1)
+    int numberOfRows = numberOfLabels + 1;
+    int numberOfColumns = numberOfLabels + 1;
     SummaryTableList *summaryTableList = SummaryTableList_construct(categoryNames1,
                                                                     categoryNames2,
                                                                     numberOfRows,
-                                                                    numberOfColumns +1); // +1 for undefined state (label = -1)
+                                                                    numberOfColumns);
 
     // create a template of update args with category 1 index set to -1
     bool isMetricOverlapBased = metricType == METRIC_OVERLAP_BASED;
