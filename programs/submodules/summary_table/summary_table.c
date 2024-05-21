@@ -165,8 +165,7 @@ void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp
             char *c2Name = stList_get(summaryTableList->categoryNames2, c2);
             for(int rowIndex=0; rowIndex < summaryTableList->numberOfRows ; rowIndex++){
                 char *tableRowString = SummaryTableList_getRowString(summaryTableList,c1,c2,rowIndex,'\t');
-                fprintf(fp, "%s\t%s\t%s\t%d\t%s", linePrefix, c1Name, c2Name, rowIndex, tableRowString);
-                free(tableRowString);
+                fprintf(fp, "%s\t%s\t%s\t%d\t%s\n", linePrefix, c1Name, c2Name, rowIndex, tableRowString);
             }
         }
     }
@@ -270,7 +269,7 @@ SummaryTableList_updateForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, in
                        SummaryTableList_updateByUpdaterArgsForThreadPool,
                        (void *) argWork);
         fprintf(stderr, "[%s] Created thread for updating summary table for category1 index %d (out of range [0-%d])\n",
-                get_timestamp(), categoryIndex1, sizeOfCategory1);
+                get_timestamp(), categoryIndex1, sizeOfCategory1 - 1);
     }
     tpool_wait(tm);
     tpool_destroy(tm);
