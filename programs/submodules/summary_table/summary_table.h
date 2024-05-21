@@ -36,6 +36,14 @@ typedef enum ComparisonType {
     COMPARISON_PREDICTION_VS_PREDICTION = 3,
 } ComparisonType;
 
+#define NUMBER_OF_CATEGORY_TYPES 2
+#define NUMBER_OF_METRIC_TYPES 2
+#define NUMBER_OF_COMPARISON_TYPES 4
+
+static const char* MetricTypeToString[2] = {"overlap_based", "base_level"};
+static const char* CategoryTypeToString[2] = {"region", "annotation"};
+static const char* ComparisonTypeToString[4] = {"recall", "precision", "truth", "prediction"};
+
 /*! @typedef
  * @abstract Structure for keeping a summary table
  */
@@ -115,6 +123,7 @@ char *SummaryTableList_getRowStringPercentage(SummaryTableList *summaryTableList
                                               char delimiter);
 
 void SummaryTableList_writeIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char* linePrefix);
+void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char* linePrefix);
 
 void SummaryTableList_destruct(SummaryTableList *summaryTableList);
 

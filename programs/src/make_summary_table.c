@@ -140,38 +140,63 @@ int main(int argc, char *argv[]) {
     }
 
 
+    // write column names in the first line
     char linePrefix[1000];
+    sprintf(linePrefix, "#Statistic\tMetric_Type\tEntry_Type\tCategory_Type\tCategory_Name\tSize_Bin_Name\tRef_Label");
+    for (int i = 0; i < header->numberOfLabels; i++) {
+        sprintf(linePrefix + strlen(linePrefix), "\tQuery_Label_%d", i);
+    }
+    fprintf(fout, "%s\n", linePrefix);
+
+    //reset line
+    linePrefix[0] = '\0';
+
     int numberOfLabels = header->numberOfLabels;
     double overlapRatioThreshold = 0.4;
-    if (header->isTruthAvailable && header->isPredictionAvailable) {
-        // get a summary table for base-level precision across all annotation and size bins
-        SummaryTableList *summaryTableListAnnotationBaseLevelPrecision =
-                SummaryTableList_constructAndFillByIterator(iterator,
-                                                            blockIteratorType,
-                                                            header->annotationNames,
-                                                            CATEGORY_ANNOTATION,
-                                                            binArray,
-                                                            METRIC_BASE_LEVEL,
-                                                            overlapRatioThreshold,
-                                                            numberOfLabels,
-                                                            COMPARISON_PREDICTION_VS_TRUTH,
-                                                            threads);
-        sprintf(linePrefix, "precision\tbase-level\tannotation");
-        SummaryTableList_writeIntoFile(summaryTableListAnnotationBaseLevelPrecision, fout, linePrefix);
-        SummaryTableList_destruct(summaryTableListAnnotationBaseLevelPrecision);
-/*
-        // get a summary table for base-level recall across all annotation and size bins
-        SummaryTableList *summaryTableListAnnotationBaseLevelRecall =
-                SummaryTableList_constructAndFillByIterator(iterator,
-                                                            blockIteratorType,
-                                                            header->annotationNames,
-                                                            CATEGORY_ANNOTATION,
-                                                            binArray,
-                                                            METRIC_BASE_LEVEL,
-                                                            overlapRatioThreshold,
-                                                            numberOfLabels,
-                                                            COMPARISON_TRUTH_VS_PREDICTION,
-                                                            threads);*/
+    if (header->isTruthAvailable || header->isPredictionAvailable) {
+
+        // iterate over comparison types such as precision and recall
+        for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
+            bool truthLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
+                                      comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
+                                      comparisonType == COMPARISON_TRUTH_VS_TRUTH;
+            bool predictionLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
+                                           comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
+                                           comparisonType == COMPARISON_PREDICTION_VS_PREDICTION;
+            if (header->isTruthAvailable == false && truthLabelIsNeeded) continue;
+            if (header->isPredictionAvailable == false && predictionLabelIsNeeded) continue;
+            // iterating over category types; annotation and region
+            for (int categoryType = 0; categoryType < NUMBER_OF_CATEGORY_TYPES; categoryType++) {
+                // iterating over metric types; base-level and overlap-based
+                for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
+                    SummaryTableList *summaryTableList =
+                            SummaryTableList_constructAndFillByIterator(iterator,
+                                                                        blockIteratorType,
+                                                                        header->annotationNames,
+                                                                        categoryType,
+                                                                        binArray,
+                                                                        metricType,
+                                                                        overlapRatioThreshold,
+                                                                        numberOfLabels,
+                                                                        comparisonType,
+                                                                        threads);
+                    // write count values
+                    sprintf(linePrefix, "%s\t%s\tcount\t%s",
+                            ComparisonTypeToString[comparisonType],
+                            MetricTypeToString[metricType],
+                            CategoryTypeToString[categoryType]);
+                    SummaryTableList_writeIntoFile(summaryTableList, fout, linePrefix);
+                    // write percentages
+                    sprintf(linePrefix, "%s\t%s\tpercentage\t%s",
+                            ComparisonTypeToString[comparisonType],
+                            MetricTypeToString[metricType],
+                            CategoryTypeToString[categoryType]);
+                    SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
+                    // free summary table
+                    SummaryTableList_destruct(summaryTableList);
+                }
+            }
+        }
     }
 
     // close file
@@ -187,7 +212,7 @@ int main(int argc, char *argv[]) {
         ChunkIterator_destruct((ChunkIterator *) iterator);
         // free chunks
         ChunksCreator_destruct(chunksCreator);
-    }else{
+    } else {
         // free iterator
         ptBlockItrPerContig_destruct((ptBlockItrPerContig *) iterator);
         // free blocks
