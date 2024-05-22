@@ -58,6 +58,7 @@ typedef struct SummaryTable {
     stList *rowNames;
     stList *columnNames;
     char rowString[1000];
+    char rowName[100];
 } SummaryTable;
 
 
@@ -68,6 +69,18 @@ SummaryTable *SummaryTable_constructByNames(stList *rowNames, stList *columnName
 void SummaryTable_destruct(SummaryTable *summaryTable);
 
 void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int columnIndex, double value);
+
+double SummaryTable_getTPCountInRow(SummaryTable *summaryTable, int rowIndex);
+
+double SummaryTable_getAllCountInRow(SummaryTable *summaryTable, int rowIndex);
+
+double SummaryTable_getAccuracyPercentage(SummaryTable *summaryTable, bool excludeLastRowAndColumn);
+
+double SummaryTable_getMicroAverageAcrossRowsPercentage(SummaryTable *summaryTable, bool excludeLastRow);
+
+double SummaryTable_getMacroAverageAcrossRowsPercentage(SummaryTable *summaryTable, bool excludeLastRow);
+
+char *SummaryTable_getRowName(SummaryTable *summaryTable, int rowIndex);
 
 char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter, bool addRowIndex);
 
@@ -158,6 +171,10 @@ void SummaryTableList_writeTotalPerRowIntoFile(SummaryTableList *summaryTableLis
 
 void SummaryTableList_writeTotalPerRowPercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
 
+void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTableList,
+                                                   SummaryTableList *precisionTableList,
+                                                   FILE *fout,
+                                                   const char *linePrefix);
 
 void SummaryTableList_destruct(SummaryTableList *summaryTableList);
 

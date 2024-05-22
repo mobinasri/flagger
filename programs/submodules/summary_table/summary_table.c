@@ -86,6 +86,82 @@ void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int column
     }
 }
 
+double SummaryTable_getTPCountInRow(SummaryTable *summaryTable, int rowIndex) {
+    return summaryTable->table[rowIndex][rowIndex];
+}
+
+double SummaryTable_getAllCountInRow(SummaryTable *summaryTable, int rowIndex) {
+    return summaryTable->totalPerRow[rowIndex];
+}
+
+
+double SummaryTable_getAccuracyPercentage(SummaryTable *summaryTable, bool excludeLastRowAndColumn) {
+    int tp = 0;
+    int all = 0;
+    for (int i = 0; i < summaryTable->numberOfRows; i++) {
+        if (excludeLastRowAndColumn && i == summaryTable->numberOfRows - 1) break;
+        tp += summaryTable->table[i][i];
+        all += summaryTable->totalPerRow[i];
+        // remove the value of last column if excludeLastRowAndColumn was true
+        all -= excludeLastRowAndColumn ? summaryTable->table[i][summaryTable->numberOfColumns - 1] : 0;
+    }
+    if(all <= 0.0){
+        return 0.0;
+    }
+    double acc = (double) tp / all * 100.0;
+    return acc;
+}
+
+double SummaryTable_getMicroAverageAcrossRowsPercentage(SummaryTable *summaryTable, bool excludeLastRow) {
+    double tp = 0;
+    double all = 0;
+    for (int i = 0; i < summaryTable->numberOfRows; i++) {
+        if (excludeLastRow && i == summaryTable->numberOfRows - 1) break;
+        tp += summaryTable->table[i][i];
+        all += summaryTable->totalPerRow[i];
+    }
+    if(all <= 0.0){
+        return 0.0;
+    }
+    double microAvg = tp / all * 100.0;
+    return microAvg;
+}
+
+double SummaryTable_getMacroAverageAcrossRowsPercentage(SummaryTable *summaryTable, bool excludeLastRow) {
+    double sum = 0.0;
+    int n = 0;
+    for (int i = 0; i < summaryTable->numberOfRows; i++) {
+        if (excludeLastRow && i == summaryTable->numberOfRows - 1) break;
+        if (0 < summaryTable->totalPerRow[i]) {
+            sum += summaryTable->table[i][i] / summaryTable->totalPerRow[i];
+            n += 1;
+        }
+    }
+    double macroAvg = (double) sum / n * 100.0;
+    return macroAvg;
+}
+
+char *SummaryTable_getRowName(SummaryTable *summaryTable, int rowIndex) {
+    if (summaryTable->numberOfRows <= rowIndex) {
+        fprintf(stderr, "[%s] Error: row index %d cannot be greater than %d.\n",
+                get_timestamp(),
+                rowIndex,
+                summaryTable->numberOfRows - 1);
+        exit(EXIT_FAILURE);
+    }
+    //reset row string
+    summaryTable->rowName[0] = '\0';
+    // add row name first if row names exist
+    if (summaryTable->rowNames != NULL) {
+        char *rowName = stList_get(summaryTable->rowNames, rowIndex);
+        // copy name + delimiter
+        sprintf(summaryTable->rowName, "%s", rowName);
+    } else {
+        sprintf(summaryTable->rowName, "%d", rowIndex);
+    }
+    return rowName;
+}
+
 char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter, bool addRowIndex) {
     if (summaryTable->numberOfRows <= rowIndex) {
         fprintf(stderr, "[%s] Error: row index %d cannot be greater than %d.\n",
@@ -374,6 +450,91 @@ void SummaryTableList_writeTotalPerRowPercentageIntoFile(SummaryTableList *summa
         }
     }
 }
+
+void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTableList,
+                                                   SummaryTableList *precisionTableList,
+                                                   FILE *fout,
+                                                   const char *linePrefix){
+    // last row is reserved for unknown labels
+    int numberOfLabels = recallTables->numberOfRows - 1;
+
+    // iterate over category 1 (annotation/region indices)
+    for (int c1 = 0; c1 < recallTableList->numberOfCategories1; c1++) {
+        char *c1Name = stList_get(recallTableList->categoryNames1, c1);
+        // iterate over category 2 (size bins)
+        for (int c2 = 0; c2 < recallTableList->numberOfCategories2; c2++) {
+            char *c2Name = stList_get(recallTableList->categoryNames2, c2);
+            // get recall table
+            SummaryTable *recallTable = SummaryTableList_getTable(recallTableList, c1, c2);
+            // get precision table
+            SummaryTable *precisionTable = SummaryTableList_getTable(precisionTableList, c1, c2);
+            double totalTpRecall = 0.0;
+            double totalTpPrecision = 0.0;
+            double totalRecall = 0.0;
+            double totalPrecision = 0.0;
+            double sumOfRecall = 0.0;
+            double sumOfPrecision = 0.0;
+            // iterate over row indices
+            for (int rowIndex = 0; rowIndex < numberOfLabels; rowIndex++) {
+                // recall is used as suffix for the variables related to the table whose reference label is truth
+                // precision is used as suffix for the variables related to the table whose reference label is prediction
+                double tpRecall = SummaryTable_getTPCountInRow(recallTable, rowIndex);
+                totalTpRecall += tpRecall;
+                double tpPrecision = SummaryTable_getTPCountInRow(precisionTable, rowIndex);
+                totalTpPrecision += tpPrecision;
+                double fn = SummaryTable_getAllCountInRow(recallTable, rowIndex) - tpRecall;
+                double fp = SummaryTable_getAllCountInRow(precisionTable, rowIndex) - tpPrecision;
+                totalRecall += tpRecall + fn;
+                totalPrecision += tpPrecision + fp;
+                char *rowName = SummaryTable_getRowName(recallTable, rowIndex);
+                double recallPercent = tpRecall / (tpRecall + fn) * 100.0;
+                double precisionPercent = tpPrecision / (tpPrecision + fp) * 100.0;
+                // for calculating macro-average later
+                sumOfRecall += recallPercent;
+                sumOfPrecision += precisionPercent;
+                double f1Score = 2 * precisionPercent * recallPercent / (precisionPercent + recallPercent);
+                // TP_Prediction_Ref
+                // TP_Truth_Ref
+                // FP
+                // FN
+                // Total_Prediction_Ref
+                // Total_Truth_Ref
+                // Precision
+                // Recall
+                // F1-Score
+                // Accuracy_Prediction_Ref
+                // Accuracy_Truth_Ref
+                fprintf(fout, "%s\t%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%s\t%s\n",
+                        linePrefix,
+                        c1Name,c2Name,
+                        rowName,
+                        tpPrecision, tpRecall, fp, fn,
+                        tpPrecision + fp, tpRecall + fn,
+                        precisionPercent, recallPercent, f1Score, "NA", "NA");
+            }
+            double macroAverageRecall = sumOfRecall / numberOfLabels;
+            double macroAveragePrecision = sumOfPrecision / numberOfLabels;
+            double macroF1Score = 2 * macroAverageRecall * macroAveragePrecision / (macroAverageRecall + macroAveragePrecision);
+            fprintf(fout, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%s\t%s\n",
+                    linePrefix,
+                    c1Name,c2Name,
+                    "MACRO_AVERAGE",
+                    "NA", "NA", "NA", "NA",
+                    "NA", "NA",
+                    macroAveragePrecision, macroAverageRecall, macroF1Score, "NA", "NA");
+            double accuracyPredictionRef = totalTpPrecision /  totalPrecision * 100.0;
+            double accuracyTruthRef = totalTpRecall / totalRecall * 100.0;
+            fprintf(fout, "%s\t%s\t%s\t%s\t%.2f\t%.2f\t%s\t%s\t%.2f\t%.2f\t%s\t%s\t%s\t%.2f\t%.2f\n",
+                    linePrefix,
+                    c1Name,c2Name,
+                    "ACCURACY",
+                    totalTpPrecision, totalTpRecall, "NA", "NA",
+                    totalPrecision, totalRecall,
+                    "NA", "NA", "NA", accuracyPredictionRef, accuracyTruthRef);
+        }
+    }
+}
+
 
 void SummaryTableList_destruct(SummaryTableList *summaryTableList) {
     if (summaryTableList->summaryTables != NULL) stList_destruct(summaryTableList->summaryTables);

@@ -148,6 +148,24 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    char outputPathFinalStats[1000];
+    char prefix[1000];
+    memcpy(prefix, outputPath, strlen(outputPath) - 4); // ".tsv" has 4 characters
+    prefix[strlen(outputPath) - 4] = '\0'; // ".tsv" has 4 characters
+    sprintf(outputPathFinalStats, "%s.final_stats.tsv", prefix);
+
+    FILE *foutFinalStats = NULL;
+    if (header->isTruthAvailable && header->isPredictionAvailable) {
+        foutFinalStats = fopen(outputPathFinalStats, "w");
+        if (foutFinalStats == NULL) {
+            fprintf(stderr, "[%s] Error: %s cannot be opened for making a tsv file with final benchmarking stats.\n",
+                    get_timestamp(), outputPathFinalStats);
+            exit(EXIT_FAILURE);
+        }
+        fprintf(foutFinalStats,
+                "#Metric_Type\tCategory_Type\tCategory_Name\tSize_Bin_Name\tLabel\tTP_Prediction_Ref\tTP_Truth_Ref\tFP\tFN\tTotal_Prediction_Ref\tTotal_Truth_Ref\tPrecision\tRecall\tF1-Score\tAccuracy_Prediction_Ref\tAccuracy_Truth_Ref\n");
+    }
+
     // The list of label names has an additional name "Unk" for handling labels with the value of -1
     if (labelNamesWithUnknown != NULL && stList_length(labelNamesWithUnknown) - 1 != header->numberOfLabels) {
         fprintf(stderr, "[%s] Error: Number of label names %d  does not match the number of labels in the header %d.\n",
@@ -182,24 +200,29 @@ int main(int argc, char *argv[]) {
     linePrefix[0] = '\0';
 
 
-    if (header->isTruthAvailable || header->isPredictionAvailable) {
+    SummaryTableList **summaryTableListPerComparison = (SummaryTableList **) malloc(
+            NUMBER_OF_COMPARISON_TYPES * sizeof(SummaryTableList *));
+    for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
+        summaryTableListPerComparison[comparisonType] = NULL;
+    }
 
-        // iterate over comparison types such as precision and recall
-        for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
-            bool truthLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
-                                      comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
-                                      comparisonType == COMPARISON_TRUTH_VS_TRUTH;
-            bool predictionLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
-                                           comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
-                                           comparisonType == COMPARISON_PREDICTION_VS_PREDICTION;
-            if (header->isTruthAvailable == false && truthLabelIsNeeded) continue;
-            if (header->isPredictionAvailable == false && predictionLabelIsNeeded) continue;
-            // iterating over category types; annotation and region
-            for (int categoryType = 0; categoryType < NUMBER_OF_CATEGORY_TYPES; categoryType++) {
-                // iterating over metric types; base-level and overlap-based
-                for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
-                    stList *categoryNames =
-                            categoryType == CATEGORY_REGION ? header->regionNames : header->annotationNames;
+    if (header->isTruthAvailable || header->isPredictionAvailable) {
+        // iterating over category types; annotation and region
+        for (int categoryType = 0; categoryType < NUMBER_OF_CATEGORY_TYPES; categoryType++) {
+            // iterating over metric types; base-level and overlap-based
+            for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
+                stList *categoryNames =
+                        categoryType == CATEGORY_REGION ? header->regionNames : header->annotationNames;
+                // iterate over comparison types such as precision and recall
+                for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
+                    bool truthLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
+                                              comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
+                                              comparisonType == COMPARISON_TRUTH_VS_TRUTH;
+                    bool predictionLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
+                                                   comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
+                                                   comparisonType == COMPARISON_PREDICTION_VS_PREDICTION;
+                    if (header->isTruthAvailable == false && truthLabelIsNeeded) continue;
+                    if (header->isPredictionAvailable == false && predictionLabelIsNeeded) continue;
                     SummaryTableList *summaryTableList =
                             SummaryTableList_constructAndFillByIterator(iterator,
                                                                         blockIteratorType,
@@ -212,6 +235,8 @@ int main(int argc, char *argv[]) {
                                                                         labelNamesWithUnknown,
                                                                         comparisonType,
                                                                         threads);
+                    summaryTableListPerComparison[ComparisonType] = summaryTableList;
+
                     // write count values
                     sprintf(linePrefix, "%s\t%s\tcount\t%s",
                             ComparisonTypeToString[comparisonType],
@@ -237,13 +262,32 @@ int main(int argc, char *argv[]) {
                     } else {
                         SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
                     }
-                    // free summary table
-                    SummaryTableList_destruct(summaryTableList);
+                } // end comparison type
+                // if both labels are present for printing benchmarking stats
+                if (header->isTruthAvailable && header->isPredictionAvailable) {
+                    SummaryTableList *precisionTables = summaryTableListPerComparison[COMPARISON_PREDICTION_VS_TRUTH];
+                    SummaryTableList *recallTables = summaryTableListPerComparison[COMPARISON_TRUTH_VS_PREDICTION];
+
+                    // write percentages
+                    sprintf(linePrefix, "%s\t%s",
+                            MetricTypeToString[metricType],
+                            CategoryTypeToString[categoryType]);
+                    SummaryTableList_writeFinalStatisticsIntoFile(recallTables,
+                                                                  precisionTables,
+                                                                  foutFinalStats,
+                                                                  linePrefix);
                 }
-            }
-        }
+            }// end metric type
+        }// end category type
     }
 
+
+    // free summary tables
+    for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
+        if (summaryTableListPerComparison[comparisonType] != NULL) {
+            SummaryTableList_destruct(summaryTableListPerComparison[comparisonType]);
+        }
+    }
     // close file
     fclose(fout);
 
