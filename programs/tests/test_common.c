@@ -107,14 +107,14 @@ bool test_IntBinArray_getBinIndices(char *filePath) {
     bool correct = true;
 
     int len1 = 0;
-    int *indices1 = IntBinArray_getBinIndices(binArray, 50, &len);
+    int *indices1 = IntBinArray_getBinIndices(binArray, 50, &len1);
     correct &= len1 == 2;
     correct &= indices1[0] == 0;
     correct &= indices1[1] == 1;
     free(indices1);
 
     int len2 = 0;
-    int *indices2 = IntBinArray_getBinIndices(binArray, 80, &len);
+    int *indices2 = IntBinArray_getBinIndices(binArray, 80, &len2);
     correct &= len2 == 1;
     correct &= indices2[0] == 1;
     free(indices2);
