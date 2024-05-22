@@ -353,7 +353,7 @@ void SummaryTableList_writeTotalPerRowIntoFile(SummaryTableList *summaryTableLis
                                                                          c1,
                                                                          c2,
                                                                          '\t',
-                                                                         "ALL");
+                                                                         "ALL_LABELS");
             fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
         }
     }
@@ -369,7 +369,7 @@ void SummaryTableList_writeTotalPerRowPercentageIntoFile(SummaryTableList *summa
                                                                                    c1,
                                                                                    c2,
                                                                                    '\t',
-                                                                                   "ALL");
+                                                                                   "ALL_LABELS");
             fprintf(fp, "%s\t%s\t%s\t%s\n", linePrefix, c1Name, c2Name, tableRowString);
         }
     }
