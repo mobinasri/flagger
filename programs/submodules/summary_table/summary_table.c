@@ -586,27 +586,33 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
                 annotationEnded)
                 ) {
             int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
-            int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
+            int binIndicesLength = 0;
+            int* binIndices = IntBinArray_getBinIndices(sizeBinArray, refLabelBlockLen, &binIndicesLength);
             if (isMetricOverlapBased) {
                 convertBaseLevelToOverlapBased(refLabelConfusionRow,
                                                summaryTableList->numberOfColumns,
                                                refLabelBlockLen,
                                                overlapThreshold);
             }
-            // iterating over query labels
-            for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
-                int catIndex1 = categoryIndex1;
-                int catIndex2 = binIndex;
-                int rowIndex = preRefLabel;
-                int columnIndex = q;
-                //fprintf(stderr, "block len = %d, [%d][%d] [%d][%d] += %d\n", blockLen, catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
-                SummaryTableList_increment(summaryTableList,
-                                           catIndex1,
-                                           catIndex2,
-                                           rowIndex,
-                                           columnIndex,
-                                           refLabelConfusionRow[q]);
+            // iterating over size bin indices
+            for(int bi=0; bi < binIndicesLength; bi++) {
+                int binIndex = binIndices[bi];
+                // iterating over query labels
+                for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
+                    int catIndex1 = categoryIndex1;
+                    int catIndex2 = binIndex;
+                    int rowIndex = preRefLabel;
+                    int columnIndex = q;
+                    //fprintf(stderr, "block len = %d, [%d][%d] [%d][%d] += %d\n", blockLen, catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
+                    SummaryTableList_increment(summaryTableList,
+                                               catIndex1,
+                                               catIndex2,
+                                               rowIndex,
+                                               columnIndex,
+                                               refLabelConfusionRow[q]);
+                }
             }
+            free(binIndices);
         }
 
         // reset confusion row and update start location
@@ -641,27 +647,33 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
     bool annotationInLastWindow = overlapFuncCategoryIndex1(preCoverageInfo, categoryIndex1);
     if (annotationInLastWindow && preRefLabelIsValid) {
         int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
-        int binIndex = IntBinArray_getBinIndex(sizeBinArray, refLabelBlockLen);
+        int binIndicesLength = 0;
+        int* binIndices = IntBinArray_getBinIndices(sizeBinArray, refLabelBlockLen, &binIndicesLength);
         if (isMetricOverlapBased) {
             convertBaseLevelToOverlapBased(refLabelConfusionRow,
                                            summaryTableList->numberOfColumns,
                                            refLabelBlockLen,
                                            overlapThreshold);
         }
-        // iterating over query labels
-        for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
-            int catIndex1 = categoryIndex1;
-            int catIndex2 = binIndex;
-            int rowIndex = preRefLabel;
-            int columnIndex = q;
-            //fprintf(stderr, "[%d][%d] [%d][%d] += %d\n", catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
-            SummaryTableList_increment(summaryTableList,
-                                       catIndex1,
-                                       catIndex2,
-                                       rowIndex,
-                                       columnIndex,
-                                       refLabelConfusionRow[q]);
+        // iterating over size bin indices
+        for(int bi=0; bi < binIndicesLength; bi++) {
+            int binIndex = binIndices[bi];
+            // iterating over query labels
+            for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
+                int catIndex1 = categoryIndex1;
+                int catIndex2 = binIndex;
+                int rowIndex = preRefLabel;
+                int columnIndex = q;
+                //fprintf(stderr, "[%d][%d] [%d][%d] += %d\n", catIndex1, catIndex2, rowIndex, columnIndex, refLabelConfusionRow[q]);
+                SummaryTableList_increment(summaryTableList,
+                                           catIndex1,
+                                           catIndex2,
+                                           rowIndex,
+                                           columnIndex,
+                                           refLabelConfusionRow[q]);
+            }
         }
+        free(binIndices);
     }
 
     Int_destruct1DArray(refLabelConfusionRow);
