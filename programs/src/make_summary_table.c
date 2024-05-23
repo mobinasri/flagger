@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
                                                                         labelNamesWithUnknown,
                                                                         comparisonType,
                                                                         threads);
-                    summaryTableListPerComparison[ComparisonType] = summaryTableList;
+                    summaryTableListPerComparison[comparisonType] = summaryTableList;
 
                     // write count values
                     sprintf(linePrefix, "%s\t%s\tcount\t%s",

@@ -159,7 +159,7 @@ char *SummaryTable_getRowName(SummaryTable *summaryTable, int rowIndex) {
     } else {
         sprintf(summaryTable->rowName, "%d", rowIndex);
     }
-    return rowName;
+    return summaryTable->rowName;
 }
 
 char *SummaryTable_getRowString(SummaryTable *summaryTable, int rowIndex, char delimiter, bool addRowIndex) {
@@ -456,7 +456,7 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                                                    FILE *fout,
                                                    const char *linePrefix){
     // last row is reserved for unknown labels
-    int numberOfLabels = recallTables->numberOfRows - 1;
+    int numberOfLabels = recallTableList->numberOfRows - 1;
 
     // iterate over category 1 (annotation/region indices)
     for (int c1 = 0; c1 < recallTableList->numberOfCategories1; c1++) {
@@ -487,12 +487,12 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 totalRecall += tpRecall + fn;
                 totalPrecision += tpPrecision + fp;
                 char *rowName = SummaryTable_getRowName(recallTable, rowIndex);
-                double recallPercent = tpRecall / (tpRecall + fn) * 100.0;
-                double precisionPercent = tpPrecision / (tpPrecision + fp) * 100.0;
+                double recallPercent = tpRecall / (tpRecall + fn + 1.0e-9) * 100.0;
+                double precisionPercent = tpPrecision / (tpPrecision + fp + 1.0e-9) * 100.0;
                 // for calculating macro-average later
                 sumOfRecall += recallPercent;
                 sumOfPrecision += precisionPercent;
-                double f1Score = 2 * precisionPercent * recallPercent / (precisionPercent + recallPercent);
+                double f1Score = 2 * precisionPercent * recallPercent / (precisionPercent + recallPercent + 1.0e-9);
                 // TP_Prediction_Ref
                 // TP_Truth_Ref
                 // FP
@@ -514,7 +514,7 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
             }
             double macroAverageRecall = sumOfRecall / numberOfLabels;
             double macroAveragePrecision = sumOfPrecision / numberOfLabels;
-            double macroF1Score = 2 * macroAverageRecall * macroAveragePrecision / (macroAverageRecall + macroAveragePrecision);
+            double macroF1Score = 2 * macroAverageRecall * macroAveragePrecision / (macroAverageRecall + macroAveragePrecision + 1.0e-9);
             fprintf(fout, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%s\t%s\n",
                     linePrefix,
                     c1Name,c2Name,
@@ -522,8 +522,8 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                     "NA", "NA", "NA", "NA",
                     "NA", "NA",
                     macroAveragePrecision, macroAverageRecall, macroF1Score, "NA", "NA");
-            double accuracyPredictionRef = totalTpPrecision /  totalPrecision * 100.0;
-            double accuracyTruthRef = totalTpRecall / totalRecall * 100.0;
+            double accuracyPredictionRef = totalTpPrecision /  (totalPrecision + 1.0e-9) * 100.0;
+            double accuracyTruthRef = totalTpRecall / (totalRecall + 1e-9) * 100.0;
             fprintf(fout, "%s\t%s\t%s\t%s\t%.2f\t%.2f\t%s\t%s\t%.2f\t%.2f\t%s\t%s\t%s\t%.2f\t%.2f\n",
                     linePrefix,
                     c1Name,c2Name,
