@@ -169,7 +169,8 @@ void SummaryTableList_writePercentageIntoFile(SummaryTableList *summaryTableList
 
 void SummaryTableList_writeTotalPerRowIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
 
-void SummaryTableList_writeTotalPerRowPercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp, const char *linePrefix);
+void SummaryTableList_writeTotalPerRowPercentageIntoFile(SummaryTableList *summaryTableList, FILE *fp,
+                                                         const char *linePrefix);
 
 void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTableList,
                                                    SummaryTableList *precisionTableList,
@@ -275,5 +276,14 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                               stList *labelNamesWithUnknown,
                                                               ComparisonType comparisonType,
                                                               int numberOfThreads);
+
+void SummaryTableList_createAndWriteAllTables(void *iterator,
+                                              BlockIteratorType blockIteratorType,
+                                              CoverageHeader *header,
+                                              const char *outputPath,
+                                              const char *binArrayFilePath,
+                                              stList *labelNamesWithUnknown,
+                                              double overlapRatioThreshold,
+                                              int threads);
 
 #endif //FLAGGER_SUMMARY_TABLE_H
