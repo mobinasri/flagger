@@ -1081,6 +1081,12 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                     } else {
                         SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
                     }
+		    fprintf(stderr, "[%s] Writing summary tables is done for categoryType = %s, metricType = %s, comparisonType = %s .\n",
+                            get_timestamp(),
+                            CategoryTypeToString[categoryType],
+                            MetricTypeToString[metricType],
+                            ComparisonTypeToString[comparisonType]);
+
                 } // end comparison type
                 // if both labels are present for printing benchmarking stats
                 if (header->isTruthAvailable && header->isPredictionAvailable) {
@@ -1095,11 +1101,10 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                                   precisionTables,
                                                                   foutFinalStats,
                                                                   linePrefix);
-                    fprintf(stderr, "[%s] Writing TSV rows is done for categoryType = %s, metricType = %s, comparisonType = %s .\n",
+                    fprintf(stderr, "[%s] Writing benchmarking stats (precision/recall/f1score) is done for categoryType = %s, metricType = %s .\n",
                             get_timestamp(),
                             CategoryTypeToString[categoryType],
-                            MetricTypeToString[metricType],
-                            ComparisonTypeToString[comparisonType]);
+                            MetricTypeToString[metricType]);
                 }
             }// end metric type
         }// end category type
