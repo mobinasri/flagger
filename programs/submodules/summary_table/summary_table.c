@@ -640,7 +640,6 @@ SummaryTableList_updateForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, in
     tpool_wait(tm);
     tpool_destroy(tm);
 
-    fprintf(stderr, "[%s] Summary tables for all category 1 indices are updated.\n", get_timestamp());
 }
 
 void SummaryTableList_updateByUpdaterArgsForThreadPool(void *argWork_) {
@@ -1037,6 +1036,12 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                    comparisonType == COMPARISON_PREDICTION_VS_PREDICTION;
                     if (header->isTruthAvailable == false && truthLabelIsNeeded) continue;
                     if (header->isPredictionAvailable == false && predictionLabelIsNeeded) continue;
+
+                    fprintf(stderr, "[%s] Creating summary tables for categoryType = %s, metricType = %s, comparisonType = %s .\n",
+                            get_timestamp(),
+                            CategoryTypeToString[categoryType],
+                            MetricTypeToString[metricType],
+                            ComparisonTypeToString[comparisonType]);
                     SummaryTableList *summaryTableList =
                             SummaryTableList_constructAndFillByIterator(iterator,
                                                                         blockIteratorType,
@@ -1090,6 +1095,11 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                                   precisionTables,
                                                                   foutFinalStats,
                                                                   linePrefix);
+                    fprintf(stderr, "[%s] Writing TSV rows is done for categoryType = %s, metricType = %s, comparisonType = %s .\n",
+                            get_timestamp(),
+                            CategoryTypeToString[categoryType],
+                            MetricTypeToString[metricType],
+                            ComparisonTypeToString[comparisonType]);
                 }
             }// end metric type
         }// end category type
@@ -1102,6 +1112,12 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
             SummaryTableList_destruct(summaryTableListPerComparison[comparisonType]);
         }
     }
+
+    fprintf(stderr, "[%s] Writing tables to file %s is done.\n", get_timestamp(), outputPath);
+    if(foutFinalStats != NULL) {
+        fprintf(stderr, "[%s] Writing tables to file %s is done.\n", get_timestamp(), outputPathFinalStats);
+    }
+
     // close files
     fclose(fout);
     if (foutFinalStats != NULL) {
