@@ -608,7 +608,7 @@ int main(int argc, char *argv[]) {
                                                     contigList);
 
     int numberOfChunks = ChunksCreator_getTotalNumberOfChunks(chunksCreator);
-    int totalLengthOfChunks ChunksCreator_getTotalLength(chunksCreator);
+    int totalLengthOfChunks = ChunksCreator_getTotalLength(chunksCreator);
     fprintf(stderr, "[%s] %d chunks are parsed covering total length of %d bases. \n",
             get_timestamp(),
             numberOfChunks,
