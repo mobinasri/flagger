@@ -27,6 +27,10 @@ ChunksCreator *getChunksCreator(char *inputPath,
         fprintf(stderr, "[%s] The given input file is not binary so chunks will be constructed from cov file.\n",
                 get_timestamp());
         chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLen, threads, windowLen);
+        if (ChunksCreator_parseChunks(chunksCreator) != 0) {
+            fprintf(stderr, "[%s] Error: creating chunks from cov file failed.\n", get_timestamp());
+            exit(EXIT_FAILURE);
+        }
         fprintf(stderr, "[%s] Chunks are constructed from cov file.\n", get_timestamp());
     } else if (strcmp(inputExtension, "bin") == 0) {
         chunksCreator = ChunksCreator_constructEmpty();
