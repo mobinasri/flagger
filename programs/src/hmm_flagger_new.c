@@ -390,7 +390,7 @@ int main(int argc, char *argv[]) {
     char *outputDir = NULL;
     bool writeParameterStatsPerIteration = false;
     bool writeBenchmarkingStatsPerIteration = false;
-    ModelType modelType = MODEL_UNDEFINED;
+    ModelType modelType = MODEL_GAUSSIAN;
     double overlapRatioThreshold = 0.4;
     double initialRandomDeviation = 0.0;
     int chunkCanonicalLen = 20000000; //20Mb
@@ -474,16 +474,17 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         --modelType, -m\n"
                         "                           Model type can be either 'gaussian', 'negative_binomial', or \n"
-                        "                           'trunc_exp_gaussian' [Default = not defined]\n");
+                        "                           'trunc_exp_gaussian' [Default = 'gaussian']\n");
                 fprintf(stderr,
                         "         --trackName, -N\n"
                         "                           The track name that will appear in the final BED.[Default = 'final_flagger']\n");
                 fprintf(stderr,
                         "         --chunkLen, -C\n"
                         "                           Chunk length. Each chunk is the length of the genome (in bases) for which \n"
-                        "                           forward/backward algorithm will be performed once in each iteration. It is \n"
-                        "                           mainly for using multi threads while running this algorithm for multiple \n"
-                        "                           parts of the genome simultaneously. [Default = 20000000 (20Mb)]\n");
+                        "                           forward/backward algorithm will be performed once in each iteration. Splitting\n"
+                        "                           genome into chunks is mainly for enabling multi-threading and running \n"
+                        "                           this algorithm for multiple parts of the genome simultaneously. \n"
+                        "                           [Default = 20000000 (20Mb)]\n");
                 fprintf(stderr,
                         "         --windowLen, -W\n"
                         "                           Window length. Coverage information will be averaged along each window \n"
@@ -513,10 +514,11 @@ int main(int argc, char *argv[]) {
                         "                           Maximum ratio of high mapq coverage for duplicated component\n");
                 fprintf(stderr,
                         "         --alpha, -A\n"
-                        "                           The dependency factors of the current emission density\n"
+                        "                           (Optional) The dependency factors of the current emission density\n"
                         "                           to the previous emission. It should be a comma-separated string\n"
                         "                           of 5 numbers for these states respectively err,dup,hap,col,trans.\n"
-                        "                           (trans is for transitioning from one state to a different one)\n");
+                        "                           (trans is for transitioning from one state to a different one)"
+                        "                           [Default = all alpha factors set to 0]\n");
                 fprintf(stderr,
                         "         --collapsedComps, -p\n"
                         "                           (Optional) Force the number of components of the collapsed state\n"
@@ -537,8 +539,9 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         -b,--binArrayFile\n"
                         "                           (Optional) A tsv file (tab-delimited) that contains bin arrays \n"
-                        "                           for stratifying results by event size. It should contain three \n"
-                        "                           columns. 1st column is the closed start of the bin and the 2nd \n"
+                        "                           for stratifying results by event size. Bin intervals can have overlap.\n"
+                        "                           It should contain three columns. \n"
+                        "                           1st column is the closed start of the bin and the 2nd \n"
                         "                           column is the open end. The 3rd column has a name for each bin. \n"
                         "                           For example one row can be '0\t100\t[0-100)'\n"
                         "                           If no file is passed it will consider one large bin as the default value.\n"
