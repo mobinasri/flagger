@@ -110,6 +110,10 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
 
 void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, char *outputPath, char *trackName);
 
+int ChunksCreator_getTotalNumberOfChunks(ChunksCreator *chunksCreator);
+
+int ChunksCreator_getTotalLength(ChunksCreator *chunksCreator);
+
 typedef struct ChunkIterator {
     ChunksCreator *chunksCreator;
     int nextChunkIndex;

@@ -945,3 +945,25 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
 
     ChunkIterator_destruct(iterator);
 }
+
+int ChunksCreator_getTotalNumberOfChunks(ChunksCreator *chunksCreator) {
+    return (int) stList_length(chunksCreator->chunks);
+}
+
+int ChunksCreator_getTotalLength(ChunksCreator *chunksCreator) {
+    ChunkIterator *iterator = ChunkIterator_construct(chunksCreator);
+
+    ptBlock *block = NULL;
+
+    char ctg[200];
+    int totalLength = 0;
+    while ((block = ChunkIterator_getNextPtBlock(iterator, ctg)) != NULL) {
+        int start = block->rfs;
+        int end = block->rfe;
+        totalLength += end - start + 1;
+    }
+
+    ChunkIterator_destruct(iterator);
+    return totalLength;
+}
+

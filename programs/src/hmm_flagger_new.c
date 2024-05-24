@@ -607,6 +607,13 @@ int main(int argc, char *argv[]) {
                                                     threads,
                                                     contigList);
 
+    int numberOfChunks = ChunksCreator_getTotalNumberOfChunks(chunksCreator);
+    int totalLengthOfChunks ChunksCreator_getTotalLength(chunksCreator);
+    fprintf(stderr, "[%s] %d chunks are parsed covering total length of %d bases. \n",
+            get_timestamp(),
+            numberOfChunks,
+            totalLengthOfChunks);
+
     // 2. get maximum coverage and set number of collapsed comps
     if (numberOfCollapsedComps == -1) {
         fprintf(stderr, "[%s] Determining the number of components for the 'collapsed' state. \n", get_timestamp());
