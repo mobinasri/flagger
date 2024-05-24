@@ -72,12 +72,13 @@ int main(int argc, char *argv[]) {
                         "         -i,--input\n"
                         "                           Input path (can have formats '.cov', '.cov.gz', '.bed', '.bed.gz' or '.bin')\n");
                 fprintf(stderr,
-                        "         -b,--binArrayFile"
+                        "         -b,--binArrayFile\n"
                         "                           A tsv file (tab-delimited) that contains bin arrays for stratifying results by \n"
                         "                           event size. It should contain three columns. 1st column is the closed start of \n"
                         "                           the bin and the 2nd column is the open end. The 3rd column has a name for each \n"
-                        "                           bin. For example one row can be '0\t100\t[0-100). If no file is passed it will\n"
-                        "                           consider one large bin as the default value. (Default = [0,1e9) with the name 'ALL_SIZES')\n");
+                        "                           bin. For example one row can be '0\t100\t[0-100).\n"
+                        "                           If no file is passed it will consider one large bin as the default value. \n"
+                        "                           (Default = [0,1e9) with the name 'ALL_SIZES')\n");
                 fprintf(stderr,
                         "         -o,--output\n"
                         "                           Output path for saving summary table (should have format '.tsv')\n");

@@ -477,7 +477,7 @@ int main(int argc, char *argv[]) {
                         "                           'trunc_exp_gaussian' [Default = not defined]\n");
                 fprintf(stderr,
                         "         --trackName, -N\n"
-                        "                  The track name that will appear in the final BED.[Default = 'final_flagger']\n");
+                        "                           The track name that will appear in the final BED.[Default = 'final_flagger']\n");
                 fprintf(stderr,
                         "         --chunkLen, -C\n"
                         "                           Chunk length. Each chunk is the length of the genome (in bases) for which \n"
@@ -540,8 +540,8 @@ int main(int argc, char *argv[]) {
                         "                           for stratifying results by event size. It should contain three \n"
                         "                           columns. 1st column is the closed start of the bin and the 2nd \n"
                         "                           column is the open end. The 3rd column has a name for each bin. \n"
-                        "                           For example one row can be '0\t100\t[0-100). If no file is passed\n"
-                        "                           it will consider one large bin as the default value. "
+                        "                           For example one row can be '0\t100\t[0-100). \n"
+                        "                           If no file is passed it will consider one large bin as the default value.\n"
                         "                           (Default = [0,1e9) with the name 'ALL_SIZES')\n");
                 fprintf(stderr,
                         "         -v, --overlapRatioThreshold\n"
