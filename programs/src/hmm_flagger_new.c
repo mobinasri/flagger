@@ -461,8 +461,7 @@ int main(int argc, char *argv[]) {
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
-                fprintf(stderr,
-                        "\nUsage: %s\n", program);
+                fprintf(stderr, "\nUsage: %s  -i <INPUT_FILE> -o <OUTPUT_DIR> \n", program);
                 fprintf(stderr,
                         "Options:\n");
                 fprintf(stderr,
@@ -517,7 +516,7 @@ int main(int argc, char *argv[]) {
                         "                           (Optional) The dependency factors of the current emission density\n"
                         "                           to the previous emission. It should be a comma-separated string\n"
                         "                           of 5 numbers for these states respectively err,dup,hap,col,trans.\n"
-                        "                           (trans is for transitioning from one state to a different one)"
+                        "                           (trans is for transitioning from one state to a different one)\n"
                         "                           [Default = all alpha factors set to 0]\n");
                 fprintf(stderr,
                         "         --collapsedComps, -p\n"
