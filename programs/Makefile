@@ -33,6 +33,8 @@ ${BIN_DIR}:
 	$(CC) -c -o$@ $< $(CCFLAGS)
 
 run_tests:
+	./bin/make_summary_table -i tests/test_files/summary_table/test_1.cov -b tests/test_files/summary_table/test_1_bin_array_with_all.txt -o tests/test_files/summary_table/test_1.tsv
+	./bin/make_summary_table -i tests/test_files/summary_table/test_1.only_prediction_labels.cov -b tests/test_files/summary_table/test_1_bin_array_with_all.txt -o tests/test_files/summary_table/test_1.only_prediction_labels.tsv	
 	printf "#Test_name\tStatus\n" > tests_status.txt
 	./bin/test_summary_table; \
 		if [ $$? -eq 0 ]; then printf "API:summary_table\tOK\n" >> tests_status.txt; \
