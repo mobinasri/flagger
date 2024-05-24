@@ -5,7 +5,7 @@
 #include "track_reader.h"
 #include "chunk.h"
 
-#define MAX_COVERAGE 1024
+#define MAX_COVERAGE 2048
 
 
 Chunk *Chunk_construct(int chunkCanonicalLen) {
@@ -56,6 +56,17 @@ stList *Chunk_constructListWithAllocatedSeq(stList *templateChunks, int windowLe
         stList_append(chunks, chunk);
     }
     return chunks;
+}
+
+int Chunk_getMaximumCoverageValue(Chunk *chunk) {
+    int maxCoverage = 0.0;
+    for (int i = 0; i < chunk->coverageInfoSeqLen; i++) {
+        CoverageInfo *coverageInfo = chunk->coverageInfoSeq[i];
+        if(maxCoverage < coverageInfo->coverage){
+            maxCoverage = coverageInfo->coverage;
+        }
+    }
+    return maxCoverage;
 }
 
 int Chunk_cmp(const void *chunk_1_, const void *chunk_2_) {
@@ -154,6 +165,41 @@ ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalL
     pthread_mutex_init(chunksCreator->mutex, NULL);
     free(extension);
     return chunksCreator;
+}
+
+int ChunksCreator_getMaximumCoverageValue(ChunksCreator *chunksCreator){
+    int maxCoverage = 0.0;
+    if (chunksCreator->chunks != NULL) {
+        for (int chunkIndex = 0; chunkIndex < stList_length(chunksCreator->chunks); chunkIndex++) {
+            Chunk *chunk = stList_get(chunksCreator->chunks, chunkIndex);
+            int maxInChunk = Chunk_getMaximumCoverageValue(chunk);
+            if (maxCoverage < maxInChunk){
+                maxCoverage = maxInChunk;
+            }
+        }
+    }
+    return maxCoverage;
+}
+
+void ChunksCreator_subsetChunksToContigs(ChunksCreator *chunksCreator, stList* contigList){
+    stList *newChunksList = stList_construct3(0, Chunk_destruct);
+    if (chunksCreator->chunks != NULL) {
+        for (int chunkIndex = 0; chunkIndex < stList_length(chunksCreator->chunks); chunkIndex++) {
+            Chunk *chunk = stList_get(chunksCreator->chunks, chunkIndex);
+            if (stList_existInStringList(contigList, chunk->ctg)) {
+                // delete access from old list
+                // to avoid issues in freeing memory
+                stList_set(chunksCreator->chunks, chunkIndex, NULL);
+                // add chunk to new list
+                stList_append(newChunksList, chunk);
+            }
+        }
+    }
+    // delete old list
+    stList_destruct(chunksCreator->chunks);
+    // update chunks
+    chunksCreator->chunks = newChunksList;
+    chunksCreator->nextChunkIndexToRead = 0;
 }
 
 // it will create a stList of Chunks with no coverage data
@@ -564,7 +610,7 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
 
 
 // pass the output of ChunksCreator_constructEmpty() to this function
-void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *binPath) {
+void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *binPath) {
     if (!file_exists(binPath)) {
         fprintf(stderr,
                 "[%s ] Error: The bin file %s does not exist. Please use create_bin_chunks for creating the bin file.\n",
@@ -797,4 +843,90 @@ ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_na
 
     // return update block
     return chunkIterator->block;
+}
+
+
+void ChunksCreator_writePredictionIntoFinalBED(ChunkIterator *chunksCreator, char *outputPath, char *trackName) {
+
+    // open file for writing bed
+    FILE *fout = fopen(outputPath, "w");
+    if (fout == NULL) {
+        fprintf(stderr, "[%s] Error: %s cannot be opened.\n", get_timestamp(), outputPath);
+        exit(EXIT_FAILURE);
+    }
+    // write first line of BED file
+    fprintf(fp, "track name=%s visibility=1 itemRgb=\"On\"\n", trackName);
+
+    ChunkIterator *iterator = ChunkIterator_construct(chunksCreator);
+
+    ptBlock *block = NULL;
+    int bedTrackStart = 0;
+    int preEnd = 0;
+    int preLabel = -1;
+    char ctg[200];
+    char preCtg[200];
+    preCtg[0] = '\0';
+
+    while ((block = ChunkIterator_getNextPtBlock(iterator, ctg)) != NULL) {
+
+        // get coverage info for this block
+        CoverageInfo *coverageInfo = (CoverageInfo *) block->data;
+        int start = block->rfs;
+        int end = block->rfe;
+
+        // initialize start
+        if(preLabel == -1 || preCtg[0] == '\0'){
+            bedTrackStart = start;
+        }
+
+        // index 4 is for "Unk"
+        int predictionLabel = 4;
+        // get labels
+        if (coverageInfo->data == NULL) {
+            fprintf(stderr, "[%s] Warning: inference data %s:%d-%d does not exist for writing final bed.\n",
+                    get_timestamp(),
+                    start,
+                    end,
+                    ctg);
+        }else {
+            Inference *inference = coverageInfo->data;
+            if (inference->prediction != -1) {
+                predictionLabel = inference->prediction;
+            }
+        }
+
+        bool labelChanged = preLabel != -1 && predictionLabel != preLabel;
+        bool contigChanged = preCtg[0] != '\0' && strcmp(preCtg, ctg) == 0;
+        if(labelChanged || contigChanged){
+            fprintf(fout, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\n",
+                    preCtg,
+                    bedTrackStart,
+                    preEnd + 1,
+                    LABEL_NAMES[preLabel],
+                    bedTrackStart,
+                    preEnd + 1,
+                    LABEL_COLORS[preLabel]);
+            // update start
+            bedTrackStart = start;
+        }
+
+        preEnd = end;
+        preLabel = predictionLabel;
+        strcpy(preCtg, ctg);
+    }
+    if (preLabel != -1) {
+        fprintf(fout, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\n",
+                preCtg,
+                bedTrackStart,
+                preEnd + 1,
+                LABEL_NAMES[preLabel],
+                bedTrackStart,
+                preEnd + 1,
+                LABEL_COLORS[preLabel]);
+    }
+
+    // close file
+    fclose(fout);
+
+    ChunkIterator_destruct(iterator);
 }

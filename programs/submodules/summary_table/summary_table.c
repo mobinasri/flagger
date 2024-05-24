@@ -951,8 +951,13 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                               double overlapRatioThreshold,
                                               int threads) {
 
-    // parse bin intervals
-    IntBinArray *binArray = IntBinArray_constructFromFile(binArrayFilePath);
+    IntBinArray *binArray
+    if (binArrayFilePath != NULL) {
+        // parse bin intervals
+        binArray = IntBinArray_constructFromFile(binArrayFilePath);
+    }else{
+        binArray = IntBinArray_constructSingleBin(0, 1e9, "ALL_SIZES");
+    }
 
     // open file for writing summary tables
     FILE *fout = fopen(outputPath, "w");
@@ -965,7 +970,7 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
     char prefix[1000];
     memcpy(prefix, outputPath, strlen(outputPath) - 4); // ".tsv" has 4 characters
     prefix[strlen(outputPath) - 4] = '\0'; // ".tsv" has 4 characters
-    sprintf(outputPathFinalStats, "%s.final_stats.tsv", prefix);
+    sprintf(outputPathFinalStats, "%s.benchmarking.tsv", prefix);
 
     FILE *foutFinalStats = NULL;
     if (header->isTruthAvailable && header->isPredictionAvailable) {

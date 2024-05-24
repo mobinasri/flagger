@@ -377,6 +377,17 @@ void Int_multiply2DArray(int **array, int length1, int length2, int factor) {
     }
 }
 
+int Int_getMinValue1DArray(int *array, int length) {
+    assert(length > 0);
+    int minValue = array[0];
+    for (int i = 0; i < length; i++) {
+        if (minValue > array[i]) {
+            minValue = array[i];
+        }
+    }
+    return minValue;
+}
+
 int Int_getMaxValue1DArray(int *array, int length) {
     assert(length > 0);
     int maxValue = array[0];
@@ -721,3 +732,10 @@ stList *stList_copyStringList(stList *src){
     return dest;
 }
 
+bool stList_existInStringList(stList *stringList, const char *str){
+    for(int i=0; i < stList_length(stringList); i++){
+        char *str2 = stList_get(stringList, i);
+        if(strcmp(str, str2) == 0) return true;
+    }
+    return false;
+}

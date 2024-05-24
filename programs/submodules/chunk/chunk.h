@@ -7,6 +7,18 @@
 #include "common.h"
 #include "track_reader.h"
 
+const char *const LABEL_COLORS[] = {"162,0,37",
+                                    "250,104,0",
+                                    "0,138,0",
+                                    "170,0,255",
+                                    "99, 99, 96",
+                                    "250,200,0"};
+const char *const LABEL_NAMES[] = {"Err",
+                                   "Dup",
+                                   "Hap",
+                                   "Col",
+                                   "Unk",
+                                   "Msj"};
 
 typedef struct Chunk {
     // 2 * chunkCanonicalLen is the maximum size for a chunk
@@ -52,6 +64,8 @@ Chunk *Chunk_construct(int chunkCanonicalLen);
 
 Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int maxSeqSize);
 
+int Chunk_getMaximumCoverageValue(Chunk *chunk);
+
 void Chunk_destruct(Chunk *chunk);
 
 stList *Chunk_constructListWithAllocatedSeq(stList *templateChunks, int windowLen);
@@ -67,6 +81,10 @@ ChunksCreator *ChunksCreator_constructEmpty();
 
 ChunksCreator *
 ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalLen, int nThreads, int windowLen);
+
+int ChunksCreator_getMaximumCoverageValue(ChunksCreator *chunksCreator);
+
+void ChunksCreator_subsetChunksToContigs(ChunksCreator *chunksCreator, stList* contigList);
 
 stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCanonicalLen);
 
@@ -98,10 +116,11 @@ void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
                                            u_int16_t (*getCoverageInfoAttribute)(CoverageInfo *),
                                            const char *color);
 
-void ChunkCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *binPath);
+void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char *binPath);
 
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath);
 
+void ChunksCreator_writePredictionIntoFinalBED(ChunkIterator *chunksCreator, char *outputPath, char *trackName);
 
 typedef struct ChunkIterator {
     ChunksCreator *chunksCreator;

@@ -41,6 +41,9 @@ void HMM_destruct(HMM *model);
 int HMM_getStartStateIndex(HMM *model);
 int HMM_getEndStateIndex(HMM *model);
 
+bool HMM_estimateParameters(HMM *model, double convergenceTol);
+void HMM_resetEstimators(HMM *model);
+
 void HMM_printTransitionMatrixInTsvFormat(HMM* model, FILE* fout);
 void HMM_printEmissionParametersInTsvFormat(HMM* model, FILE* fout);
 
@@ -113,24 +116,16 @@ int EM_getMostProbableState(EM *em, int pos);
 
 void EM_printPosteriorInTsvFormat(EM* em, FILE* fout);
 
+void EM_runOneIterationAndUpdateEstimatorsForThreadPool(void *arg_);
+
+void EM_runOneIterationForList(stList *emList, int threads);
+
 /*
 double *getForward(EM *em, int pos);
 
 double *getBackward(EM *em, int pos);
 
 double *getPosterior(EM *em, int pos);
-
-Chunk *Chunk_construct1(int chunkLen);
-
-Chunk *Chunk_construct3(int chunkLen, int emissionDim, int windowLen);
-
-stList *createCovIndex(char *covPath, int chunkLen);
-
-stList *parseCovIndex(char *covIndexPath);
-
-void writeCovIndex(stList *chunks, char *indexPath);
-
-int Chunk_addBlock(Chunk *chunk, Block_t *block);
 
 Batch *Batch_construct(char *covPath, int chunkLen, int nThreads, int emissionDim, int windowLen);
 

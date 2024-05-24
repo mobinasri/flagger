@@ -137,6 +137,8 @@ void Int_multiply1DArray(int *array, int length, int factor);
 
 void Int_multiply2DArray(int **array, int length1, int length2, int factor);
 
+int Int_getMinValue1DArray(int *array, int length);
+
 int Int_getMaxValue1DArray(int *array, int length);
 
 int Int_getModeValue1DArray(int *array, int length, int minValue, int maxValue);
@@ -173,6 +175,7 @@ char *String_joinStringArray(const char **array, int elementMaxSize, int length,
 
 stList *Splitter_parseLinesIntoList(const char *filepath);
 
+bool stList_existInStringList(stList *stringList, const char *str);
 
 typedef struct IntBinArray {
     int *starts;

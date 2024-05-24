@@ -25,7 +25,7 @@ static struct option long_options[] =
                 {"input",                 required_argument, NULL, 'i'},
                 {"binArrayFile",          required_argument, NULL, 'b'},
                 {"output",                required_argument, NULL, 'o'},
-                {"threads",               required_argument, NULL, 't'},
+                {"threads",               required_argument, NULL, '@'},
                 {"overlapRatioThreshold", required_argument, NULL, 'v'},
                 {"labelNames",            required_argument, NULL, 'l'},
                 {NULL,                    0,                 NULL, 0}
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     int threads = 4;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:o:b:t:v:l:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:o:b:@:v:l:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -69,21 +69,25 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "\nUsage: %s  -i <INPUT_FILE> -b <BIN_ARRAY_TSV> -o <OUTPUT_FILE> \n", program);
                 fprintf(stderr, "Options:\n");
                 fprintf(stderr,
-                        "         -i,--input         input path (can have formats '.cov', '.cov.gz', '.bed', '.bed.gz' or '.bin')\n");
+                        "         -i,--input                    Input path (can have formats '.cov', '.cov.gz', '.bed', '.bed.gz' or '.bin')\n");
                 fprintf(stderr,
-                        "         -b,--binArrayFile         a tsv file (tab-delimited) that contains bin arrays for stratifying results by event size. "
-                        "It should contain three columns. 1st column is the closed start of the bin and the 2nd column is the open end."
-                        "The 3rd column has a name for each bin. For example one row can be '0\t100\t[0-100). If no file is passed it will"
-                        "consider one large bin as the default value. (Default = [0,1e9) with the name 'ALL')\n");
+                        "         -b,--binArrayFile             A tsv file (tab-delimited) that contains bin arrays for stratifying results by \n"
+                        "                                       event size. It should contain three columns. 1st column is the closed start of \n"
+                        "                                       the bin and the 2nd column is the open end. The 3rd column has a name for each \n"
+                        "                                       bin. For example one row can be '0\t100\t[0-100). If no file is passed it will\n"
+                        "                                       consider one large bin as the default value. (Default = [0,1e9) with the name 'ALL_SIZES')\n");
                 fprintf(stderr,
-                        "         -o,--output         output path for saving summary table (should have format '.tsv')\n");
+                        "         -o,--output                   Output path for saving summary table (should have format '.tsv')\n");
                 fprintf(stderr,
-                        "         -v, --overlapRatioThreshold                        Minimum overlap ratio in calculating overlap-based metrics for considering a hit between a ref label "
-                        "(for example truth label for recall) and query label (for example prediction label for recall) [default: 0.4]\n");
+                        "         -v, --overlapRatioThreshold   Minimum overlap ratio in calculating overlap-based metrics for considering \n"
+                              "                                       a hit between a ref label  (for example truth label for recall) and query \n"
+                              "                                       label (for example prediction label for recall) [default: 0.4]\n");
                 fprintf(stderr,
-                        "         -t, --threads                        Number of threads for parallelizing creating table for each annotation/region [default: 4]\n");
+                        "         -@, --threads                 Number of threads for parallelizing creating table for each annotation/region\n"
+                        "                                             [default: 4]\n");
                 fprintf(stderr,
-                        "         -l, --labelNames                    (Optional) A comma-delimited string of label names (for example 'Err,Dup,Hap,Col'). It should match the number of labels in the header of the input file.[default: none]\n");
+                        "         -l, --labelNames             (Optional) A comma-delimited string of label names (for example 'Err,Dup,Hap,Col').\n"
+                              "                                       It should match the number of labels in the header of the input file.[default: none]\n");
 
                 return 1;
         }
@@ -129,7 +133,7 @@ int main(int argc, char *argv[]) {
     // create block iterator
     if (blockIteratorType == ITERATOR_BY_CHUNK) { // for binary file
         chunksCreator = ChunksCreator_constructEmpty();
-        ChunkCreator_parseChunksFromBinaryFile(chunksCreator, inputPath);
+        ChunksCreator_parseChunksFromBinaryFile(chunksCreator, inputPath);
         iterator = (void *) ChunkIterator_construct(chunksCreator);
         header = chunksCreator->header;
     } else if (blockIteratorType == ITERATOR_BY_COV_BLOCK) { // for cov or bed file

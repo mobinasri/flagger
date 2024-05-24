@@ -149,7 +149,7 @@ bool testCreatingChunksWithLabels(char *covPath, bool doWriteAndRead) {
         // free previous ChunksCreator and make an empty for parsing the saved binary file
         ChunksCreator_destruct(chunksCreator);
         chunksCreator = ChunksCreator_constructEmpty();
-        ChunkCreator_parseChunksFromBinaryFile(chunksCreator, "tests/test_files/chunks_creator/tmp.bin");
+        ChunksCreator_parseChunksFromBinaryFile(chunksCreator, "tests/test_files/chunks_creator/tmp.bin");
     }
 
 
