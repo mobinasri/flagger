@@ -466,72 +466,89 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "Options:\n");
                 fprintf(stderr,
-                        "         --input, -i	                Path to the input file (cov/cov.gz or binary output of create_bin_chunks) \n");
+                        "         --input, -i\n"
+                        "                           Path to the input file (cov/cov.gz or binary output of create_bin_chunks) \n");
                 fprintf(stderr,
-                        "         --outputDir, -o             Directory for saving output files.\n");
+                        "         --outputDir, -o\n"
+                        "                           Directory for saving output files.\n");
                 fprintf(stderr,
-                        "         --modelType, -m	            Model type can be either 'gaussian', 'negative_binomial', or \n"
-                        "                                     'trunc_exp_gaussian' [Default = not defined]\n");
+                        "         --modelType, -m\n"
+                        "                           Model type can be either 'gaussian', 'negative_binomial', or \n"
+                        "                           'trunc_exp_gaussian' [Default = not defined]\n");
                 fprintf(stderr,
-                        "         --trackName, -N	            The track name that will appear in the final BED.[Default = 'final_flagger']\n");
+                        "         --trackName, -N\n"
+                        "                  The track name that will appear in the final BED.[Default = 'final_flagger']\n");
                 fprintf(stderr,
-                        "         --chunkLen, -C              Chunk length. Each chunk is the length of the genome (in bases) for which \n"
-                        "                                     forward/backward algorithm will be performed once in each iteration. It is \n"
-                        "                                     mainly for using multi threads while running this algorithm for multiple \n"
-                        "                                     parts of the genome simultaneously. [Default = 20000000 (20Mb)]\n");
+                        "         --chunkLen, -C\n"
+                        "                           Chunk length. Each chunk is the length of the genome (in bases) for which \n"
+                        "                           forward/backward algorithm will be performed once in each iteration. It is \n"
+                        "                           mainly for using multi threads while running this algorithm for multiple \n"
+                        "                           parts of the genome simultaneously. [Default = 20000000 (20Mb)]\n");
                 fprintf(stderr,
-                        "         --windowLen, -W             Window length. Coverage information will be averaged along each window \n"
-                        "                                     (non-overlapping) and the average value of each window will be regarded \n"
-                        "                                     as one observation for the EM algorithm. Having larger windows will lead \n"
-                        "                                     to lower resolution but faster runtime. (default = 100)\n");
+                        "         --windowLen, -W\n"
+                        "                           Window length. Coverage information will be averaged along each window \n"
+                        "                           (non-overlapping) and the average value of each window will be regarded \n"
+                        "                           as one observation for the EM algorithm. Having larger windows will lead \n"
+                        "                           to lower resolution but faster runtime. (default = 100)\n");
                 fprintf(stderr,
-                        "         --labelNames, -l           (Optional) (For naming rows in the final benchmarking tsv file) A \n"
-                        "                                     comma-delimited string of label names (for example \n"
-                        "                                     'Err,Dup,Hap,Col'). It should match the number of labels in the \n"
-                        "                                     header of the input file.[default: none]\n");
+                        "         --labelNames, -l\n"
+                        "                           (Optional) (For naming rows in the final benchmarking tsv file) A \n"
+                        "                           comma-delimited string of label names (for example \n"
+                        "                           'Err,Dup,Hap,Col'). It should match the number of labels in the \n"
+                        "                           header of the input file.[default: none]\n");
                 fprintf(stderr,
-                        "         --iterations, -n		    Maximum number of iterations [Default = 100]\n");
+                        "         --iterations, -n\n"
+                        "                           Maximum number of iterations [Default = 100]\n");
                 fprintf(stderr,
-                        "         --contigsList, -c		    (Optional) Path to a file with a list of contig names to include (one \n"
-                        "                                     contig name per line) [Optional]\n");
+                        "         --contigsList, -c\n"
+                        "                           (Optional) Path to a file with a list of contig names to include (one \n"
+                        "                           contig name per line) [Optional]\n");
                 fprintf(stderr,
-                        "         --convergenceTol, -t		Convergence tolerance. The EM iteration will stop once the difference \n"
-                        "                                     between all model parameter values in two consecutive iterations is \n"
-                        "                                     less than this value. [Default = 0.001]\n");
+                        "         --convergenceTol, -t\n"
+                        "                           Convergence tolerance. The EM iteration will stop once the difference \n"
+                        "                           between all model parameter values in two consecutive iterations is \n"
+                        "                           less than this value. [Default = 0.001]\n");
                 fprintf(stderr,
-                        "         --maxHighMapqRatio, -q      Maximum ratio of high mapq coverage for duplicated component\n");
+                        "         --maxHighMapqRatio, -q\n"
+                        "                           Maximum ratio of high mapq coverage for duplicated component\n");
                 fprintf(stderr,
-                        "         --alpha, -A                 Alpha is the dependency factor of the current emission density\n"
-                        "                                     to the previous emission. It should be a comma-separated string\n"
-                        "                                     of 5 numbers for these states respectively err,dup,hap,col,trans.\n"
-                        "                                     (trans is for transitioning from one state to a different one)\n");
+                        "         --alpha, -A\n"
+                        "                           The dependency factors of the current emission density\n"
+                        "                           to the previous emission. It should be a comma-separated string\n"
+                        "                           of 5 numbers for these states respectively err,dup,hap,col,trans.\n"
+                        "                           (trans is for transitioning from one state to a different one)\n");
                 fprintf(stderr,
-                        "         --collapsedComps, -p		(Optional) Force the number of components of the collapsed state\n"
-                        "                                     to this positive integer number (Only for testing purposes) \n"
-                        "                                     [Default = it will automatically detect the best number of \n"
-                        "                                     components by taking the maximum observed coverage.]\n");
+                        "         --collapsedComps, -p\n"
+                        "                           (Optional) Force the number of components of the collapsed state\n"
+                        "                           to this positive integer number (Only for testing purposes) \n"
+                        "                           [Default = it will automatically detect the best number of \n"
+                        "                           components by taking the maximum observed coverage.]\n");
                 fprintf(stderr,
-                        "         --writeParameterStatsPerIteration, -w	    (Optional) Write emission, transition statistics per \n"
-                        "                                                     each iteration (For only investigating how the model \n"
-                        "                                                     is improved over EM iterations) [Default = disabled].\n");
+                        "         --writeParameterStatsPerIteration, -w\n"
+                        "                           (Optional) Write emission, transition statistics per \n"
+                        "                           each iteration (For only investigating how the model \n"
+                        "                           is improved over EM iterations) [Default = disabled].\n");
                 fprintf(stderr,
-                        "         --writeBenchmarkingStatsPerIteration, -k	(Optional) Write benchmarking (precision/recall/f1score)\n"
-                        "                                                     statistics per each iteration (For only investigating how \n"
-                        "                                                     the model is improved over EM iterations) [Default = disabled].\n");
+                        "         --writeBenchmarkingStatsPerIteration, -k\n"
+                        "                           (Optional) Write benchmarking (precision/recall/f1score)\n"
+                        "                           statistics per each iteration (For only investigating how \n"
+                        "                           the model is improved over EM iterations) [Default = disabled].\n");
 
                 fprintf(stderr,
-                        "         -b,--binArrayFile                           (Optional) A tsv file (tab-delimited) that contains bin arrays \n"
-                        "                                                     for stratifying results by event size. It should contain three \n"
-                        "                                                     columns. 1st column is the closed start of the bin and the 2nd \n"
-                        "                                                     column is the open end. The 3rd column has a name for each bin. \n"
-                        "                                                     For example one row can be '0\t100\t[0-100). If no file is passed\n"
-                        "                                                     it will consider one large bin as the default value. "
-                        "                                                     (Default = [0,1e9) with the name 'ALL_SIZES')\n");
+                        "         -b,--binArrayFile\n"
+                        "                           (Optional) A tsv file (tab-delimited) that contains bin arrays \n"
+                        "                           for stratifying results by event size. It should contain three \n"
+                        "                           columns. 1st column is the closed start of the bin and the 2nd \n"
+                        "                           column is the open end. The 3rd column has a name for each bin. \n"
+                        "                           For example one row can be '0\t100\t[0-100). If no file is passed\n"
+                        "                           it will consider one large bin as the default value. "
+                        "                           (Default = [0,1e9) with the name 'ALL_SIZES')\n");
                 fprintf(stderr,
-                        "         -v, --overlapRatioThreshold                 Minimum overlap ratio in calculating overlap-based metrics for \n"
-                        "                                                     considering a hit between a ref label (for example truth label for\n"
-                        "                                                     recall) and query label (for example prediction label for recall) \n"
-                        "                                                     [default: 0.4]\n");
+                        "         -v, --overlapRatioThreshold\n"
+                        "                           Minimum overlap ratio in calculating overlap-based metrics for \n"
+                        "                           considering a hit between a ref label (for example truth label for\n"
+                        "                           recall) and query label (for example prediction label for recall) \n"
+                        "                           [default: 0.4]\n");
                 return 1;
         }
     }
