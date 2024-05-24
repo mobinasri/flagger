@@ -540,7 +540,7 @@ int main(int argc, char *argv[]) {
                         "                           for stratifying results by event size. It should contain three \n"
                         "                           columns. 1st column is the closed start of the bin and the 2nd \n"
                         "                           column is the open end. The 3rd column has a name for each bin. \n"
-                        "                           For example one row can be '0\t100\t[0-100). \n"
+                        "                           For example one row can be '0\t100\t[0-100)'\n"
                         "                           If no file is passed it will consider one large bin as the default value.\n"
                         "                           (Default = [0,1e9) with the name 'ALL_SIZES')\n");
                 fprintf(stderr,
