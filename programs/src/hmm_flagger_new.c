@@ -10,6 +10,8 @@
 #include "hmm.h"
 #include "data_types.h"
 #include "common.h"
+#include "chunk.h"
+#include "summary_table.h"
 
 ChunksCreator *getChunksCreator(char *inputPath,
                                 int chunkCanonicalLen,
@@ -28,7 +30,7 @@ ChunksCreator *getChunksCreator(char *inputPath,
         fprintf(stderr, "[%s] Chunks are constructed from cov file.\n", get_timestamp());
     } else if (strcmp(inputExtension, "bin") == 0) {
         chunksCreator = ChunksCreator_constructEmpty();
-        ChunkCreator_parseChunksFromBinaryFile(chunksCreator, inputPath);
+        ChunksCreator_parseChunksFromBinaryFile(chunksCreator, inputPath);
         fprintf(stderr, "[%s] Binary chunks are parsed. Based on the header chunkCanonicalLen=%d and windowLen=%d .\n",
                 get_timestamp(),
                 chunksCreator->chunkCanonicalLen,
@@ -128,6 +130,7 @@ HMM *createModel(ModelType modelType,
                  double initialDeviation) {
     // calculate initial mean coverages for all region classes
     int numberOfStates = 4; // Err, Dup, Hap, and Col
+    int numberOfRegions = header->numberOfRegions;
 
     // set number of mixture components for each state
     int *numberOfCompsPerState = Int_construct1DArray(numberOfStates);
@@ -204,7 +207,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
             get_timestamp(),
             numberOfChunks);
 
-    stList *emPerChunk = stList_construct3(0, EM_destruct());
+    stList *emPerChunk = stList_construct3(0, EM_destruct);
     for (int chunkIndex = 0; chunkIndex < numberOfChunks; chunkIndex++) {
         Chunk *chunk = stList_get(chunks, chunkIndex);
         EM *em = EM_construct(chunk->coverageInfoSeq, chunk->coverageInfoSeqLen, model);
@@ -377,6 +380,7 @@ int main(int argc, char *argv[]) {
     char *inputPath = NULL;
     char *alphaString = NULL;
     char *contigListPath = NULL;
+    char *binArrayFilePath = NULL;
     stList *labelNamesWithUnknown = NULL;
     stList *contigList = NULL;
     int numberOfIterations = 100;
@@ -607,10 +611,10 @@ int main(int argc, char *argv[]) {
     MatrixDouble *alphaMatrix = getAlphaMatrix(alphaString);
     HMM *model = createModel(modelType,
                              numberOfCollapsedComps,
-                             chunsCreator->header,
+                             chunksCreator->header,
                              alphaMatrix,
                              maxHighMapqRatio,
-                             initialRandomDeviation)
+                             initialRandomDeviation);
 
     // 4. run EM for estimating parameters
     fprintf(stderr, "[%s] Running EM for estimating parameters. \n", get_timestamp());

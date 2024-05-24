@@ -7,18 +7,6 @@
 #include "common.h"
 #include "track_reader.h"
 
-const char *const LABEL_COLORS[] = {"162,0,37",
-                                    "250,104,0",
-                                    "0,138,0",
-                                    "170,0,255",
-                                    "99, 99, 96",
-                                    "250,200,0"};
-const char *const LABEL_NAMES[] = {"Err",
-                                   "Dup",
-                                   "Hap",
-                                   "Col",
-                                   "Unk",
-                                   "Msj"};
 
 typedef struct Chunk {
     // 2 * chunkCanonicalLen is the maximum size for a chunk
@@ -120,7 +108,7 @@ void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char 
 
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath);
 
-void ChunksCreator_writePredictionIntoFinalBED(ChunkIterator *chunksCreator, char *outputPath, char *trackName);
+void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, char *outputPath, char *trackName);
 
 typedef struct ChunkIterator {
     ChunksCreator *chunksCreator;

@@ -7,6 +7,21 @@
 
 #define MAX_COVERAGE 2048
 
+static const char *const LABEL_COLORS[] = {"162,0,37",
+                                    "250,104,0",
+                                    "0,138,0",
+                                    "170,0,255",
+                                    "99, 99, 96",
+                                    "250,200,0"};
+static const char *const LABEL_NAMES[] = {"Err",
+                                   "Dup",
+                                   "Hap",
+                                   "Col",
+                                   "Unk",
+                                   "Msj"};
+
+
+
 
 Chunk *Chunk_construct(int chunkCanonicalLen) {
     Chunk *chunk = malloc(sizeof(Chunk));
@@ -846,7 +861,7 @@ ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_na
 }
 
 
-void ChunksCreator_writePredictionIntoFinalBED(ChunkIterator *chunksCreator, char *outputPath, char *trackName) {
+void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, char *outputPath, char *trackName) {
 
     // open file for writing bed
     FILE *fout = fopen(outputPath, "w");
@@ -855,7 +870,7 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunkIterator *chunksCreator, cha
         exit(EXIT_FAILURE);
     }
     // write first line of BED file
-    fprintf(fp, "track name=%s visibility=1 itemRgb=\"On\"\n", trackName);
+    fprintf(fout, "track name=%s visibility=1 itemRgb=\"On\"\n", trackName);
 
     ChunkIterator *iterator = ChunkIterator_construct(chunksCreator);
 

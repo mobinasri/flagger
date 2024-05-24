@@ -951,7 +951,7 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                               double overlapRatioThreshold,
                                               int threads) {
 
-    IntBinArray *binArray
+    IntBinArray *binArray;
     if (binArrayFilePath != NULL) {
         // parse bin intervals
         binArray = IntBinArray_constructFromFile(binArrayFilePath);
