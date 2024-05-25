@@ -258,7 +258,7 @@ void EM_fillFirstColumnForward(EM *em) {
     // Set the 0-th block of the forward matrix
     scale = 0.0;
     for (int state = 0; state < model->numberOfStates; state++) {
-        uint8_t region = em->coverageInfoSeq[0]->annotation_flag;
+        uint8_t region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[0]);
         uint8_t x = em->coverageInfoSeq[0]->coverage;
         // Emission probability
         eProb = EmissionDistSeries_getProb(model->emissionDistSeriesPerRegion[region],
@@ -296,8 +296,8 @@ void EM_fillOneColumnForward(EM *em, int columnIndex) {
     double scale = 0.0;
     for (int state = 0; state < model->numberOfStates; state++) {
         for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
-            region = em->coverageInfoSeq[i]->annotation_flag;
-            preRegion = em->coverageInfoSeq[i - 1]->annotation_flag;
+            region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
+            preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i - 1]);
             x = em->coverageInfoSeq[i]->coverage;
             preX = em->coverageInfoSeq[i - 1]->coverage;
             alpha = model->alpha->data[preState][state];
@@ -367,7 +367,7 @@ void EM_fillLastColumnBackward(EM *em) {
     double tProb;
     // Set the last block of the backward matrix
     for (int state = 0; state < model->numberOfStates; state++) {
-        uint8_t region = em->coverageInfoSeq[em->seqLen - 1]->annotation_flag;
+        uint8_t region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[em->seqLen - 1]);
         // Transition probability
         tProb = Transition_getTerminationProb(model->transitionPerRegion[region], state);
         // Update backward
@@ -398,8 +398,8 @@ void EM_fillOneColumnBackward(EM *em, int columnIndex) {
     double alpha;
     for (int state = 0; state < model->numberOfStates; state++) {
         for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
-            region = em->coverageInfoSeq[i + 1]->annotation_flag;
-            preRegion = em->coverageInfoSeq[i]->annotation_flag;
+            region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i + 1]);
+            preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
             covInfo = em->coverageInfoSeq[i + 1];
             preCovInfo = em->coverageInfoSeq[i];
             x = covInfo->coverage;
@@ -474,8 +474,8 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
     for (int state = 0; state < model->numberOfStates; state++) {
         for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
             // get observations
-            region = em->coverageInfoSeq[i + 1]->annotation_flag;
-            preRegion = em->coverageInfoSeq[i]->annotation_flag;
+            region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i + 1]);
+            preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
             x = em->coverageInfoSeq[i + 1]->coverage;
             preX = em->coverageInfoSeq[i]->coverage;
             // get model attributes
