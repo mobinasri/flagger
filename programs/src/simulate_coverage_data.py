@@ -144,8 +144,10 @@ def writeObservationsIntoCov(regions, states, observations, regionCoverages, con
                 obs = observations[pos]
                 truthState = states[pos]
                 region = regions[pos]
+                startInContig = pos - start + 1
+                endInContig = startInContig
                 #coverage, high_mapq_coverage, high_clip_coverage, annotation indices, region index, truth
-                f.write(f"{obs}\t0.0\t0.0\t1,{2+i}\t{region}\t{truthState}\n")
+                f.write(f"{startInContig}\t{endInContig}\t{obs}\t0.0\t0.0\t1,{2+i}\t{region}\t{truthState}\n")
             start += contigLength
 
 def main():
