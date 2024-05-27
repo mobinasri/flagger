@@ -121,17 +121,35 @@ def generateObservations(transitionMatrixPerRegion, emissionParametersPerRegion,
         states.append(state)
     return regions, states, observations
 
-def writeObservations(regions, states, observations, pathToWrite):
+def writeObservationsIntoCov(regions, states, observations, regionCoverages, contigLengths, pathToWrite):
+    numberOfRegions = len(regionCoverages)
+    numberOfObservations  = len(regions)
     with open(pathToWrite,"w") as f:
-        f.write(f"#Total\tHigh_Mapq\tHighly_Clipped\tRegion\tState\n")
-        for pos in range(len(regions)):
-            obs = observations[pos]
-            state = states[pos]
-            region = regions[pos]
-            f.write(f"{obs}\t0.0\t0.0\t{region}\t{state}\n")
+        f.write(f"#annotation:len:{2+len(contigLengths)}\n")
+        f.write(f"#annotation:name:0:no_annotation\n")
+        f.write(f"#annotation:name:1:whole_genome\n")
+        for i in range(len(contigLengths)):
+            f.write(f"#annotation:name:{2 + i}:TEST_CONTIG_{i}\n")
+        f.write(f"#region:len:{numberOfRegions}\n")
+        for i in range(numberOfRegions):
+            f.write(f"#region:coverage:{i}:{regionCoverages[i]}\n")
+        f.write(f"#label:len:4\n")
+        f.write(f"#truth:true\n")
+        f.write(f"#prediction:false\n")
+
+        start = 0
+        for i, contigLength in enumerate(contigLengths):
+            f.write(f">TEST_CONTIG_{i} {contigLength}\n")
+            for pos in range(start, start + contigLength):
+                obs = observations[pos]
+                truthState = states[pos]
+                region = regions[pos]
+                #coverage, high_mapq_coverage, high_clip_coverage, annotation indices, region index, truth
+                f.write(f"{obs}\t0.0\t0.0\t1,{2+i}\t{region}\t{truthState}\n")
+            start += contigLength
 
 def main():
-    parser = argparse.ArgumentParser(description='Simulate coverage data for running hmm_test.')
+    parser = argparse.ArgumentParser(description='Simulate coverage data for running hmm_flagger.')
     parser.add_argument('--pathToEmission', type=str,
                     help='Path to the tsv file that contains emission parameters for different states and regions.')
     parser.add_argument('--pathToTransition', type=str,
@@ -142,6 +160,9 @@ def main():
                     help='Total number of observations for simulation.(Default = 10000)')
     parser.add_argument('--regionChangeRate', type=float, default=0.001,
                     help='Rate of changing regions (will be ignored if there is only one region). (Default= 0.001)')
+    parser.add_argument('--contigLengths', type=str, default="",
+                        help='A comma separated list of numbers. The sum of number of should be equal to the number of observations. For example for --numberOfObservations 100 use can pass --contigLengths 30,40,30  (Default= one contig covering all observations)')
+
 
     # Fetch the arguments
     args = parser.parse_args()
@@ -150,6 +171,18 @@ def main():
     pathToTransition = args.pathToTransition
     numberOfObservations = args.numberOfObservations
     regionChangeRate = args.regionChangeRate
+    contigLengthsStr = args.contigLengths
+
+
+    contigLengths = [int(i) for i in contigLengthsStr.strip().split(',')]
+    if len(contigLengths) == 0:
+        contigLengths = [numberOfObservations]
+
+    if sum(contigLengths) != numberOfObservations:
+        print("Error: total length of contigs does not match the number of observations.")
+        exit()
+
+
 
     # parse emission parameters and transition matrices
     emissionParametersPerRegion = parseEmissionParametersPerRegion(pathToEmission)
@@ -160,7 +193,12 @@ def main():
                                                          emissionParametersPerRegion, 
                                                          numberOfObservations=numberOfObservations, 
                                                          regionChangeRate=regionChangeRate)
+    # hap index is 2
+    # we want Mean parameter
+    # 0 means the first component (hap has just one component)
+    regionCoverages = [params[2]["Mean"][0] for params in emissionParametersPerRegion]
+
     # write observations, states and regions in a tsv file
-    writeObservations(regions, states, observations, pathToWrite=pathOutput)
+    writeObservationsIntoCov(regions, states, observations, regionCoverages, contigLengths, pathToWrite=pathOutput)
 
 if __name__ == "__main__": main()
