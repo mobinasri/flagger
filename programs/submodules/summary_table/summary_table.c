@@ -634,8 +634,8 @@ SummaryTableList_updateForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, in
         tpool_add_work(tm,
                        SummaryTableList_updateByUpdaterArgsForThreadPool,
                        (void *) argWork);
-        fprintf(stderr, "[%s] Created thread for updating summary table for category1 index %d (out of range [0-%d])\n",
-                get_timestamp(), categoryIndex1, sizeOfCategory1 - 1);
+        //fprintf(stderr, "[%s] Created thread for updating summary table for category1 index %d (out of range [0-%d])\n",
+        //        get_timestamp(), categoryIndex1, sizeOfCategory1 - 1);
     }
     tpool_wait(tm);
     tpool_destroy(tm);
