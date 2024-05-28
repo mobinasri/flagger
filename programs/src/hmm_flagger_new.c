@@ -342,11 +342,11 @@ MatrixDouble *getAlphaMatrix(char *alphaInputString) {
                 exit(EXIT_FAILURE);
             }
         }
+        MatrixDouble_setValue(alpha, alphaInputArray[4]);
         alpha->data[ALPHA_ERR][ALPHA_ERR] = alphaInputArray[0];
         alpha->data[ALPHA_DUP][ALPHA_DUP] = alphaInputArray[1];
         alpha->data[ALPHA_HAP][ALPHA_HAP] = alphaInputArray[2];
         alpha->data[ALPHA_COL][ALPHA_COL] = alphaInputArray[3];
-        alpha->data[ALPHA_TRN][ALPHA_TRN] = alphaInputArray[4];
         free(alphaInputArray);
     }
     return alpha;
