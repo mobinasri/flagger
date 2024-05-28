@@ -366,7 +366,7 @@ def main():
                                                                  minOverlapRatio,
                                                                  marginLength)
         # induce all mis-assemblies of the same size across all annotations
-        for annotation in annotationNames:
+        for annotation in misAssemblySizeTable.columns[1:]:
             misAssemblyCounts = misAssemblySizeTable.at[misAssemblySizeKb, annotation]
             for misAssemblyType, misAssemblyCount in  zip(misAssemblyTypes, misAssemblyCounts) :
                 #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
