@@ -659,7 +659,7 @@ void Gaussian_updateEstimator(Gaussian *gaussian,
                                  uint8_t preX,
                                  double alpha,
                                  double count){
-    double x_adjusted = (x - alpha * preX) / (1 - alpha);
+    double x_adjusted = (x - alpha * preX) / (1.0 - alpha);
     double *componentProbs = Gaussian_getComponentProbs(gaussian, x, preX, alpha);
     double totProb = Double_sum1DArray(componentProbs, gaussian->numberOfComps);
     for (int c = 0; c < gaussian->numberOfComps; c++) {
@@ -668,7 +668,7 @@ void Gaussian_updateEstimator(Gaussian *gaussian,
                                      w * x_adjusted,
                                      w,
                                      c);
-        double z = x_adjusted - gaussian->mean[c];
+        double z = (x_adjusted - gaussian->mean[c]) * (1.0 - alpha);
         ParameterEstimator_increment(gaussian->varEstimator,
                                      w * z * z,
                                      w,
