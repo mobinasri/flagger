@@ -117,30 +117,64 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "\nUsage: %s  -i <BAM_FILE> -j <JSON_FILE> -t <THREADS> -o <OUT_BED_OR_COV_FILE> \n",
                         program);
                 fprintf(stderr, "Options:\n");
-                fprintf(stderr, "         -i, --bam                            Input bam file (should be indexed)\n");
+                fprintf(stderr, "         -i, --bam\n"
+                                "                           Input bam file (should be indexed)\n");
                 fprintf(stderr,
-                        "         -j, --annotationJson                 Json file for the annotation bed files. At least one BED file should be in this json and it can be a BED file covering the whole genome/assembly [maximum 58 bed files can be given and the keys can be any number between 1-58 for example {\"1\":\"/path/to/1.bed\", \"2\":\"/path/to/2.bed\"}]\n");
+                        "         -j, --annotationJson\n"
+                        "                           Json file for the annotation bed files. At least one BED \n"
+                        "                           file should be in this json and it can be a BED file \n"
+                        "                           covering the whole genome/assembly [maximum 58 bed files\n"
+                        "                           can be given and the keys can be any number between 1-58 \n"
+                        "                           for example {\"1\":\"/path/to/1.bed\", \"2\":\"/path/to/2.bed\"}]\n");
                 fprintf(stderr,
-                        "         -m, --mapqThreshold                  Minimum mapq for the measuring the coverage of the alignments with high mapq [Default = 20]\n");
+                        "         -m, --mapqThreshold\n"
+                        "                           Minimum mapq for the measuring the coverage of the alignments\n"
+                        "                           with high mapq [Default = 20]\n");
                 fprintf(stderr,
-                        "         -c, --clipRatioThreshold             Minimum clipping ratio for the measuring the coverage of the highly clipped alignments [Default = 0.1]\n");
+                        "         -c, --clipRatioThreshold\n"
+                        "                           Minimum clipping ratio for the measuring the coverage of the\n"
+                        "                           highly clipped alignments [Default = 0.1]\n");
                 fprintf(stderr,
-                        "         -f, --format                         If this parameter is enabled and output file extension is either cov or cov.gz then the output will be formatted based on the value of this parameter. options: [\"all\", \"only_total\", \"only_high_mapq\"][Default = \"all\"]\n");
-                fprintf(stderr, "         -t, --threads                        Number of threads [default: 4]\n");
+                        "         -f, --format\n"
+                        "                           If this parameter is enabled and output file extension is \n"
+                        "                           either cov or cov.gz then the output will be formatted based\n"
+                        "                           on the value of this parameter. \n"
+                        "                           options: [\"all\", \"only_total\", \"only_high_mapq\"][Default = \"all\"]\n");
+                fprintf(stderr, "         -t, --threads\n"
+                                "                           Number of threads [default: 4]\n");
                 fprintf(stderr,
-                        "         -o, --output                         Output path [output file can be either cov/cov.gz/bed/bed.gz]\n");
+                        "         -o, --output\n"
+                        "                           Output path [output file can be either cov/cov.gz/bed/bed.gz]\n");
                 fprintf(stderr,
-                        "         -r, --restrictBiasAnnotations        Path to a text file that contains one annotation name per line. Only these annotations will be considered for detecting coverage biases. If no file is provided it will run bias detection on all annotations in the json file.\n");
+                        "         -r, --restrictBiasAnnotations\n"
+                        "                           Path to a text file that contains one annotation name per line.\n"
+                        "                           Only these annotations will be considered for detecting coverage\n"
+                        "                           biases. If no file is provided it will run bias detection on all\n"
+                        "                           annotations in the json file.\n");
                 fprintf(stderr,
-                        "         -b, --baselineAnnotation             [coverage bias detection] name of the baseline annotation. If no baseline name is provided it will consider all blocks with no given annotation as baseline.\n");
+                        "         -b, --baselineAnnotation\n"
+                        "                           [coverage bias detection] name of the baseline annotation. If no\n"
+                        "                           baseline name is provided it will consider all blocks with no \n"
+                        "                           given annotation as baseline.\n");
                 fprintf(stderr,
-                        "         -d, --covDiffThreshold               Threshold for reporting an annotation as biased or not  (It is being applied on the coverage deviation normalized by the baseline coverage) [default:0.15]\n");
+                        "         -d, --covDiffThreshold\n"
+                        "                           Threshold for reporting an annotation as biased or not  \n"
+                        "                           (It is being applied on the coverage deviation normalized \n"
+                        "                           by the baseline coverage) [default:0.15]\n");
                 fprintf(stderr,
-                        "         -g, --minBiasCoverage                [coverage bias detection] the most frequent coverage will selected from among the coverages greater than or equal to the value of this parameter (It can be useful for ignoring the regions with no coverage) [default:5]\n");
+                        "         -g, --minBiasCoverage\n"
+                        "                           [coverage bias detection] the most frequent coverage will\n"
+                        "                           selected from among the coverages greater than or equal to\n"
+                        "                           the value of this parameter (It can be useful for ignoring\n"
+                        "                           the regions with no coverage) [default:5]\n");
                 fprintf(stderr,
-                        "         -l, --minBiasLength                  [coverage bias detection] the minimum length of an annotation to be considered biased [default:100000 (100k)]\n");
+                        "         -l, --minBiasLength\n"
+                        "                           [coverage bias detection] the minimum length of an \n"
+                        "                           annotation to be considered biased [default:100000 (100k)]\n");
                 fprintf(stderr,
-                        "         -u, --runBiasDetection               Run coverage bias detection. It will update the number of regions. [Default: disabled]\n");
+                        "         -u, --runBiasDetection\n"
+                        "                           Run coverage bias detection. It will update the number \n"
+                        "                           of regions. [Default: disabled]\n");
                 return 1;
         }
     }

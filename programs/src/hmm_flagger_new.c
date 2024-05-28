@@ -555,6 +555,12 @@ int main(int argc, char *argv[]) {
                         "                           considering a hit between a ref label (for example truth label for\n"
                         "                           recall) and query label (for example prediction label for recall) \n"
                         "                           [default: 0.4]\n");
+                fprintf(stderr,
+                        "         -D, --initialRandomDev\n"
+                        "                           Randomly deviate the initial mean values for EM algorithm.\n"
+                        "                           This is only for experimenting how much HMM-Flagger is tolerant to\n"
+                        "                           starting with approximate values. It should be greater than or equal\n"
+                        "                           to 0 and less than 0.5 . [default: 0.0]\n");
                 return 1;
         }
     }
