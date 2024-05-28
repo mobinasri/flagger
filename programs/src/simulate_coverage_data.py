@@ -68,12 +68,16 @@ def generateTruncatedExponentialObservation(mean, truncPoint):
     return 0 if obs <= 0 else obs
 
 
-def generateOneObservation(emissionParameters):
+def generateOneObservation(emissionParameters, alpha, preObservation):
     distName = emissionParameters["Dist"]
     if distName == "Negative Binomial":
         return generateNegativeBinomialObservation(emissionParameters["Mean"], emissionParameters["Var"], emissionParameters["Weight"])
     elif distName == "Gaussian":
-        return generateGaussianObservation(emissionParameters["Mean"], emissionParameters["Var"], emissionParameters["Weight"])
+        if preObservation is not None and alpha is not None:
+            mean = emissionParameters["Mean"] * (1 - alpha) + preObservation * alpha
+        else:
+            mean = emissionParameters["Mean"]
+        return generateGaussianObservation(mean, emissionParameters["Var"], emissionParameters["Weight"])
     elif distName == "Truncated Exponential":
         return generateTruncatedExponentialObservation(emissionParameters["Mean"][0], emissionParameters["Trunc_Point"][0])
     else:
@@ -104,22 +108,44 @@ def getRegionAndStateIndex(transitionMatrixPerRegion, preRegion, preState, regio
 
     return region, state
 
-def generateObservations(transitionMatrixPerRegion, emissionParametersPerRegion, numberOfObservations, regionChangeRate):
+def generateObservations(transitionMatrixPerRegion, emissionParametersPerRegion, numberOfObservations, regionChangeRate, alphaMatrix):
     region = None
     state = None
     observations = []
     regions = []
     states = []
+    preObs = None
+    preState = None
     for i in range(numberOfObservations):
         region, state = getRegionAndStateIndex(transitionMatrixPerRegion,
                                                preRegion=region, 
                                                preState=state,
                                                regionChangeRate=regionChangeRate)
-        obs = generateOneObservation(emissionParametersPerRegion[region][state])
+        if i == 0 or preState == None or preObs == None or alphaMatrix == None:
+            obs = generateOneObservation(emissionParametersPerRegion[region][state], 0, None)
+        else:
+            obs = generateOneObservation(emissionParametersPerRegion[region][state], alphaMatrix[preState][state], preObs)
         observations.append(obs)
         regions.append(region)
         states.append(state)
+        preObs = obs
+        preState = state
     return regions, states, observations
+
+
+def createAlphaMatrix(alphaString):
+    if alphaString == None or len(alphaString) == 0:
+        return None
+    alphaValues = [float(num) for num in alphaString.strip().split(',')]
+    numberOfStates = len(alphaValues) - 1
+    alphaMatrix = np.zeros((numberOfStates, numberOfStates))
+
+    alphaTrans = alphaValues[-1]
+    alphaMatrix.fill(alphaTrans)
+
+    for state in range(numberOfStates):
+        alphaMatrix[state][state] = alphaValues[state]
+    return alphaMatrix
 
 def writeObservationsIntoCov(regions, states, observations, regionCoverages, contigLengths, pathToWrite):
     numberOfRegions = len(regionCoverages)
@@ -164,9 +190,11 @@ def main():
                     help='Rate of changing regions (will be ignored if there is only one region). (Default= 0.001)')
     parser.add_argument('--contigLengths', type=str, default="",
                         help='A comma separated list of numbers. The sum of number of should be equal to the number of observations. For example for --numberOfObservations 100 use can pass --contigLengths 30,40,30  (Default= one contig covering all observations)')
+    parser.add_argument('--alpha', type=str, default="",
+                        help='The dependency factors of the current emission density to the previous emission (Only works for Gaussian). It should be a comma-separated string of 5 numbers for these states respectively err,dup,hap,col,trans. (trans is for transitioning from one state to a different one) [Default = all alpha factors set to 0]')
 
 
-    # Fetch the arguments
+# Fetch the arguments
     args = parser.parse_args()
     pathOutput = args.pathOutput
     pathToEmission = args.pathToEmission
@@ -174,7 +202,9 @@ def main():
     numberOfObservations = args.numberOfObservations
     regionChangeRate = args.regionChangeRate
     contigLengthsStr = args.contigLengths
+    alphaString = args.alpha
 
+    alphaMatrix = createAlphaMatrix(alphaString)
 
     contigLengths = [int(i) for i in contigLengthsStr.strip().split(',')]
     if len(contigLengths) == 0:
@@ -194,7 +224,8 @@ def main():
     regions, states, observations = generateObservations(transitionMatrixPerRegion, 
                                                          emissionParametersPerRegion, 
                                                          numberOfObservations=numberOfObservations, 
-                                                         regionChangeRate=regionChangeRate)
+                                                         regionChangeRate=regionChangeRate,
+                                                         alphaMatrix=alphaMatrix)
     # hap index is 2
     # we want Mean parameter
     # 0 means the first component (hap has just one component)
