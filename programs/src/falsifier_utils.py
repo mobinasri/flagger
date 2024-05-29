@@ -908,20 +908,20 @@ class HomologyRelationChains:
                                         - part 1: From index 0 to lastOrderIndexOnLeft inclusively
                                         - part 2: From index lastOrderIndexOnLeft + 1 till the end inclusively
         """
-        z = re.findall("(?<=\.p)_[0-9.]+$", newCtg)
+        z = re.findall("(?<=\.p\_)[0-9]+_[0-9]+$", newCtg)
         if len(z) == 1:
-            numberStringLen = len(z[0][1:])
-            number = int(z[0][1:])
-            binaryString = '{:b}'.format(number)
+            totalSplitNumber = int(z[0].split('_')[0])
+            rightLeftEncoding = int(z[0].split('_')[1])
+            binaryString = '{:b}'.format(rightLeftEncoding)
             rightBinaryString = '0' + binaryString
             leftBinaryString = '1' + binaryString
-            rightNumber = int(rightBinaryString,2)
-            leftNumber = int(leftBinaryString,2)
-            newCtgLeft = newCtg[:-numberStringLen] + str(leftNumber)
-            newCtgRight = newCtg[:-numberStringLen] + str(rightNumber)
+            rightNumber = int(rightBinaryString, 2)
+            leftNumber = int(leftBinaryString, 2)
+            newCtgLeft = newCtg[:-len(z[0])] + str(totalSplitNumber + 1) + "_" + str(leftNumber)
+            newCtgRight = newCtg[:-len(z[0])] + str(totalSplitNumber + 1) + "_" + str(rightNumber)
         else:
-            newCtgLeft = newCtg + ".p_1"
-            newCtgRight = newCtg + ".p_0"
+            newCtgLeft = newCtg + ".p_1_1"
+            newCtgRight = newCtg + ".p_1_0"
 
         assert (lastOrderIndexOnLeft < len(self.relationChains[newCtg]))
         # insert all relations up to lastOrderIndexOnLeft to "newCtgLeft"

@@ -46,7 +46,7 @@ def induceMultipleMisjoins(relationChains, annotation, misAssemblyCount, misjoin
             else:
                 print(f"[{datetime.datetime.now()}] Warning: Mis-assembly could not be induced (because of projection).")
                 iter += 1
-        # if the mis-assembly could not be created after 10 times trying
+        # if the mis-assembly could not be created after 10 times trying 
         if res == False:
             return i
 
@@ -92,7 +92,7 @@ def induceMultipleMisAssembliesOfTheSameType(relationChains, annotation, misAsse
             else:
                 print(f"[{datetime.datetime.now()}] Warning: Mis-assembly could not be induced (because of projection).")
                 iter += 1
-        # if the mis-assembly could not be created after 10 times trying
+        # if the mis-assembly could not be created after 10 times trying 
         if res == False:
             return i
 
@@ -149,7 +149,7 @@ def parseMisAssemblySizeTable(tsvPath):
             # generated from each misassembly type
             # ["Switch error", "Erroneous", "Duplicated", "Collapsed"]
             misAssemblySizeTable.at[row, annotation] = np.array(re.split(' *, *', misAssemblySizeTable.at[row, annotation]),
-                                                                dtype=int)
+                                                                 dtype=int)
     return misAssemblySizeTable
 
 
@@ -264,7 +264,7 @@ def main():
 
     # parse arguments
     args = parser.parse_args()
-    pafPath = args.paf
+    pafPath = args.paf 
     hap1FastaPath = args.hap1
     hap2FastaPath = args.hap2
     outputDir = args.outputDir
@@ -350,8 +350,8 @@ def main():
     # note that blockSize is set to [0] which means do not filter annotation blocks based on their size and get
     # all of them
     annotationLengths = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotationNames,
-                                                                                     None,
-                                                                                     onlyRefInHomology=False)
+                                                                                    None,
+                                                                                    onlyRefInHomology=False)
     annotationLengths["whole_genome"] = totalGenomeSizeKb * 1e3
 
     if checkFeasiblity(relationChains, misAssemblySizeTable):
@@ -392,9 +392,9 @@ def main():
     for misAssemblySizeKb in misAssemblySizesSortedKb:
         # for each mis-assembly size, the start locations for sampling should be updated
         relationChains.updateAnnotationBlocksForSampling(annotationNames,
-                                                         misAssemblySizeKb * 1000,
-                                                         minOverlapRatio,
-                                                         marginLength)
+                                                                 misAssemblySizeKb * 1000,
+                                                                 minOverlapRatio,
+                                                                 marginLength)
         # induce all mis-assemblies of the same size across all annotations
         for annotation in annotationsForCreatingMisAssembly:
             misAssemblyCounts = misAssemblySizeTable.at[misAssemblySizeKb, annotation]
@@ -431,7 +431,7 @@ def main():
                 f.write(f"{annotation}\t{misAssemblyType}\t{misAssemblySizeKb}\t{totalAnnotationLengthKb}\t{misAssemblyRate * 100:0.3f}\n")
                 totalMisAssembledBasesKb += misAssemblySizeKb
             misAssemblyRateTotal = totalMisAssembledBasesKb / totalAnnotationLengthKb
-            f.write(f"{annotation}\t{misAssemblyType}\t{totalMisAssembledBasesKb}\t{totalAnnotationLengthKb}\t{misAssemblyRateTotal * 100:0.3f}\n")
+            f.write(f"{annotation}\tALL\t{totalMisAssembledBasesKb}\t{totalAnnotationLengthKb}\t{misAssemblyRateTotal * 100:0.3f}\n")
 
 
     os.makedirs(outputDir, exist_ok = True)
