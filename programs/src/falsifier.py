@@ -1,6 +1,7 @@
 import sys
 import argparse
 from block_utils import Alignment
+from alignment_utils import *
 from collections import defaultdict
 from copy import deepcopy
 from falsifier_utils import *
@@ -45,7 +46,7 @@ def induceMultipleMisjoins(relationChains, annotation, misAssemblyCount, misjoin
             else:
                 print(f"[{datetime.datetime.now()}] Warning: Mis-assembly could not be induced (because of projection).")
                 iter += 1
-        # if the mis-assembly could not be created after 10 times trying 
+        # if the mis-assembly could not be created after 10 times trying
         if res == False:
             return i
 
@@ -91,7 +92,7 @@ def induceMultipleMisAssembliesOfTheSameType(relationChains, annotation, misAsse
             else:
                 print(f"[{datetime.datetime.now()}] Warning: Mis-assembly could not be induced (because of projection).")
                 iter += 1
-        # if the mis-assembly could not be created after 10 times trying 
+        # if the mis-assembly could not be created after 10 times trying
         if res == False:
             return i
 
@@ -148,7 +149,7 @@ def parseMisAssemblySizeTable(tsvPath):
             # generated from each misassembly type
             # ["Switch error", "Erroneous", "Duplicated", "Collapsed"]
             misAssemblySizeTable.at[row, annotation] = np.array(re.split(' *, *', misAssemblySizeTable.at[row, annotation]),
-                                                                 dtype=int)
+                                                                dtype=int)
     return misAssemblySizeTable
 
 
@@ -172,41 +173,54 @@ def getTotalLengthOfMisAssembliesForAllAnnotations(misAssemblySizeTable):
     return totalLengths
 
 
-def checkFeasiblity(relationChains, annotations, misAssemblySizeTable, safetyFactor = 4):
+def getTotalCountOfMisAssembliesForAllAnnotations(misAssemblySizeTable):
+    """
+    Returns a dictionary whose keys are annotation names. Each value is a list of total counts of the
+    requested misassemblies of different sizes.
+    :param misAssemblySizeTable: A DataFrame that contains the numbers and the lengths of the requested misassemblies
+    """
+
+    totalCounts = defaultdict(list)
+    print(f"[{datetime.datetime.now()}] Total counts of requested mis-assemblies:")
+    for row in misAssemblySizeTable.index:
+        misAssemblyLengthKb = int(misAssemblySizeTable.at[row, "length_kb"])
+        print(f"\t Mis-assembly Size: {misAssemblyLengthKb}Kb")
+        for annotation in misAssemblySizeTable.columns[1:]:
+            counts = misAssemblySizeTable.at[row, annotation]
+            totCount = sum(counts)
+            print(f"\t\tAnnotation: {annotation} -> {totCount}")
+            totalCounts[annotation].append(totCount)
+    return totalCounts
+
+def checkFeasiblity(relationChains, misAssemblySizeTable):
     """
     Checks if there exist enough number of contiguous blocks per annotation to make misassemblies with the
     requested sizes
-    Note that it does not guarantee that we won't be out of enough contiguous blocks for creating misassemblies
-    since the locations of blocks are selected randomly it may happen that previously created misassemblies
-    do not leave enough contiguous blocks for the next misassemblies. It depends on the randomly chosen
-    locations of the misassemblies however, running out of blocks would be a rare event if the heuristic
-    of this function is passed and it returns True. The higher the value of safetyFactor the less probable it would
-    be to run out of blocks.
+    Note that it if this function considers only the worst case scenario if it returns True it is guaranteed that
+    all requested misassemblies can be created without running out of annotation blocks. However, since the locations
+    of misassemblies are random if it returns False it might happen that all misassemblies can be created. It depends on
+    how close the requested number and length of misassembly blocks are to the available blocks.
     :param relationChains:  Chains of relations created out of the alignments
-    :param annotations: A list of annotation names
     :param misAssemblySizeTable: A DataFrame that contains the numbers and the sizes of the requested misassemblies
-    :param safetyFactor: The total number of bases available in the blocks longer than each requested misassembly size
-                         should be more than "safetyFactor" times the total lengths of the misassemblies longer than
-                         the related requested size.
-                         This check is performed separately per annotation.
     :return: True if feasible otherwise False
     """
-    blockSizes = np.array(misAssemblySizeTable["length_kb"], dtype=int) * 1000
-    totalAvailableLengthsPerAnnotation = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotations, blockSizes)
-    totalRequestedLengthsPerAnnotation = getTotalLengthOfMisAssembliesForAllAnnotations(misAssemblySizeTable)
 
+    print(f"[{datetime.datetime.now()}] Feasibility logs:")
+    print(f"#annotation\tmisassembly_block_size_kb,\tlower_bound_count\trequested_total_count\tstatus")
+    annotations = misAssemblySizeTable.columns[1:]
     flag = True
     for annotation in annotations:
-        for requestedLen, availableLen, blockSize in zip(totalRequestedLengthsPerAnnotation[annotation],
-                                              totalAvailableLengthsPerAnnotation[annotation],
-                                              blockSizes):
-            if availableLen < safetyFactor * requestedLen:
-                print(f"[{datetime.datetime.now()}] Check Feasibility: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tNOT PASSED")
-                flag = False
+        for row in misAssemblySizeTable.index:
+            misAssemblyLengthKb = int(misAssemblySizeTable.at[row, "length_kb"])
+            requestedCount = sum(misAssemblySizeTable.at[row, annotation])
+            lowerBoundOnCount = relationChains.getLowerBoundOnNumberOfMisassemblies(annotation, misAssemblyLengthKb * 1e3)
+            if requestedCount <= lowerBoundOnCount:
+                status = "PASSED"
             else:
-                print(f"[{datetime.datetime.now()}] Check Feasibility: annotation={annotation},\tblock size={blockSize/1e3}Kb,\tavailable={availableLen/1e3}Kb,\trequested={requestedLen/1e3}Kb,\tPASSED")
+                status = "NOT_PASSED"
+                flag = False
+            print(f"{annotation}\t{misAssemblyLengthKb}\t{lowerBoundOnCount}\t{requestedCount}\t{status}")
     return flag
-
 
 
 def main():
@@ -231,11 +245,11 @@ def main():
                         help='JSON file that contains the annotation names and the paths to the corresponding annotation bed files. The tracks in all the given bed files should not have any overlap.')
     parser.add_argument('--outputDir', type=str, default= "falsifier_outputs",
                         help='Output directory for saving the falsified assembly, the new annotation and mis-assembly coordinates')
-    parser.add_argument('--minAlignmentLength', type=int, default = 500000,
-                        help='Minimum length of the alignments to be used by the program [Default = 500000 (500Kb)]')
-    parser.add_argument('--marginLength', type=int, default = 10000,
-                        help='Length of the margins at the ends of each unbroken alignment (a contiguous homology relation) where no mis-assembly is permitted to be created [Default = 10000 (10 Kb)]')
-    parser.add_argument('--switchFlagWindowLength', type=int, default = 5000,
+    parser.add_argument('--minAlignmentLength', type=int, default = 50000,
+                        help='Minimum length of the alignments to be used by the program [Default = 50000 (50Kb)]')
+    parser.add_argument('--marginLength', type=int, default = 2000,
+                        help='Length of the margins at the ends of each unbroken alignment (a contiguous homology relation) where no mis-assembly is permitted to be created [Default = 1000 (1 Kb)]')
+    parser.add_argument('--switchFlagWindowLength', type=int, default = 1000,
                         help='Each switch error is shown as one/multiple bed tracks around the switching point. This parameter defines the length of the window labeled as "Sw" on each side of switching points created because of haplotype switches (should be smaller than --marginLength) [Default = 5000 (5 Kb)]')
     parser.add_argument('--misjoinFlagWindowLength', type=int, default = 5000,
                         help='Each misjoin is shown as one/multiple bed tracks around the misjoin. This parameter defines the length of the window labeled as "Msj" on each side of a misjoin between non-homologous contigs (should be smaller than --marginLength) [Default = 5000 (5 Kb)]')
@@ -244,13 +258,13 @@ def main():
     parser.add_argument('--contigSuffix', type=str, default = "_f",
                         help='The suffix to be added to the names of the new contigs (which could be either intact or with mis-assemblies) [Default = "_f"]')
     parser.add_argument('--singleBaseErrorRate', type=float, default = 0.05, help='The rate of single-base errors that will be induced in "Err" blocks [Default = 0.05]')
-    parser.add_argument('--safetyFactor', type=float, default = 4.0, help='The factor for checking the feasibility of inducing the misassmblies with the requested numbers and sizes [Default = 4.0]')
+    parser.add_argument('--maxGapLength', type=int, default = 500, help='Split alignments into smaller alignments with no gaps longer than this parameter[Default = 500]')
 
 
 
     # parse arguments
     args = parser.parse_args()
-    pafPath = args.paf 
+    pafPath = args.paf
     hap1FastaPath = args.hap1
     hap2FastaPath = args.hap2
     outputDir = args.outputDir
@@ -263,7 +277,7 @@ def main():
     minOverlapRatio = args.minOverlapRatio
     marginLength = args.marginLength
     contigSuffix = args.contigSuffix
-    safetyFactor = args.safetyFactor
+    maxGapLength = args.maxGapLength
     singleBaseErrorRate = args.singleBaseErrorRate
 
 
@@ -278,20 +292,25 @@ def main():
             if alignmentLengthQuery >= minAlignmentLength and \
                     alignmentLengthRef >= minAlignmentLength and \
                     alignment.isPrimary:
-                alignments.append(alignment)
+                # split alignments into alignments with short gaps
+                for alignmentWithShortGap in splitIntoAlignmentsWithShortGaps(alignment, maxGapLength):
+                    alignments.append(alignmentWithShortGap)
 
     # parse hap1 sequences
     hap1Sequences = parseFasta(hap1FastaPath)
     hap1ContigNames = list(hap1Sequences.keys())
 
     # extend hap1 sequences to contain hap2 sequences too
-    diploidSequences = hap1Sequences
+    diploidSequences = hap1Sequences.copy()
     diploidSequences.update(parseFasta(hap2FastaPath))
 
     diploidContigLengths = getContigLengths(diploidSequences)
 
-    print(diploidContigLengths)
+    print(f"[{datetime.datetime.now()}] Prased contigs and their sizes")
+    for contigName, contigSize in diploidContigLengths.items():
+        print(contigName, contigSize)
     totalGenomeSizeKb = sum(diploidContigLengths.values()) / 1e3
+    print(f"[{datetime.datetime.now()}] Diploid genome size is {totalGenomeSizeKb} Kb")
 
     annotationBlockLists, annotationNames = parseAnnotationsPerContig(annotationsJsonPath)
 
@@ -301,6 +320,7 @@ def main():
         if annotation not in annotationNames:
             print(f"[{datetime.datetime.now()}] Error: {annotation} exists in the mis-assembly tsv but its path is not given in the json file!")
             exit()
+    annotationsForCreatingMisAssembly = list(misAssemblySizeTable.columns[1:])
 
     # find the hap1 coordinates with exactly one alignment from hap2
     hap1UniqueBlocksPerContig = getBlockListsWithSingleAlignmentPerRefContig(alignments)
@@ -313,7 +333,6 @@ def main():
     # get the alignments that shows 1-to-1 correspondence between hap1 and hap2
     uniqueAlignments = subsetAlignmentsToQueryBlocks(hap1UniqueAlignments, hap2UniqueBlocksPerContig)
 
-    print(uniqueAlignments[1:10])
     # make relation chains for the whole diploid assembly
     relationChains = HomologyRelationChains(uniqueAlignments,
                                             diploidContigLengths,
@@ -326,10 +345,19 @@ def main():
                                                                diploidContigLengths,
                                                                contigSuffix)
 
-    if checkFeasiblity(relationChains, annotationNames, misAssemblySizeTable, safetyFactor = safetyFactor):
-        print(f"[{datetime.datetime.now()}] Feasibilty is PASSED with the safety factor of {safetyFactor}")
+    # get the total length of all annotation blocks  (both ref and query) without considering the 1-to-1 mapping
+    # this will be used for calculating the actual misassembly rate per annotation in the final falsified assembly
+    # note that blockSize is set to [0] which means do not filter annotation blocks based on their size and get
+    # all of them
+    annotationLengths = relationChains.getTotalLengthOfLongerBlocksForAllAnnotations(annotationNames,
+                                                                                     None,
+                                                                                     onlyRefInHomology=False)
+    annotationLengths["whole_genome"] = totalGenomeSizeKb * 1e3
+
+    if checkFeasiblity(relationChains, misAssemblySizeTable):
+        print(f"[{datetime.datetime.now()}] Feasibilty is PASSED.")
     else:
-        print(f"[{datetime.datetime.now()}] Feasibilty is NOT PASSED with the safety factor of {safetyFactor}. Please use more contiguous alignments/annotations tracks or request for shorter (or fewer) misassemblies.")
+        print(f"[{datetime.datetime.now()}] Feasibilty is NOT PASSED. Please use more contiguous alignments/annotations tracks or request for shorter (or fewer) misassemblies.")
         exit()
 
 
@@ -358,15 +386,17 @@ def main():
     misAssemblySizesSortedKb = sorted(np.array(misAssemblySizeTable["length_kb"]), reverse=True)
     total_successful = 0
     total_requested = 0
-    totalMisAssembledBasesKbByType = {"Sw":0, "Err":0, "Dup":0, "Col":0}
+    totalMisAssembledBasesKbByAnnotationAndType = {annotation: {"Sw":0, "Err":0, "Dup":0, "Col":0}
+                                                   for annotation in annotationsForCreatingMisAssembly}
+    totalMisAssembledBasesKbByAnnotationAndType["whole_genome"] = {"Sw":0, "Err":0, "Dup":0, "Col":0}
     for misAssemblySizeKb in misAssemblySizesSortedKb:
         # for each mis-assembly size, the start locations for sampling should be updated
         relationChains.updateAnnotationBlocksForSampling(annotationNames,
-                                                                 misAssemblySizeKb * 1000,
-                                                                 minOverlapRatio,
-                                                                 marginLength)
+                                                         misAssemblySizeKb * 1000,
+                                                         minOverlapRatio,
+                                                         marginLength)
         # induce all mis-assemblies of the same size across all annotations
-        for annotation in misAssemblySizeTable.columns[1:]:
+        for annotation in annotationsForCreatingMisAssembly:
             misAssemblyCounts = misAssemblySizeTable.at[misAssemblySizeKb, annotation]
             for misAssemblyType, misAssemblyCount in  zip(misAssemblyTypes, misAssemblyCounts) :
                 #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
@@ -380,25 +410,37 @@ def main():
                 total_successful += res
                 total_requested += misAssemblyCount
                 if misAssemblyType == "Sw":
-                    totalMisAssembledBasesKbByType[misAssemblyType] += 2 * res * misAssemblySizeKb
+                    totalMisAssembledBasesKbByAnnotationAndType["whole_genome"][misAssemblyType] += 2 * res * misAssemblySizeKb
+                    totalMisAssembledBasesKbByAnnotationAndType[annotation][misAssemblyType] += 2 * res * misAssemblySizeKb
                 else:
-                    totalMisAssembledBasesKbByType[misAssemblyType] += 1 * res * misAssemblySizeKb
-                #print(relationChains.newCtgAnnotationWeightsForSampling[annotation])
+                    totalMisAssembledBasesKbByAnnotationAndType["whole_genome"][misAssemblyType] += 1 * res * misAssemblySizeKb
+                    totalMisAssembledBasesKbByAnnotationAndType[annotation][misAssemblyType] += 1 * res * misAssemblySizeKb
 
     print(f"[{datetime.datetime.now()}] Creating mis-assemblies is Done! ({total_successful}/{total_requested}) mi-assemblies could be created successfully.")
 
-    totalMisAssembledBasesKb = 0
-    for misAssemblyType, lengthKb in totalMisAssembledBasesKbByType.items():
-        print(f"[{datetime.datetime.now()}] Mis-assembly rate ({misAssemblyType}): {totalMisAssembledBasesKbByType[misAssemblyType]/totalGenomeSizeKb * 100:0.3f} %")
-        totalMisAssembledBasesKb += lengthKb
-    print(f"[{datetime.datetime.now()}] Mis-assembly rate (Total): {totalMisAssembledBasesKb/totalGenomeSizeKb * 100:0.3f} %")
+    print(f"[{datetime.datetime.now()}] Writing actual misassembly rates whole genome and per annotation in the final falsified assembly.")
+    misAssemblyRateTextPath = os.path.join(outputDir, f"falsified_asm.misassembly_rates.txt")
+    with open(misAssemblyRateTextPath, "w") as f:
+        f.write(f"#annotation\tmisassembly_type\ttotal_misassembly_size_kb\ttotal_annotation_size_kb\tmisassembly_rate_percent\n")
+        # Print mis-assembly rate per annotation (both per misassembly type and altogether)
+        for annotation in annotationsForCreatingMisAssembly + ["whole_genome"]:
+            totalMisAssembledBasesKb = 0
+            totalAnnotationLengthKb = annotationLengths[annotation] / 1e3
+            for misAssemblyType, misAssemblySizeKb in totalMisAssembledBasesKbByAnnotationAndType[annotation].items():
+                misAssemblyRate = misAssemblySizeKb / totalAnnotationLengthKb
+                f.write(f"{annotation}\t{misAssemblyType}\t{misAssemblySizeKb}\t{totalAnnotationLengthKb}\t{misAssemblyRate * 100:0.3f}\n")
+                totalMisAssembledBasesKb += misAssemblySizeKb
+            misAssemblyRateTotal = totalMisAssembledBasesKb / totalAnnotationLengthKb
+            f.write(f"{annotation}\t{misAssemblyType}\t{totalMisAssembledBasesKb}\t{totalAnnotationLengthKb}\t{misAssemblyRateTotal * 100:0.3f}\n")
 
 
     os.makedirs(outputDir, exist_ok = True)
     print(f"[{datetime.datetime.now()}] Writing Fasta file for the falsified assembly")
-    fastaPath = os.path.join(outputDir,"falsified_asm.fasta")
-    relationChains.writeNewContigsToFasta(diploidSequences, fastaPath, singleBaseErrorRate)
-    print(f"[{datetime.datetime.now()}] The falsified assembly is written to {fastaPath}")
+    diploidFastaPath = os.path.join(outputDir,"falsified_asm.dip.fa")
+    hap1FastaPath = os.path.join(outputDir,"falsified_asm.hap1.fa")
+    hap2FastaPath = os.path.join(outputDir,"falsified_asm.hap2.fa")
+    relationChains.writeNewContigsToFasta(diploidSequences, diploidFastaPath, hap1FastaPath, hap2FastaPath, singleBaseErrorRate)
+    print(f"[{datetime.datetime.now()}] The falsified assembly is written to {diploidFastaPath} (hap1={hap1FastaPath}, hap2={hap2FastaPath})")
 
     for annotation in annotationNames:
         bedPath = os.path.join(outputDir, f"falsified_asm.{annotation}.bed")
