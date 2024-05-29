@@ -55,7 +55,7 @@ typedef struct {
     bool statsAreUpdated;
     int *mostFrequentCoveragePerAnnotation;
     int *maxCountPerAnnotation;
-    int *totalCountPerAnnotation;
+    double *totalCountPerAnnotation;
     // result variables contating the mapping from annotations to region indices
     int *annotationToRegionMap;
     int *coveragePerRegion; // region 0 is reserved for baseline annotation

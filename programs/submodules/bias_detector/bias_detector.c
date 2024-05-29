@@ -48,7 +48,7 @@ BiasDetector *BiasDetector_construct(stList *annotationNames,
     }
     biasDetector->mostFrequentCoveragePerAnnotation = Int_construct1DArray(biasDetector->numberOfAnnotations);
     biasDetector->maxCountPerAnnotation = Int_construct1DArray(biasDetector->numberOfAnnotations);
-    biasDetector->totalCountPerAnnotation = Int_construct1DArray(biasDetector->numberOfAnnotations);
+    biasDetector->totalCountPerAnnotation = Double_construct1DArray(biasDetector->numberOfAnnotations);
     biasDetector->annotationToRegionMap = Int_construct1DArray(biasDetector->numberOfAnnotations);
     biasDetector->numberOfRegions = 0;
     biasDetector->coveragePerRegion = NULL; // we don't know the number of regions yet
@@ -115,7 +115,7 @@ void BiasDetector_setMaxCountPerAnnotation(BiasDetector *biasDetector) {
 
 void BiasDetector_setTotalCountPerAnnotation(BiasDetector *biasDetector) {
     for (int annotationIndex = 0; annotationIndex < biasDetector->numberOfAnnotations; annotationIndex++) {
-        int totalCount = (int) CountData_getTotalCount(biasDetector->countDataPerAnnotation[annotationIndex], 0,
+        double totalCount = (double) CountData_getTotalCount(biasDetector->countDataPerAnnotation[annotationIndex], 0,
                                                        MAX_COVERAGE_VALUE);
         biasDetector->totalCountPerAnnotation[annotationIndex] = totalCount;
     }
@@ -183,7 +183,7 @@ void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
         // get stats for detecting coverage bias
         int mostFrequentCoverage = biasDetector->mostFrequentCoveragePerAnnotation[annotIndex];
         int maxCount = biasDetector->maxCountPerAnnotation[annotIndex];
-        int totalCount = biasDetector->totalCountPerAnnotation[annotIndex];
+        double totalCount = biasDetector->totalCountPerAnnotation[annotIndex];
 
         double covDiffNormalized = ((double) mostFrequentCoverage - baselineCoverage) / baselineCoverage;
         if (mostFrequentCoverage < 1) {
@@ -200,7 +200,7 @@ void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
             regionIndex++;
         }
         if (tsvFile != NULL) {
-            fprintf(tsvFile, "%s\t%s\t%d\t%d\t%d\t%+.3f\t%d\n",
+            fprintf(tsvFile, "%s\t%s\t%d\t%d\t%.0f\t%+.3f\t%d\n",
                     annotationName,
                     isBiased ? "biased" : "not_biased",
                     mostFrequentCoverage,
