@@ -33,9 +33,9 @@ class TestProjection(unittest.TestCase):
         self.alignment3 = Alignment("ctg2\t68\t5\t65\t+\tctg1\t60\t6\t55\t40\t49\t60\tcg:Z:3=1X2=2I1=2D1X2=3I2=3D2=1X2=4I6=4I2=1X3=1I3=4I1=4D1=2I6=")
         self.annotationBlockListsPerOrigContigForAlignment3 = {"ctg1":{"annot1": BlockList([(1, 12),(30, 34), (51, 60)]),
                                                                        "annot2": BlockList([(13, 29), (35, 50)])},
-                                                               "ctg2":{"annot1": BlockList([(1, 68)]),
-                                                                       "annot2": BlockList([])}
-                                                               }
+                                                              "ctg2":{"annot1": BlockList([(1, 68)]),
+                                                                      "annot2": BlockList([])}
+                                                              }
         self.contigLengthsForAlignment3 = {"ctg1": 60, "ctg2": 68}
         self.contigSequencesForAlignment3 = {"ctg1": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACTACTACGAGTTTAAAGTAGTAGGGGT",
                                              "ctg2": "ACACAGTGAGTAACACTATACAATCGGATATTACTACGTAATAATACCGAGACCATATTGTAGTATGT"}
@@ -69,20 +69,20 @@ class TestProjection(unittest.TestCase):
 
         truthRelations = defaultdict(list)
         truthRelations["ctg1_f"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
-                                    HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("1=1X2I3=1D3="), '+'),
-                                    HomologyRelation(ctg1HomologyBlock3, None, None, None),
-                                    HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock4, getCigarList("3=2D1X1I1="), '-'),
-                                    HomologyRelation(ctg1HomologyBlock5, None, None, None)]
+                               HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("1=1X2I3=1D3="), '+'),
+                               HomologyRelation(ctg1HomologyBlock3, None, None, None),
+                               HomologyRelation(ctg1HomologyBlock4, ctg2HomologyBlock4, getCigarList("3=2D1X1I1="), '-'),
+                               HomologyRelation(ctg1HomologyBlock5, None, None, None)]
         truthRelations["ctg2_f"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
-                                    HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
-                                    HomologyRelation(ctg2HomologyBlock3, None, None, None),
-                                    HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, None, None),
-                                    HomologyRelation(ctg2HomologyBlock5, None, None, None)]
+                              HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
+                              HomologyRelation(ctg2HomologyBlock3, None, None, None),
+                              HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, None, None),
+                              HomologyRelation(ctg2HomologyBlock5, None, None, None)]
         truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
         for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f"]:
-
+            
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
 
@@ -275,10 +275,10 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 22, 24, '+', "ctg2_f.p_1", 3)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1, 3)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock5 = HomologyBlock("ctg2", 26, 27, '+', "ctg2_f.p_2", 0)
+        ctg2HomologyBlock5 = HomologyBlock("ctg2", 26, 27, '+', "ctg2_f.p_0", 0)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1, 2)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock6 = HomologyBlock("ctg2", 28, 30, '+', "ctg2_f.p_2", 1)
+        ctg2HomologyBlock6 = HomologyBlock("ctg2", 28, 30, '+', "ctg2_f.p_0", 1)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1,3)])}
 
@@ -295,19 +295,19 @@ class TestProjection(unittest.TestCase):
                                     HomologyRelation(ctg1HomologyBlock6, ctg2HomologyBlock4, getCigarList("1D1X1I1="), '-'),
                                     HomologyRelation(ctg1HomologyBlock7, None, None, None)]
 
-
+        
         truthRelations["ctg2_f.p_1"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
-                                        HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
-                                        HomologyRelation(ctg2HomologyBlock3, None, None, None),
-                                        HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock6, None, None)]
+                                       HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
+                                       HomologyRelation(ctg2HomologyBlock3, None, None, None),
+                                       HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock6, None, None)]
 
-        truthRelations["ctg2_f.p_2"] = [HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock4, None, None),
-                                        HomologyRelation(ctg2HomologyBlock6, None, None, None)]
+        truthRelations["ctg2_f.p_0"] = [HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock4, None, None),
+                                       HomologyRelation(ctg2HomologyBlock6, None, None, None)]
 
         truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_2", "ctg3_f"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_0", "ctg3_f"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -332,7 +332,7 @@ class TestProjection(unittest.TestCase):
                     if truthRelation.alignment == None:
                         self.assertTrue(outputRelation.alignment == None, f"the alignment is not None")
                     else:
-                        self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
+                      self.assertListEqual(truthRelation.alignment.cigarList, outputRelation.alignment.cigarList)
 
 
     def testInducingDuplicationErrorWithAnnotations(self):
@@ -548,9 +548,9 @@ class TestProjection(unittest.TestCase):
         minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
         minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
         outputRelationChains.updateAnnotationBlocksForSampling(annotations,
-                                                               misAssemblyLength,
-                                                               minOverlapRatioWithEachAnnotation,
-                                                               minMarginLength)
+                                                                       misAssemblyLength,
+                                                                       minOverlapRatioWithEachAnnotation,
+                                                                       minMarginLength)
 
 
 
@@ -626,7 +626,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Msj")])
+        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Sw")])
 
 
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 35, 43, '+', "ctg1_f", 4)
@@ -638,7 +638,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock5.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (9,9,"Msj")])
+        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Sw"), (9,9,"Sw")])
 
 
 
@@ -651,7 +651,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Sw")])
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -718,26 +718,26 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 24, 34, '+', "ctg2_f.p_1", 3)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(11,11,"Msj")])
+        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(11,11,"Sw")])
 
         ctg2HomologyBlock5 = HomologyBlock("ctg1", 32, 36, '+', "ctg2_f.p_1", 4)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,3)]),
                                                    "annot2": BlockList([(4,5)])}
-        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (5,5,"Msj")])
+        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Sw"), (5,5,"Sw")])
 
 
         ctg2HomologyBlock6 = HomologyBlock("ctg2", 44, 55, '+', "ctg2_f.p_1", 5)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(1, 12)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Sw")])
 
 
         # the blocks after the collapsed block start here
-        ctg2HomologyBlock7 = HomologyBlock("ctg2", 57, 65, '+', "ctg2_f.p_2", 0)
+        ctg2HomologyBlock7 = HomologyBlock("ctg2", 57, 65, '+', "ctg2_f.p_0", 0)
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([(1,9)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock8 = HomologyBlock("ctg2", 66, 68, '+', "ctg2_f.p_2", 1)
+        ctg2HomologyBlock8 = HomologyBlock("ctg2", 66, 68, '+', "ctg2_f.p_0", 1)
         ctg2HomologyBlock8.annotationBlockLists = {"annot1": BlockList([(1,3)]),
                                                    "annot2": BlockList([])}
 
@@ -768,21 +768,21 @@ class TestProjection(unittest.TestCase):
 
         # the relations before the collapsed block
         truthRelations["ctg2_f.p_1"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
-                                        HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
-                                        HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock3, None, None),
-                                        HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, None, None),
-                                        HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock5, None, None),
-                                        HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock6, None, None)]
+                                       HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
+                                       HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock3, None, None),
+                                       HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, None, None),
+                                       HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock5, None, None),
+                                       HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock6, None, None)]
 
 
         # the relations after the collapsed block
-        truthRelations["ctg2_f.p_2"] = [HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock8, None, None),
-                                        HomologyRelation(ctg2HomologyBlock8, None, None, None)]
+        truthRelations["ctg2_f.p_0"] = [HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock8, None, None),
+                                       HomologyRelation(ctg2HomologyBlock8, None, None, None)]
 
         truthRelations["ctg1.Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_2", "ctg1.Dup_20_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_0", "ctg1.Dup_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -835,9 +835,9 @@ class TestProjection(unittest.TestCase):
         minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
         minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
         outputRelationChains.updateAnnotationBlocksForSampling(annotations,
-                                                               misAssemblyLength,
-                                                               minOverlapRatioWithEachAnnotation,
-                                                               minMarginLength)
+                                                                       misAssemblyLength,
+                                                                       minOverlapRatioWithEachAnnotation,
+                                                                       minMarginLength)
 
 
 
@@ -913,7 +913,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Msj")])
+        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Sw")])
 
 
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 26, 34, '-', "ctg1_f", 4)
@@ -925,7 +925,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock5.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (9,9,"Msj")])
+        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Sw"), (9,9,"Sw")])
 
 
 
@@ -938,7 +938,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Sw")])
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -999,31 +999,31 @@ class TestProjection(unittest.TestCase):
                                                    "annot2": BlockList([])}
 
         # the blocks after the collapse block starts here
-        ctg2HomologyBlock3 = HomologyBlock("ctg2", 14, 25, '+', "ctg2_f.p_2", 0)
+        ctg2HomologyBlock3 = HomologyBlock("ctg2", 14, 25, '+', "ctg2_f.p_0", 0)
         ctg2HomologyBlock3.annotationBlockLists = {"annot1": BlockList([(1,12)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock3.misAssemblyBlockList = BlockList([(12,12,"Msj")])
+        ctg2HomologyBlock3.misAssemblyBlockList = BlockList([(12,12,"Sw")])
 
-        ctg2HomologyBlock4 = HomologyBlock("ctg1", 32, 36, '-', "ctg2_f.p_2", 1)
+        ctg2HomologyBlock4 = HomologyBlock("ctg1", 32, 36, '-', "ctg2_f.p_0", 1)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(3,5)]),
                                                    "annot2": BlockList([(1,2)])}
-        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(1,1,"Msj"), (5,5,"Msj")])
+        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(1,1,"Sw"), (5,5,"Sw")])
 
-        ctg2HomologyBlock5 = HomologyBlock("ctg2", 35, 45, '+', "ctg2_f.p_2", 2)
+        ctg2HomologyBlock5 = HomologyBlock("ctg2", 35, 45, '+', "ctg2_f.p_0", 2)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Sw")])
 
 
-        ctg2HomologyBlock6 = HomologyBlock("ctg2", 46, 47, '+', "ctg2_f.p_2", 3)
+        ctg2HomologyBlock6 = HomologyBlock("ctg2", 46, 47, '+', "ctg2_f.p_0", 3)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(1,2)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock7 = HomologyBlock("ctg2", 48, 63, '+', "ctg2_f.p_2", 4)
+        ctg2HomologyBlock7 = HomologyBlock("ctg2", 48, 63, '+', "ctg2_f.p_0", 4)
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([(1,16)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock8 = HomologyBlock("ctg2", 64, 68, '+', "ctg2_f.p_2", 5)
+        ctg2HomologyBlock8 = HomologyBlock("ctg2", 64, 68, '+', "ctg2_f.p_0", 5)
         ctg2HomologyBlock8.annotationBlockLists = {"annot1": BlockList([(1,5)]),
                                                    "annot2": BlockList([])}
 
@@ -1054,20 +1054,20 @@ class TestProjection(unittest.TestCase):
 
         # the relations before the collapsed block
         truthRelations["ctg2_f.p_1"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
-                                        HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock8, None, None)]
+                                       HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock8, None, None)]
 
         # the relations after the collapsed block
-        truthRelations["ctg2_f.p_2"] = [HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock6, None, None),
-                                        HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock5, None, None),
-                                        HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock4, None, None),
-                                        HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock3, None, None),
-                                        HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock2, None, None),
-                                        HomologyRelation(ctg2HomologyBlock8, None, None, None)]
+        truthRelations["ctg2_f.p_0"] = [HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock6, None, None),
+                                       HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock5, None, None),
+                                       HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock4, None, None),
+                                       HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock3, None, None),
+                                       HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock2, None, None),
+                                       HomologyRelation(ctg2HomologyBlock8, None, None, None)]
 
         truthRelations["ctg1.Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_2", "ctg1.Dup_20_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_0", "ctg1.Dup_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -1119,9 +1119,9 @@ class TestProjection(unittest.TestCase):
         minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
         minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
         outputRelationChains.updateAnnotationBlocksForSampling(annotations,
-                                                               misAssemblyLength,
-                                                               minOverlapRatioWithEachAnnotation,
-                                                               minMarginLength)
+                                                                       misAssemblyLength,
+                                                                       minOverlapRatioWithEachAnnotation,
+                                                                       minMarginLength)
 
 
 
@@ -1206,7 +1206,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Msj")])
+        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Sw")])
 
 
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 35, 43, '+', "ctg1_f", 4)
@@ -1218,7 +1218,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock5.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (9,9,"Msj")])
+        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Sw"), (9,9,"Sw")])
 
 
 
@@ -1231,7 +1231,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1, "Msj")])
+        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1, "Sw")])
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -1318,37 +1318,37 @@ class TestProjection(unittest.TestCase):
         ctg2HomologyBlock4 = HomologyBlock("ctg2", 24, 34, '+', "ctg2_f.p_1", 3)
         ctg2HomologyBlock4.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(11,11,"Msj")])
+        ctg2HomologyBlock4.misAssemblyBlockList = BlockList([(11,11,"Sw")])
 
         ctg2HomologyBlock5 = HomologyBlock("ctg1", 32, 36, '+', "ctg2_f.p_1", 4)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,3)]),
                                                    "annot2": BlockList([(4,5)])}
-        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (5,5,"Msj")])
+        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Sw"), (5,5,"Sw")])
 
 
         ctg2HomologyBlock6 = HomologyBlock("ctg2", 44, 55, '+', "ctg2_f.p_1", 5)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(1, 12)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Sw")])
 
 
         # the blocks after the collapsed block start here
-        ctg2HomologyBlock7 = HomologyBlock("ctg2", 57, 60, '+', "ctg2_f.p_2", 0)
+        ctg2HomologyBlock7 = HomologyBlock("ctg2", 57, 60, '+', "ctg2_f.p_0", 0)
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([(1,4)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock8 = HomologyBlock("ctg2", 61, 64, '+', "ctg2_f.p_2", 1)
+        ctg2HomologyBlock8 = HomologyBlock("ctg2", 61, 64, '+', "ctg2_f.p_0", 1)
         ctg2HomologyBlock8.annotationBlockLists = {"annot1": BlockList([(1,4)]),
                                                    "annot2": BlockList([])}
         ctg2HomologyBlock8.misAssemblyBlockList = BlockList([(1,4,"Col_Err")])
 
-        ctg2HomologyBlock9 = HomologyBlock("ctg2", 65, 65, '+', "ctg2_f.p_2", 2)
+        ctg2HomologyBlock9 = HomologyBlock("ctg2", 65, 65, '+', "ctg2_f.p_0", 2)
         ctg2HomologyBlock9.annotationBlockLists = {"annot1": BlockList([(1,1)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock10 = HomologyBlock("ctg2", 66, 68, '+', "ctg2_f.p_2", 3)
+        ctg2HomologyBlock10 = HomologyBlock("ctg2", 66, 68, '+', "ctg2_f.p_0", 3)
         ctg2HomologyBlock10.annotationBlockLists = {"annot1": BlockList([(1,3)]),
-                                                    "annot2": BlockList([])}
+                                                   "annot2": BlockList([])}
 
         qBlocks = [ctg2HomologyBlock1, ctg2HomologyBlock2,
                    ctg2HomologyBlock3, ctg2HomologyBlock4,
@@ -1379,23 +1379,23 @@ class TestProjection(unittest.TestCase):
 
         # the relations before the collapsed block
         truthRelations["ctg2_f.p_1"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
-                                        HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
-                                        HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock3, None, None),
-                                        HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, None, None),
-                                        HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock5, None, None),
-                                        HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock6, None, None)]
+                                       HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock2, None, None),
+                                       HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock3, None, None),
+                                       HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock4, None, None),
+                                       HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock5, None, None),
+                                       HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock6, None, None)]
 
 
         # the relations after the collapsed block
-        truthRelations["ctg2_f.p_2"] = [HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock8, None, None),
-                                        HomologyRelation(ctg2HomologyBlock8, ctg1HomologyBlock9, None, None),
-                                        HomologyRelation(ctg2HomologyBlock9, ctg1HomologyBlock10, None, None),
-                                        HomologyRelation(ctg2HomologyBlock10, None, None, None)]
+        truthRelations["ctg2_f.p_0"] = [HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock8, None, None),
+                                       HomologyRelation(ctg2HomologyBlock8, ctg1HomologyBlock9, None, None),
+                                       HomologyRelation(ctg2HomologyBlock9, ctg1HomologyBlock10, None, None),
+                                       HomologyRelation(ctg2HomologyBlock10, None, None, None)]
 
         truthRelations["ctg1.Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_2", "ctg1.Dup_20_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_0", "ctg1.Dup_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -1448,9 +1448,9 @@ class TestProjection(unittest.TestCase):
         minOverlapRatioWithEachAnnotation = 0.5 # min overlap length will be 3
         minMarginLength = 1 # margin should be greater than or equal to switchEffectWindowLength defined later
         outputRelationChains.updateAnnotationBlocksForSampling(annotations,
-                                                               misAssemblyLength,
-                                                               minOverlapRatioWithEachAnnotation,
-                                                               minMarginLength)
+                                                                       misAssemblyLength,
+                                                                       minOverlapRatioWithEachAnnotation,
+                                                                       minMarginLength)
 
 
 
@@ -1488,9 +1488,9 @@ class TestProjection(unittest.TestCase):
         errorStart = 3
         errorEnd = 6
         outputRelationChains.induceBaseErrorMisAssembly("ctg1_f",
-                                                        orderIndex,
-                                                        errorStart,
-                                                        errorEnd)
+                                                       orderIndex,
+                                                       errorStart,
+                                                       errorEnd)
 
         # ctg1_f
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 6, '+', "ctg1_f", 0)
@@ -1535,7 +1535,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock4.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Msj")])
+        ctg1HomologyBlock4.misAssemblyBlockList = BlockList([(7,7,"Sw")])
 
 
         ctg1HomologyBlock5 = HomologyBlock("ctg2", 26, 34, '-', "ctg1_f", 4)
@@ -1547,7 +1547,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": []}
         ctg1HomologyBlock5.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
-        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Msj"), (9,9,"Msj")])
+        ctg1HomologyBlock5.misAssemblyBlockList = BlockList([(1,1,"Sw"), (9,9,"Sw")])
 
 
 
@@ -1560,7 +1560,7 @@ class TestProjection(unittest.TestCase):
                                                                      "annot2": [1]}
         ctg1HomologyBlock6.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 1}
-        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+        ctg1HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Sw")])
 
 
         ctg1HomologyBlock7 = HomologyBlock("ctg1", 44, 48, '+', "ctg1_f", 6)
@@ -1599,17 +1599,17 @@ class TestProjection(unittest.TestCase):
 
         ctg1HomologyBlock10 = HomologyBlock("ctg1", 55, 55, '+', "ctg1_f", 9)
         ctg1HomologyBlock10.annotationBlockLists = {"annot1": BlockList([(1,1)]),
-                                                    "annot2": BlockList([])}
+                                                   "annot2": BlockList([])}
         ctg1HomologyBlock10.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
-                                                                    "annot2": BlockList([])}
+                                                                   "annot2": BlockList([])}
         ctg1HomologyBlock10.annotationStartBlockLengthsForSampling = {"annot1": [],
-                                                                      "annot2": []}
+                                                                     "annot2": []}
         ctg1HomologyBlock10.annotationStartTotalLengthsForSampling = {"annot1": 0,
-                                                                      "annot2": 0}
+                                                                     "annot2": 0}
 
         ctg1HomologyBlock11 = HomologyBlock("ctg1", 56, 60, '+', "ctg1_f", 10)
         ctg1HomologyBlock11.annotationBlockLists = {"annot1": BlockList([(1,5)]),
-                                                    "annot2": BlockList([])}
+                                                   "annot2": BlockList([])}
         ctg1HomologyBlock11.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
                                                                     "annot2": BlockList([])}
         ctg1HomologyBlock11.annotationStartBlockLengthsForSampling = {"annot1": [],
@@ -1650,31 +1650,31 @@ class TestProjection(unittest.TestCase):
                                                    "annot2": BlockList([])}
 
         # the blocks after the collapse block starts here
-        ctg2HomologyBlock5 = HomologyBlock("ctg2", 14, 25, '+', "ctg2_f.p_2", 0)
+        ctg2HomologyBlock5 = HomologyBlock("ctg2", 14, 25, '+', "ctg2_f.p_0", 0)
         ctg2HomologyBlock5.annotationBlockLists = {"annot1": BlockList([(1,12)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(12,12,"Msj")])
+        ctg2HomologyBlock5.misAssemblyBlockList = BlockList([(12,12,"Sw")])
 
-        ctg2HomologyBlock6 = HomologyBlock("ctg1", 32, 36, '-', "ctg2_f.p_2", 1)
+        ctg2HomologyBlock6 = HomologyBlock("ctg1", 32, 36, '-', "ctg2_f.p_0", 1)
         ctg2HomologyBlock6.annotationBlockLists = {"annot1": BlockList([(3,5)]),
                                                    "annot2": BlockList([(1,2)])}
-        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Msj"), (5,5,"Msj")])
+        ctg2HomologyBlock6.misAssemblyBlockList = BlockList([(1,1,"Sw"), (5,5,"Sw")])
 
-        ctg2HomologyBlock7 = HomologyBlock("ctg2", 35, 45, '+', "ctg2_f.p_2", 2)
+        ctg2HomologyBlock7 = HomologyBlock("ctg2", 35, 45, '+', "ctg2_f.p_0", 2)
         ctg2HomologyBlock7.annotationBlockLists = {"annot1": BlockList([(1,11)]),
                                                    "annot2": BlockList([])}
-        ctg2HomologyBlock7.misAssemblyBlockList = BlockList([(1,1,"Msj")])
+        ctg2HomologyBlock7.misAssemblyBlockList = BlockList([(1,1,"Sw")])
 
 
-        ctg2HomologyBlock8 = HomologyBlock("ctg2", 46, 47, '+', "ctg2_f.p_2", 3)
+        ctg2HomologyBlock8 = HomologyBlock("ctg2", 46, 47, '+', "ctg2_f.p_0", 3)
         ctg2HomologyBlock8.annotationBlockLists = {"annot1": BlockList([(1,2)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock9 = HomologyBlock("ctg2", 48, 63, '+', "ctg2_f.p_2", 4)
+        ctg2HomologyBlock9 = HomologyBlock("ctg2", 48, 63, '+', "ctg2_f.p_0", 4)
         ctg2HomologyBlock9.annotationBlockLists = {"annot1": BlockList([(1,16)]),
                                                    "annot2": BlockList([])}
 
-        ctg2HomologyBlock10 = HomologyBlock("ctg2", 64, 68, '+', "ctg2_f.p_2", 5)
+        ctg2HomologyBlock10 = HomologyBlock("ctg2", 64, 68, '+', "ctg2_f.p_0", 5)
         ctg2HomologyBlock10.annotationBlockLists = {"annot1": BlockList([(1,5)]),
                                                     "annot2": BlockList([])}
 
@@ -1708,22 +1708,22 @@ class TestProjection(unittest.TestCase):
 
         # the relations before the collapsed block
         truthRelations["ctg2_f.p_1"] = [HomologyRelation(ctg2HomologyBlock1, None, None, None),
-                                        HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock10, None, None),
-                                        HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock9, None, None),
-                                        HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock8, None, None)]
+                                       HomologyRelation(ctg2HomologyBlock2, ctg1HomologyBlock10, None, None),
+                                       HomologyRelation(ctg2HomologyBlock3, ctg1HomologyBlock9, None, None),
+                                       HomologyRelation(ctg2HomologyBlock4, ctg1HomologyBlock8, None, None)]
 
         # the relations after the collapsed block
-        truthRelations["ctg2_f.p_2"] = [HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock6, None, None),
-                                        HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock5, None, None),
-                                        HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock4, None, None),
-                                        HomologyRelation(ctg2HomologyBlock8, ctg1HomologyBlock3, None, None),
-                                        HomologyRelation(ctg2HomologyBlock9, ctg1HomologyBlock2, None, None),
-                                        HomologyRelation(ctg2HomologyBlock10, None, None, None)]
+        truthRelations["ctg2_f.p_0"] = [HomologyRelation(ctg2HomologyBlock5, ctg1HomologyBlock6, None, None),
+                                       HomologyRelation(ctg2HomologyBlock6, ctg1HomologyBlock5, None, None),
+                                       HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock4, None, None),
+                                       HomologyRelation(ctg2HomologyBlock8, ctg1HomologyBlock3, None, None),
+                                       HomologyRelation(ctg2HomologyBlock9, ctg1HomologyBlock2, None, None),
+                                       HomologyRelation(ctg2HomologyBlock10, None, None, None)]
 
         truthRelations["ctg1.Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_2", "ctg1.Dup_20_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1", "ctg2_f.p_0", "ctg1.Dup_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -1788,12 +1788,12 @@ class TestProjection(unittest.TestCase):
         loc_2 = 5
         misjoinEffectWindowLength = 1
         outputRelationChains.induceMisjoinMisAssembly("ctg1_f",
-                                                      orderIndex_1,
-                                                      loc_1,
-                                                      "ctg3_f",
-                                                      orderIndex_2,
-                                                      loc_2,
-                                                      misjoinEffectWindowLength)
+                                                     orderIndex_1,
+                                                     loc_1,
+                                                     "ctg3_f",
+                                                     orderIndex_2,
+                                                     loc_2,
+                                                     misjoinEffectWindowLength)
 
         # ctg1
         ctg1HomologyBlock1 = HomologyBlock("ctg1", 1, 9, '+', "ctg1_f.Msj_ctg3_f", 0)
@@ -1831,11 +1831,11 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock3.annotationStartTotalLengthsForSampling = {"annot1": 12,
                                                                      "annot2": 21}
         ctg1HomologyBlock3.annotationBlockListsForSamplingMisjoin = {"annot1": BlockList([(2,10), (32,38)]),
-                                                                     "annot2": BlockList([(11,31)])}
+                                                                   "annot2": BlockList([(11,31)])}
         ctg1HomologyBlock3.annotationBlockLengthsForSamplingMisjoin = {"annot1": [9,7],
-                                                                       "annot2": [21]}
+                                                                     "annot2": [21]}
         ctg1HomologyBlock3.annotationTotalLengthsForSamplingMisjoin = {"annot1": 16,
-                                                                       "annot2": 21}
+                                                                     "annot2": 21}
         ctg1HomologyBlock3.misAssemblyBlockList = BlockList([(1,1,"Msj")])
 
 
@@ -1962,7 +1962,7 @@ class TestProjection(unittest.TestCase):
         truthRelations["ctg1_f.Msj_ctg3_f"] = [HomologyRelation(ctg1HomologyBlock1, None, None, None),
                                                HomologyRelation(ctg1HomologyBlock2, ctg2HomologyBlock2, getCigarList("4=1X2I2=1X1D"), '+'),
                                                HomologyRelation(ctg3HomologyBlock2, ctg4HomologyBlock2, getCigarList("1D10=1X5I10=1I5=1D1X"), '+'),
-                                               HomologyRelation(ctg3HomologyBlock3, None, None, None)]
+                                               HomologyRelation(ctg3HomologyBlock3, None, None, None)] 
 
         # the relations before the collapsed block
         truthRelations["ctg3_f.Msj_ctg1_f"] = [HomologyRelation(ctg3HomologyBlock1, ctg4HomologyBlock1, getCigarList("3=1X1D"), '+'),
@@ -2066,7 +2066,7 @@ class TestProjection(unittest.TestCase):
 
         truthSequences = {"ctg1_f": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACGTAATACTACGAGTTTAAAGTAGTAGGGGT",
                           "ctg2_f.p_1": "ACACAGTGAGTAACACTATACAATCGGATATTACTACTAATACCGAGACCA",
-                          "ctg2_f.p_2": "ATTGTAGTATGT",
+                          "ctg2_f.p_0": "ATTGTAGTATGT",
                           "ctg1.Dup_20_24": "ATATA"}
 
         for newCtg, newSeq in outputRelationChains.yieldNewCtgSequences(self.contigSequencesForAlignment3, singleBaseErrorRate=0.0):
@@ -2110,7 +2110,7 @@ class TestProjection(unittest.TestCase):
 
         truthSequences = {"ctg1_f": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACGTAATACTACGAGTTTAAAGTAGTAGGGGT",
                           "ctg2_f.p_1": "ACATACTACAAT",
-                          "ctg2_f.p_2": "TGGTCTCGGTATTAGTAGTAATATCCGATTGTATAGTGTTACTCACTGTGT",
+                          "ctg2_f.p_0": "TGGTCTCGGTATTAGTAGTAATATCCGATTGTATAGTGTTACTCACTGTGT",
                           "ctg1.Dup_20_24": "ATATA"}
 
         for newCtg, newSeq in outputRelationChains.yieldNewCtgSequences(self.contigSequencesForAlignment4, singleBaseErrorRate=0.0):
@@ -2124,3 +2124,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
