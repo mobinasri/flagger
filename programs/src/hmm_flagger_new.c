@@ -565,6 +565,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    double realtimeStart = System_getRealTimePoint();
+
     if (inputPath == NULL) {
         fprintf(stderr, "[%s] Error: Input path cannot be NULL.\n", get_timestamp());
         exit(EXIT_FAILURE);
@@ -679,4 +681,12 @@ int main(int argc, char *argv[]) {
     HMM_destruct(model);
 
     fprintf(stderr, "[%s] Done! \n", get_timestamp());
+
+    double realtime = System_getRealTimePoint() - realtimeStart;
+    double cputime = System_getCpuTime();
+    double rssgb = System_getPeakRSSInGB();
+    double usage = System_getCpuUsage(cputime, realtime);
+    // copied from https://github.com/chhylp123/hifiasm/blob/70fd9a0b1fea45e442eb5f331922ea91ef4f71ae/main.cpp#L73
+    fprintf(stderr, "Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB; CPU usage: %.1f\%\n", realtime, cputime,
+            rssgb, usage * 100.0);
 }
