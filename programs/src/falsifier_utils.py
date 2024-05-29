@@ -924,24 +924,24 @@ class HomologyRelationChains:
             newCtgLeft = newCtg + ".p_1"
             newCtgRight = newCtg + ".p_0"
 
-    assert (lastOrderIndexOnLeft < len(self.relationChains[newCtg]))
-    # insert all relations up to lastOrderIndexOnLeft to "newCtgLeft"
-    # their indices don't need to be changed
-    for relation in self.relationChains[newCtg][:lastOrderIndexOnLeft + 1]:
-        relation.block.newCtg = newCtgLeft
-        self.relationChains[newCtgLeft].append(relation)
+        assert (lastOrderIndexOnLeft < len(self.relationChains[newCtg]))
+        # insert all relations up to lastOrderIndexOnLeft to "newCtgLeft"
+        # their indices don't need to be changed
+        for relation in self.relationChains[newCtg][:lastOrderIndexOnLeft + 1]:
+            relation.block.newCtg = newCtgLeft
+            self.relationChains[newCtgLeft].append(relation)
 
-    # insert all relations after otherHapOrderIndex to "otherHapNewCtgRight"
-    for relation in self.relationChains[newCtg][lastOrderIndexOnLeft + 1:]:
-        relation.block.newCtg = newCtgRight
-        self.relationChains[newCtgRight].append(relation)
+        # insert all relations after otherHapOrderIndex to "otherHapNewCtgRight"
+        for relation in self.relationChains[newCtg][lastOrderIndexOnLeft + 1:]:
+            relation.block.newCtg = newCtgRight
+            self.relationChains[newCtgRight].append(relation)
 
-    # set the indices of all the blocks in the new contig on the right side
-    for i, relation in enumerate(self.relationChains[newCtgRight]):
-        relation.block.orderIndex = i
+        # set the indices of all the blocks in the new contig on the right side
+        for i, relation in enumerate(self.relationChains[newCtgRight]):
+            relation.block.orderIndex = i
 
-    # delete the parent contig
-    del self.relationChains[newCtg]
+        # delete the parent contig
+        del self.relationChains[newCtg]
 
 
 def addMisAssemblyToBeginning(self, block, misAssemblyType, misAssemblyLength):
