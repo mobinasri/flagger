@@ -374,7 +374,7 @@ static struct option long_options[] =
                 {"labelNames",                         required_argument, NULL, 'l'},
                 {"initialRandomDev",                   required_argument, NULL, 'D'},
                 {"trackName",                          required_argument, NULL, 'N'},
-                {"dumpBin",                            required_argument, NULL, 'B'},
+                {"dumpBin",                            no_argument,       NULL, 'B'},
                 {NULL,                                 0,                 NULL, 0}
         };
 
@@ -401,10 +401,10 @@ int main(int argc, char *argv[]) {
     int chunkCanonicalLen = 20000000; //20Mb
     int windowLen = 100;
     int threads = 4;
-    bool  dumpBin = false;
+    bool dumpBin = false;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:B:N:", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:BN:", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -634,7 +634,8 @@ int main(int argc, char *argv[]) {
 
     if (dumpBin) {
         char binPath[1000];
-        sprintf(binPath, "%s/chunks.c_%d.w_%d.bin", outputDir, chunksCreator->chunkCanonicalLen, chunksCreator->windowLen);
+        sprintf(binPath, "%s/chunks.c_%d.w_%d.bin", outputDir, chunksCreator->chunkCanonicalLen,
+                chunksCreator->windowLen);
         fprintf(stderr, "[%s] Writing bin file into %s . \n", get_timestamp(), binPath);
         ChunksCreator_writeChunksIntoBinaryFile(chunksCreator, binPath);
     }
