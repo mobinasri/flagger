@@ -32,10 +32,14 @@ typedef struct CountData{
  */
 CountData *CountData_construct(int length);
 
+CountData *CountData_copy(CountData *src);
+
 /*
  * Construct a 1D array of CountData structures
  */
 CountData **CountData_construct1DArray(int length, int arrayLength);
+
+CountData **CountData_copy1DArray(CountData **srcArray, int arrayLength);
 
 /*
  * Increment the count of a specific value

@@ -16,9 +16,18 @@ CountData *CountData_construct(int length) {
     CountData *countData = malloc(sizeof(CountData));
     countData->counts = Double_construct1DArray(length);
     countData->countsLength = length;
-    countData->totalCount = 0;
+    countData->totalCount = 0.0;
     countData->sum = 0.0;
     return countData;
+}
+
+CountData *CountData_copy(CountData *src) {
+    CountData *dest = malloc(sizeof(CountData));
+    dest->counts = Double_copy1DArray(src->counts, src->countsLength);
+    dest->countsLength = src->countsLength;
+    dest->totalCount = src->totalCount;
+    dest->sum = src->sum;
+    return dest;
 }
 
 CountData **CountData_construct1DArray(int length, int arrayLength) {
@@ -27,6 +36,14 @@ CountData **CountData_construct1DArray(int length, int arrayLength) {
         countData1DArray[i] = CountData_construct(length);
     }
     return countData1DArray;
+}
+
+CountData **CountData_copy1DArray(CountData **srcArray, int arrayLength) {
+    CountData **destArray = malloc(arrayLength * sizeof(CountData *));
+    for (int i = 0; i < arrayLength; i++) {
+        destArray[i] = CountData_copy(srcArray[i]);
+    }
+    return destArray;
 }
 
 void CountData_destruct1DArray(CountData **countData1DArray, int arrayLength) {
@@ -49,7 +66,7 @@ void CountData_increment(CountData *countData, int value, double count) {
 void CountData_reset(CountData *countData) {
     memset(countData->counts, 0, countData->countsLength * sizeof(double));
     countData->sum = 0.0;
-    countData->totalCount = 0;
+    countData->totalCount = 0.0;
 }
 
 int CountData_getMostFrequentValue(CountData *countData, int minValue, int maxValue) {

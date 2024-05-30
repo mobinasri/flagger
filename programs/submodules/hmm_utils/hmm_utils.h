@@ -8,7 +8,6 @@
 #include "count_data.h"
 
 
-
 #define MIN_COUNT_FOR_PARAMETER_UPDATE 10
 #define EXP_TRUNC_POINT_COV_FRACTION 0.25
 #define NUMBER_OF_STATES 5
@@ -39,7 +38,7 @@ typedef enum DistType {
     DIST_GAUSSIAN = 1,
     DIST_NEGATIVE_BINOMIAL = 2,
     DIST_UNDEFINED = 3
-}DistType;
+} DistType;
 
 typedef enum ModelType {
     MODEL_TRUNC_EXP_GAUSSIAN = 0,
@@ -48,13 +47,13 @@ typedef enum ModelType {
     MODEL_UNDEFINED = 3
 } ModelType;
 
-typedef enum GaussianParameterType{
+typedef enum GaussianParameterType {
     GAUSSIAN_MEAN = 0,
     GAUSSIAN_VAR = 1,
     GAUSSIAN_WEIGHT = 2
 } GaussianParameterType;
 
-typedef enum NegativeBinomialParameterType{
+typedef enum NegativeBinomialParameterType {
     NB_THETA = 0,
     NB_LAMBDA = 1,
     NB_WEIGHT = 2,
@@ -62,19 +61,19 @@ typedef enum NegativeBinomialParameterType{
     NB_VAR = 4
 } NegativeBinomialParameterType;
 
-typedef enum TruncatedExponentialParameterType{
+typedef enum TruncatedExponentialParameterType {
     TRUNC_EXP_LAMBDA = 0,
     TRUNC_EXP_MEAN = 1,
     TRUNC_EXP_TRUNC_POINT = 2
 } TruncatedExponentialParameterType;
 
-static const char* NegativeBinomialParameterToString[5] = {"Theta", "Lambda", "Weight", "Mean", "Var"};
-static const char* GaussianParameterToString[3] = {"Mean", "Var", "Weight"};
-static const char* TruncatedExponentialParameterToString[3] = {"Rate", "Mean", "Trunc_Point"};
-static const char* DistToString[4] = {"Truncated Exponential", "Gaussian", "Negative Binomial", "Undefined"};
-static const char* StateToString[5] = {"Err", "Dup", "Hap", "Col" ,"Msj"};
+static const char *NegativeBinomialParameterToString[5] = {"Theta", "Lambda", "Weight", "Mean", "Var"};
+static const char *GaussianParameterToString[3] = {"Mean", "Var", "Weight"};
+static const char *TruncatedExponentialParameterToString[3] = {"Rate", "Mean", "Trunc_Point"};
+static const char *DistToString[4] = {"Truncated Exponential", "Gaussian", "Negative Binomial", "Undefined"};
+static const char *StateToString[5] = {"Err", "Dup", "Hap", "Col", "Msj"};
 
-ModelType getModelTypeFromString(const char* modelString);
+ModelType getModelTypeFromString(const char *modelString);
 
 /*! @typedef
  * @abstract Structure for storing a distribution structure. It can be either Gaussian,
@@ -85,10 +84,10 @@ ModelType getModelTypeFromString(const char* modelString);
 typedef struct EmissionDist {
     void *dist;
     DistType distType;
-}EmissionDist;
+} EmissionDist;
 
 
-typedef struct ParameterEstimator{
+typedef struct ParameterEstimator {
     double *numeratorPerComp;
     double *denominatorPerComp;
     int numberOfComps;
@@ -99,14 +98,23 @@ typedef struct ParameterEstimator{
     // multiple threads for faster runtime it is necessary
     // to keep a mutex per estimator
     pthread_mutex_t *mutexPtr;
-}ParameterEstimator;
+    bool
+} ParameterEstimator;
 
-ParameterEstimator *ParameterEstimator_construct(EmissionDist * emissionDist, int numberOfComps);
-void ParameterEstimator_increment(ParameterEstimator *parameterEstimator, double numerator, double denominator, int compIndex);
+ParameterEstimator *ParameterEstimator_construct(EmissionDist *emissionDist, int numberOfComps);
+
+void ParameterEstimator_increment(ParameterEstimator *parameterEstimator, double numerator, double denominator,
+                                  int compIndex);
+
+void ParameterEstimator_incrementFromOtherEstimator(ParameterEstimator *dest, ParameterEstimator *src);
+
 double ParameterEstimator_getEstimation(ParameterEstimator *parameterEstimator, int compIndex, double *count);
+
 void ParameterEstimator_reset(ParameterEstimator *parameterEstimator);
+
 void ParameterEstimator_destruct(ParameterEstimator *parameterEstimator);
 
+ParameterEstimator *ParameterEstimator_copy(ParameterEstimator *src);
 
 /*! @typedef
  * @abstract Structure for representing the relationship between parameters of different components
@@ -118,7 +126,7 @@ void ParameterEstimator_destruct(ParameterEstimator *parameterEstimator);
  * @field numberOfComps     Number of components in the distribution.
  * @field numberOfParams    Number of parameters in the distribution.
  */
-typedef struct ParameterBinding{
+typedef struct ParameterBinding {
     double **coefs; // [numberOfParams] x [numberOfComps]
     int numberOfComps;
     int numberOfParams;
@@ -130,26 +138,33 @@ typedef struct ParameterBinding{
 ParameterBinding *ParameterBinding_construct(double **coefs, int numberOfParams, int numberOfComps);
 
 /*
+ * Copy a ParameterBinding struct
+ */
+ParameterBinding *ParameterBinding_copy(ParameterBinding *src);
+
+
+/*
  * Constructs a ParameterBinding struct
  */
-ParameterBinding *ParameterBinding_constructSequenceByStep(double* firstCoefsPerParam,double* stepsPerParam,
-                                                           int numberOfParams,int numberOfComps);
+ParameterBinding *ParameterBinding_constructSequenceByStep(double *firstCoefsPerParam, double *stepsPerParam,
+                                                           int numberOfParams, int numberOfComps);
 
 /*
  * Constructs a ParameterBinding struct for a distribution with a single component
  */
-ParameterBinding *ParameterBinding_constructForSingleComp(double* coefsPerParam, int numberOfParams);
+ParameterBinding *ParameterBinding_constructForSingleComp(double *coefsPerParam, int numberOfParams);
 
 /*
  * Get the binding coefficient for a parameter of one component
  */
-double ParameterBinding_getValue(ParameterBinding* parameterBinding, int paramIndex, int compIndex);
+double ParameterBinding_getValue(ParameterBinding *parameterBinding, int paramIndex, int compIndex);
 
 /*
  * Make a 1D array of ParameterBinding struct for the specified model type. The only state with more than
  * component is the "collapsed" component so that it needs the number of components for that.
  */
-ParameterBinding **ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfCollapsedComps, bool excludeMisjoin);
+ParameterBinding **
+ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfCollapsedComps, bool excludeMisjoin);
 
 /*
  * Make a 1D array of ParameterBinding struct for the Gaussian model. The only state with more than
@@ -161,19 +176,21 @@ ParameterBinding **ParameterBinding_getDefault1DArrayForGaussian(int numberOfCol
  * Make a 1D array of ParameterBinding struct for the Negative Binomial model. The only state with more than
  * component is the "collapsed" component so that it needs the number of components for that.
  */
-ParameterBinding **ParameterBinding_getDefault1DArrayForNegativeBinomial(int numberOfCollapsedComps, bool excludeMisjoin);
+ParameterBinding **
+ParameterBinding_getDefault1DArrayForNegativeBinomial(int numberOfCollapsedComps, bool excludeMisjoin);
 
 /*
  * Make a 1D array of ParameterBinding struct for the Truncated Exponential + Guassial model.
  * The only state with more than component is the "collapsed" component so that it needs the
  * number of components for that.
  */
-ParameterBinding **ParameterBinding_getDefault1DArrayForTruncExpGaussian(int numberOfCollapsedComps, bool excludeMisjoin);
+ParameterBinding **
+ParameterBinding_getDefault1DArrayForTruncExpGaussian(int numberOfCollapsedComps, bool excludeMisjoin);
 
 /*
  * Destruct a ParameterBinding struct
  */
-void ParameterBinding_destruct(ParameterBinding* parameterBinding);
+void ParameterBinding_destruct(ParameterBinding *parameterBinding);
 
 /*
  * Destruct a 1D array of ParameterBinding struct
@@ -207,6 +224,8 @@ typedef struct NegativeBinomial {
 NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numberOfComps);
 
 void NegativeBinomial_fillDigammaTable(NegativeBinomial *nb);
+
+NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src);
 
 /*
  * Construct a Negative Binomial structure using an array of means and a factor to scale mean for getting variances
@@ -250,11 +269,15 @@ double *NegativeBinomial_getComponentProbs(NegativeBinomial *nb, uint8_t x);
 
 ParameterEstimator *NegativeBinomial_getEstimator(NegativeBinomial *nb, NegativeBinomialParameterType parameterType);
 
+void NegativeBinomial_updateEstimatorFromOtherEstimator(NegativeBinomial *dest,
+                                                        NegativeBinomial *src);
+
 void NegativeBinomial_updateEstimator(NegativeBinomial *nb, uint8_t x, double count);
 
-bool NegativeBinomial_updateParameter(NegativeBinomial *nb, NegativeBinomialParameterType parameterType, int compIndex, double value, double convergenceTol);
+bool NegativeBinomial_updateParameter(NegativeBinomial *nb, NegativeBinomialParameterType parameterType, int compIndex,
+                                      double value, double convergenceTol);
 
-double *NegativeBinomial_getParameterValues(NegativeBinomial *nb,NegativeBinomialParameterType parameterType);
+double *NegativeBinomial_getParameterValues(NegativeBinomial *nb, NegativeBinomialParameterType parameterType);
 
 const char *NegativeBinomial_getParameterName(NegativeBinomialParameterType parameterType);
 
@@ -291,6 +314,8 @@ Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps);
  */
 Gaussian *Gaussian_constructByMean(double *mean, double factor, int numberOfComps);
 
+Gaussian *Gaussian_copy(Gaussian *src);
+
 /*
  * Get the probability of observing x given the previous observation preX and alpha the factor for adjusting
  * mean of Gaussian with the previous observation
@@ -305,13 +330,17 @@ double *Gaussian_getComponentProbs(Gaussian *gaussian, uint8_t x, uint8_t preX, 
 
 ParameterEstimator *Gaussian_getEstimator(Gaussian *gaussian, GaussianParameterType parameterType);
 
+void Gaussian_updateEstimatorFromOtherEstimator(Gaussian *dest,
+                                                Gaussian *src);
+
 void Gaussian_updateEstimator(Gaussian *gaussian,
                               uint8_t x,
                               uint8_t preX,
                               double alpha,
                               double count);
 
-bool Gaussian_updateParameter(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex, double value, double convergenceTol);
+bool Gaussian_updateParameter(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex, double value,
+                              double convergenceTol);
 
 double *Gaussian_getParameterValues(Gaussian *gaussian, GaussianParameterType parameterType);
 
@@ -338,12 +367,17 @@ typedef struct TruncExponential {
 /*
  * Destruct a TruncExponential structure
  */
-TruncExponential * TruncExponential_construct(double lambda, double truncPoint);
+TruncExponential *TruncExponential_construct(double lambda, double truncPoint);
+
+/*
+ * Copy a TruncExponential structure
+ */
+TruncExponential *TruncExponential_copy(TruncExponential *src);
 
 /*
  * Get the probability of observing x
  */
-double TruncExponential_getProb(TruncExponential* truncExponential, uint8_t x);
+double TruncExponential_getProb(TruncExponential *truncExponential, uint8_t x);
 
 /*
  * Get the log likelihood of observing the count data (equivalent to a list of values)
@@ -355,41 +389,53 @@ double TruncExponential_getLogLikelihood(TruncExponential *truncExponential, Par
  * Get the log likelihood of observing the count data (equivalent to a list of values) given
  *  the parameters of a truncated exponential distribution
  */
-double TruncExponential_getLogLikelihoodByParams(double lambda, double truncPoint, ParameterEstimator *parameterEstimator);
+double
+TruncExponential_getLogLikelihoodByParams(double lambda, double truncPoint, ParameterEstimator *parameterEstimator);
 
 
 /*
  * Estimate lambda given a TruncExponential structure, a countData and a tolerance for specifying the accuracy
  * of the estimated lambda. It will use golden section search for estimating lambda.
  */
-double TruncExponential_estimateLambda(TruncExponential *truncExponential, ParameterEstimator *parameterEstimator, double tol);
+double
+TruncExponential_estimateLambda(TruncExponential *truncExponential, ParameterEstimator *parameterEstimator, double tol);
 
-ParameterEstimator *TruncExponential_getEstimator(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType);
+ParameterEstimator *
+TruncExponential_getEstimator(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType);
+
+void TruncExponential_updateEstimatorFromOtherEstimator(TruncExponential *dest,
+                                                        TruncExponential *src);
 
 void TruncExponential_updateEstimator(TruncExponential *truncExponential,
                                       uint8_t x,
                                       double count);
 
-bool TruncExponential_updateParameter(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType, double value, double convergenceTol);
+bool
+TruncExponential_updateParameter(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType,
+                                 double value, double convergenceTol);
 
-double *TruncExponential_getParameterValues(TruncExponential *truncExponential, TruncatedExponentialParameterType parameterType);
+double *TruncExponential_getParameterValues(TruncExponential *truncExponential,
+                                            TruncatedExponentialParameterType parameterType);
+
 const char *TruncExponential_getParameterName(TruncatedExponentialParameterType parameterType);
 
 
 /*
  * Destruct a TruncExponential structure
  */
-void TruncExponential_destruct(TruncExponential* truncExponential);
+void TruncExponential_destruct(TruncExponential *truncExponential);
 
 
 /*
  * Construct a EmissionDist structure
  */
-EmissionDist *EmissionDist_construct(void* dist, DistType distType);
+EmissionDist *EmissionDist_construct(void *dist, DistType distType);
+
+EmissionDist *EmissionDist_copy(EmissionDist *src);
 
 void EmissionDist_initParameterEstimators(EmissionDist *emissionDist);
 
-int EmissionDist_getNumberOfComps(EmissionDist* emissionDist);
+int EmissionDist_getNumberOfComps(EmissionDist *emissionDist);
 
 /*
  * Get the probability of observing x given preX, the previous observation and alpha, the factor for adjusting
@@ -398,30 +444,33 @@ int EmissionDist_getNumberOfComps(EmissionDist* emissionDist);
  */
 double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha);
 
-bool EmissionDist_updateParameter(EmissionDist* emissionDist, void *parameterTypePtr, int compIndex, double value, double convergenceTol);
+bool EmissionDist_updateParameter(EmissionDist *emissionDist, void *parameterTypePtr, int compIndex, double value,
+                                  double convergenceTol);
 
-ParameterEstimator *EmissionDist_getEstimator(EmissionDist* emissionDist, void *parameterTypePtr);
+ParameterEstimator *EmissionDist_getEstimator(EmissionDist *emissionDist, void *parameterTypePtr);
+
+void EmissionDist_updateEstimatorFromOtherEstimator(EmissionDist *dest, EmissionDist *src);
 
 void EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double count);
 
-void **EmissionDist_getParameterTypePtrsForLogging(EmissionDist* emissionDist, int *length);
+void **EmissionDist_getParameterTypePtrsForLogging(EmissionDist *emissionDist, int *length);
 
-double *EmissionDist_getParameterValuesForOneType(EmissionDist* emissionDist, void *parameterTypePtr);
+double *EmissionDist_getParameterValuesForOneType(EmissionDist *emissionDist, void *parameterTypePtr);
 
-const char *EmissionDist_getParameterName(EmissionDist* emissionDist, void *parameterTypePtr);
+const char *EmissionDist_getParameterName(EmissionDist *emissionDist, void *parameterTypePtr);
 
-const char**EmissionDist_getParameterNames(EmissionDist* emissionDist, void **parameterTypePtrs, int numberOfParams);
+const char **EmissionDist_getParameterNames(EmissionDist *emissionDist, void **parameterTypePtrs, int numberOfParams);
 
-double **EmissionDist_getParameterValues(EmissionDist* emissionDist, void **parameterTypePtrs, int numberOfParams);
+double **EmissionDist_getParameterValues(EmissionDist *emissionDist, void **parameterTypePtrs, int numberOfParams);
 
-const char* EmissionDist_getDistributionName(EmissionDist* emissionDist);
+const char *EmissionDist_getDistributionName(EmissionDist *emissionDist);
 
 void EmissionDist_resetParameterEstimators(EmissionDist *emissionDist);
 
 /*
  * Destruct a EmissionDist structure
  */
-void EmissionDist_destruct(EmissionDist* emissionDist);
+void EmissionDist_destruct(EmissionDist *emissionDist);
 
 
 /*! @typedef
@@ -443,7 +492,9 @@ typedef struct EmissionDistSeries {
     ParameterBinding **parameterBindingPerDist;
     int numberOfDists;
     ModelType modelType;
-}EmissionDistSeries;
+    int numberOfCollapsedComps;
+    bool excludeMisjoin;
+} EmissionDistSeries;
 
 
 /*
@@ -454,26 +505,32 @@ EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
                                                          double **means,  // [numberOfDists] x [maxMixtures]
                                                          int *numberOfCompsPerDist,
                                                          int numberOfDists,
-							 bool excludeMisjoin);
+                                                         bool excludeMisjoin);
+
+EmissionDistSeries *EmissionDistSeries_copy(EmissionDistSeries *src);
+
+EmissionDistSeries **EmissionDistSeries_copy1DArray(EmissionDistSeries **srcArray, int length);
+
+void EmissionDistSeries_destruct1DArray(EmissionDistSeries **array, int length);
 
 /*
  * Get a emissionDist structure from the emissionDistSeries structure
  */
-EmissionDist *EmissionDistSeries_getEmissionDist(EmissionDistSeries* emissionDistSeries, int distIndex);
+EmissionDist *EmissionDistSeries_getEmissionDist(EmissionDistSeries *emissionDistSeries, int distIndex);
 
 void EmissionDistSeries_resetParameterEstimators(EmissionDistSeries *emissionDistSeries);
 
 /*
  * Destruct an EmissionDistSeries structure
  */
-void EmissionDistSeries_destruct(EmissionDistSeries* emissionDistSeries);
+void EmissionDistSeries_destruct(EmissionDistSeries *emissionDistSeries);
 
 /*
  * Get the array of probabilities of observing x for all distributions given preX, the previous observation
  * and alpha, the factor for adjusting mean of distribution with the previous observation (if applicable).
  * Alpha and preX are only considered for Gaussian distribution and ignored for NegativeBinomial and TruncExponential
  */
-double *EmissionDistSeries_getAllProbs(EmissionDistSeries* emissionDistSeries,
+double *EmissionDistSeries_getAllProbs(EmissionDistSeries *emissionDistSeries,
                                        uint8_t x,
                                        uint8_t preX,
                                        double alpha);
@@ -483,22 +540,23 @@ double *EmissionDistSeries_getAllProbs(EmissionDistSeries* emissionDistSeries,
  * and alpha, the factor for adjusting mean of distribution with the previous observation (if applicable).
  * Alpha and preX are only considered for Gaussian distribution and ignored for NegativeBinomial and TruncExponential
  */
-double EmissionDistSeries_getProb(EmissionDistSeries* emissionDistSeries,
+double EmissionDistSeries_getProb(EmissionDistSeries *emissionDistSeries,
                                   int distIndex,
                                   uint8_t x,
                                   uint8_t preX,
                                   double alpha);
 
 
+int EmissionDistSeries_getNumberOfComps(EmissionDistSeries *emissionDistSeries, int distIndex);
 
-int EmissionDistSeries_getNumberOfComps(EmissionDistSeries * emissionDistSeries, int distIndex);
+void EmissionDistSeries_updateEstimatorFromOtherEstimator(EmissionDistSeries *dest, EmissionDistSeries *src);
 
 void EmissionDistSeries_updateEstimator(EmissionDistSeries *emissionDistSeries,
-                                         int distIndex,
-                                         uint8_t x,
-                                         uint8_t preX,
-                                         double alpha,
-                                         double count);
+                                        int distIndex,
+                                        uint8_t x,
+                                        uint8_t preX,
+                                        double alpha,
+                                        double count);
 
 ParameterEstimator *EmissionDistSeries_getBoundParameterEstimator(EmissionDistSeries *emissionDistSeries,
                                                                   DistType distType,
@@ -507,17 +565,19 @@ ParameterEstimator *EmissionDistSeries_getBoundParameterEstimator(EmissionDistSe
 bool EmissionDistSeries_estimateOneParameterType(EmissionDistSeries *emissionDistSeries,
                                                  DistType distType,
                                                  void *parameterTypePtr,
-						 double convergenceTol);
+                                                 double convergenceTol);
 
 bool EmissionDistSeries_estimateParameters(EmissionDistSeries *emissionDistSeries, double convergenceTol);
 
-const char ** EmissionDistSeries_getParameterNames(EmissionDistSeries *emissionDistSeries, int distIndex, int* numberOfParams);
+const char **
+EmissionDistSeries_getParameterNames(EmissionDistSeries *emissionDistSeries, int distIndex, int *numberOfParams);
 
-double ** EmissionDistSeries_getParameterValues(EmissionDistSeries *emissionDistSeries, int distIndex, int* numberOfParams);
+double **
+EmissionDistSeries_getParameterValues(EmissionDistSeries *emissionDistSeries, int distIndex, int *numberOfParams);
 
-const char * EmissionDistSeries_getDistributionName(EmissionDistSeries *emissionDistSeries, int distIndex);
+const char *EmissionDistSeries_getDistributionName(EmissionDistSeries *emissionDistSeries, int distIndex);
 
-const char* EmissionDistSeries_getStateName(int distIndex);
+const char *EmissionDistSeries_getStateName(int distIndex);
 
 /*! @typedef
  * @abstract Structure for holding the attributes that are used for restricting the transitions in an HMM model
@@ -526,15 +586,18 @@ const char* EmissionDistSeries_getStateName(int distIndex);
  * @field maxHighMapqRatio          The maximum ratio of the coverage of alignments with high mapq over total coverage
  *                                  for allowing a transition to the duplicated state
  */
-typedef struct TransitionRequirements{
+typedef struct TransitionRequirements {
     double minHighlyClippedRatio;
     double maxHighMapqRatio;
-}TransitionRequirements;
+} TransitionRequirements;
 
 /*
  * Construct a TransitionRequirements structure
  */
 TransitionRequirements *TransitionRequirements_construct(double minHighlyClippedRatio, double maxHighMapqRatio);
+
+
+TransitionRequirements *TransitionRequirements_copy(TransitionRequirements * src);
 
 /*
  * Destruct a TransitionRequirements structure
@@ -545,7 +608,7 @@ void TransitionRequirements_destruct(TransitionRequirements *transitionRequireme
  * Definition for a validity function that returns true if the state is valid given a CoverageInfo
  * and a TransitionRequirements structure
  */
-typedef bool (*ValidityFunction)(StateType , CoverageInfo*, TransitionRequirements *requirements);
+typedef bool (*ValidityFunction)(StateType, CoverageInfo *, TransitionRequirements *requirements);
 
 /*
  * A validity function that returns true if it is valid to have a transition to the duplicated state otherwise false
@@ -557,7 +620,8 @@ bool ValidityFunction_checkDupByMapq(StateType state, CoverageInfo *coverageInfo
  * A validity function that returns true if it is valid to have a transition to the misjoin state otherwise false
  * It returns true if the given state is anything other than misjoin
  */
-bool ValidityFunction_checkMsjByClipping(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements);
+bool
+ValidityFunction_checkMsjByClipping(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements);
 
 /*! @typedef
  * @abstract Structure for holding the counts that are used for estimating transition probabilities
@@ -568,7 +632,7 @@ bool ValidityFunction_checkMsjByClipping(StateType state, CoverageInfo *coverage
  * @field numberOfStates        Number of states (note that the matrices have the dimension of numberOfStats + 1)
  *
  */
-typedef struct TransitionCountData{
+typedef struct TransitionCountData {
     MatrixDouble *countMatrix; //[numberOfStates + 1] x [numberOfStates + 1]
     MatrixDouble *pseudoCountMatrix; //[numberOfStates + 1] x [numberOfStates + 1]
     int numberOfStates;
@@ -585,18 +649,24 @@ typedef struct TransitionCountData{
  */
 TransitionCountData *TransitionCountData_construct(int numberOfStates);
 
+TransitionCountData *TransitionCountData_copy(TransitionCountData *src);
+
 /*
  * Parse a pseudo count matrix from a file
  * dim should be equal to numberOfStates + 1
  */
-void TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char* pathToMatrix, int dim);
+void
+TransitionCountData_parsePseudoCountFromFile(TransitionCountData *transitionCountData, char *pathToMatrix, int dim);
 
 void TransitionCountData_setPseudoCountMatrix(TransitionCountData *transitionCountData, double value);
+
+void TransitionCountData_incrementFromOtherCountData(TransitionCountData *dest, TransitionCountData *src);
 
 /*
  * Increment counts data for transition from preState to state
  */
-void TransitionCountData_increment(TransitionCountData *transitionCountData, double count, StateType preState, StateType state);
+void TransitionCountData_increment(TransitionCountData *transitionCountData, double count, StateType preState,
+                                   StateType state);
 
 /*
  * Set all elements in countMatrix to zero
@@ -620,7 +690,7 @@ TransitionCountData *TransitionCountData_destruct(TransitionCountData *transitio
  * @field requirements                  A TransitionRequirements structure which is necessary for calling
  *                                      validity functions
  */
-typedef struct Transition{
+typedef struct Transition {
     MatrixDouble *matrix;
     TransitionCountData *transitionCountData;
     int numberOfStates;
@@ -628,12 +698,18 @@ typedef struct Transition{
     int numberOfValidityFunctions;
     TransitionRequirements *requirements;
     double terminationProb;
-}Transition;
+} Transition;
 
 /*
  * Construct a Transition structure with uniform probabilities
  */
 Transition *Transition_constructUniform(int numberOfStates);
+
+Transition *Transition_copy(Transition *src);
+
+Transition **Transition_copy1DArray(Transition **srcArray, int length);
+
+void Transition_destruct1DArray(Transition **array, int length);
 
 /*
  * Construct a Transition structure with a symmetric matrix. The diagonal probability is the probability
@@ -669,7 +745,8 @@ double Transition_getProb(Transition *transition, StateType preState, StateType 
  * Get the conditional probability of transitioning from preState to state by applying the
  * previously added validity functions
  */
-double Transition_getProbConditional(Transition *transition, StateType preState, StateType state, CoverageInfo *coverageInfo);
+double
+Transition_getProbConditional(Transition *transition, StateType preState, StateType state, CoverageInfo *coverageInfo);
 
 /*
  * Get the probability of ending with state

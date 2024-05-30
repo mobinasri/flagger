@@ -229,7 +229,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                 iter,
                 numberOfChunks,
                 threads);
-        EM_runOneIterationForList(emPerChunk, threads);
+        EM_runOneIterationForList(emPerChunk, model, threads);
 
         fprintf(stderr, "[%s] [Iteration = %d] EM jobs are all finished.\n",
                 get_timestamp(),
@@ -295,7 +295,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
             get_timestamp(),
             numberOfChunks,
             threads);
-    EM_runOneIterationForList(emPerChunk, threads);
+    EM_runOneIterationForList(emPerChunk, model, threads);
     fprintf(stderr, "[%s] [Final Inference] EM jobs are all finished.\n", get_timestamp());
 
 

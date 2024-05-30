@@ -55,6 +55,9 @@ typedef struct EM {
     double px; // P(x)
     double *scales;
     HMM *model;
+    EmissionDistSeries **emissionDistSeriesPerRegion;
+    Transition **transitionPerRegion;
+    int numberOfRegions;
 } EM;
 
 /*
@@ -98,11 +101,15 @@ stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen, i
 
 EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model);
 
+void EM_renewParametersAndEstimatorsFromModel(EM *em, HMM *model);
+
 void EM_destruct(EM *em);
 
 void EM_runForward(EM *em);
 
 void EM_runBackward(EM *em);
+
+void EM_updateModelEstimators(EM *em);
 
 void EM_updateEstimators(EM *em);
 
@@ -118,7 +125,7 @@ void EM_printPosteriorInTsvFormat(EM* em, FILE* fout);
 
 void EM_runOneIterationAndUpdateEstimatorsForThreadPool(void *arg_);
 
-void EM_runOneIterationForList(stList *emList, int threads);
+void EM_runOneIterationForList(stList *emList, HMM *model, int threads);
 
 /*
 double *getForward(EM *em, int pos);

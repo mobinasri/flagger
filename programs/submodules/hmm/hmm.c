@@ -222,9 +222,12 @@ EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model) {
     // Allocate and initialize forward and backward matrices
     em->f = Double_construct2DArray(em->seqLen, model->numberOfStates);
     em->b = Double_construct2DArray(em->seqLen, model->numberOfStates);
+    em->emissionDistSeriesPerRegion = EmissionDistSeries_copy1DArray(model->emissionDistSeriesPerRegion, model->numberOfRegions);
+    em->transitionPerRegion = Transition_copy1DArray(model->transitionPerRegion, model->numberOfRegions);
     // Initialize scale to avoid underflow
     em->scales = Double_construct1DArray(em->seqLen);
     em->px = -1.0;
+    em->numberOfRegions = model->numberOfRegions;
     return em;
 }
 
@@ -232,7 +235,21 @@ void EM_destruct(EM *em) {
     Double_destruct2DArray(em->f, em->seqLen);
     Double_destruct2DArray(em->b, em->seqLen);
     Double_destruct1DArray(em->scales);
+    EmissionDistSeries_destruct1DArray(em->emissionDistSeriesPerRegion, em->numberOfRegions);
+    Transition_destruct1DArray(em->transitionPerRegion, em->numberOfRegions);
 }
+
+void EM_renewParametersAndEstimatorsFromModel(EM *em, HMM *model){
+    if(em->emissionDistSeriesPerRegion != NULL) {
+        EmissionDistSeries_destruct1DArray(em->emissionDistSeriesPerRegion, em->numberOfRegions);
+    }
+    if(em->transitionPerRegion != NULL) {
+        Transition_destruct1DArray(em->transitionPerRegion, em->numberOfRegions);
+    }
+    em->emissionDistSeriesPerRegion = EmissionDistSeries_copy1DArray(model->emissionDistSeriesPerRegion, model->numberOfRegions);
+    em->transitionPerRegion = Transition_copy1DArray(model->transitionPerRegion, model->numberOfRegions);
+}
+
 
 ///////////////////////////////////////
 // Functions for forward algorithm   //
@@ -456,6 +473,21 @@ void EM_runBackward(EM *em) {
 }
 
 
+void EM_updateModelEstimators(EM *em) {
+    HMM *model = em->model;
+    for(int region=0; region < em->numberOfRegions; region++){
+        EmissionDistSeries *emissionDistSeriesForEM = em->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries *emissionDistSeriesForModel = model->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries_updateEstimatorFromOtherEstimator(emissionDistSeriesForModel,
+                                                             emissionDistSeriesForEM);
+        TransitionCountData *transitionDataForEM = em->transitionPerRegion[region]->transitionCountData;
+        TransitionCountData *transitionDataForModel = model->transitionPerRegion[region]->transitionCountData;
+        TransitionCountData_incrementFromOtherCountData(transitionDataForModel,
+                                                        transitionDataForEM);
+    }
+}
+
+
 void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
     if (columnIndex == em->seqLen - 1) {
         return;
@@ -480,8 +512,8 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
             preX = em->coverageInfoSeq[i]->coverage;
             // get model attributes
             alpha = model->alpha->data[preState][state];
-            emissionDistSeries = model->emissionDistSeriesPerRegion[region];
-            transition = model->transitionPerRegion[region];
+            emissionDistSeries = em->emissionDistSeriesPerRegion[region];
+            transition = em->transitionPerRegion[region];
             // Emission probability
             // Not that alpha can be zero and in that case emission probability is not
             // dependent on the previous observation
@@ -597,6 +629,7 @@ void EM_runOneIterationAndUpdateEstimatorsForThreadPool(void *arg_) {
     EM_runForward(em);
     EM_runBackward(em);
     EM_updateEstimators(em);
+    EM_updateModelEstimators(em);
 
     // update prediction labels
     for (int pos = 0; pos < em->seqLen; pos++) {
@@ -608,12 +641,13 @@ void EM_runOneIterationAndUpdateEstimatorsForThreadPool(void *arg_) {
     }
 }
 
-void EM_runOneIterationForList(stList *emList, int threads) {
+void EM_runOneIterationForList(stList *emList, HMM *model, int threads) {
     tpool_t *tm = tpool_create(threads);
     for (int i = 0; i < stList_length(emList); i++) {
 
         // get EM struct for this chunk index
         EM *em = stList_get(emList, i);
+        EM_renewParametersAndEstimatorsFromModel(em, model);
         // add EM to the work struct
         work_arg_t *argWork = malloc(sizeof(work_arg_t));
         argWork->data = (void *) em;
