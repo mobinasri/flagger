@@ -22,9 +22,9 @@ typedef struct Chunk {
     int coverageInfoMaxSeqSize; // maximum size of array int(chunkCanonicalLen * 2 / windowLen) + 1
     int windowLen;
     int windowItr;
-    double windowSumCoverage = 0.0;
-    double windowSumCoverageHighMapq = 0.0;
-    double windowSumCoverageHighClip = 0.0;
+    double windowSumCoverage;
+    double windowSumCoverageHighMapq;
+    double windowSumCoverageHighClip;
     uint64_t windowAnnotationFlag;
     int *windowRegionArray;
     int *windowTruthArray;
