@@ -311,12 +311,12 @@ void EM_fillOneColumnForward(EM *em, int columnIndex) {
     uint8_t preX;
     double alpha;
     double scale = 0.0;
+    region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
+    preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i - 1]);
+    x = em->coverageInfoSeq[i]->coverage;
+    preX = em->coverageInfoSeq[i - 1]->coverage;
     for (int state = 0; state < model->numberOfStates; state++) {
         for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
-            region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
-            preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i - 1]);
-            x = em->coverageInfoSeq[i]->coverage;
-            preX = em->coverageInfoSeq[i - 1]->coverage;
             alpha = model->alpha->data[preState][state];
             // Emission probability
             // Not that alpha can be zero and in that case emission probability is not
@@ -413,14 +413,14 @@ void EM_fillOneColumnBackward(EM *em, int columnIndex) {
     CoverageInfo *covInfo;
     CoverageInfo *preCovInfo;
     double alpha;
+    region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i + 1]);
+    preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
+    covInfo = em->coverageInfoSeq[i + 1];
+    preCovInfo = em->coverageInfoSeq[i];
+    x = covInfo->coverage;
+    preX = preCovInfo->coverage;
     for (int state = 0; state < model->numberOfStates; state++) {
         for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
-            region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i + 1]);
-            preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
-            covInfo = em->coverageInfoSeq[i + 1];
-            preCovInfo = em->coverageInfoSeq[i];
-            x = covInfo->coverage;
-            preX = preCovInfo->coverage;
             alpha = model->alpha->data[preState][state];
             // Emission probability
             // Not that alpha can be zero and in that case emission probability is not
@@ -503,25 +503,28 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
     double alpha;
     EmissionDistSeries *emissionDistSeries;
     Transition *transition;
+
+    // get observations
+    region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i + 1]);
+    preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
+    x = em->coverageInfoSeq[i + 1]->coverage;
+    preX = em->coverageInfoSeq[i]->coverage;
+
+    emissionDistSeries = em->emissionDistSeriesPerRegion[region];
+    transition = em->transitionPerRegion[region];
     for (int state = 0; state < model->numberOfStates; state++) {
         for (int preState = 0; preState < model->numberOfStates; preState++) { // Transition from c1 comp to c2 comp
-            // get observations
-            region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i + 1]);
-            preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
-            x = em->coverageInfoSeq[i + 1]->coverage;
-            preX = em->coverageInfoSeq[i]->coverage;
             // get model attributes
             alpha = model->alpha->data[preState][state];
-            emissionDistSeries = em->emissionDistSeriesPerRegion[region];
-            transition = em->transitionPerRegion[region];
-            // Emission probability
+	    // Emission probability
             // Not that alpha can be zero and in that case emission probability is not
             // dependent on the previous observation
-            eProb = EmissionDistSeries_getProb(emissionDistSeries,
+	    eProb = EmissionDistSeries_getProb(emissionDistSeries,
                                                state,
                                                x,
                                                preX,
                                                alpha);
+
             if (region != preRegion) { // if the region class has changed
                 // Make the transition prob uniform
                 tProb = 1.0 / (model->numberOfStates + 1);
@@ -531,6 +534,7 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
                                                       state,
                                                       em->coverageInfoSeq[i + 1]);
             }
+
             // P(s_i = preState, s_(i+1) = state|x)
             double count = em->f[i][preState] * tProb * eProb * em->b[i + 1][state];
             double adjustedCount = count / transition->terminationProb;
@@ -540,6 +544,7 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
                                                preX,
                                                alpha,
                                                adjustedCount);
+
             /*if(count < 1e-3 && i % 50000  == 0){
             fprintf(stdout, "i=%d, count=%.2e, em->f[%d][%d]=%.2e, tProb=%.2e, eProb=%.2e, em->b[%d][%d]=%.2e, scale=%.2e\n", i, count, i, preState, em->f[i][preState],tProb,eProb, i+1, state, em->b[i + 1][state], em->scales[i]);
             }*/
