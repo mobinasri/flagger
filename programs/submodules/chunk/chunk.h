@@ -112,7 +112,7 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
 
 int ChunksCreator_getTotalNumberOfChunks(ChunksCreator *chunksCreator);
 
-int ChunksCreator_getTotalLength(ChunksCreator *chunksCreator);
+int64_t ChunksCreator_getTotalLength(ChunksCreator *chunksCreator);
 
 typedef struct ChunkIterator {
     ChunksCreator *chunksCreator;
