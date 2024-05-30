@@ -34,7 +34,9 @@ Chunk *Chunk_construct(int chunkCanonicalLen) {
     chunk->e = -1;
     chunk->windowLen = -1;
     chunk->windowItr = -1;
-    chunk->windowSumCoverageInfo = NULL;
+    chunk->windowSumCoverage = 0.0;
+    chunk->windowSumCoverageHighMapq = 0.0;
+    chunk->windowSumCoverageHighClip = 0.0;
     chunk->windowRegionArray = NULL;
     chunk->windowTruthArray = NULL;
     chunk->fileOffset = 0;
@@ -53,7 +55,9 @@ Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int
     chunk->e = -1;
     chunk->windowLen = windowLen;
     chunk->windowItr = -1;
-    chunk->windowSumCoverageInfo = CoverageInfo_construct(0, 0, 0, 0);
+    chunk->windowSumCoverage = 0.0;
+    chunk->windowSumCoverageHighMapq = 0.0;
+    chunk->windowSumCoverageHighClip = 0.0;
     chunk->windowAnnotationFlag = 0ULL;
     chunk->windowRegionArray = (int *) malloc(windowLen * sizeof(int));
     chunk->windowTruthArray = (int *) malloc(windowLen * sizeof(int));
@@ -98,9 +102,9 @@ void Chunk_destruct(Chunk *chunk) {
     if (chunk->coverageInfoSeq) {
         CoverageInfo_destruct1DArray(chunk->coverageInfoSeq, chunk->coverageInfoMaxSeqSize);
     }
-    if (chunk->windowSumCoverageInfo) {
+    /*if (chunk->windowSumCoverageInfo) {
         CoverageInfo_destruct(chunk->windowSumCoverageInfo);
-    }
+    }*/
     free(chunk->windowRegionArray);
     free(chunk->windowTruthArray);
     free(chunk);
@@ -369,10 +373,9 @@ int Chunk_getWindowRegion(Chunk *chunk) {
 
 int Chunk_addWindow(Chunk *chunk) {
     if (chunk->windowItr == -1) return 1;
-    CoverageInfo *windowSumCoverageInfo = chunk->windowSumCoverageInfo;
-    double coverage_avg = (double) windowSumCoverageInfo->coverage / (chunk->windowItr + 1);
-    double coverage_high_mapq_avg = (double) windowSumCoverageInfo->coverage_high_mapq / (chunk->windowItr + 1);
-    double coverage_high_clip_avg = (double) windowSumCoverageInfo->coverage_high_clip / (chunk->windowItr + 1);
+    double coverage_avg = (double) chunk->windowSumCoverage / (chunk->windowItr + 1);
+    double coverage_high_mapq_avg = (double) chunk->windowSumCoverageHighMapq / (chunk->windowItr + 1);
+    double coverage_high_clip_avg = (double) chunk->windowSumCoverageHighClip / (chunk->windowItr + 1);
 
     // set coverage values
     chunk->coverageInfoSeq[chunk->coverageInfoSeqLen]->coverage =
@@ -402,7 +405,9 @@ int Chunk_addWindow(Chunk *chunk) {
     chunk->windowItr = -1;
     chunk->windowAnnotationFlag = 0ULL;
 
-    CoverageInfo_reset(windowSumCoverageInfo);
+    chunk->windowSumCoverage = 0.0;
+    chunk->windowSumCoverageHighMapq = 0.0;
+    chunk->windowSumCoverageHighClip = 0.0;
     return 0;
 }
 
@@ -417,16 +422,14 @@ int Chunk_addTrack(Chunk *chunk, TrackReader *trackReader) {
     assert(canonicalStart == max(trackReader->s, chunk->s));
     int canonicalBasesToAdd = min(trackReader->e, chunk->e) - max(trackReader->s, chunk->s) + 1;
     if (canonicalBasesToAdd <= 0) return 0;
-    CoverageInfo *windowSumCoverageInfo;
     for (int i = 0; i < canonicalBasesToAdd; i++) {
         // windowItr initial value is -1
         chunk->windowItr += 1;
         chunk->windowItr %= chunk->windowLen;
-        windowSumCoverageInfo = chunk->windowSumCoverageInfo;
         // the attrbs in the trackReader include coverage values and region index
-        windowSumCoverageInfo->coverage += atoi(trackReader->attrbs[0]);
-        windowSumCoverageInfo->coverage_high_mapq += atoi(trackReader->attrbs[1]);
-        windowSumCoverageInfo->coverage_high_clip += atoi(trackReader->attrbs[2]);
+        chunk->windowSumCoverage += atof(trackReader->attrbs[0]);
+        chunk->windowSumCoverageHighMapq += atof(trackReader->attrbs[1]);
+        chunk->windowSumCoverageHighClip += atof(trackReader->attrbs[2]);
         // get annotation indices and update window flag for annotation
         int len = 0;
         int *annotationIndices = Splitter_getIntArray(trackReader->attrbs[3], ',', &len);
