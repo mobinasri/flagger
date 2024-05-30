@@ -374,6 +374,7 @@ static struct option long_options[] =
                 {"labelNames",                         required_argument, NULL, 'l'},
                 {"initialRandomDev",                   required_argument, NULL, 'D'},
                 {"trackName",                          required_argument, NULL, 'N'},
+                {"dumpBin",                            required_argument, NULL, 'B'},
                 {NULL,                                 0,                 NULL, 0}
         };
 
@@ -400,15 +401,19 @@ int main(int argc, char *argv[]) {
     int chunkCanonicalLen = 20000000; //20Mb
     int windowLen = 100;
     int threads = 4;
+    bool  dumpBin = false;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:N:", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:B:N:", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
                 break;
             case 'n':
                 numberOfIterations = atoi(optarg);
+                break;
+            case 'B':
+                dumpBin = true;
                 break;
             case 'N':
                 trackName = optarg;
@@ -540,7 +545,7 @@ int main(int argc, char *argv[]) {
                         "                           the model is improved over EM iterations) [Default = disabled].\n");
 
                 fprintf(stderr,
-                        "         -b,--binArrayFile\n"
+                        "         --binArrayFile, -b\n"
                         "                           (Optional) A tsv file (tab-delimited) that contains bin arrays \n"
                         "                           for stratifying results by event size. Bin intervals can have overlap.\n"
                         "                           It should contain three columns. \n"
@@ -550,17 +555,25 @@ int main(int argc, char *argv[]) {
                         "                           If no file is passed it will consider one large bin as the default value.\n"
                         "                           (Default = [0,1e9) with the name 'ALL_SIZES')\n");
                 fprintf(stderr,
-                        "         -v, --overlapRatioThreshold\n"
+                        "         --overlapRatioThreshold, -v\n"
                         "                           Minimum overlap ratio in calculating overlap-based metrics for \n"
                         "                           considering a hit between a ref label (for example truth label for\n"
                         "                           recall) and query label (for example prediction label for recall) \n"
                         "                           [default: 0.4]\n");
                 fprintf(stderr,
-                        "         -D, --initialRandomDev\n"
+                        "         --initialRandomDev, -D\n"
                         "                           Randomly deviate the initial mean values for EM algorithm.\n"
                         "                           This is only for experimenting how much HMM-Flagger is tolerant to\n"
                         "                           starting with approximate values. It should be greater than or equal\n"
                         "                           to 0 and less than 0.5 . [default: 0.0]\n");
+                fprintf(stderr,
+                        "         --threads, -@\n"
+                        "                           Number of threads [default: 4]\n");
+                fprintf(stderr,
+                        "         --dumpBin, -B\n"
+                        "                           Dump chunks in binary format in the output dir (it will make \n"
+                        "                           later runs faster by skipping chunk creation part if using the\n"
+                        "                           same bin file) [default: disabled]\n");
                 return 1;
         }
     }
@@ -619,9 +632,16 @@ int main(int argc, char *argv[]) {
                                                     threads,
                                                     contigList);
 
+    if (dumpBin) {
+        char binPath[1000];
+        sprintf(binPath, "%s/chunks.c_%d.w_%d.bin", outputDir, chunksCreator->chunkCanonicalLen, chunksCreator->windowLen);
+        fprintf(stderr, "[%s] Writing bin file into %s . \n", get_timestamp(), binPath);
+        ChunksCreator_writeChunksIntoBinaryFile(chunksCreator, binPath);
+    }
+
     int numberOfChunks = ChunksCreator_getTotalNumberOfChunks(chunksCreator);
-    int totalLengthOfChunks = ChunksCreator_getTotalLength(chunksCreator);
-    fprintf(stderr, "[%s] %d chunks are parsed covering total length of %d bases. \n",
+    int64_t totalLengthOfChunks = ChunksCreator_getTotalLength(chunksCreator);
+    fprintf(stderr, "[%s] %d chunks are parsed covering total length of %ld bases. \n",
             get_timestamp(),
             numberOfChunks,
             totalLengthOfChunks);
@@ -637,7 +657,7 @@ int main(int argc, char *argv[]) {
                 "[%s] The number of collapsed components (n=%d) is determined and adjusted automatically by taking the maximum observed coverage. \n",
                 get_timestamp(),
                 numberOfCollapsedComps);
-    }else{
+    } else {
         fprintf(stderr, "[%s] The number of components for the 'collapsed' state is set by the program argument %d. \n",
                 get_timestamp(),
                 numberOfCollapsedComps);
