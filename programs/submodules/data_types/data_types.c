@@ -361,19 +361,20 @@ MatrixDouble* MatrixDouble_construct0(int dim1, int dim2){
 	mat->dim2 = dim2;
         mat->data = (double**) malloc(dim1 * sizeof(double*));
         for(int i = 0; i < dim1; i++){
-                mat->data[i] = (double*) malloc(dim2 * sizeof(double*));
+                mat->data[i] = (double*) malloc(dim2 * sizeof(double));
                 memset(mat->data[i], 0, dim2 * sizeof(double));
         }
         return mat;
 }
 
 MatrixDouble* MatrixDouble_construct1(int dim1, int dim2, double** data){
+	if(data == NULL) return NULL;
         MatrixDouble* mat = (MatrixDouble*) malloc(sizeof(MatrixDouble));
 	mat->dim1 = dim1;
 	mat->dim2 = dim2;
         mat->data = (double**) malloc(dim1 * sizeof(double*));
         for(int i = 0; i < dim1; i++){
-                mat->data[i] = (double*) malloc(dim2 * sizeof(double*));
+                mat->data[i] = (double*) malloc(dim2 * sizeof(double));
                 memcpy(mat->data[i], data[i], dim2 * sizeof(double));
         }
         return mat;

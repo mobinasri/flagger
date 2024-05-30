@@ -177,15 +177,6 @@ void ParameterBinding_destruct(ParameterBinding *parameterBinding) {
 }
 
 
-ParameterBinding **ParameterBinding_copy1DArray(ParameterBinding **parameterBindingArray) {
-    if (modelType == MODEL_GAUSSIAN) {
-        return ParameterBinding_getDefault1DArrayForGaussian(numberOfCollapsedComps, excludeMisjoin);
-    } else if (modelType == MODEL_TRUNC_EXP_GAUSSIAN) {
-        return ParameterBinding_getDefault1DArrayForTruncExpGaussian(numberOfCollapsedComps, excludeMisjoin);
-    } else if (modelType == MODEL_NEGATIVE_BINOMIAL) {
-        return ParameterBinding_getDefault1DArrayForNegativeBinomial(numberOfCollapsedComps, excludeMisjoin);
-    }
-}
 
 ParameterBinding **
 ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfCollapsedComps, bool excludeMisjoin) {
@@ -985,13 +976,13 @@ EmissionDist *EmissionDist_copy(EmissionDist *src) {
     EmissionDist *dest = malloc(1 * sizeof(EmissionDist));
     dest->distType = src->distType;
     if (src->distType == DIST_TRUNC_EXPONENTIAL) {
-        TruncExponential *truncExponential = TruncExponential_copy((TruncExponential *) emissionDist->dist);
+        TruncExponential *truncExponential = TruncExponential_copy((TruncExponential *) src->dist);
         dest->dist = (void *) truncExponential;
     } else if (src->distType == DIST_GAUSSIAN) {
-        Gaussian *gaussian = Gaussian_copy((Gaussian *) emissionDist->dist);
+        Gaussian *gaussian = Gaussian_copy((Gaussian *) src->dist);
         dest->dist = (void *) gaussian;
-    } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
-        NegativeBinomial *nb = NegativeBinomial_copy((NegativeBinomial *) emissionDist->dist);
+    } else if (src->distType == DIST_NEGATIVE_BINOMIAL) {
+        NegativeBinomial *nb = NegativeBinomial_copy((NegativeBinomial *) src->dist);
         dest->dist = (void *) nb;
     }
     return dest;
@@ -1308,7 +1299,7 @@ EmissionDistSeries *EmissionDistSeries_copy(EmissionDistSeries *src) {
             ParameterBinding_getDefault1DArrayForModel(src->modelType,
                                                        src->numberOfCollapsedComps,
                                                        src->excludeMisjoin);
-    dest->countDataPerDist = CountData_copy1DArray(src->countDataPerDist);
+    dest->countDataPerDist = CountData_copy1DArray(src->countDataPerDist, src->numberOfDists);
     dest->numberOfDists = src->numberOfDists;
     dest->modelType = src->modelType;
     dest->excludeMisjoin = src->excludeMisjoin;
@@ -1656,6 +1647,7 @@ Transition *Transition_copy(Transition *src) {
     dest->transitionCountData = TransitionCountData_copy(src->transitionCountData);
     dest->numberOfValidityFunctions = src->numberOfValidityFunctions;
     dest->requirements = TransitionRequirements_copy(src->requirements);
+    dest->validityFunctions = malloc(src->numberOfValidityFunctions * sizeof(ValidityFunction));
     for (int i = 0; i < src->numberOfValidityFunctions; i++) {
         dest->validityFunctions[i] = src->validityFunctions[i];
     }
