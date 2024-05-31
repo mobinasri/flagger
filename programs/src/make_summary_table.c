@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
         // free iterator
         ptBlockItrPerContig_destruct((ptBlockItrPerContig *) iterator);
         // free blocks
-        CovFastReader_destruct(covFastReader)
+        CovFastReader_destruct(covFastReader);
         // free header
         CoverageHeader_destruct(header);
     }
