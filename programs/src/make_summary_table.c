@@ -18,6 +18,7 @@
 #include "chunk.h"
 #include "track_reader.h"
 #include "summary_table.h"
+#include "cov_fast_reader.h"
 
 
 static struct option long_options[] =
@@ -136,6 +137,7 @@ int main(int argc, char *argv[]) {
     CoverageHeader *header = NULL;
     ChunksCreator *chunksCreator = NULL;
     stHash *blocksPerContig = NULL;
+    CovFastReader *covFastReader = NULL;
     BlockIteratorType blockIteratorType =
             strcmp(inputExtension, "bin") == 0 ? ITERATOR_BY_CHUNK : ITERATOR_BY_COV_BLOCK;
 
@@ -146,7 +148,9 @@ int main(int argc, char *argv[]) {
         iterator = (void *) ChunkIterator_construct(chunksCreator);
         header = chunksCreator->header;
     } else if (blockIteratorType == ITERATOR_BY_COV_BLOCK) { // for cov or bed file
-        blocksPerContig = ptBlock_parse_coverage_info_blocks(inputPath);
+        int chunkLen = 40e6;
+        CovFastReader *covFastReader =  CovFastReader_construct(inputPath, chunkLen, threads);
+        blocksPerContig = CovFastReader_getBlockTablePerContig(covFastReader);
         iterator = (void *) ptBlockItrPerContig_construct(blocksPerContig);
         header = CoverageHeader_construct(inputPath);
     }
@@ -170,7 +174,7 @@ int main(int argc, char *argv[]) {
         // free iterator
         ptBlockItrPerContig_destruct((ptBlockItrPerContig *) iterator);
         // free blocks
-        stHash_destruct(blocksPerContig);
+        CovFastReader_destruct(covFastReader)
         // free header
         CoverageHeader_destruct(header);
     }
