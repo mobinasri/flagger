@@ -123,7 +123,10 @@ int main(int argc, char *argv[]) {
     int chunkLen = 40e6;
     CovFastReader *covFastReader =  CovFastReader_construct(inputPath, chunkLen, threads);
     stHash *blockTable = CovFastReader_getBlockTablePerContig(covFastReader);
-    //ptBlock_parse_coverage_info_blocks(inputPath);
+    // parse information from header
+    CoverageHeader *header = CoverageHeader_construct(inputPath);
+
+    //ptBlock_write_blocks_per_contig(blockTable, "test_.bed", "all", ctgToLen, header);
 
     fprintf(stderr, "[%s] Parsed blocks : tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(blockTable),
@@ -157,8 +160,6 @@ int main(int argc, char *argv[]) {
             ptBlock_get_total_number(finalBlockTable));
 
 
-    // parse information from header
-    CoverageHeader *header = CoverageHeader_construct(inputPath);
 
     if (numberOfLabels != header->numberOfLabels) {
         fprintf(stderr,
