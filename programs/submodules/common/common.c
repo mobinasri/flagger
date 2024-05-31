@@ -565,13 +565,27 @@ char *String_joinDoubleArray(double *array, int length, char delimiter) {
 }
 
 char *String_joinDoubleArrayWithFormat(double *array, int length, char delimiter, const char *numberFormat) {
-    char *str = malloc(length * 10 * sizeof(char));
+    char *str = malloc(length * 100 * sizeof(char));
+    int size = length * 100;
     str[0] = '\0';
+    char tmp[1000];
+    tmp[0] = '\0';
     for (int i = 0; i < length - 1; i++) {
-        sprintf(str + strlen(str), numberFormat, array[i]);
-        sprintf(str + strlen(str), "%c", delimiter);
+        sprintf(tmp, numberFormat, array[i]);
+        sprintf(tmp + strlen(tmp), "%c", delimiter);
+	if (size < (strlen(tmp) + strlen(str) + 1)){
+		size = (strlen(tmp) + strlen(str) + 1) * 2;
+		str = realloc(str, size);
+	}
+	sprintf(str + strlen(str) , "%s", tmp);
+	tmp[0] = '\0';
     }
-    sprintf(str + strlen(str), numberFormat, array[length - 1]);
+    sprintf(tmp, numberFormat, array[length - 1]);
+    if (size < (strlen(tmp) + strlen(str) + 1)){
+	    size = (strlen(tmp) + strlen(str) + 1) * 2;
+	    str = realloc(str, size);
+    }
+    sprintf(str + strlen(str), "%s", tmp);
     str[strlen(str)] = '\0';
     return str;
 }
@@ -605,7 +619,7 @@ stList *Splitter_parseLinesIntoList(const char *filepath) {
     if (fp == NULL) {
         fprintf(stderr, "Error: Unable to open %s\n", filepath);
     }
-    int len;
+    size_t len;
     int read;
     char *token;
     char *line = malloc(1000);
