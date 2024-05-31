@@ -1827,7 +1827,7 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
     stList *blocks = NULL;
     while (0 < TrackReader_next(trackReader)) {
         // create a ptBlock based on the parsed track
-        ptBlock *block = ptBlock *ptBlock_constructFromTrackReader(trackReader, header);
+        ptBlock *block = ptBlock_constructFromTrackReader(trackReader, header);
 
         // add block to the block stHash table
         blocks = stHash_search(coverage_blocks_per_contig, trackReader->ctg);
