@@ -57,10 +57,10 @@ void ParameterEstimator_incrementFromOtherEstimator(ParameterEstimator *dest, Pa
 
 void ParameterEstimator_increment(ParameterEstimator *parameterEstimator, double numerator, double denominator,
                                   int compIndex) {
-    pthread_mutex_lock(parameterEstimator->mutexPtr);
+    //pthread_mutex_lock(parameterEstimator->mutexPtr);
     parameterEstimator->numeratorPerComp[compIndex] += numerator;
     parameterEstimator->denominatorPerComp[compIndex] += denominator;
-    pthread_mutex_unlock(parameterEstimator->mutexPtr);
+    //pthread_mutex_unlock(parameterEstimator->mutexPtr);
 }
 
 void ParameterEstimator_incrementDenominatorForAllComps(ParameterEstimator *parameterEstimator, double numerator,
@@ -736,6 +736,7 @@ void Gaussian_updateEstimator(Gaussian *gaussian,
     double totProb = Double_sum1DArray(componentProbs, gaussian->numberOfComps);
     for (int c = 0; c < gaussian->numberOfComps; c++) {
         double w = count * componentProbs[c] / totProb;
+	//fprintf(stderr, "x = %d, c=%d, w=%.2e, count=%.2e, componentProbs[c] = %.2e, totProb= %.2e\n", x, c, w , count , componentProbs[c] , totProb);
         ParameterEstimator_increment(gaussian->meanEstimator,
                                      w * x_adjusted,
                                      w,
@@ -1450,6 +1451,7 @@ bool EmissionDistSeries_estimateOneParameterType(EmissionDistSeries *emissionDis
             }
         }
     }
+    ParameterEstimator_destruct(parameterEstimatorBound);
     return converged;
 }
 
@@ -1584,9 +1586,9 @@ void TransitionCountData_incrementFromOtherCountData(TransitionCountData *dest, 
 
 void TransitionCountData_increment(TransitionCountData *transitionCountData, double count, StateType preState,
                                    StateType state) {
-    pthread_mutex_lock(transitionCountData->mutexPtr);
+    //pthread_mutex_lock(transitionCountData->mutexPtr);
     transitionCountData->countMatrix->data[preState][state] += count;
-    pthread_mutex_unlock(transitionCountData->mutexPtr);
+    //pthread_mutex_unlock(transitionCountData->mutexPtr);
 }
 
 
@@ -1684,15 +1686,20 @@ void Transition_destruct1DArray(Transition **array, int length) {
 Transition *Transition_constructSymmetricBiased(int numberOfStates, double diagonalProb) {
     int dimension = numberOfStates + 1;
     Transition *transition = malloc(sizeof(Transition));
+    transition->terminationProb = 1e-3;
     transition->matrix = MatrixDouble_construct0(dimension, dimension);
-    MatrixDouble_setValue(transition->matrix, (1.0 - diagonalProb) / (dimension - 1));
-    MatrixDouble_setDiagonalValue(transition->matrix, diagonalProb);
+    MatrixDouble_setValue(transition->matrix, (1.0 - diagonalProb) / (numberOfStates - 1) * (1.0 - transition->terminationProb));
+    MatrixDouble_setDiagonalValue(transition->matrix, diagonalProb * (1.0 - transition->terminationProb));
+    for(int state=0; state < numberOfStates;state++){
+	    transition->matrix->data[numberOfStates][state] = 1.0 / numberOfStates;
+	    transition->matrix->data[state][numberOfStates] = transition->terminationProb;
+    }
+    transition->matrix->data[numberOfStates][numberOfStates] = 0.0;
     transition->transitionCountData = TransitionCountData_construct(numberOfStates);
     transition->numberOfValidityFunctions = 0;
     transition->numberOfStates = numberOfStates;
     transition->requirements = NULL;
     transition->validityFunctions = NULL;
-    transition->terminationProb = 1e-3;
     return transition;
 }
 

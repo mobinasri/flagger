@@ -634,7 +634,12 @@ void EM_runOneIterationAndUpdateEstimatorsForThreadPool(void *arg_) {
     EM_runForward(em);
     EM_runBackward(em);
     EM_updateEstimators(em);
-    EM_updateModelEstimators(em);
+/*    fprintf(stderr, "em\n");
+    EmissionDistSeries_estimateParameters(em->emissionDistSeriesPerRegion[0], 1e-3);
+    Transition_estimateTransitionMatrix(em->transitionPerRegion[0], 1e-3);
+    fprintf(stderr, "em done\n");
+*/
+//    EM_updateModelEstimators(em);
 
     // update prediction labels
     for (int pos = 0; pos < em->seqLen; pos++) {
@@ -664,4 +669,25 @@ void EM_runOneIterationForList(stList *emList, HMM *model, int threads) {
     tpool_wait(tm);
     // destroy thread pool
     tpool_destroy(tm);
+
+    for (int i = 0; i < stList_length(emList); i++) {
+	    EM *em = stList_get(emList, i);
+        EM_updateModelEstimators(em);
+    }
+
+    /*double sum=0.0;
+    for (int i = 0; i < stList_length(emList); i++) {
+        // get EM struct for this chunk index
+        EM *em = stList_get(emList, i);
+	EM_updateModelEstimators(em);
+
+	EmissionDistSeries * emissionDistSeries= em->emissionDistSeriesPerRegion[0];
+	EmissionDist *emissionDist = emissionDistSeries->emissionDists[2];
+	Gaussian *gaussian = emissionDist->dist;
+	ParameterEstimator *meanEstimator = gaussian->meanEstimator;
+	double denom = meanEstimator->denominatorPerComp[0];
+	sum += denom;
+	fprintf(stderr, "i=%d, denom = %f\n",i, denom);
+    }
+    fprintf(stderr, "sum = %f\n", sum);*/
 }
