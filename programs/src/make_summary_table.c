@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
         header = chunksCreator->header;
     } else if (blockIteratorType == ITERATOR_BY_COV_BLOCK) { // for cov or bed file
         int chunkLen = 40e6;
-        CovFastReader *covFastReader =  CovFastReader_construct(inputPath, chunkLen, threads);
+        covFastReader =  CovFastReader_construct(inputPath, chunkLen, threads);
         blocksPerContig = CovFastReader_getBlockTablePerContig(covFastReader);
         iterator = (void *) ptBlockItrPerContig_construct(blocksPerContig);
         header = CoverageHeader_construct(inputPath);
