@@ -591,7 +591,9 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader) {
 }
 
 int TrackReader_readNextTrackCov(TrackReader *trackReader) {
+
     char *line = malloc(LINE_MAX_SIZE);
+
     ssize_t read = TrackReader_readLine(trackReader, &line, LINE_MAX_SIZE);
     // if this is the end of the file
     if (read == -1) {
@@ -620,6 +622,7 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
     }
 
     if (line[0] == '#') { // skip header lines
+	free(line);
         return TrackReader_readNextTrackCov(trackReader);
     }
 
@@ -630,7 +633,8 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
         token = Splitter_getToken(splitter);
         trackReader->ctgLen = atoi(token);
         Splitter_destruct(splitter);
-        TrackReader_readNextTrackCov(trackReader);
+	free(line);
+        return TrackReader_readNextTrackCov(trackReader);
     } else {
         Splitter *splitter = Splitter_construct(line, '\t');
         token = Splitter_getToken(splitter);
@@ -650,7 +654,7 @@ int TrackReader_readNextTrackCov(TrackReader *trackReader) {
             strcpy(trackReader->attrbs[trackReader->attrbsLen - 1], token);
         }
         Splitter_destruct(splitter);
+	free(line);
+	return read;
     }
-    free(line);
-    return read;
 }
