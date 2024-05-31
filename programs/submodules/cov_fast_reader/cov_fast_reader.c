@@ -36,7 +36,7 @@ void CovFastReaderPerThread_destruct(CovFastReaderPerThread *covFastReaderPerThr
 
 CovFastReader *CovFastReader_construct(char *covPath, int chunkLen, int threads) {
     CovFastReader *covFastReader = malloc(sizeof(CovFastReader));
-    covFastReader->chunksCreator = ChunksCreator_constructFromCov(covPath, NULL, chunkLen, threads, 1);
+    covFastReader->chunksCreator = ChunksCreator_constructFromCov(covPath, NULL, chunkLen, threads, chunkLen);
     covFastReader->blockTablePerContig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                            (void (*)(void *)) stList_destruct);
     covFastReader->threads = threads;
@@ -44,6 +44,7 @@ CovFastReader *CovFastReader_construct(char *covPath, int chunkLen, int threads)
     pthread_mutex_init(covFastReader->mutex, NULL);
 
     CovFastReader_parseBlocks(covFastReader);
+    return covFastReader;
 }
 
 stHash *CovFastReader_getBlockTablePerContig(CovFastReader *covFastReader) {
@@ -62,6 +63,9 @@ void CovFastReader_parseBlocks(CovFastReader *covFastReader) {
         argWork->data = (void *) covFastReaderPerThread;
         // queue job
         tpool_add_work(tm, CovFastReaderPerThread_parseBlocks, argWork);
+	ChunksCreator *chunksCreator = covFastReader->chunksCreator;
+	Chunk *templateChunk = stList_get(covFastReader->chunksCreator->templateChunks, chunkIndex);
+	fprintf(stderr, "[%s] Parsing cov: submitted job for parsing chunk index:%d/%d %s:%d-%d\n", get_timestamp(), chunkIndex , numberOfChunks, templateChunk->ctg, templateChunk->s, templateChunk->e);
     }
     // wait until all jobs are finished
     tpool_wait(tm);
@@ -70,10 +74,8 @@ void CovFastReader_parseBlocks(CovFastReader *covFastReader) {
 
     stList_destruct(covFastReaderPerThreads);
 
-    fprintf(stderr, "[%s] [CovFastReader] Started sorting blocks.\n", get_timestamp());
     //sort
     ptBlock_sort_stHash_by_rfs(covFastReader->blockTablePerContig);
-    fprintf(stderr, "[%s] [CovFastReader] Sorting is done.\n", get_timestamp());
 }
 
 void CovFastReaderPerThread_parseBlocks(void *arg_) {
@@ -97,8 +99,11 @@ void CovFastReaderPerThread_parseBlocks(void *arg_) {
 
     stList *blocks = NULL;
     while (0 < TrackReader_next(trackReader)) {
+	if(templateChunk->e < trackReader->s) break;
+	if(strcmp(trackReader->ctg, templateChunk->ctg) != 0) break;
+	if(trackReader->s < templateChunk->s) continue;
         // create a ptBlock based on the parsed track
-        ptBlock *block = ptBlock *ptBlock_constructFromTrackReader(trackReader, header);
+        ptBlock *block = ptBlock_constructFromTrackReader(trackReader, header);
 
         pthread_mutex_lock(covFastReader->mutex);
         // add block to the block stHash table
@@ -111,11 +116,12 @@ void CovFastReaderPerThread_parseBlocks(void *arg_) {
         stList_append(blocks, block);
         pthread_mutex_unlock(covFastReader->mutex);
     }
+    TrackReader_destruct(trackReader);
 }
 
 void CovFastReader_destruct(CovFastReader *covFastReader) {
     if (covFastReader->chunksCreator != NULL) {
-        ChunksCreator_destructFromCov(covFastReader->chunksCreator);
+        ChunksCreator_destruct(covFastReader->chunksCreator);
     }
     if (covFastReader->blockTablePerContig != NULL) {
         stHash_destruct(covFastReader->blockTablePerContig);
