@@ -1827,35 +1827,7 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
     stList *blocks = NULL;
     while (0 < TrackReader_next(trackReader)) {
         // create a ptBlock based on the parsed track
-        ptBlock *block = ptBlock_construct(trackReader->s, trackReader->e,
-                                           -1, -1,
-                                           -1, -1);
-	//fprintf(stderr, "%s:%d-%d\n", trackReader->ctg, trackReader->s, trackReader->e);
-        // annotation_flag is the first attribute
-        int len = 0;
-        int *annotation_indices = Splitter_getIntArray(trackReader->attrbs[3], ',', &len);
-        uint64_t annotation_flag = CoverageInfo_getAnnotationFlagFromArray(annotation_indices, len);
-        CoverageInfo *cov_info_data = CoverageInfo_construct(annotation_flag,
-                                                             atoi(trackReader->attrbs[0]),
-                                                             atoi(trackReader->attrbs[1]),
-                                                             atoi(trackReader->attrbs[2]));
-        free(annotation_indices);
-
-        // set region index
-        CoverageInfo_setRegionIndex(cov_info_data, atoi(trackReader->attrbs[4]));
-        // add inference data if exists
-        int8_t truth = (header->isTruthAvailable && 6 <= trackReader->attrbsLen) ? atoi(trackReader->attrbs[5]) : -1;
-        // parse prediction label if it exists (optional attribute)
-        int8_t prediction = (header->isPredictionAvailable && 7 <= trackReader->attrbsLen) ? atoi(
-                trackReader->attrbs[6]) : -1;
-        // at least one of truth or prediction labels should be defined to add the inference data
-        CoverageInfo_addInferenceData(cov_info_data, truth, prediction);
-
-        // add coverageInfo data to block
-        ptBlock_set_data(block, cov_info_data,
-                         destruct_cov_info_data,
-                         copy_cov_info_data,
-                         extend_cov_info_data);
+        ptBlock *block = ptBlock *ptBlock_constructFromTrackReader(trackReader, header);
 
         // add block to the block stHash table
         blocks = stHash_search(coverage_blocks_per_contig, trackReader->ctg);
@@ -1870,6 +1842,40 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
     TrackReader_destruct(trackReader);
     ptBlock_sort_stHash_by_rfs(coverage_blocks_per_contig);
     return coverage_blocks_per_contig;
+}
+
+ptBlock *ptBlock_constructFromTrackReader(TrackReader *trackReader, CoverageHeader *header){
+    // create a ptBlock based on the parsed track
+    ptBlock *block = ptBlock_construct(trackReader->s, trackReader->e,
+                                       -1, -1,
+                                       -1, -1);
+    //fprintf(stderr, "%s:%d-%d\n", trackReader->ctg, trackReader->s, trackReader->e);
+    // annotation_flag is the first attribute
+    int len = 0;
+    int *annotation_indices = Splitter_getIntArray(trackReader->attrbs[3], ',', &len);
+    uint64_t annotation_flag = CoverageInfo_getAnnotationFlagFromArray(annotation_indices, len);
+    CoverageInfo *cov_info_data = CoverageInfo_construct(annotation_flag,
+                                                         atoi(trackReader->attrbs[0]),
+                                                         atoi(trackReader->attrbs[1]),
+                                                         atoi(trackReader->attrbs[2]));
+    free(annotation_indices);
+
+    // set region index
+    CoverageInfo_setRegionIndex(cov_info_data, atoi(trackReader->attrbs[4]));
+    // add inference data if exists
+    int8_t truth = (header->isTruthAvailable && 6 <= trackReader->attrbsLen) ? atoi(trackReader->attrbs[5]) : -1;
+    // parse prediction label if it exists (optional attribute)
+    int8_t prediction = (header->isPredictionAvailable && 7 <= trackReader->attrbsLen) ? atoi(
+            trackReader->attrbs[6]) : -1;
+    // at least one of truth or prediction labels should be defined to add the inference data
+    CoverageInfo_addInferenceData(cov_info_data, truth, prediction);
+
+    // add coverageInfo data to block
+    ptBlock_set_data(block, cov_info_data,
+                     destruct_cov_info_data,
+                     copy_cov_info_data,
+                     extend_cov_info_data);
+    return block;
 }
 
 // annotation block tables need to have a CoverageInfo object as their "data"

@@ -17,6 +17,7 @@
 #include "sonLib.h"
 #include "chunk.h"
 #include "track_reader.h"
+#include "cov_fast_reader.h"
 
 
 static struct option long_options[] =
@@ -27,6 +28,7 @@ static struct option long_options[] =
                 {"truthBed",       required_argument, NULL, 't'},
                 {"numberOfLabels", required_argument, NULL, 'n'},
                 {"output",         required_argument, NULL, 'o'},
+                {"threads",         required_argument, NULL, '@'},
                 {NULL,             0,                 NULL, 0}
         };
 
@@ -39,9 +41,10 @@ int main(int argc, char *argv[]) {
     char *truthPath = NULL;
     char *predictionPath = NULL;
     int numberOfLabels = 4;
+    int threads = 4;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:o:f:w:t:n:p:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:o:f:w:t:n:p:@:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -61,6 +64,9 @@ int main(int argc, char *argv[]) {
             case 'n':
                 numberOfLabels = atoi(optarg);
                 break;
+            case '@':
+                threads = atoi(optarg);
+                break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
@@ -76,6 +82,8 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         --predictionBed, -p         path to a truth bed file. 4th column in the bed file should contain the prediction integer label (0<= label <= --numberOfLabels). Labels with a value of -1 will be considered as not defined. The prediction labels will appear in the 9th column of the output coverage file.\n");
                 fprintf(stderr, "         --numberOfLabels, -n         number of labels [Default = 4]\n");
+                fprintf(stderr, "         --threads, -@       number of threads [Default = 4]\n");
+
                 return 1;
         }
     }
@@ -112,7 +120,10 @@ int main(int argc, char *argv[]) {
     stHash *ctgToLen = ptBlock_get_contig_length_stHash_from_fai(faiPath);
 
     fprintf(stderr, "[%s] Parsing %s.\n", get_timestamp(), inputPath);
-    stHash *blockTable = ptBlock_parse_coverage_info_blocks(inputPath);
+    int chunkLen = 40e6;
+    CovFastReader *covFastReader =  CovFastReader_construct(inputPath, chunkLen, threads);
+    stHash *blockTable = CovFastReader_getBlockTablePerContig(covFastReader);
+    //ptBlock_parse_coverage_info_blocks(inputPath);
 
     fprintf(stderr, "[%s] Parsed blocks : tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(blockTable),
@@ -173,7 +184,8 @@ int main(int argc, char *argv[]) {
     // free memory
     CoverageHeader_destruct(header);
     CoverageHeader_destruct(newHeader);
-    stHash_destruct(blockTable);
+    CovFastReader_destruct(covFastReader);
+    //stHash_destruct(blockTable);
     stHash_destruct(finalBlockTable);
     stHash_destruct(ctgToLen);
     free(outputExtension);

@@ -225,6 +225,9 @@ stHash *ptBlock_parse_inference_label_blocks(char *bedPath, bool isLabelTruth);
  */
 stHash *ptBlock_parse_coverage_info_blocks(char *filePath);
 
+
+ptBlock *ptBlock_constructFromTrackReader(TrackReader *trackReader, CoverageHeader *header);
+
 /**
  * Receives an alignment, creates a CoverageInfo struct based on the given thresholds on mapq and clipping ratio
  *
