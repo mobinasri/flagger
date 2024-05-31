@@ -64,6 +64,9 @@ int main(int argc, char *argv[]) {
                 labelNamesWithUnknown = Splitter_getStringList(optarg, ',');
                 stList_append(labelNamesWithUnknown, copyString("Unk"));
                 break;
+            case '@':
+                threads = atoi(optarg);
+                break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
