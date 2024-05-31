@@ -57,8 +57,8 @@ typedef struct SummaryTable {
     int numberOfColumns;
     stList *rowNames;
     stList *columnNames;
-    char rowString[1000];
-    char rowName[100];
+    char rowString[10000];
+    char rowName[1000];
 } SummaryTable;
 
 
