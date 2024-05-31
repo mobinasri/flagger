@@ -1460,8 +1460,8 @@ stHash *ptBlock_get_contig_length_stHash_from_fai(char *fai_path) {
     if (fp == NULL) {
         fprintf(stderr, "Error: Unable to open %s\n", fai_path);
     }
-    int len;
-    int read;
+    size_t len;
+    ssize_t read;
     char *token;
     char *ctg_name;
     while ((read = getline(&line, &len, fp)) > 0) {
@@ -1830,6 +1830,7 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
         ptBlock *block = ptBlock_construct(trackReader->s, trackReader->e,
                                            -1, -1,
                                            -1, -1);
+	//fprintf(stderr, "%s:%d-%d\n", trackReader->ctg, trackReader->s, trackReader->e);
         // annotation_flag is the first attribute
         int len = 0;
         int *annotation_indices = Splitter_getIntArray(trackReader->attrbs[3], ',', &len);
