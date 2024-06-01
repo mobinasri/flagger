@@ -809,18 +809,22 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         if (annotationInCurrent &&
             metricType == METRIC_BLOCK_LEVEL &&
             preQueryLabelIsValid &&
-            queryLabelChanged) {
+            queryLabelChanged &&
+	    (annotationContinued && !refLabelChanged) &&
+	    !contigChanged) {
             refLabelConfusionRow[preQueryLabel] += 1;
         }
 
 
         preCoverageInfo = coverageInfo;
         preRefLabel = refLabel;
+	preQueryLabel = queryLabel;
         strcpy(preCtg, ctg);
         preBlockEnd = end;
     }
 
     bool preRefLabelIsValid = preRefLabel != -1;
+    bool preQueryLabelIsValid = preQueryLabel != -1;
     // check last window and update summary tables if it had overlap with annotation
     bool annotationInLastWindow = overlapFuncCategoryIndex1(preCoverageInfo, categoryIndex1);
     if (annotationInLastWindow && preRefLabelIsValid) {
@@ -835,8 +839,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         }
         // add last block (with a contiguous ref and query label)
         if (metricType == METRIC_BLOCK_LEVEL &&
-            preQueryLabelIsValid &&
-            queryLabelChanged) {
+            preQueryLabelIsValid) {
             refLabelConfusionRow[preQueryLabel] += 1;
         }
         // iterating over size bin indices
