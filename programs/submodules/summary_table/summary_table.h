@@ -21,7 +21,8 @@ typedef enum BlockIteratorType {
 
 typedef enum MetricType {
     METRIC_OVERLAP_BASED = 0,
-    METRIC_BASE_LEVEL = 1
+    METRIC_BASE_LEVEL = 1,
+    METRIC_BLOCK_LEVEL = 2
 } MetricType;
 
 typedef enum CategoryType {
@@ -37,10 +38,10 @@ typedef enum ComparisonType {
 } ComparisonType;
 
 #define NUMBER_OF_CATEGORY_TYPES 2
-#define NUMBER_OF_METRIC_TYPES 2
+#define NUMBER_OF_METRIC_TYPES 3
 #define NUMBER_OF_COMPARISON_TYPES 4
 
-static const char *MetricTypeToString[2] = {"overlap_based", "base_level"};
+static const char *MetricTypeToString[3] = {"overlap_based", "base_level", "block_level"};
 static const char *CategoryTypeToString[2] = {"region", "annotation"};
 static const char *ComparisonTypeToString[4] = {"recall", "precision", "truth", "prediction"};
 
@@ -231,7 +232,7 @@ typedef struct SummaryTableUpdaterArgs {
     // For example if there is a contiguous block with a ref label of 0 and its length is 20 then if at least
     // (overlapThreshold * 20) bases/windows in this contiguous block has the query label of 3
     // then entry[0][3] will be incremented by one.
-    bool isMetricOverlapBased;
+    MetricType metricType;
     // the overlap ratio threshold for considering an overlap as a hit in calculating overlap-based metrics
     double overlapThreshold;
 } SummaryTableUpdaterArgs;
@@ -247,7 +248,7 @@ SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_construct(void *blockIterator,
                                                            int categoryIndex1,
                                                            int8_t (*getRefLabelFunction)(Inference *),
                                                            int8_t (*getQueryLabelFunction)(Inference *),
-                                                           bool isMetricOverlapBased,
+                                                           MetricType metricType,
                                                            double overlapThreshold);
 
 SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_copy(SummaryTableUpdaterArgs *src);

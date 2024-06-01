@@ -575,7 +575,7 @@ SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_construct(void *blockIterator,
                                                            int categoryIndex1,
                                                            int8_t (*getRefLabelFunction)(Inference *),
                                                            int8_t (*getQueryLabelFunction)(Inference *),
-                                                           bool isMetricOverlapBased,
+                                                           MetricType metricType,
                                                            double overlapThreshold) {
     SummaryTableUpdaterArgs *args = (SummaryTableUpdaterArgs *) malloc(1 * sizeof(SummaryTableUpdaterArgs));
     args->blockIterator = blockIterator;
@@ -589,7 +589,7 @@ SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_construct(void *blockIterator,
     args->categoryIndex1 = categoryIndex1;
     args->getRefLabelFunction = getRefLabelFunction;
     args->getQueryLabelFunction = getQueryLabelFunction;
-    args->isMetricOverlapBased = isMetricOverlapBased;
+    args->metricType = metricType;
     args->overlapThreshold = overlapThreshold;
     return args;
 }
@@ -607,7 +607,7 @@ SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_copy(SummaryTableUpdaterArgs *s
     dest->categoryIndex1 = src->categoryIndex1;
     dest->getRefLabelFunction = src->getRefLabelFunction;
     dest->getQueryLabelFunction = src->getQueryLabelFunction;
-    dest->isMetricOverlapBased = src->isMetricOverlapBased;
+    dest->metricType = src->metricType;
     dest->overlapThreshold = src->overlapThreshold;
     return dest;
 }
@@ -664,7 +664,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
     int categoryIndex1 = args->categoryIndex1;
     int8_t(*getRefLabelFunction)(Inference * ) = args->getRefLabelFunction;
     int8_t(*getQueryLabelFunction)(Inference * ) = args->getQueryLabelFunction;
-    bool isMetricOverlapBased = args->isMetricOverlapBased;
+    MetricType metricType = args->metricType;
     double overlapThreshold = args->overlapThreshold;
 
     // make a copy of iterator and reset it
@@ -686,6 +686,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
 
     int refLabelStart = -1;
     int preRefLabel = -1;
+    int preQueryLabel = -1;
     int preBlockEnd = -1;
     CoverageInfo *preCoverageInfo = NULL;
 
@@ -717,6 +718,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         // set event flags
         bool contigChanged = (preCtg[0] != '\0') && (strcmp(preCtg, ctg) != 0);
         bool refLabelChanged = refLabel != preRefLabel;
+        bool queryLabelChanged = queryLabel != preQueryLabel;
 
         bool annotationInCurrent = overlapFuncCategoryIndex1(coverageInfo, categoryIndex1);
         bool annotationInPrevious = overlapFuncCategoryIndex1(preCoverageInfo, categoryIndex1);
@@ -725,6 +727,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         bool annotationEnded = !annotationInCurrent && annotationInPrevious;
 
         bool preRefLabelIsValid = preRefLabel != -1;
+        bool preQueryLabelIsValid = preQueryLabel != -1;
         /*
         fprintf(stderr, "%s %d-%d annot = %d \n", ctg, start, end, categoryIndex1);
         fprintf(stderr, "\t rlabel = %d\n", refLabel);
@@ -749,11 +752,17 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
             int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
             int binIndicesLength = 0;
             int *binIndices = IntBinArray_getBinIndices(sizeBinArray, refLabelBlockLen, &binIndicesLength);
-            if (isMetricOverlapBased) {
+            if (metricType == METRIC_OVERLAP_BASED) {
                 convertBaseLevelToOverlapBased(refLabelConfusionRow,
                                                summaryTableList->numberOfColumns,
                                                refLabelBlockLen,
                                                overlapThreshold);
+            }
+            // add last block (with a contiguous ref and query label)
+            if (metricType == METRIC_BLOCK_LEVEL &&
+                preQueryLabelIsValid &&
+                queryLabelChanged) {
+                refLabelConfusionRow[preQueryLabel] += 1;
             }
             // iterating over size bin indices
             for (int bi = 0; bi < binIndicesLength; bi++) {
@@ -792,8 +801,16 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         }
 
         // update confusion row
-        if (annotationInCurrent) {
+        if (annotationInCurrent &&
+            metricType != METRIC_BLOCK_LEVEL) {
             refLabelConfusionRow[queryLabel] += end - start + 1;
+        }
+
+        if (annotationInCurrent &&
+            metricType == METRIC_BLOCK_LEVEL &&
+            preQueryLabelIsValid &&
+            queryLabelChanged) {
+            refLabelConfusionRow[preQueryLabel] += 1;
         }
 
 
@@ -810,11 +827,17 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         int refLabelBlockLen = preBlockEnd - refLabelStart + 1;
         int binIndicesLength = 0;
         int *binIndices = IntBinArray_getBinIndices(sizeBinArray, refLabelBlockLen, &binIndicesLength);
-        if (isMetricOverlapBased) {
+        if (metricType == METRIC_OVERLAP_BASED) {
             convertBaseLevelToOverlapBased(refLabelConfusionRow,
                                            summaryTableList->numberOfColumns,
                                            refLabelBlockLen,
                                            overlapThreshold);
+        }
+        // add last block (with a contiguous ref and query label)
+        if (metricType == METRIC_BLOCK_LEVEL &&
+            preQueryLabelIsValid &&
+            queryLabelChanged) {
+            refLabelConfusionRow[preQueryLabel] += 1;
         }
         // iterating over size bin indices
         for (int bi = 0; bi < binIndicesLength; bi++) {
@@ -919,7 +942,6 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
     }
 
     // create a template of update args with category 1 index set to -1
-    bool isMetricOverlapBased = metricType == METRIC_OVERLAP_BASED;
     SummaryTableUpdaterArgs *argsTemplate = SummaryTableUpdaterArgs_construct((void *) blockIterator,
                                                                               copyIterator,
                                                                               resetIterator,
@@ -931,7 +953,7 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                                               -1,
                                                                               getRefLabelFunction,
                                                                               getQueryLabelFunction,
-                                                                              isMetricOverlapBased,
+                                                                              metricType,
                                                                               overlapRatioThreshold);
     // update all tables with multi-threading
     SummaryTableList_updateForAllCategory1(argsTemplate, sizeOfCategory1, numberOfThreads);
@@ -955,7 +977,7 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
     if (binArrayFilePath != NULL) {
         // parse bin intervals
         binArray = IntBinArray_constructFromFile(binArrayFilePath);
-    }else{
+    } else {
         binArray = IntBinArray_constructSingleBin(0, 1e9, "ALL_SIZES");
     }
 
@@ -1042,7 +1064,8 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                     if (header->isTruthAvailable == false && truthLabelIsNeeded) continue;
                     if (header->isPredictionAvailable == false && predictionLabelIsNeeded) continue;
 
-                    fprintf(stderr, "[%s] Creating summary tables for categoryType = %s, metricType = %s, comparisonType = %s .\n",
+                    fprintf(stderr,
+                            "[%s] Creating summary tables for categoryType = %s, metricType = %s, comparisonType = %s .\n",
                             get_timestamp(),
                             CategoryTypeToString[categoryType],
                             MetricTypeToString[metricType],
@@ -1086,7 +1109,8 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                     } else {
                         SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
                     }
-		    fprintf(stderr, "[%s] Writing summary tables is done for categoryType = %s, metricType = %s, comparisonType = %s .\n",
+                    fprintf(stderr,
+                            "[%s] Writing summary tables is done for categoryType = %s, metricType = %s, comparisonType = %s .\n",
                             get_timestamp(),
                             CategoryTypeToString[categoryType],
                             MetricTypeToString[metricType],
@@ -1106,7 +1130,8 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                                   precisionTables,
                                                                   foutFinalStats,
                                                                   linePrefix);
-                    fprintf(stderr, "[%s] Writing benchmarking stats (precision/recall/f1score) is done for categoryType = %s, metricType = %s .\n",
+                    fprintf(stderr,
+                            "[%s] Writing benchmarking stats (precision/recall/f1score) is done for categoryType = %s, metricType = %s .\n",
                             get_timestamp(),
                             CategoryTypeToString[categoryType],
                             MetricTypeToString[metricType]);
@@ -1124,7 +1149,7 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
     }
 
     fprintf(stderr, "[%s] Writing tables to file %s is done.\n", get_timestamp(), outputPath);
-    if(foutFinalStats != NULL) {
+    if (foutFinalStats != NULL) {
         fprintf(stderr, "[%s] Writing tables to file %s is done.\n", get_timestamp(), outputPathFinalStats);
     }
 
