@@ -810,15 +810,15 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
             metricType == METRIC_BLOCK_LEVEL &&
             preQueryLabelIsValid &&
             queryLabelChanged &&
-	    (annotationContinued && !refLabelChanged) &&
-	    !contigChanged) {
+            (annotationContinued && !refLabelChanged) &&
+            !contigChanged) {
             refLabelConfusionRow[preQueryLabel] += 1;
         }
 
 
         preCoverageInfo = coverageInfo;
         preRefLabel = refLabel;
-	preQueryLabel = queryLabel;
+        preQueryLabel = queryLabel;
         strcpy(preCtg, ctg);
         preBlockEnd = end;
     }
