@@ -149,6 +149,9 @@ ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalL
         fprintf(stderr, "[%s] Constructing index in memory ... \n", get_timestamp());
         chunksCreator->templateChunks = ChunksCreator_createCovIndex(covPath, faiPath, chunkCanonicalLen);
         fprintf(stderr, "[%s] Index is constructed.\n", get_timestamp());
+        ChunksCreator_writeCovIndex(chunksCreator, covIndexPath);
+        fprintf(stderr, "[%s] Index is saved into %s (It will skip index construction for next runs).\n", get_timestamp(), covIndexPath);
+
     } else {
         fprintf(stderr, "[%s] Index file exists: %s\n", get_timestamp(), covIndexPath);
         fprintf(stderr, "[%s] Parsing index ... \n", get_timestamp());
