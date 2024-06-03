@@ -760,8 +760,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
             }
             // add last block (with a contiguous ref and query label)
             if (metricType == METRIC_BLOCK_LEVEL &&
-                preQueryLabelIsValid &&
-                queryLabelChanged) {
+                preQueryLabelIsValid) {
                 refLabelConfusionRow[preQueryLabel] += 1;
             }
             // iterating over size bin indices
