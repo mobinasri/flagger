@@ -22,7 +22,7 @@ typedef enum BlockIteratorType {
 typedef enum MetricType {
     METRIC_OVERLAP_BASED = 0,
     METRIC_BASE_LEVEL = 1,
-    METRIC_BLOCK_LEVEL = 2
+    METRIC_AUN = 2
 } MetricType;
 
 typedef enum CategoryType {
@@ -41,7 +41,7 @@ typedef enum ComparisonType {
 #define NUMBER_OF_METRIC_TYPES 3
 #define NUMBER_OF_COMPARISON_TYPES 4
 
-static const char *MetricTypeToString[3] = {"overlap_based", "base_level", "block_level"};
+static const char *MetricTypeToString[3] = {"overlap_based", "base_level", "truth_based_auN"};
 static const char *CategoryTypeToString[2] = {"region", "annotation"};
 static const char *ComparisonTypeToString[4] = {"recall", "precision", "truth", "prediction"};
 
@@ -70,6 +70,8 @@ SummaryTable *SummaryTable_constructByNames(stList *rowNames, stList *columnName
 void SummaryTable_destruct(SummaryTable *summaryTable);
 
 void SummaryTable_increment(SummaryTable *summaryTable, int rowIndex, int columnIndex, double value);
+
+double SummaryTable_getValue(SummaryTable *summaryTable, int rowIndex, int columnIndex);
 
 double SummaryTable_getTPCountInRow(SummaryTable *summaryTable, int rowIndex);
 
@@ -235,6 +237,14 @@ typedef struct SummaryTableUpdaterArgs {
     MetricType metricType;
     // the overlap ratio threshold for considering an overlap as a hit in calculating overlap-based metrics
     double overlapThreshold;
+
+    // auxiliary summary table list
+    // it can be useful when for creating one summary table we need to get some information from another table
+    // for example for METRIC_AUN, which is defined only for TRUTH_VS_PREDICTION or PREDICTION_VS_TRUTH,
+    // we need the summary table of METRIC_BASE_LEVEL for TRUTH_VS_TRUTH and PREDICTION_VS_PREDICTION respectively
+    // to compute what ratio of whole bases with a specific truth label (or prediction label) is covered by
+    // each truth label (prediction label).
+    SummaryTableList *auxiliarySummaryTableList;
 } SummaryTableUpdaterArgs;
 
 SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_construct(void *blockIterator,
@@ -249,7 +259,8 @@ SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_construct(void *blockIterator,
                                                            int8_t (*getRefLabelFunction)(Inference *),
                                                            int8_t (*getQueryLabelFunction)(Inference *),
                                                            MetricType metricType,
-                                                           double overlapThreshold);
+                                                           double overlapThreshold,
+                                                           SummaryTableList *auxiliarySummaryTableList);
 
 SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_copy(SummaryTableUpdaterArgs *src);
 
@@ -276,7 +287,8 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                               int numberOfLabelsWithUnknown,
                                                               stList *labelNamesWithUnknown,
                                                               ComparisonType comparisonType,
-                                                              int numberOfThreads);
+                                                              int numberOfThreads,
+                                                              SummaryTableList *auxiliarySummaryTableList);
 
 void SummaryTableList_createAndWriteAllTables(void *iterator,
                                               BlockIteratorType blockIteratorType,

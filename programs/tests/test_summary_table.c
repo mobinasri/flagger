@@ -405,7 +405,8 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
                                                                                      numberOfLabelsWithUnknown,
                                                                                      labelNamesWithUnknown,
                                                                                      COMPARISON_PREDICTION_VS_TRUTH,
-                                                                                     threads);
+                                                                                     threads,
+                                                                                     NULL);
 
     bool correct = true;
 
