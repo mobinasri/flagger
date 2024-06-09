@@ -615,7 +615,7 @@ void SummaryTableList_writeFinalAunStatisticsIntoFile(SummaryTableList *numerato
                 double aunDenom = SummaryTable_getValue(denominatorTable, rowIndex, rowIndex);
                 double aunNum = SummaryTable_getValue(numeratorTable, rowIndex, rowIndex);
                 double aun = aunNum / (aunDenom + 1e-9);
-                numberOfNonZeroDenom += 0 < aunDenom : 1 ? 0;
+                numberOfNonZeroDenom += 0 < aunDenom ? 1 : 0;
                 aunSum += aun;
                 char *rowName = SummaryTable_getRowName(numeratorTable, rowIndex);
                 fprintf(fout, "%s\t%s\t%s\t%s\t%.2f\n",
@@ -651,7 +651,7 @@ void SummaryTableList_destruct(SummaryTableList *summaryTableList) {
 
 
 // It will modify confusion row in place
-void convertBaseLevelToOverlapBased(int *refLabelConfusionRow,
+void convertBaseLevelToOverlapBased(double *refLabelConfusionRow,
                                     int columnSize,
                                     int refLabelBlockLength,
                                     double overlapThreshold) {
@@ -799,8 +799,8 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
     }
 
     // +1 for undefined query labels
-    int *refLabelConfusionRow = Int_construct1DArray(summaryTableList->numberOfColumns);
-    Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
+    double *refLabelConfusionRow = Double_construct1DArray(summaryTableList->numberOfColumns);
+    Double_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0.0);
 
     int refLabelStart = -1;
     int queryLabelStart = -1;
@@ -814,6 +814,9 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
     preCtg[0] = '\0';
 
     ptBlock *block = NULL;
+    int *queryLabelBlockLenPtr = NULL;
+    int queryLabelBlockLen = 0;
+
     while ((block = getNextBlock(blockIterator, ctg)) != NULL) {
 
         // get coverage info for this block
@@ -881,40 +884,35 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
             if (metricType == METRIC_AUN) {
                 if (preQueryLabelIsValid) {
                     // add last block (with a contiguous ref and query label)
-                    int *queryLabelBlockLenPtr = malloc(sizeof(int));
+                    queryLabelBlockLenPtr = (int *) malloc(sizeof(int));
                     *queryLabelBlockLenPtr = preBlockEnd - queryLabelStart + 1;
                     stList_append(queryLengthsPerLabel[preQueryLabel], queryLabelBlockLenPtr);
                 }
-                // iterating over size bin indices
-                for (int bi = 0; bi < binIndicesLength; bi++) {
-                    int binIndex = binIndices[bi];
-
-                    // each bin index as its own total ref length
-                    double totalSizeOfPreRefLabel = SummaryTableList_getValue(auxTableList,
-                                                                              categoryIndex1,
-                                                                              binIndex,
-                                                                              preRefLabel,
-                                                                              preRefLabel);
+		    //fprintf(stderr, "new ref block\n");
                     // iterating over query labels
                     for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
                         for (int queryBlockIndex = 0;
                              queryBlockIndex < stList_length(queryLengthsPerLabel[q]);
                              queryBlockIndex++) {
-                            queryLabelBlockLenPtr = (int *) stList_get(queryLengthsPerLabel[q], i);
-                            int queryLabelBlockLen = *queryLabelBlockLenPtr;
-                            double coveredRatio = (double) queryLabelBlockLen / totalSizeOfPreRefLabel;
+                            queryLabelBlockLenPtr = (int *) stList_get(queryLengthsPerLabel[q], queryBlockIndex);
+                            queryLabelBlockLen = (int) *queryLabelBlockLenPtr;
+			    //fprintf(stderr, "annot_idx=%d\tref=%d\tquery=%d\trefBlockLen=%d\tqueryBlockLen=%d\n", categoryIndex1, preRefLabel, q, refLabelBlockLen, queryLabelBlockLen);
                             // update ref label confusion row for computing AuN ratio values
-                            refLabelConfusionRow[q] += (double) queryLabelBlockLen * coveredRatio);
+                            refLabelConfusionRow[q] += (double) queryLabelBlockLen * queryLabelBlockLen;
                         }
-                        // reset the list of query block lengths
-                        stList_destruct(queryLengthsPerLabel[q]);
-                        queryLengthsPerLabel[q] = stList_construct3(0, free);
                     }
-                }
             }
+
+	    
             // iterating over size bin indices
             for (int bi = 0; bi < binIndicesLength; bi++) {
                 int binIndex = binIndices[bi];
+		// each bin index as its own total ref length
+		double totalSizeOfPreRefLabel = metricType == METRIC_AUN ? SummaryTableList_getValue(auxTableList,
+                                                                              categoryIndex1,
+                                                                              binIndex,
+                                                                              preRefLabel,
+                                                                              preRefLabel) : 1.0;
                 // iterating over query labels
                 for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
                     int catIndex1 = categoryIndex1;
@@ -927,17 +925,31 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
                                                catIndex2,
                                                rowIndex,
                                                columnIndex,
-                                               refLabelConfusionRow[q]);
+                                               refLabelConfusionRow[q] / totalSizeOfPreRefLabel);
                 }
             }
             free(binIndices);
         }
 
+	// query label changed within a ref block
+        if (annotationInCurrent &&
+            metricType == METRIC_AUN &&
+            preQueryLabelIsValid &&
+            queryLabelChanged &&
+            (annotationContinued && !refLabelChanged) &&
+            !contigChanged) {
+            queryLabelBlockLenPtr = (int *) malloc(sizeof(int));
+            *queryLabelBlockLenPtr = preBlockEnd - queryLabelStart + 1;
+            stList_append(queryLengthsPerLabel[preQueryLabel], queryLabelBlockLenPtr);
+        }
+
+
         // reset confusion row and update start location
         if ((!annotationInCurrent && contigChanged) ||
             annotationEnded) {
             refLabelStart = -1;
-            Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
+	    queryLabelStart = -1;
+            Double_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
         }
 
         // reset confusion row and update start location
@@ -945,7 +957,12 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
             (annotationInCurrent && contigChanged) ||
             annotationStarted) {
             refLabelStart = start;
-            Int_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
+            Double_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
+	    for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
+		    // reset the list of query block lengths
+		    stList_destruct(queryLengthsPerLabel[q]);
+		    queryLengthsPerLabel[q] = stList_construct3(0, free);
+	    }
         }
 
         // update start location for query label
@@ -959,17 +976,6 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         // update confusion row
         if (annotationInCurrent && metricType != METRIC_AUN) {
             refLabelConfusionRow[queryLabel] += end - start + 1;
-        }
-
-        if (annotationInCurrent &&
-            metricType == METRIC_AUN &&
-            preQueryLabelIsValid &&
-            queryLabelChanged &&
-            (annotationContinued && !refLabelChanged) &&
-            !contigChanged) {
-            int *queryLabelBlockLenPtr = malloc(sizeof(int));
-            *queryLabelBlockLenPtr = preBlockEnd - queryLabelStart + 1;
-            stList_append(queryLengthsPerLabel[preQueryLabel], queryLabelBlockLenPtr);
         }
 
 
@@ -997,40 +1003,34 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         if (metricType == METRIC_AUN) {
             if (preQueryLabelIsValid) {
                 // add last block (with a contiguous ref and query label)
-                int *queryLabelBlockLenPtr = malloc(sizeof(int));
+                queryLabelBlockLenPtr = (int *) malloc(sizeof(int));
                 *queryLabelBlockLenPtr = preBlockEnd - queryLabelStart + 1;
                 stList_append(queryLengthsPerLabel[preQueryLabel], queryLabelBlockLenPtr);
             }
-            // iterating over size bin indices
-            for (int bi = 0; bi < binIndicesLength; bi++) {
-                int binIndex = binIndices[bi];
-
-                // each bin index as its own total ref length
-                double totalSizeOfPreRefLabel = SummaryTableList_getValue(auxTableList,
-                                                                          categoryIndex1,
-                                                                          binIndex,
-                                                                          preRefLabel,
-                                                                          preRefLabel);
+		//fprintf(stderr, "new ref block final\n");
                 // iterating over query labels
                 for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
                     for (int queryBlockIndex = 0;
                          queryBlockIndex < stList_length(queryLengthsPerLabel[q]);
                          queryBlockIndex++) {
-                        queryLabelBlockLenPtr = (int *) stList_get(queryLengthsPerLabel[q], i);
-                        int queryLabelBlockLen = *queryLabelBlockLenPtr;
-                        double coveredRatio = (double) queryLabelBlockLen / totalSizeOfPreRefLabel;
+                        queryLabelBlockLenPtr = (int *) stList_get(queryLengthsPerLabel[q], queryBlockIndex);
+                        queryLabelBlockLen = (int) *queryLabelBlockLenPtr;
+			//fprintf(stderr, "annot_idx=%d\tref=%d\tquery=%d\trefBlockLen=%d\tqueryBlockLen=%d\n", categoryIndex1, preRefLabel, q, refLabelBlockLen, queryLabelBlockLen);
                         // update ref label confusion row for computing AuN ratio values
-                        refLabelConfusionRow[q] += (double) queryLabelBlockLen * coveredRatio);
+                        refLabelConfusionRow[q] += (double) queryLabelBlockLen * queryLabelBlockLen;
                     }
-                    // reset the list of query block lengths
-                    stList_destruct(queryLengthsPerLabel[q]);
-                    queryLengthsPerLabel[q] = stList_construct3(0, free);
                 }
-            }
         }
         // iterating over size bin indices
         for (int bi = 0; bi < binIndicesLength; bi++) {
             int binIndex = binIndices[bi];
+	    // each bin index as its own total ref length
+                double totalSizeOfPreRefLabel = metricType == METRIC_AUN ? SummaryTableList_getValue(auxTableList,
+                                                                          categoryIndex1,
+                                                                          binIndex,
+                                                                          preRefLabel,
+                                                                          preRefLabel) : 1.0;
+
             // iterating over query labels
             for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
                 int catIndex1 = categoryIndex1;
@@ -1043,15 +1043,15 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
                                            catIndex2,
                                            rowIndex,
                                            columnIndex,
-                                           refLabelConfusionRow[q]);
+                                           refLabelConfusionRow[q] / totalSizeOfPreRefLabel);
             }
         }
         free(binIndices);
     }
 
-    Int_destruct1DArray(refLabelConfusionRow);
+    Double_destruct1DArray(refLabelConfusionRow);
     destructBlockIterator(blockIterator);
-    for (int labelIndex = 0; labelIndex < stList_length(queryLengthsPerLabel); labelIndex++) {
+    for (int labelIndex = 0; labelIndex < summaryTableList->numberOfColumns; labelIndex++) {
         stList_destruct(queryLengthsPerLabel[labelIndex]);
     }
     free(queryLengthsPerLabel);
@@ -1261,7 +1261,7 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
     for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
         summaryTableListPerMetricAndComparison[metricType] = (SummaryTableList **) malloc(
                 NUMBER_OF_COMPARISON_TYPES * sizeof(SummaryTableList *));
-        for (int comparisonType = 0; comparisoType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
+        for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
             summaryTableListPerMetricAndComparison[metricType][comparisonType] = NULL;
         }
     }
@@ -1323,7 +1323,7 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                                         comparisonType,
                                                                         threads,
                                                                         auxiliarySummaryTableList);
-                    summaryTableListPerComparison[comparisonType] = summaryTableList;
+                    summaryTableListPerMetricAndComparison[metricType][comparisonType] = summaryTableList;
 
                     // write count values
                     sprintf(linePrefix, "%s\t%s\tcount\t%s",
@@ -1379,7 +1379,8 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                             MetricTypeToString[metricType]);
                 } // end comparison type loop
             }// end metric type loop
-
+	    fprintf(stderr, "@@@ 5\n");
+	    if (header->isTruthAvailable && header->isPredictionAvailable){
             // auN ratio is only defined once we have truth labels as reference
             SummaryTableList *aunDenominatorTables = summaryTableListPerMetricAndComparison[METRIC_AUN][COMPARISON_TRUTH_VS_TRUTH];
             SummaryTableList *aunNumeratorTables = summaryTableListPerMetricAndComparison[METRIC_AUN][COMPARISON_TRUTH_VS_PREDICTION];
@@ -1391,7 +1392,7 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                              aunDenominatorTables,
                                                              foutFinalAunStats,
                                                              linePrefix);
-
+	    }
             // free summary tables in the 2D array
             for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
                 for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
