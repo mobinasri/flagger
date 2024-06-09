@@ -1266,8 +1266,8 @@ SummaryTableList *SummaryTableListFullCatalog_get(SummaryTableListFullCatalog *c
 
 void SummaryTableListFullCatalog_destruct(SummaryTableListFullCatalog *catalog) {
     for (int metricType = 0; metricType < catalog->dimMetricType; metricType++) {
-        for (int comparisonType = 0; comparisonType < dimComparisonType; comparisonType++) {
-            for (int categoryType = 0; categoryType < dimCategoryType; categoryType++) {
+        for (int comparisonType = 0; comparisonType < catalog->dimComparisonType; comparisonType++) {
+            for (int categoryType = 0; categoryType < catalog->dimCategoryType; categoryType++) {
                 if (catalog->array[categoryType][metricType][comparisonType] != NULL) {
                     SummaryTableList_destruct(catalog->array[categoryType][metricType][comparisonType]);
                 }
@@ -1403,8 +1403,14 @@ void SummaryTableListFullCatalog_write(SummaryTableListFullCatalog *catalog,
             // if both labels are present for printing benchmarking stats
             // precision and recall are not defined for METRIC_AUN
             if (header->isTruthAvailable && header->isPredictionAvailable && metricType != METRIC_AUN) {
-                SummaryTableList *precisionTables = summaryTableListPerMetricAndComparison[metricType][COMPARISON_PREDICTION_VS_TRUTH];
-                SummaryTableList *recallTables = summaryTableListPerMetricAndComparison[metricType][COMPARISON_TRUTH_VS_PREDICTION];
+                SummaryTableList *precisionTables = SummaryTableListFullCatalog_get(catalog,
+				                                                    categoryType,
+				                                                    metricType,
+				                                                    COMPARISON_PREDICTION_VS_TRUTH);
+                SummaryTableList *recallTables = SummaryTableListFullCatalog_get(catalog,
+                                                                                    categoryType,
+                                                                                    metricType,
+										    COMPARISON_TRUTH_VS_PREDICTION);
 
                 // write percentages
                 sprintf(linePrefix, "%s\t%s",
@@ -1592,7 +1598,8 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                              auxiliarySummaryTableList,
                                                              catalog,
                                                              threadPool);
-        }
+        } // end loop over metric types
+	
         // wait until all jobs are done
         tpool_wait(threadPool);
         // now create jobs for METRIC_AUN
@@ -1614,7 +1621,7 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                          iterator,
                                                          blockIteratorType,
                                                          binArray,
-                                                         metricType,
+                                                         METRIC_AUN,
                                                          overlapRatioThreshold,
                                                          numberOfLabelsWithUnknown,
                                                          labelNamesWithUnknown,

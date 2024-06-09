@@ -585,6 +585,7 @@ stHash *ptBlock_merge_blocks_per_contig_by_sq_v2(stHash *blocks_per_contig);
 stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_contig,
                                                          int (*get_start)(ptBlock *),
                                                          int (*get_end)(ptBlock *),
+							 void (*set_start)(ptBlock *, int),
                                                          void (*set_end)(ptBlock *, int),
                                                          int threads);
 
