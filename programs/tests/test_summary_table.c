@@ -59,9 +59,9 @@ bool test_SummaryTable_getRowString() {
 
 
     correct &= strcmp(SummaryTable_getRowString(summaryTable, 0, ',', false), "30.00,20.00") == 0;
-    correct &= strcmp(SummaryTable_getRowString(summaryTable, 1, ',', false ), "0.00,0.00") == 0;
+    correct &= strcmp(SummaryTable_getRowString(summaryTable, 1, ',', false), "0.00,0.00") == 0;
     correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 0, ',', false), "60.00,40.00") == 0;
-    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 1, ',',false ), "0.00,0.00") == 0;
+    correct &= strcmp(SummaryTable_getRowStringPercentage(summaryTable, 1, ',', false), "0.00,0.00") == 0;
 
     SummaryTable_destruct(summaryTable);
     return correct;
@@ -185,41 +185,41 @@ bool test_SummaryTableList_getRowString() {
             SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "30.00,20.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',',false ),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',', false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',',false),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "60.00,40.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',',false ),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',', false),
             "0.00,0.00") == 0;
     // check total per row strings
     correct &= strcmp(
-            SummaryTableList_getTotalPerRowString(summaryTableList, cat1Index, cat2Index, ',',"TEST"),
+            SummaryTableList_getTotalPerRowString(summaryTableList, cat1Index, cat2Index, ',', "TEST"),
             "TEST,50.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getTotalPerRowStringPercentage(summaryTableList, cat1Index, cat2Index, ',',"TEST"),
+            SummaryTableList_getTotalPerRowStringPercentage(summaryTableList, cat1Index, cat2Index, ',', "TEST"),
             "TEST,100.00,0.00") == 0;
 
 
     cat1Index = 1;
     cat2Index = 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',',false),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',',false),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',', false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',',false),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',',false),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',', false),
             "0.00,0.00") == 0;
 
     // check total per row strings
     correct &= strcmp(
-            SummaryTableList_getTotalPerRowString(summaryTableList, cat1Index, cat2Index, ',',NULL),
+            SummaryTableList_getTotalPerRowString(summaryTableList, cat1Index, cat2Index, ',', NULL),
             "0.00,0.00") == 0;
     correct &= strcmp(
             SummaryTableList_getTotalPerRowStringPercentage(summaryTableList, cat1Index, cat2Index, ',', NULL),
@@ -228,21 +228,21 @@ bool test_SummaryTableList_getRowString() {
     cat1Index = 0;
     cat2Index = 1;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',',false),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',',false),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',', false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',',false),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "0.00,0.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',',false),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',', false),
             "0.00,0.00") == 0;
 
     // check total per row strings
     correct &= strcmp(
-            SummaryTableList_getTotalPerRowString(summaryTableList, cat1Index, cat2Index, ',',NULL),
+            SummaryTableList_getTotalPerRowString(summaryTableList, cat1Index, cat2Index, ',', NULL),
             "0.00,0.00") == 0;
     correct &= strcmp(
             SummaryTableList_getTotalPerRowStringPercentage(summaryTableList, cat1Index, cat2Index, ',', NULL),
@@ -251,16 +251,16 @@ bool test_SummaryTableList_getRowString() {
     cat1Index = 1;
     cat2Index = 1;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',',false),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "60.00,20.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',',false),
+            SummaryTableList_getRowString(summaryTableList, cat1Index, cat2Index, 1, ',', false),
             "0.00,20.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',',false),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 0, ',', false),
             "75.00,25.00") == 0;
     correct &= strcmp(
-            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',',false),
+            SummaryTableList_getRowStringPercentage(summaryTableList, cat1Index, cat2Index, 1, ',', false),
             "0.00,100.00") == 0;
 
     // check total per row strings
@@ -395,19 +395,34 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     MetricType metricType = isMetricOverlapBased ? METRIC_OVERLAP_BASED : METRIC_BASE_LEVEL;
     double overlapRatioThreshold = 0.4;
     stList *labelNamesWithUnknown = NULL;
-    SummaryTableList *summaryTableList = SummaryTableList_constructAndFillByIterator(iterator,
-                                                                                     blockIteratorType,
-                                                                                     header->annotationNames,
-                                                                                     CATEGORY_ANNOTATION,
-                                                                                     binArray,
-                                                                                     metricType,
-                                                                                     overlapRatioThreshold,
-                                                                                     numberOfLabelsWithUnknown,
-                                                                                     labelNamesWithUnknown,
-                                                                                     COMPARISON_PREDICTION_VS_TRUTH,
-                                                                                     threads,
-                                                                                     NULL);
 
+    SummaryTableListFullCatalog *catalog = SummaryTableListFullCatalog_constructNull(NUMBER_OF_CATEGORY_TYPES,
+                                                                                     NUMBER_OF_METRIC_TYPES,
+                                                                                     NUMBER_OF_COMPARISON_TYPES);
+
+    tpool_t *threadPool = tpool_create(threads);
+    SummaryTableList_constructAndFillByIterator(iterator,
+                                                blockIteratorType,
+                                                header->annotationNames,
+                                                CATEGORY_ANNOTATION,
+                                                binArray,
+                                                metricType,
+                                                overlapRatioThreshold,
+                                                numberOfLabelsWithUnknown,
+                                                labelNamesWithUnknown,
+                                                COMPARISON_PREDICTION_VS_TRUTH,
+                                                NULL,
+                                                catalog,
+                                                threadPool);
+
+
+    tpool_wait(threadPool);
+    tpool_destroy(threadPool);
+
+    SummaryTableList *summaryTableList = SummaryTableListFullCatalog_get(catalog,
+                                                                         CATEGORY_ANNOTATION,
+                                                                         metricType,
+                                                                         COMPARISON_PREDICTION_VS_TRUTH);
     bool correct = true;
 
     SummaryTable *summaryTable;
@@ -458,6 +473,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     Double_destruct2DArray(annotation2Bin1, dimension);
     Double_destruct2DArray(annotation1Bin2, dimension);
     Double_destruct2DArray(annotation2Bin2, dimension);
+    SummaryTableListFullCatalog_destruct(catalog);
 
     return correct;
 }

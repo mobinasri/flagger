@@ -43,7 +43,7 @@ typedef enum ComparisonType {
 
 static const char *MetricTypeToString[3] = {"overlap_based", "base_level", "truth_based_auN"};
 static const char *CategoryTypeToString[2] = {"region", "annotation"};
-static const char *ComparisonTypeToString[4] = {"recall", "precision", "truth", "prediction"};
+static const char *ComparisonTypeToString[4] = {"TRUTH_VS_PREDICTION", "PREDICTION_VS_TRUTH", "TRUTH", "PREDICTION"};
 
 /*! @typedef
  * @abstract Structure for keeping a summary table
@@ -183,6 +183,35 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
 void SummaryTableList_destruct(SummaryTableList *summaryTableList);
 
 
+typedef struct SummaryTableListFullCatalog {
+    SummaryTableList ****array;
+    int dimMetricType;
+    int dimComparisonType;
+    int dimCategoryType;
+} SummaryTableListFullCatalog;
+
+SummaryTableListFullCatalog *
+SummaryTableListFullCatalog_constructNull(int dimCategoryType, int dimMetricType, int dimComparisonType);
+
+void SummaryTableListFullCatalog_update(SummaryTableListFullCatalog *catalog,
+                                        SummaryTableList *summaryTableList,
+                                        CategoryType categoryType,
+                                        MetricType metricType,
+                                        ComparisonType comparisonType);
+
+SummaryTableList *SummaryTableListFullCatalog_get(SummaryTableListFullCatalog *catalog,
+                                                  CategoryType categoryType,
+                                                  MetricType metricType,
+                                                  ComparisonType comparisonType);
+
+void SummaryTableListFullCatalog_write(SummaryTableListFullCatalog *catalog,
+                                       CoverageHeader *header,
+                                       stList *labelNamesWithUnknown,
+                                       char *outputPath);
+
+void SummaryTableListFullCatalog_destruct(SummaryTableListFullCatalog *catalog);
+
+
 typedef struct SummaryTableUpdaterArgs {
     // a ptBlock iterator
     // can be either ChunkIterator or ptBlockItrPerContig
@@ -271,13 +300,26 @@ void convertBaseLevelToOverlapBased(double *refLabelConfusionRow,
                                     int refLabelBlockLength,
                                     double overlapThreshold);
 
-void SummaryTableList_updateForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, int sizeOfCategory1, int threads);
+void SummaryTableList_addCreationJobsForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, int sizeOfCategory1, tpool_t *threadPool);
 
 void SummaryTableList_updateByUpdaterArgsForThreadPool(void *argWork_);
 
 void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args);
 
-SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterator,
+
+void SummaryTableList_addCreationJobsForOneMetricType(CoverageHeader *header,
+                                                      void *blockIterator,
+                                                      BlockIteratorType blockIteratorType,
+                                                      IntBinArray *sizeBinArray,
+                                                      MetricType metricType,
+                                                      double overlapRatioThreshold,
+                                                      int numberOfLabelsWithUnknown,
+                                                      stList *labelNamesWithUnknown,
+                                                      SummaryTableList *auxiliarySummaryTableList,
+                                                      SummaryTableListFullCatalog *catalog,
+                                                      tpool_t *threadPool);
+
+void SummaryTableList_constructAndFillByIterator(void *blockIterator,
                                                               BlockIteratorType blockIteratorType,
                                                               stList *categoryNames,
                                                               CategoryType categoryType,
@@ -287,8 +329,9 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                               int numberOfLabelsWithUnknown,
                                                               stList *labelNamesWithUnknown,
                                                               ComparisonType comparisonType,
-                                                              int numberOfThreads,
-                                                              SummaryTableList *auxiliarySummaryTableList);
+                                                              SummaryTableList *auxiliarySummaryTableList,
+                                                              SummaryTableListFullCatalog *catalog,
+                                                              tpool_t *threadPool);
 
 void SummaryTableList_createAndWriteAllTables(void *iterator,
                                               BlockIteratorType blockIteratorType,

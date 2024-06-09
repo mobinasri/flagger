@@ -1180,7 +1180,8 @@ stList *ptBlock_merge_blocks_v2(stList *blocks,
 }
 
 stHash *ptBlock_merge_blocks_per_contig(stHash *blocks_per_contig,
-                                        int (*get_start)(ptBlock *), int (*get_end)(ptBlock *),
+                                        int (*get_start)(ptBlock *),
+                                        int (*get_end)(ptBlock *),
                                         void (*set_end)(ptBlock *, int)) {
     char *contig_name;
     stList *blocks;
@@ -1196,6 +1197,7 @@ stHash *ptBlock_merge_blocks_per_contig(stHash *blocks_per_contig,
         // add merged blocks to the new table
         stHash_insert(merged_blocks_per_contig, contig_name, merged_blocks);
     }
+    stHash_destructIterator(it);
     return merged_blocks_per_contig;
 }
 
@@ -1226,20 +1228,6 @@ stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
     stList *merged_blocks;
     stHash *merged_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                          (void (*)(void *)) stList_destruct);
-    stHashIterator *it = stHash_getIterator(blocks_per_contig);
-    while ((contig_name = stHash_getNext(it)) != NULL) {
-        blocks = stHash_search(blocks_per_contig, contig_name);
-        for (int i = 0; i < stList_length(blocks); i++) {
-            ptBlock *block = stList_get(blocks, i);
-            if (block->data != NULL) {
-                CoverageInfo *covInfo = block->data;
-                if (covInfo->data != NULL) {
-                    Inference *infer = covInfo->data;
-                }
-            }
-        }
-    }
-    stHash_destructIterator(it);
     it = stHash_getIterator(blocks_per_contig);
     while ((contig_name = stHash_getNext(it)) != NULL) {
         // get blocks
@@ -1249,6 +1237,7 @@ stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
         // add merged blocks to the new table
         stHash_insert(merged_blocks_per_contig, copyString(contig_name), merged_blocks);
     }
+    stHash_destructIterator(it);
     return merged_blocks_per_contig;
 }
 
@@ -1271,6 +1260,131 @@ stHash *ptBlock_merge_blocks_per_contig_by_sq_v2(stHash *blocks_per_contig) {
                                               ptBlock_get_sqe,
                                               ptBlock_set_sqs,
                                               ptBlock_set_sqe);
+}
+
+
+typedef struct MergingBlocksArgs {
+    stHash *unmerged_blocks_per_contig;
+    int (*get_start)(ptBlock *);
+    int (*get_end)(ptBlock *);
+    void (*set_end)(ptBlock *, int);
+    char *contig_name;
+    stHash *merged_blocks_per_contig;
+    pthread_mutex_t *mutex;
+} MergingBlocksArgs;
+
+MergingBlocksArgs *MergingBlocksArgs_construct(stHash *unmerged_blocks_per_contig,
+                                               int (*get_start)(ptBlock *),
+                                               int (*get_end)(ptBlock *),
+                                               void (*set_end)(ptBlock *, int),
+                                               char *contig_name,
+                                               stHash *merged_blocks_per_contig) {
+    MergingBlocksArgs *mergingBlocksArgs = malloc(sizeof(MergingBlocksArgs));
+    mergingBlocksArgs->unmerged_blocks_per_contig = unmerged_blocks_per_contig;
+    mergingBlocksArgs->get_start = get_start;
+    mergingBlocksArgs->get_end = get_end;
+    mergingBlocksArgs->set_end = set_end;
+    mergingBlocksArgs->contig_name = contig_name;
+    mergingBlocksArgs->merged_blocks_per_contig = merged_blocks_per_contig;
+    mergingBlocksArgs->mutex = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(mergingBlocksArgs->mutex, NULL);
+    return mergingBlocksArgs;
+}
+
+MergingBlocksArgs *MergingBlocksArgs_destruct(MergingBlocksArgs *mergingBlocksArgs) {
+    pthread_mutex_destroy(mergingBlocksArgs->mutex);
+    free(mergingBlocksArgs);
+}
+
+void ptBlock_merge_blocks_per_contig_v2_one_thread(void *argWork_) {
+    work_arg_t *argWork = argWork_;
+    MergingBlocksArgs *args = argWork->data;
+
+    char *contig_name = args->contig_name;
+    stHash *unmerged_blocks_per_contig = args->unmerged_blocks_per_contig;
+    stHash *merged_blocks_per_contig = args->merged_blocks_per_contig;
+    int (*get_start)(ptBlock *) = args->get_start;
+    int (*get_end)(ptBlock *) = args->get_end;
+    void (*set_end)(ptBlock *, int) = args->get_end;
+
+    // get blocks
+    stList *unmerged_blocks = stHash_search(unmerged_blocks_per_contig, contig_name);
+    // merge blocks
+    stList *merged_blocks = ptBlock_merge_blocks_v2(unmerged_blocks, get_start, get_end, set_end);
+
+    // add merged blocks to the new table
+    pthread_mutex_lock(args->mutex);
+    stHash_insert(merged_blocks_per_contig, contig_name, merged_blocks);
+    pthread_mutex_unlock(args->mutex);
+
+}
+
+stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_contig,
+                                                         int (*get_start)(ptBlock *),
+                                                         int (*get_end)(ptBlock *),
+                                                         void (*set_end)(ptBlock *, int),
+                                                         int threads) {
+    char *contig_name;
+    stList *blocks;
+    stList *merged_blocks;
+    stHash *merged_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
+                                                         (void (*)(void *)) stList_destruct);
+
+    // create a thread pool
+    tpool_t *tm = tpool_create(threads);
+
+    stHashIterator *it = stHash_getIterator(blocks_per_contig);
+    stList *argsList = stList_construct3(0, MergingBlocksArgs_destruct);
+    while ((contig_name = stHash_getNext(it)) != NULL) {
+        MergingBlocksArgs *mergingBlocksArgs = MergingBlocksArgs_construct(blocks_per_contig,
+                                                                           get_start,
+                                                                           get_end,
+                                                                           set_end,
+                                                                           contig_name,
+                                                                           merged_blocks_per_contig);
+        work_arg_t *argWork = malloc(sizeof(work_arg_t));
+        argWork->data = (void *) mergingBlocksArgs;
+        // submit a job
+        tpool_add_work(tm, ptBlock_merge_blocks_per_contig_v2_one_thread, argWork);
+        stList_append(argsList, mergingBlocksArgs);
+    }
+    //wait for all threads
+    tpool_wait(tm);
+
+    // free thread pool
+    tpool_destroy(tm);
+
+    // free mem
+    stList_destruct(argsList);
+    stHash_destructIterator(it);
+
+    return merged_blocks_per_contig;
+}
+
+// multithreaded functions
+
+stHash *ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(stHash *blocks_per_contig, int threads) {
+    return ptBlock_merge_blocks_per_contig_v2_multithreaded(blocks_per_contig, ptBlock_get_rfs,
+                                              ptBlock_get_rfe,
+                                              ptBlock_set_rfs,
+                                              ptBlock_set_rfe,
+                                              threads);
+}
+
+stHash *ptBlock_merge_blocks_per_contig_by_rd_f_v2_multithreaded(stHash *blocks_per_contig, int threads) {
+    return ptBlock_merge_blocks_per_contig_v2_multithreaded(blocks_per_contig, ptBlock_get_rds_f,
+                                              ptBlock_get_rde_f,
+                                              ptBlock_set_rds_f,
+                                              ptBlock_set_rde_f,
+                                              threads);
+}
+
+stHash *ptBlock_merge_blocks_per_contig_by_sq_v2_multithreaded(stHash *blocks_per_contig, int threads) {
+    return ptBlock_merge_blocks_per_contig_v2_multithreaded(blocks_per_contig, ptBlock_get_sqs,
+                                              ptBlock_get_sqe,
+                                              ptBlock_set_sqs,
+                                              ptBlock_set_sqe,
+                                              threads);
 }
 
 int64_t ptBlock_get_total_number(stHash *blocks_per_contig) {
@@ -1638,7 +1752,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
     //sort
     ptBlock_sort_stHash_by_rfs(coverage_blocks_per_contig);
     //merge
-    stHash *coverage_blocks_per_contig_merged = ptBlock_merge_blocks_per_contig_by_rf_v2(coverage_blocks_per_contig);
+    stHash *coverage_blocks_per_contig_merged = ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(coverage_blocks_per_contig, threads);
     fprintf(stderr, "[%s] Merging coverage blocks is done.\n", get_timestamp());
 
     // free unmerged blocks
@@ -1844,7 +1958,7 @@ stHash *ptBlock_parse_coverage_info_blocks(char *filePath) {
     return coverage_blocks_per_contig;
 }
 
-ptBlock *ptBlock_constructFromTrackReader(TrackReader *trackReader, CoverageHeader *header){
+ptBlock *ptBlock_constructFromTrackReader(TrackReader *trackReader, CoverageHeader *header) {
     // create a ptBlock based on the parsed track
     ptBlock *block = ptBlock_construct(trackReader->s, trackReader->e,
                                        -1, -1,
@@ -1967,7 +2081,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
             ptBlock_get_total_number(coverage_block_table));
 
     //merge and create the final block table
-    stHash *final_block_table = ptBlock_merge_blocks_per_contig_by_rf_v2(coverage_block_table);
+    stHash *final_block_table = ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(coverage_block_table, threads);
 
     fprintf(stderr, "[%s] Created final block table : tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(final_block_table),
