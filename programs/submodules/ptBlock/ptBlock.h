@@ -579,6 +579,20 @@ stHash *ptBlock_merge_blocks_per_contig_by_rd_f_v2(stHash *blocks_per_contig);
 
 stHash *ptBlock_merge_blocks_per_contig_by_sq_v2(stHash *blocks_per_contig);
 
+// multithreaded functions
+
+// a multithreaded version of ptBlock_merge_blocks_per_contig_v2
+stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_contig,
+                                                         int (*get_start)(ptBlock *),
+                                                         int (*get_end)(ptBlock *),
+                                                         void (*set_end)(ptBlock *, int),
+                                                         int threads);
+
+stHash *ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(stHash *blocks_per_contig, int threads);
+
+stHash *ptBlock_merge_blocks_per_contig_by_rd_f_v2_multithreaded(stHash *blocks_per_contig, int threads);
+
+stHash *ptBlock_merge_blocks_per_contig_by_sq_v2_multithreaded(stHash *blocks_per_contig, int threads);
 
 /**
  * Receives an alignment, creates a ptBlock struct based on the reference start and end

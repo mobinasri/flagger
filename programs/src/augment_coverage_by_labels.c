@@ -153,7 +153,9 @@ int main(int argc, char *argv[]) {
     ptBlock_sort_stHash_by_rfs(blockTable);
 
     //merge and create the final block table
-    stHash *finalBlockTable = ptBlock_merge_blocks_per_contig_by_rf_v2(blockTable);
+    stHash *finalBlockTable = ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(blockTable, threads);
+    // free unmerged table
+    stHash_destruct(blockTable);
 
     fprintf(stderr, "[%s] Merged blocks after adding label bed tracks : tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(finalBlockTable),
