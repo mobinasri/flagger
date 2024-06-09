@@ -266,7 +266,7 @@ SummaryTableUpdaterArgs *SummaryTableUpdaterArgs_copy(SummaryTableUpdaterArgs *s
 
 void SummaryTableUpdaterArgs_destruct(SummaryTableUpdaterArgs *args);
 
-void convertBaseLevelToOverlapBased(int *refLabelConfusionRow,
+void convertBaseLevelToOverlapBased(double *refLabelConfusionRow,
                                     int columnSize,
                                     int refLabelBlockLength,
                                     double overlapThreshold);
