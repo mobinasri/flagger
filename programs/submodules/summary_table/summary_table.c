@@ -505,7 +505,7 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 sumOfPrecision += precisionPercent;
                 // for calculating harmonic mean later
                 // 1.0e9 is sufficiently large
-                if(1e-9 < (tpRecall + fn)) {
+                if (1e-9 < (tpRecall + fn)) {
                     sumOfReciprocalRecall += 0.0 < recallPercent ? 1.0 / recallPercent : 1.0e9;
                     sumOfReciprocalPrecision += 0.0 < precisionPercent ? 1.0 / precisionPercent : 1.0e9;
                 }
@@ -600,7 +600,7 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
             char harmonicF1ScoreStr[20];
             if (0 < numberOfNonZeroDenomRecall && 0 < numberOfNonZeroDenomPrecision) {
                 double harmonicF1Score = 2 * harmonicMeanRecall * harmonicMeanPrecision /
-                                      (harmonicMeanRecall + harmonicMeanPrecision + 1.0e-9);
+                                         (harmonicMeanRecall + harmonicMeanPrecision + 1.0e-9);
                 sprintf(harmonicF1ScoreStr, "%.2f", harmonicF1Score);
             } else {
                 sprintf(harmonicF1ScoreStr, "NA");
@@ -792,10 +792,8 @@ void SummaryTableUpdaterArgs_destruct(SummaryTableUpdaterArgs *args) {
 
 
 void
-SummaryTableList_updateForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, int sizeOfCategory1, int threads) {
-
-    // create a thread pool
-    tpool_t *tm = tpool_create(threads);
+SummaryTableList_addCreationJobsForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, int sizeOfCategory1,
+                                                tpool_t *threadPool) {
     for (int categoryIndex1 = 0; categoryIndex1 < sizeOfCategory1; categoryIndex1++) {
         // make a copy of args
         SummaryTableUpdaterArgs *argsToRun = SummaryTableUpdaterArgs_copy(argsTemplate);
@@ -805,15 +803,12 @@ SummaryTableList_updateForAllCategory1(SummaryTableUpdaterArgs *argsTemplate, in
         work_arg_t *argWork = malloc(sizeof(work_arg_t));
         argWork->data = (void *) argsToRun;
         // Add a new job to the thread pool
-        tpool_add_work(tm,
+        tpool_add_work(threadPool,
                        SummaryTableList_updateByUpdaterArgsForThreadPool,
                        (void *) argWork);
         //fprintf(stderr, "[%s] Created thread for updating summary table for category1 index %d (out of range [0-%d])\n",
         //        get_timestamp(), categoryIndex1, sizeOfCategory1 - 1);
     }
-    tpool_wait(tm);
-    tpool_destroy(tm);
-
 }
 
 void SummaryTableList_updateByUpdaterArgsForThreadPool(void *argWork_) {
@@ -954,31 +949,31 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
                     *queryLabelBlockLenPtr = preBlockEnd - queryLabelStart + 1;
                     stList_append(queryLengthsPerLabel[preQueryLabel], queryLabelBlockLenPtr);
                 }
-		    //fprintf(stderr, "new ref block\n");
-                    // iterating over query labels
-                    for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
-                        for (int queryBlockIndex = 0;
-                             queryBlockIndex < stList_length(queryLengthsPerLabel[q]);
-                             queryBlockIndex++) {
-                            queryLabelBlockLenPtr = (int *) stList_get(queryLengthsPerLabel[q], queryBlockIndex);
-                            queryLabelBlockLen = (int) *queryLabelBlockLenPtr;
-			    //fprintf(stderr, "annot_idx=%d\tref=%d\tquery=%d\trefBlockLen=%d\tqueryBlockLen=%d\n", categoryIndex1, preRefLabel, q, refLabelBlockLen, queryLabelBlockLen);
-                            // update ref label confusion row for computing AuN ratio values
-                            refLabelConfusionRow[q] += (double) queryLabelBlockLen * queryLabelBlockLen;
-                        }
+                //fprintf(stderr, "new ref block\n");
+                // iterating over query labels
+                for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
+                    for (int queryBlockIndex = 0;
+                         queryBlockIndex < stList_length(queryLengthsPerLabel[q]);
+                         queryBlockIndex++) {
+                        queryLabelBlockLenPtr = (int *) stList_get(queryLengthsPerLabel[q], queryBlockIndex);
+                        queryLabelBlockLen = (int) *queryLabelBlockLenPtr;
+                        //fprintf(stderr, "annot_idx=%d\tref=%d\tquery=%d\trefBlockLen=%d\tqueryBlockLen=%d\n", categoryIndex1, preRefLabel, q, refLabelBlockLen, queryLabelBlockLen);
+                        // update ref label confusion row for computing AuN ratio values
+                        refLabelConfusionRow[q] += (double) queryLabelBlockLen * queryLabelBlockLen;
                     }
+                }
             }
 
-	    
+
             // iterating over size bin indices
             for (int bi = 0; bi < binIndicesLength; bi++) {
                 int binIndex = binIndices[bi];
-		// each bin index as its own total ref length
-		double totalSizeOfPreRefLabel = metricType == METRIC_AUN ? SummaryTableList_getValue(auxTableList,
-                                                                              categoryIndex1,
-                                                                              binIndex,
-                                                                              preRefLabel,
-                                                                              preRefLabel) : 1.0;
+                // each bin index as its own total ref length
+                double totalSizeOfPreRefLabel = metricType == METRIC_AUN ? SummaryTableList_getValue(auxTableList,
+                                                                                                     categoryIndex1,
+                                                                                                     binIndex,
+                                                                                                     preRefLabel,
+                                                                                                     preRefLabel) : 1.0;
                 // iterating over query labels
                 for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
                     int catIndex1 = categoryIndex1;
@@ -997,7 +992,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
             free(binIndices);
         }
 
-	// query label changed within a ref block
+        // query label changed within a ref block
         if (annotationInCurrent &&
             metricType == METRIC_AUN &&
             preQueryLabelIsValid &&
@@ -1014,7 +1009,7 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
         if ((!annotationInCurrent && contigChanged) ||
             annotationEnded) {
             refLabelStart = -1;
-	    queryLabelStart = -1;
+            queryLabelStart = -1;
             Double_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
         }
 
@@ -1024,11 +1019,11 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
             annotationStarted) {
             refLabelStart = start;
             Double_fill1DArray(refLabelConfusionRow, summaryTableList->numberOfColumns, 0);
-	    for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
-		    // reset the list of query block lengths
-		    stList_destruct(queryLengthsPerLabel[q]);
-		    queryLengthsPerLabel[q] = stList_construct3(0, free);
-	    }
+            for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
+                // reset the list of query block lengths
+                stList_destruct(queryLengthsPerLabel[q]);
+                queryLengthsPerLabel[q] = stList_construct3(0, free);
+            }
         }
 
         // update start location for query label
@@ -1073,29 +1068,29 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
                 *queryLabelBlockLenPtr = preBlockEnd - queryLabelStart + 1;
                 stList_append(queryLengthsPerLabel[preQueryLabel], queryLabelBlockLenPtr);
             }
-		//fprintf(stderr, "new ref block final\n");
-                // iterating over query labels
-                for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
-                    for (int queryBlockIndex = 0;
-                         queryBlockIndex < stList_length(queryLengthsPerLabel[q]);
-                         queryBlockIndex++) {
-                        queryLabelBlockLenPtr = (int *) stList_get(queryLengthsPerLabel[q], queryBlockIndex);
-                        queryLabelBlockLen = (int) *queryLabelBlockLenPtr;
-			//fprintf(stderr, "annot_idx=%d\tref=%d\tquery=%d\trefBlockLen=%d\tqueryBlockLen=%d\n", categoryIndex1, preRefLabel, q, refLabelBlockLen, queryLabelBlockLen);
-                        // update ref label confusion row for computing AuN ratio values
-                        refLabelConfusionRow[q] += (double) queryLabelBlockLen * queryLabelBlockLen;
-                    }
+            //fprintf(stderr, "new ref block final\n");
+            // iterating over query labels
+            for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
+                for (int queryBlockIndex = 0;
+                     queryBlockIndex < stList_length(queryLengthsPerLabel[q]);
+                     queryBlockIndex++) {
+                    queryLabelBlockLenPtr = (int *) stList_get(queryLengthsPerLabel[q], queryBlockIndex);
+                    queryLabelBlockLen = (int) *queryLabelBlockLenPtr;
+                    //fprintf(stderr, "annot_idx=%d\tref=%d\tquery=%d\trefBlockLen=%d\tqueryBlockLen=%d\n", categoryIndex1, preRefLabel, q, refLabelBlockLen, queryLabelBlockLen);
+                    // update ref label confusion row for computing AuN ratio values
+                    refLabelConfusionRow[q] += (double) queryLabelBlockLen * queryLabelBlockLen;
                 }
+            }
         }
         // iterating over size bin indices
         for (int bi = 0; bi < binIndicesLength; bi++) {
             int binIndex = binIndices[bi];
-	    // each bin index as its own total ref length
-                double totalSizeOfPreRefLabel = metricType == METRIC_AUN ? SummaryTableList_getValue(auxTableList,
-                                                                          categoryIndex1,
-                                                                          binIndex,
-                                                                          preRefLabel,
-                                                                          preRefLabel) : 1.0;
+            // each bin index as its own total ref length
+            double totalSizeOfPreRefLabel = metricType == METRIC_AUN ? SummaryTableList_getValue(auxTableList,
+                                                                                                 categoryIndex1,
+                                                                                                 binIndex,
+                                                                                                 preRefLabel,
+                                                                                                 preRefLabel) : 1.0;
 
             // iterating over query labels
             for (int q = 0; q < summaryTableList->numberOfColumns; q++) {
@@ -1123,18 +1118,19 @@ void SummaryTableList_updateByUpdaterArgs(SummaryTableUpdaterArgs *args) {
     free(queryLengthsPerLabel);
 }
 
-SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterator,
-                                                              BlockIteratorType blockIteratorType,
-                                                              stList *categoryNames,
-                                                              CategoryType categoryType,
-                                                              IntBinArray *sizeBinArray,
-                                                              MetricType metricType,
-                                                              double overlapRatioThreshold,
-                                                              int numberOfLabelsWithUnknown,
-                                                              stList *labelNamesWithUnknown,
-                                                              ComparisonType comparisonType,
-                                                              int numberOfThreads,
-                                                              SummaryTableList *auxiliarySummaryTableList) {
+void SummaryTableList_constructAndFillByIterator(void *blockIterator,
+                                                 BlockIteratorType blockIteratorType,
+                                                 stList *categoryNames,
+                                                 CategoryType categoryType,
+                                                 IntBinArray *sizeBinArray,
+                                                 MetricType metricType,
+                                                 double overlapRatioThreshold,
+                                                 int numberOfLabelsWithUnknown,
+                                                 stList *labelNamesWithUnknown,
+                                                 ComparisonType comparisonType,
+                                                 SummaryTableList *auxiliarySummaryTableList,
+                                                 SummaryTableListFullCatalog *catalog,
+                                                 tpool_t *threadPool) {
 
     ptBlock *(*getNextBlock)(void *, char *);
     void *(*copyIterator)(void *);
@@ -1200,6 +1196,8 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                              labelNamesWithUnknown,
                                                              labelNamesWithUnknown);
     }
+    // insert summary table list to the catalog
+    SummaryTableListFullCatalog_update(catalog, summaryTableList, categoryType, metricType, comparisonType);
 
     // create a template of update args with category 1 index set to -1
     SummaryTableUpdaterArgs *argsTemplate = SummaryTableUpdaterArgs_construct((void *) blockIterator,
@@ -1217,30 +1215,72 @@ SummaryTableList *SummaryTableList_constructAndFillByIterator(void *blockIterato
                                                                               overlapRatioThreshold,
                                                                               auxiliarySummaryTableList);
     // update all tables with multi-threading
-    SummaryTableList_updateForAllCategory1(argsTemplate, sizeOfCategory1, numberOfThreads);
+    SummaryTableList_addCreationJobsForAllCategory1(argsTemplate, sizeOfCategory1, threadPool);
 
     SummaryTableUpdaterArgs_destruct(argsTemplate);
-
-    return summaryTableList;
 }
 
 
-void SummaryTableList_createAndWriteAllTables(void *iterator,
-                                              BlockIteratorType blockIteratorType,
-                                              CoverageHeader *header,
-                                              const char *outputPath,
-                                              const char *binArrayFilePath,
-                                              stList *labelNamesWithUnknown,
-                                              double overlapRatioThreshold,
-                                              int threads) {
+SummaryTableListFullCatalog *
+SummaryTableListFullCatalog_constructNull(int dimCategoryType, int dimMetricType, int dimComparisonType) {
+    SummaryTableListFullCatalog *catalog = malloc(sizeof(SummaryTableListFullCatalog));
+    // make a 3D array of summary table list with the dimension of dimCategoryType x dimMetricType x dimComparisonType
+    catalog->array = (SummaryTableList ****) malloc(dimCategoryType * sizeof(SummaryTableList ***));
+    for (int categoryType = 0; categoryType < dimCategoryType; categoryType++) {
+        // 1st dimension
+        catalog->array[categoryType] = (SummaryTableList ***) malloc(dimMetricType * sizeof(SummaryTableList **));
+        for (int metricType = 0; metricType < dimMetricType; metricType++) {
+            // 2nd dimension
+            catalog->array[categoryType][metricType] = (SummaryTableList **) malloc(dimComparisonType * sizeof(SummaryTableList *));
+            // 3rd dimension
+            for (int comparisonType = 0; comparisonType < dimComparisonType; comparisonType++) {
+                catalog->array[categoryType][metricType][comparisonType] = NULL;
+            } // end loop for category type
+        }// end loop for comparison type
+    }// end loop for metric type
+    catalog->dimMetricType = dimMetricType;
+    catalog->dimCategoryType = dimCategoryType;
+    catalog->dimComparisonType = dimComparisonType;
+    return catalog;
+}
 
-    IntBinArray *binArray;
-    if (binArrayFilePath != NULL) {
-        // parse bin intervals
-        binArray = IntBinArray_constructFromFile(binArrayFilePath);
-    } else {
-        binArray = IntBinArray_constructSingleBin(0, 1e9, "ALL_SIZES");
+void SummaryTableListFullCatalog_update(SummaryTableListFullCatalog *catalog,
+                                        SummaryTableList *summaryTableList,
+                                        CategoryType categoryType,
+                                        MetricType metricType,
+                                        ComparisonType comparisonType) {
+    // destruct old summary list
+    if (catalog->array[categoryType][metricType][comparisonType] != NULL) {
+        SummaryTableList_destruct(catalog->array[categoryType][metricType][comparisonType]);
     }
+    // insert new one
+    catalog->array[categoryType][metricType][comparisonType] = summaryTableList;
+}
+
+SummaryTableList *SummaryTableListFullCatalog_get(SummaryTableListFullCatalog *catalog,
+                                                  CategoryType categoryType,
+                                                  MetricType metricType,
+                                                  ComparisonType comparisonType) {
+    return catalog->array[categoryType][metricType][comparisonType];
+}
+
+void SummaryTableListFullCatalog_destruct(SummaryTableListFullCatalog *catalog) {
+    for (int metricType = 0; metricType < catalog->dimMetricType; metricType++) {
+        for (int comparisonType = 0; comparisonType < dimComparisonType; comparisonType++) {
+            for (int categoryType = 0; categoryType < dimCategoryType; categoryType++) {
+                if (catalog->array[categoryType][metricType][comparisonType] != NULL) {
+                    SummaryTableList_destruct(catalog->array[categoryType][metricType][comparisonType]);
+                }
+            } // end loop for category type
+        }// end loop for comparison type
+    }// end loop for metric type
+    free(catalog);
+}
+
+void SummaryTableListFullCatalog_write(SummaryTableListFullCatalog *catalog,
+                                       CoverageHeader *header,
+                                       stList *labelNamesWithUnknown,
+                                       char *outputPath){
 
     // open file for writing summary tables
     FILE *fout = fopen(outputPath, "w");
@@ -1249,58 +1289,11 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
         exit(EXIT_FAILURE);
     }
 
-    char outputPathFinalStats[1000];
-    char outputPathFinalAunStats[1000];
-    char prefix[1000];
-    memcpy(prefix, outputPath, strlen(outputPath) - 4); // ".tsv" has 4 characters
-    prefix[strlen(outputPath) - 4] = '\0'; // ".tsv" has 4 characters
-    sprintf(outputPathFinalStats, "%s.benchmarking.tsv", prefix);
-    sprintf(outputPathFinalAunStats, "%s.benchmarking.AuN.tsv", prefix);
-
-    FILE *foutFinalStats = NULL;
-    FILE *foutFinalAunStats = NULL;
-    if (header->isTruthAvailable && header->isPredictionAvailable) {
-        // tsv file for dumping precision/recall/accuracy stats
-        foutFinalStats = fopen(outputPathFinalStats, "w");
-        if (foutFinalStats == NULL) {
-            fprintf(stderr,
-                    "[%s] Error: %s cannot be opened for making a tsv file with final benchmarking stats.\n",
-                    get_timestamp(), outputPathFinalStats);
-            exit(EXIT_FAILURE);
-        }
-        fprintf(foutFinalStats,
-                "#Metric_Type\tCategory_Type\tCategory_Name\tSize_Bin_Name\tLabel\tTP_Prediction_Ref\tTP_Truth_Ref\tFP\tFN\tTotal_Prediction_Ref\tTotal_Truth_Ref\tPrecision\tRecall\tF1-Score\tAccuracy_Prediction_Ref\tAccuracy_Truth_Ref\n");
-
-        // tsv file for dumping aun stats
-        foutFinalAunStats = fopen(outputPathFinalAunStats, "w");
-        if (foutFinalAunStats == NULL) {
-            fprintf(stderr,
-                    "[%s] Error: %s cannot be opened for making a tsv file with benchmarking AuN ratio values.\n",
-                    get_timestamp(), outputPathFinalAunStats);
-            exit(EXIT_FAILURE);
-        }
-        fprintf(foutFinalAunStats,
-                "#Category_Type\tCategory_Name\tSize_Bin_Name\tLabel\tAuN_Ratio\n");
-
-    }
-
-    // The list of label names has an additional name "Unk" for handling labels with the value of -1
-    if (labelNamesWithUnknown != NULL && stList_length(labelNamesWithUnknown) - 1 != header->numberOfLabels) {
-        fprintf(stderr,
-                "[%s] Error: Number of label names %d  does not match the number of labels in the header %d.\n",
-                get_timestamp(),
-                stList_length(labelNamesWithUnknown) - 1,
-                header->numberOfLabels);
-        exit(EXIT_FAILURE);
-    }
-
-
-    int numberOfLabelsWithUnknown = header->numberOfLabels + 1;
-
     // write column names in the header line
     char linePrefix[1000];
     sprintf(linePrefix,
             "#Statistic\tMetric_Type\tEntry_Type\tCategory_Type\tCategory_Name\tSize_Bin_Name\tRef_Label");
+    int numberOfLabelsWithUnknown = stList_length(labelNamesWithUnknown);
     for (int i = 0; i < numberOfLabelsWithUnknown; i++) {
         // use label names if they are given
         if (labelNamesWithUnknown != NULL) {
@@ -1320,162 +1313,156 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
     linePrefix[0] = '\0';
 
 
-    // make a 2D array of summary table list with the dimension of
-    // NUMBER_OF_METRIC_TYPES x NUMBER_OF_COMPARISON_TYPES
-    SummaryTableList ***summaryTableListPerMetricAndComparison = (SummaryTableList ***) malloc(
-            NUMBER_OF_METRIC_TYPES * sizeof(SummaryTableList **));
-    for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
-        summaryTableListPerMetricAndComparison[metricType] = (SummaryTableList **) malloc(
-                NUMBER_OF_COMPARISON_TYPES * sizeof(SummaryTableList *));
-        for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
-            summaryTableListPerMetricAndComparison[metricType][comparisonType] = NULL;
+    // open files for writing prediction vs truth stats (like precision and recall) if both labels are available
+
+    char outputPathFinalStats[1000];
+    char outputPathFinalAunStats[1000];
+    char prefix[1000];
+    memcpy(prefix, outputPath, strlen(outputPath) - 4); // ".tsv" has 4 characters
+    prefix[strlen(outputPath) - 4] = '\0'; // ".tsv" has 4 characters
+    sprintf(outputPathFinalStats, "%s.benchmarking.tsv", prefix);
+    sprintf(outputPathFinalAunStats, "%s.benchmarking.auN_ratio.tsv", prefix);
+
+    FILE *foutFinalStats = NULL;
+    FILE *foutFinalAunStats = NULL;
+    if (header->isTruthAvailable && header->isPredictionAvailable) {
+        // tsv file for dumping precision/recall/accuracy stats
+        foutFinalStats = fopen(outputPathFinalStats, "w");
+        if (foutFinalStats == NULL) {
+            fprintf(stderr,
+                    "[%s] Error: %s cannot be opened for making a tsv file with final benchmarking stats.\n",
+                    get_timestamp(), outputPathFinalStats);
+            exit(EXIT_FAILURE);
         }
+        fprintf(foutFinalStats,
+                "#Metric_Type\tCategory_Type\tCategory_Name\tSize_Bin_Name\tLabel\tTP_Prediction_Ref\tTP_Truth_Ref\tFP\tFN\tTotal_Prediction_Ref\tTotal_Truth_Ref\tPrecision\tRecall\tF1-Score\tAccuracy_Prediction_Ref\tAccuracy_Truth_Ref\n");
+
+        // tsv file for dumping aun stats
+        foutFinalAunStats = fopen(outputPathFinalAunStats, "w");
+        if (foutFinalAunStats == NULL) {
+            fprintf(stderr,
+                    "[%s] Error: %s cannot be opened for making a tsv file with benchmarking auN ratio values.\n",
+                    get_timestamp(), outputPathFinalAunStats);
+            exit(EXIT_FAILURE);
+        }
+        fprintf(foutFinalAunStats,
+                "#Category_Type\tCategory_Name\tSize_Bin_Name\tLabel\tauN_Ratio\n");
+
     }
 
-    if (header->isTruthAvailable || header->isPredictionAvailable) {
-        // iterating over category types; annotation and region
-        for (int categoryType = 0; categoryType < NUMBER_OF_CATEGORY_TYPES; categoryType++) {
-            // iterating over metric types; base-level and overlap-based
-            for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
-                stList *categoryNames =
-                        categoryType == CATEGORY_REGION ? header->regionNames : header->annotationNames;
-                // iterate over comparison types such as precision and recall
-                for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
-                    bool truthLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
-                                              comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
-                                              comparisonType == COMPARISON_TRUTH_VS_TRUTH;
-                    bool predictionLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
-                                                   comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
-                                                   comparisonType == COMPARISON_PREDICTION_VS_PREDICTION;
-                    if (header->isTruthAvailable == false && truthLabelIsNeeded) continue;
-                    if (header->isPredictionAvailable == false && predictionLabelIsNeeded) continue;
 
-                    // AuN ratio stats are not defined for prediction as reference
-                    // so skip these comparisons
-                    if(metricType == METRIC_AUN &&
-                        (comparisonType == COMPARISON_PREDICTION_VS_PREDICTION ||
-                        comparisonType == COMPARISON_PREDICTION_VS_TRUTH)){
-                        continue;
-                    }
+    for (int categoryType = 0; categoryType < catalog->dimCategoryType; categoryType++) {
+        for (int metricType = 0; metricType < catalog->dimMetricType; metricType++) {
+            for (int comparisonType = 0; comparisonType < catalog->dimComparisonType; comparisonType++) {
+                SummaryTableList *summaryTableList = SummaryTableListFullCatalog_get(catalog,
+                                                                                     categoryType,
+                                                                                     metricType,
+                                                                                     comparisonType);
+                if (summaryTableList == NULL) continue;
 
-                    fprintf(stderr,
-                            "[%s] Creating summary tables for categoryType = %s, metricType = %s, comparisonType = %s .\n",
-                            get_timestamp(),
-                            CategoryTypeToString[categoryType],
-                            MetricTypeToString[metricType],
-                            ComparisonTypeToString[comparisonType]);
+                // write count values
+                sprintf(linePrefix, "%s\t%s\tcount\t%s",
+                        ComparisonTypeToString[comparisonType],
+                        MetricTypeToString[metricType],
+                        CategoryTypeToString[categoryType]);
+                // for these comparisons a single row is enough
+                if (comparisonType == COMPARISON_TRUTH_VS_TRUTH ||
+                    comparisonType == COMPARISON_PREDICTION_VS_PREDICTION) {
+                    SummaryTableList_writeTotalPerRowIntoFile(summaryTableList, fout, linePrefix);
+                } else {
+                    SummaryTableList_writeIntoFile(summaryTableList, fout, linePrefix);
+                }
 
-                    SummaryTableList *auxiliarySummaryTableList =
-                            metricType == METRIC_AUN
-                            ? summaryTableListPerMetricAndComparison[METRIC_BASE_LEVEL][COMPARISON_TRUTH_VS_TRUTH] : NULL;
-                    if (metricType == METRIC_AUN && auxiliarySummaryTableList == NULL) {
-                        fprintf(stderr,
-                                "[%s] Error: For creating summary tables for the metric type of %s it is required to have the tables for the metric type of %s constructed and accessible beforehand.\n ",
-                                get_timestamp(),
-                                MetricTypeToString[METRIC_AUN],
-                                MetricTypeToString[METRIC_BASE_LEVEL]);
-                        exit(EXIT_FAILURE);
-                    }
-                    SummaryTableList *summaryTableList =
-                            SummaryTableList_constructAndFillByIterator(iterator,
-                                                                        blockIteratorType,
-                                                                        categoryNames,
-                                                                        categoryType,
-                                                                        binArray,
-                                                                        metricType,
-                                                                        overlapRatioThreshold,
-                                                                        numberOfLabelsWithUnknown,
-                                                                        labelNamesWithUnknown,
-                                                                        comparisonType,
-                                                                        threads,
-                                                                        auxiliarySummaryTableList);
-                    summaryTableListPerMetricAndComparison[metricType][comparisonType] = summaryTableList;
 
-                    // write count values
-                    sprintf(linePrefix, "%s\t%s\tcount\t%s",
-                            ComparisonTypeToString[comparisonType],
-                            MetricTypeToString[metricType],
-                            CategoryTypeToString[categoryType]);
-                    // for these comparisons a single row is enough
-                    if (comparisonType == COMPARISON_TRUTH_VS_TRUTH ||
-                        comparisonType == COMPARISON_PREDICTION_VS_PREDICTION) {
-                        SummaryTableList_writeTotalPerRowIntoFile(summaryTableList, fout, linePrefix);
-                    } else {
-                        SummaryTableList_writeIntoFile(summaryTableList, fout, linePrefix);
-                    }
+                // write percentages
+                sprintf(linePrefix, "%s\t%s\tpercentage\t%s",
+                        ComparisonTypeToString[comparisonType],
+                        MetricTypeToString[metricType],
+                        CategoryTypeToString[categoryType]);
+                // for these comparisons a single row is enough
+                if (comparisonType == COMPARISON_TRUTH_VS_TRUTH ||
+                    comparisonType == COMPARISON_PREDICTION_VS_PREDICTION) {
+                    SummaryTableList_writeTotalPerRowPercentageIntoFile(summaryTableList, fout, linePrefix);
+                } else {
+                    SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
+                }
 
-                    // write percentages
-                    sprintf(linePrefix, "%s\t%s\tpercentage\t%s",
-                            ComparisonTypeToString[comparisonType],
-                            MetricTypeToString[metricType],
-                            CategoryTypeToString[categoryType]);
-                    // for these comparisons a single row is enough
-                    if (comparisonType == COMPARISON_TRUTH_VS_TRUTH ||
-                        comparisonType == COMPARISON_PREDICTION_VS_PREDICTION) {
-                        SummaryTableList_writeTotalPerRowPercentageIntoFile(summaryTableList, fout, linePrefix);
-                    } else {
-                        SummaryTableList_writePercentageIntoFile(summaryTableList, fout, linePrefix);
-                    }
-                    fprintf(stderr,
-                            "[%s] Writing summary tables is done for categoryType = %s, metricType = %s, comparisonType = %s .\n",
-                            get_timestamp(),
-                            CategoryTypeToString[categoryType],
-                            MetricTypeToString[metricType],
-                            ComparisonTypeToString[comparisonType]);
+                fprintf(stderr,
+                        "[%s] Writing summary tables is done for categoryType = %s, metricType = %s, comparisonType = %s .\n",
+                        get_timestamp(),
+                        CategoryTypeToString[categoryType],
+                        MetricTypeToString[metricType],
+                        ComparisonTypeToString[comparisonType]);
 
-                } // end comparison type
-                // if both labels are present for printing benchmarking stats
-                // precision and recall are not defined for METRIC_AUN_
-                if (header->isTruthAvailable && header->isPredictionAvailable && metricType != METRIC_AUN) {
-                    SummaryTableList *precisionTables = summaryTableListPerMetricAndComparison[metricType][COMPARISON_PREDICTION_VS_TRUTH];
-                    SummaryTableList *recallTables = summaryTableListPerMetricAndComparison[metricType][COMPARISON_TRUTH_VS_PREDICTION];
+            }// end comparison loop
 
-                    // write percentages
-                    sprintf(linePrefix, "%s\t%s",
-                            MetricTypeToString[metricType],
-                            CategoryTypeToString[categoryType]);
-                    SummaryTableList_writeFinalStatisticsIntoFile(recallTables,
-                                                                  precisionTables,
-                                                                  foutFinalStats,
-                                                                  linePrefix);
-                    fprintf(stderr,
-                            "[%s] Writing benchmarking stats (precision/recall/f1score) is done for categoryType = %s, metricType = %s .\n",
-                            get_timestamp(),
-                            CategoryTypeToString[categoryType],
-                            MetricTypeToString[metricType]);
-                } // end comparison type loop
-            }// end metric type loop
-	    fprintf(stderr, "@@@ 5\n");
-	    if (header->isTruthAvailable && header->isPredictionAvailable){
+
+            //
+            // METRIC_BASE_LEVEL and METRIC_OVERLAP_BASED :
+            //
+            // if both labels are present for printing benchmarking stats
+            // precision and recall are not defined for METRIC_AUN
+            if (header->isTruthAvailable && header->isPredictionAvailable && metricType != METRIC_AUN) {
+                SummaryTableList *precisionTables = summaryTableListPerMetricAndComparison[metricType][COMPARISON_PREDICTION_VS_TRUTH];
+                SummaryTableList *recallTables = summaryTableListPerMetricAndComparison[metricType][COMPARISON_TRUTH_VS_PREDICTION];
+
+                // write percentages
+                sprintf(linePrefix, "%s\t%s",
+                        MetricTypeToString[metricType],
+                        CategoryTypeToString[categoryType]);
+                SummaryTableList_writeFinalStatisticsIntoFile(recallTables,
+                                                              precisionTables,
+                                                              foutFinalStats,
+                                                              linePrefix);
+                fprintf(stderr,
+                        "[%s] Writing benchmarking stats (precision/recall/f1score) is done for categoryType = %s, metricType = %s .\n",
+                        get_timestamp(),
+                        CategoryTypeToString[categoryType],
+                        MetricTypeToString[metricType]);
+
+            }//end if
+
+        } // end metric loop
+
+        //
+        // METRIC_AUN
+        //
+        // if both labels are present for printing benchmarking auN stats
+        if (header->isTruthAvailable && header->isPredictionAvailable) {
             // auN ratio is only defined once we have truth labels as reference
-            SummaryTableList *aunDenominatorTables = summaryTableListPerMetricAndComparison[METRIC_AUN][COMPARISON_TRUTH_VS_TRUTH];
-            SummaryTableList *aunNumeratorTables = summaryTableListPerMetricAndComparison[METRIC_AUN][COMPARISON_TRUTH_VS_PREDICTION];
+            SummaryTableList *aunDenominatorTables = SummaryTableListFullCatalog_get(catalog,
+                                                                                     categoryType,
+                                                                                     METRIC_AUN,
+                                                                                     COMPARISON_TRUTH_VS_TRUTH);
+            SummaryTableList *aunNumeratorTables = SummaryTableListFullCatalog_get(catalog,
+                                                                                   categoryType,
+                                                                                   METRIC_AUN,
+                                                                                   COMPARISON_TRUTH_VS_PREDICTION);
 
-            // write aun ratio values
-            sprintf(linePrefix, "%s",
+            // write auN ratio values
+            sprintf(linePrefix,"%s",
                     CategoryTypeToString[categoryType]);
             SummaryTableList_writeFinalAunStatisticsIntoFile(aunNumeratorTables,
                                                              aunDenominatorTables,
                                                              foutFinalAunStats,
                                                              linePrefix);
-	    }
-            // free summary tables in the 2D array
-            for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
-                for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
-                    if (summaryTableListPerMetricAndComparison[metricType][comparisonType] != NULL) {
-                        SummaryTableList_destruct(
-                                summaryTableListPerMetricAndComparison[metricType][comparisonType]);
-                        summaryTableListPerMetricAndComparison[metricType][comparisonType] = NULL;
-                    }
-                }
-            }
-        }// end category type loop
-    }
+        } // end if
+
+    } // end category loop
 
 
-    fprintf(stderr, "[%s] Writing tables to file %s is done.\n", get_timestamp(), outputPath);
+    fprintf(stderr,
+            "[%s] Writing tables to file %s is done.\n",
+            get_timestamp(), outputPath);
     if (foutFinalStats != NULL) {
-        fprintf(stderr, "[%s] Writing tables to file %s is done.\n", get_timestamp(), outputPathFinalStats);
+        fprintf(stderr,
+                "[%s] Writing tables to file %s is done.\n",
+                get_timestamp(), outputPathFinalStats);
+    }
+    if (foutFinalAunStats != NULL) {
+        fprintf(stderr,
+                "[%s] Writing tables to file %s is done.\n",
+                get_timestamp(), outputPathFinalAunStats);
     }
 
     // close files
@@ -1486,10 +1473,164 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
     if (foutFinalAunStats != NULL) {
         fclose(foutFinalAunStats);
     }
+}
+
+
+void SummaryTableList_addCreationJobsForOneMetricType(CoverageHeader *header,
+                                                      void *blockIterator,
+                                                      BlockIteratorType blockIteratorType,
+                                                      IntBinArray *sizeBinArray,
+                                                      MetricType metricType,
+                                                      double overlapRatioThreshold,
+                                                      int numberOfLabelsWithUnknown,
+                                                      stList *labelNamesWithUnknown,
+                                                      SummaryTableList *auxiliarySummaryTableList,
+                                                      SummaryTableListFullCatalog *catalog,
+                                                      tpool_t *threadPool) {
+    // iterating over category types; annotation and region
+    for (int categoryType = 0; categoryType < NUMBER_OF_CATEGORY_TYPES; categoryType++) {
+        stList *categoryNames =
+                categoryType == CATEGORY_REGION ? header->regionNames : header->annotationNames;
+        // iterate over comparison types such as precision and recall
+        for (int comparisonType = 0; comparisonType < NUMBER_OF_COMPARISON_TYPES; comparisonType++) {
+            bool truthLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
+                                      comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
+                                      comparisonType == COMPARISON_TRUTH_VS_TRUTH;
+            bool predictionLabelIsNeeded = comparisonType == COMPARISON_TRUTH_VS_PREDICTION ||
+                                           comparisonType == COMPARISON_PREDICTION_VS_TRUTH ||
+                                           comparisonType == COMPARISON_PREDICTION_VS_PREDICTION;
+            if (header->isTruthAvailable == false && truthLabelIsNeeded) continue;
+            if (header->isPredictionAvailable == false && predictionLabelIsNeeded) continue;
+
+            // auN ratio stats are not defined for prediction as reference
+            // so skip these comparisons
+            if (metricType == METRIC_AUN &&
+                (comparisonType == COMPARISON_PREDICTION_VS_PREDICTION ||
+                 comparisonType == COMPARISON_PREDICTION_VS_TRUTH)) {
+                continue;
+            }
+
+            fprintf(stderr,
+                    "[%s] Initiating jobs for creating summary tables for categoryType = %s, metricType = %s, comparisonType = %s .\n",
+                    get_timestamp(),
+                    CategoryTypeToString[categoryType],
+                    MetricTypeToString[metricType],
+                    ComparisonTypeToString[comparisonType]);
+            SummaryTableList_constructAndFillByIterator(blockIterator,
+                                                        blockIteratorType,
+                                                        categoryNames,
+                                                        categoryType,
+                                                        sizeBinArray,
+                                                        metricType,
+                                                        overlapRatioThreshold,
+                                                        numberOfLabelsWithUnknown,
+                                                        labelNamesWithUnknown,
+                                                        comparisonType,
+                                                        auxiliarySummaryTableList,
+                                                        catalog,
+                                                        threadPool);
+        }
+    }
+}
+
+void SummaryTableList_createAndWriteAllTables(void *iterator,
+                                              BlockIteratorType blockIteratorType,
+                                              CoverageHeader *header,
+                                              const char *outputPath,
+                                              const char *binArrayFilePath,
+                                              stList *labelNamesWithUnknown,
+                                              double overlapRatioThreshold,
+                                              int threads) {
+
+    IntBinArray *binArray;
+    if (binArrayFilePath != NULL) {
+        // parse bin intervals
+        binArray = IntBinArray_constructFromFile(binArrayFilePath);
+    } else {
+        binArray = IntBinArray_constructSingleBin(0, 1e9, "ALL_SIZES");
+    }
+
+
+    // The list of label names has an additional name "Unk" for handling labels with the value of -1
+    if (labelNamesWithUnknown != NULL && stList_length(labelNamesWithUnknown) - 1 != header->numberOfLabels) {
+        fprintf(stderr,
+                "[%s] Error: Number of label names %d  does not match the number of labels in the header %d.\n",
+                get_timestamp(),
+                stList_length(labelNamesWithUnknown) - 1,
+                header->numberOfLabels);
+        exit(EXIT_FAILURE);
+    }
+
+
+    int numberOfLabelsWithUnknown = header->numberOfLabels + 1;
+
+
+    // make a 3D array of summary table list with the dimension of
+    // NUMBER_OF_METRIC_TYPES x NUMBER_OF_COMPARISON_TYPES x NUMBER_OF_CATEGORY_TYPES
+    SummaryTableListFullCatalog *catalog = SummaryTableListFullCatalog_constructNull(NUMBER_OF_CATEGORY_TYPES,
+                                                                                     NUMBER_OF_METRIC_TYPES,
+                                                                                     NUMBER_OF_COMPARISON_TYPES);
+
+    // create a thread pool to parallelize table list creation
+    tpool_t *threadPool = tpool_create(threads);
+    if (header->isTruthAvailable || header->isPredictionAvailable) {
+        SummaryTableList *auxiliarySummaryTableList = NULL;
+        // first add jobs are submitted except the ones for METRIC_AUN since
+        // this metric is dependent on METRIC_BASE_LEVEL
+        for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
+            if (metricType == METRIC_AUN) continue;
+            auxiliarySummaryTableList = NULL;
+            // submit table creation jobs
+            SummaryTableList_addCreationJobsForOneMetricType(header,
+                                                             iterator,
+                                                             blockIteratorType,
+                                                             binArray,
+                                                             metricType,
+                                                             overlapRatioThreshold,
+                                                             numberOfLabelsWithUnknown,
+                                                             labelNamesWithUnknown,
+                                                             auxiliarySummaryTableList,
+                                                             catalog,
+                                                             threadPool);
+        }
+        // wait until all jobs are done
+        tpool_wait(threadPool);
+        // now create jobs for METRIC_AUN
+        // get auxiliary table necessary for getting auN metric values
+        auxiliarySummaryTableList = SummaryTableListFullCatalog_get(catalog,
+                                                                    METRIC_AUN,
+                                                                    METRIC_BASE_LEVEL,
+                                                                    COMPARISON_TRUTH_VS_TRUTH);
+        if (auxiliarySummaryTableList == NULL) {
+            fprintf(stderr,
+                    "[%s] Error: For creating summary tables for the metric type of %s it is required to have the tables for the metric type of %s constructed and accessible beforehand.\n ",
+                    get_timestamp(),
+                    MetricTypeToString[METRIC_AUN],
+                    MetricTypeToString[METRIC_BASE_LEVEL]);
+            exit(EXIT_FAILURE);
+        }
+        //submit table creation jobs for METRIC_AUN
+        SummaryTableList_addCreationJobsForOneMetricType(header,
+                                                         iterator,
+                                                         blockIteratorType,
+                                                         binArray,
+                                                         metricType,
+                                                         overlapRatioThreshold,
+                                                         numberOfLabelsWithUnknown,
+                                                         labelNamesWithUnknown,
+                                                         auxiliarySummaryTableList,
+                                                         catalog,
+                                                         threadPool);
+    }
+    // wait until all jobs are done
+    tpool_wait(threadPool);
+    tpool_destroy(threadPool);
+
+
+    SummaryTableListFullCatalog_write(catalog, header, labelNamesWithUnknown, outputPath);
 
     // destruct bin array
     IntBinArray_destruct(binArray);
-
-    // free table array (each table is already destructed in the for loop above)
-    free(summaryTableListPerMetricAndComparison);
+    // free full catalog
+    SummaryTableListFullCatalog_destruct(catalog);
 }
