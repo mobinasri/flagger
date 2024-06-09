@@ -479,6 +479,8 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
             double totalPrecision = 0.0;
             double sumOfRecall = 0.0;
             double sumOfPrecision = 0.0;
+            double sumOfReciprocalRecall = 0.0;
+            double sumOfReciprocalPrecision = 0.0;
             int numberOfNonZeroDenomRecall = 0;
             int numberOfNonZeroDenomPrecision = 0;
             // iterate over row indices
@@ -501,6 +503,12 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 // for calculating macro-average later
                 sumOfRecall += recallPercent;
                 sumOfPrecision += precisionPercent;
+                // for calculating harmonic mean later
+                // 1.0e9 is sufficiently large
+                if(1e-9 < (tpRecall + fn)) {
+                    sumOfReciprocalRecall += 0.0 < recallPercent ? 1.0 / recallPercent : 1.0e9;
+                    sumOfReciprocalPrecision += 0.0 < precisionPercent ? 1.0 / precisionPercent : 1.0e9;
+                }
                 double f1Score = 2 * precisionPercent * recallPercent / (precisionPercent + recallPercent + 1.0e-9);
 
                 char recallPercentStr[20];
@@ -561,6 +569,25 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 sprintf(macroAveragePrecisionStr, "NA");
             }
 
+            double harmonicMeanRecall = 0.0;
+            double harmonicMeanPrecision = 0.0;
+
+            char harmonicMeanRecallStr[20];
+            if (0 < numberOfNonZeroDenomRecall) {
+                harmonicMeanRecall = (double) numberOfNonZeroDenomRecall / sumOfReciprocalRecall;
+                sprintf(harmonicMeanRecallStr, "%.2f", harmonicMeanRecall);
+            } else {
+                sprintf(harmonicMeanRecallStr, "NA");
+            }
+
+            char harmonicMeanPrecisionStr[20];
+            if (0 < numberOfNonZeroDenomPrecision) {
+                harmonicMeanPrecision = (double) numberOfNonZeroDenomPrecision / sumOfReciprocalPrecision;
+                sprintf(harmonicMeanPrecisionStr, "%.2f", harmonicMeanPrecision);
+            } else {
+                sprintf(harmonicMeanPrecisionStr, "NA");
+            }
+
             char macroF1ScoreStr[20];
             if (0 < numberOfNonZeroDenomRecall && 0 < numberOfNonZeroDenomPrecision) {
                 double macroF1Score = 2 * macroAverageRecall * macroAveragePrecision /
@@ -570,6 +597,15 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 sprintf(macroF1ScoreStr, "NA");
             }
 
+            char harmonicF1ScoreStr[20];
+            if (0 < numberOfNonZeroDenomRecall && 0 < numberOfNonZeroDenomPrecision) {
+                double harmonicF1Score = 2 * harmonicMeanRecall * harmonicMeanPrecision /
+                                      (harmonicMeanRecall + harmonicMeanPrecision + 1.0e-9);
+                sprintf(harmonicF1ScoreStr, "%.2f", harmonicF1Score);
+            } else {
+                sprintf(harmonicF1ScoreStr, "NA");
+            }
+
             fprintf(fout, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
                     linePrefix,
                     c1Name, c2Name,
@@ -577,6 +613,15 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                     "NA", "NA", "NA", "NA",
                     "NA", "NA",
                     macroAveragePrecisionStr, macroAverageRecallStr, macroF1ScoreStr, "NA", "NA");
+
+            fprintf(fout, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                    linePrefix,
+                    c1Name, c2Name,
+                    "HARMONIC_MEAN",
+                    "NA", "NA", "NA", "NA",
+                    "NA", "NA",
+                    harmonicMeanPrecisionStr, harmonicMeanPrecisionStr, harmonicF1ScoreStr, "NA", "NA");
+
             double accuracyPredictionRef = totalTpPrecision / (totalPrecision + 1.0e-9) * 100.0;
             double accuracyTruthRef = totalTpRecall / (totalRecall + 1e-9) * 100.0;
             fprintf(fout, "%s\t%s\t%s\t%s\t%.2f\t%.2f\t%s\t%s\t%.2f\t%.2f\t%s\t%s\t%s\t%.2f\t%.2f\n",
@@ -609,6 +654,7 @@ void SummaryTableList_writeFinalAunStatisticsIntoFile(SummaryTableList *numerato
             // get denominator table
             SummaryTable *denominatorTable = SummaryTableList_getTable(denominatorTableList, c1, c2);
             double aunSum = 0.0;
+            double aunSumReciprocal = 0.0;
             int numberOfNonZeroDenom = 0;
             // iterate over row indices
             for (int rowIndex = 0; rowIndex < numberOfLabels; rowIndex++) {
@@ -617,6 +663,10 @@ void SummaryTableList_writeFinalAunStatisticsIntoFile(SummaryTableList *numerato
                 double aun = aunNum / (aunDenom + 1e-9);
                 numberOfNonZeroDenom += 0 < aunDenom ? 1 : 0;
                 aunSum += aun;
+                if (0 < aunDenom) {
+                    //1.0e9 is sufficiently large
+                    aunSumReciprocal += 0.0 < aun ? 1.0 / aun : 1.0e9;
+                }
                 char *rowName = SummaryTable_getRowName(numeratorTable, rowIndex);
                 fprintf(fout, "%s\t%s\t%s\t%s\t%.2f\n",
                         linePrefix,
@@ -632,11 +682,27 @@ void SummaryTableList_writeFinalAunStatisticsIntoFile(SummaryTableList *numerato
             } else {
                 sprintf(aunAvgStr, "NA");
             }
+
+            double aunHarmonicMean = 0.0;
+            char aunHarmonicMeanStr[20];
+            if (0 < numberOfNonZeroDenom) {
+                aunHarmonicMean = (double) numberOfNonZeroDenom / aunSumReciprocal;
+                sprintf(aunHarmonicMeanStr, "%.2f", aunAvg);
+            } else {
+                sprintf(aunHarmonicMeanStr, "NA");
+            }
+
             fprintf(fout, "%s\t%s\t%s\t%s\t%s\n",
                     linePrefix,
                     c1Name, c2Name,
                     "AVERAGE",
                     aunAvgStr);
+
+            fprintf(fout, "%s\t%s\t%s\t%s\t%s\n",
+                    linePrefix,
+                    c1Name, c2Name,
+                    "HARMONIC_MEAN",
+                    aunHarmonicMeanStr);
         }
     }
 }
