@@ -154,8 +154,6 @@ int main(int argc, char *argv[]) {
 
     //merge and create the final block table
     stHash *finalBlockTable = ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(blockTable, threads);
-    // free unmerged table
-    stHash_destruct(blockTable);
 
     fprintf(stderr, "[%s] Merged blocks after adding label bed tracks : tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(finalBlockTable),
@@ -188,7 +186,6 @@ int main(int argc, char *argv[]) {
     CoverageHeader_destruct(header);
     CoverageHeader_destruct(newHeader);
     CovFastReader_destruct(covFastReader);
-    //stHash_destruct(blockTable);
     stHash_destruct(finalBlockTable);
     stHash_destruct(ctgToLen);
     free(outputExtension);

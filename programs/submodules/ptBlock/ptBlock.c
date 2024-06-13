@@ -1228,7 +1228,7 @@ stHash *ptBlock_merge_blocks_per_contig_v2(stHash *blocks_per_contig,
     stList *merged_blocks;
     stHash *merged_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                          (void (*)(void *)) stList_destruct);
-    it = stHash_getIterator(blocks_per_contig);
+    stHashIterator *it = stHash_getIterator(blocks_per_contig);
     while ((contig_name = stHash_getNext(it)) != NULL) {
         // get blocks
         blocks = stHash_search(blocks_per_contig, contig_name);
@@ -1267,6 +1267,7 @@ typedef struct MergingBlocksArgs {
     stHash *unmerged_blocks_per_contig;
     int (*get_start)(ptBlock *);
     int (*get_end)(ptBlock *);
+    void (*set_start)(ptBlock *, int);
     void (*set_end)(ptBlock *, int);
     char *contig_name;
     stHash *merged_blocks_per_contig;
@@ -1276,6 +1277,7 @@ typedef struct MergingBlocksArgs {
 MergingBlocksArgs *MergingBlocksArgs_construct(stHash *unmerged_blocks_per_contig,
                                                int (*get_start)(ptBlock *),
                                                int (*get_end)(ptBlock *),
+					       void (*set_start)(ptBlock *, int),
                                                void (*set_end)(ptBlock *, int),
                                                char *contig_name,
                                                stHash *merged_blocks_per_contig) {
@@ -1283,6 +1285,7 @@ MergingBlocksArgs *MergingBlocksArgs_construct(stHash *unmerged_blocks_per_conti
     mergingBlocksArgs->unmerged_blocks_per_contig = unmerged_blocks_per_contig;
     mergingBlocksArgs->get_start = get_start;
     mergingBlocksArgs->get_end = get_end;
+    mergingBlocksArgs->set_start = set_start;
     mergingBlocksArgs->set_end = set_end;
     mergingBlocksArgs->contig_name = contig_name;
     mergingBlocksArgs->merged_blocks_per_contig = merged_blocks_per_contig;
@@ -1305,12 +1308,13 @@ void ptBlock_merge_blocks_per_contig_v2_one_thread(void *argWork_) {
     stHash *merged_blocks_per_contig = args->merged_blocks_per_contig;
     int (*get_start)(ptBlock *) = args->get_start;
     int (*get_end)(ptBlock *) = args->get_end;
-    void (*set_end)(ptBlock *, int) = args->get_end;
+    void (*set_start)(ptBlock *, int) = args->set_start;
+    void (*set_end)(ptBlock *, int) = args->set_end;
 
     // get blocks
     stList *unmerged_blocks = stHash_search(unmerged_blocks_per_contig, contig_name);
     // merge blocks
-    stList *merged_blocks = ptBlock_merge_blocks_v2(unmerged_blocks, get_start, get_end, set_end);
+    stList *merged_blocks = ptBlock_merge_blocks_v2(unmerged_blocks, get_start, get_end, set_start, set_end);
 
     // add merged blocks to the new table
     pthread_mutex_lock(args->mutex);
@@ -1320,9 +1324,8 @@ void ptBlock_merge_blocks_per_contig_v2_one_thread(void *argWork_) {
 }
 
 stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_contig,
-                                                         int (*get_start)(ptBlock *),
-                                                         int (*get_end)(ptBlock *),
-                                                         void (*set_end)(ptBlock *, int),
+                                                         int (*get_start)(ptBlock *), int (*get_end)(ptBlock *),
+                                                         void (*set_start)(ptBlock *, int), void (*set_end)(ptBlock *, int),
                                                          int threads) {
     char *contig_name;
     stList *blocks;
@@ -1339,6 +1342,7 @@ stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_cont
         MergingBlocksArgs *mergingBlocksArgs = MergingBlocksArgs_construct(blocks_per_contig,
                                                                            get_start,
                                                                            get_end,
+									   set_start,
                                                                            set_end,
                                                                            contig_name,
                                                                            merged_blocks_per_contig);

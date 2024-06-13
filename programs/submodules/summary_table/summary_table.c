@@ -620,7 +620,7 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                     "HARMONIC_MEAN",
                     "NA", "NA", "NA", "NA",
                     "NA", "NA",
-                    harmonicMeanPrecisionStr, harmonicMeanPrecisionStr, harmonicF1ScoreStr, "NA", "NA");
+                    harmonicMeanPrecisionStr, harmonicMeanRecallStr, harmonicF1ScoreStr, "NA", "NA");
 
             double accuracyPredictionRef = totalTpPrecision / (totalPrecision + 1.0e-9) * 100.0;
             double accuracyTruthRef = totalTpRecall / (totalRecall + 1e-9) * 100.0;
@@ -687,7 +687,7 @@ void SummaryTableList_writeFinalAunStatisticsIntoFile(SummaryTableList *numerato
             char aunHarmonicMeanStr[20];
             if (0 < numberOfNonZeroDenom) {
                 aunHarmonicMean = (double) numberOfNonZeroDenom / aunSumReciprocal;
-                sprintf(aunHarmonicMeanStr, "%.2f", aunAvg);
+                sprintf(aunHarmonicMeanStr, "%.2f", aunHarmonicMean);
             } else {
                 sprintf(aunHarmonicMeanStr, "NA");
             }
@@ -1266,8 +1266,8 @@ SummaryTableList *SummaryTableListFullCatalog_get(SummaryTableListFullCatalog *c
 
 void SummaryTableListFullCatalog_destruct(SummaryTableListFullCatalog *catalog) {
     for (int metricType = 0; metricType < catalog->dimMetricType; metricType++) {
-        for (int comparisonType = 0; comparisonType < dimComparisonType; comparisonType++) {
-            for (int categoryType = 0; categoryType < dimCategoryType; categoryType++) {
+        for (int comparisonType = 0; comparisonType < catalog->dimComparisonType; comparisonType++) {
+            for (int categoryType = 0; categoryType < catalog->dimCategoryType; categoryType++) {
                 if (catalog->array[categoryType][metricType][comparisonType] != NULL) {
                     SummaryTableList_destruct(catalog->array[categoryType][metricType][comparisonType]);
                 }
@@ -1403,8 +1403,14 @@ void SummaryTableListFullCatalog_write(SummaryTableListFullCatalog *catalog,
             // if both labels are present for printing benchmarking stats
             // precision and recall are not defined for METRIC_AUN
             if (header->isTruthAvailable && header->isPredictionAvailable && metricType != METRIC_AUN) {
-                SummaryTableList *precisionTables = summaryTableListPerMetricAndComparison[metricType][COMPARISON_PREDICTION_VS_TRUTH];
-                SummaryTableList *recallTables = summaryTableListPerMetricAndComparison[metricType][COMPARISON_TRUTH_VS_PREDICTION];
+                SummaryTableList *precisionTables = SummaryTableListFullCatalog_get(catalog,
+				                                                    categoryType,
+				                                                    metricType,
+				                                                    COMPARISON_PREDICTION_VS_TRUTH);
+                SummaryTableList *recallTables = SummaryTableListFullCatalog_get(catalog,
+                                                                                    categoryType,
+                                                                                    metricType,
+										    COMPARISON_TRUTH_VS_PREDICTION);
 
                 // write percentages
                 sprintf(linePrefix, "%s\t%s",
@@ -1484,9 +1490,10 @@ void SummaryTableList_addCreationJobsForOneMetricType(CoverageHeader *header,
                                                       double overlapRatioThreshold,
                                                       int numberOfLabelsWithUnknown,
                                                       stList *labelNamesWithUnknown,
-                                                      SummaryTableList *auxiliarySummaryTableList,
                                                       SummaryTableListFullCatalog *catalog,
                                                       tpool_t *threadPool) {
+    SummaryTableList *auxiliarySummaryTableList = NULL;
+
     // iterating over category types; annotation and region
     for (int categoryType = 0; categoryType < NUMBER_OF_CATEGORY_TYPES; categoryType++) {
         stList *categoryNames =
@@ -1509,6 +1516,21 @@ void SummaryTableList_addCreationJobsForOneMetricType(CoverageHeader *header,
                  comparisonType == COMPARISON_PREDICTION_VS_TRUTH)) {
                 continue;
             }
+
+	    // now create jobs for METRIC_AUN
+            // get auxiliary table necessary for getting auN metric values
+            auxiliarySummaryTableList = metricType == METRIC_AUN ? SummaryTableListFullCatalog_get(catalog,
+                                                                    categoryType,
+                                                                    METRIC_BASE_LEVEL,
+                                                                    COMPARISON_TRUTH_VS_TRUTH) : NULL;
+        if (metricType == METRIC_AUN && auxiliarySummaryTableList == NULL) {
+            fprintf(stderr,
+                    "[%s] Error: For creating summary tables for the metric type of %s it is required to have the tables for the metric type of %s constructed and accessible beforehand.\n ",
+                    get_timestamp(),
+                    MetricTypeToString[METRIC_AUN],
+                    MetricTypeToString[METRIC_BASE_LEVEL]);
+            exit(EXIT_FAILURE);
+        }
 
             fprintf(stderr,
                     "[%s] Initiating jobs for creating summary tables for categoryType = %s, metricType = %s, comparisonType = %s .\n",
@@ -1574,12 +1596,10 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
     // create a thread pool to parallelize table list creation
     tpool_t *threadPool = tpool_create(threads);
     if (header->isTruthAvailable || header->isPredictionAvailable) {
-        SummaryTableList *auxiliarySummaryTableList = NULL;
         // first add jobs are submitted except the ones for METRIC_AUN since
         // this metric is dependent on METRIC_BASE_LEVEL
         for (int metricType = 0; metricType < NUMBER_OF_METRIC_TYPES; metricType++) {
             if (metricType == METRIC_AUN) continue;
-            auxiliarySummaryTableList = NULL;
             // submit table creation jobs
             SummaryTableList_addCreationJobsForOneMetricType(header,
                                                              iterator,
@@ -1589,36 +1609,22 @@ void SummaryTableList_createAndWriteAllTables(void *iterator,
                                                              overlapRatioThreshold,
                                                              numberOfLabelsWithUnknown,
                                                              labelNamesWithUnknown,
-                                                             auxiliarySummaryTableList,
                                                              catalog,
                                                              threadPool);
-        }
-        // wait until all jobs are done
+        } // end loop over metric types
+	
+	// wait until all jobs are done
         tpool_wait(threadPool);
-        // now create jobs for METRIC_AUN
-        // get auxiliary table necessary for getting auN metric values
-        auxiliarySummaryTableList = SummaryTableListFullCatalog_get(catalog,
-                                                                    METRIC_AUN,
-                                                                    METRIC_BASE_LEVEL,
-                                                                    COMPARISON_TRUTH_VS_TRUTH);
-        if (auxiliarySummaryTableList == NULL) {
-            fprintf(stderr,
-                    "[%s] Error: For creating summary tables for the metric type of %s it is required to have the tables for the metric type of %s constructed and accessible beforehand.\n ",
-                    get_timestamp(),
-                    MetricTypeToString[METRIC_AUN],
-                    MetricTypeToString[METRIC_BASE_LEVEL]);
-            exit(EXIT_FAILURE);
-        }
+
         //submit table creation jobs for METRIC_AUN
         SummaryTableList_addCreationJobsForOneMetricType(header,
                                                          iterator,
                                                          blockIteratorType,
                                                          binArray,
-                                                         metricType,
+                                                         METRIC_AUN,
                                                          overlapRatioThreshold,
                                                          numberOfLabelsWithUnknown,
                                                          labelNamesWithUnknown,
-                                                         auxiliarySummaryTableList,
                                                          catalog,
                                                          threadPool);
     }
