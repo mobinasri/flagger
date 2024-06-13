@@ -507,6 +507,8 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 // 1.0e9 is sufficiently large
                 if (1e-9 < (tpRecall + fn)) {
                     sumOfReciprocalRecall += 0.0 < recallPercent ? 1.0 / recallPercent : 1.0e9;
+                }
+                if (1e-9 < (tpPrecision + fp)) {
                     sumOfReciprocalPrecision += 0.0 < precisionPercent ? 1.0 / precisionPercent : 1.0e9;
                 }
                 double f1Score = 2 * precisionPercent * recallPercent / (precisionPercent + recallPercent + 1.0e-9);
