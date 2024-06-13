@@ -19,7 +19,7 @@ class HomologyBlock:
     def __init__(self, origCtg, origStart, origEnd, origStrand, newCtg, orderIndex):
         self.origCtg = origCtg # name of the original contig from the given assembly
         self.origStart = origStart # the 1-based start location of this block
-        self.origEnd = origEnd # the 1-based start location of this block
+        self.origEnd = origEnd # the 1-based end location of this block
         self.origStrand = origStrand # ['+' or '-']: if '-' the original block should be rev-complemented
         self.newCtg = newCtg # the name of the new contig where this block is localized in
         self.orderIndex = orderIndex # relative order of the block w.r.t to the other blocks in the new contig
@@ -38,7 +38,7 @@ class HomologyBlock:
         self.annotationTotalLengthsForSamplingMisjoin = defaultdict(int)
 
         self.misAssemblyLength = 0
-        self.minOverlapRatioWithEachAnnotation = 0.5
+        self.minOverlapRatioWithEachAnnotation = 0.75
         self.minMarginLength = 1000
         self.containsMisAssembly = False
 
@@ -199,7 +199,7 @@ class HomologyBlock:
 
             ###############################################################
             ####    Construct sampling blocks for the locations of    #####
-            ####         misassemblies other than misjoins            #####
+            ####                    misjoins                          #####
             ###############################################################
 
             # Since misjoin is a single point event
