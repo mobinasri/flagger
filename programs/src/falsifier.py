@@ -435,6 +435,11 @@ def main():
 
 
     os.makedirs(outputDir, exist_ok = True)
+
+    chainsInfoPath = os.path.join(outputDir,"falsified_asm.chains_info.tsv")
+    relationChains.writeNewContigCoordinates(chainsInfoPath)
+    print(f"[{datetime.datetime.now()}] Chains information are written to {chainsInfoPath}")
+
     print(f"[{datetime.datetime.now()}] Writing Fasta file for the falsified assembly")
     diploidFastaPath = os.path.join(outputDir,"falsified_asm.dip.fa")
     hap1FastaPath = os.path.join(outputDir,"falsified_asm.hap1.fa")

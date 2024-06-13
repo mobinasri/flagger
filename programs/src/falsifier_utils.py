@@ -913,8 +913,8 @@ class HomologyRelationChains:
             totalSplitNumber = int(z[0].split('_')[0])
             rightLeftEncoding = int(z[0].split('_')[1])
             binaryString = '{:b}'.format(rightLeftEncoding)
-            rightBinaryString = '0' + binaryString
-            leftBinaryString = '1' + binaryString
+            rightBinaryString = binaryString + '0'
+            leftBinaryString = binaryString + '1'
             rightNumber = int(rightBinaryString, 2)
             leftNumber = int(leftBinaryString, 2)
             newCtgLeft = newCtg[:-len(z[0])] + str(totalSplitNumber + 1) + "_" + str(leftNumber)
@@ -1769,6 +1769,21 @@ class HomologyRelationChains:
                         numberOfSplits = np.floor(np.log2(X / (3 * L) + 2 / 3))
                         lowerBound += 1 if numberOfSplits <= 0 else np.power(2, numberOfSplits) + 1
         return lowerBound
+
+
+    def writeNewContigCoordinates(self, outputPath):
+        with open(outputPath, 'w') as outputFile:
+            outputFile.write(f"#newCtg\torderIndex\torigCtg\torigStart\torigEnd\torigStrand\n")
+            for newCtg, chain in self.relationChains.items():
+                for relation in chain:
+                    block = relation.block
+                    origCtg = block.origCtg
+                    origStart = block.origStart
+                    origEnd = block.origEnd
+                    origStrand = block.origStrand
+                    orderIndex = block.orderIndex
+                    outputFile.write(f"{newCtg}\t{orderIndex}\t{origCtg}\t{origStart}\t{origEnd}\t{origStrand}\n")
+
 
 
     def writeNewContigsToFasta(self, origCtgSequences, diploidFastaPath, hap1FastaPath, hap2FastaPath, singleBaseErrorRate):
