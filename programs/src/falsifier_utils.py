@@ -643,7 +643,7 @@ class HomologyRelationChains:
         relationFreeIntervals = {}
         for origCtg, origCtgLen in contigLengths.items():
             #BlockList receives 1-based coordinates
-            print(origCtg + newCtgSuffix)
+            #print(origCtg + newCtgSuffix)
             relationFreeIntervals[origCtg + newCtgSuffix] = BlockList([(1, origCtgLen)])
 
         relationChains = defaultdict(list)

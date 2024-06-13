@@ -396,11 +396,14 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     double overlapRatioThreshold = 0.4;
     stList *labelNamesWithUnknown = NULL;
 
+    fprintf(stderr, "@@1\n");
     SummaryTableListFullCatalog *catalog = SummaryTableListFullCatalog_constructNull(NUMBER_OF_CATEGORY_TYPES,
                                                                                      NUMBER_OF_METRIC_TYPES,
                                                                                      NUMBER_OF_COMPARISON_TYPES);
 
+    fprintf(stderr, "@2\n");
     tpool_t *threadPool = tpool_create(threads);
+    fprintf(stderr, "@@3\n");
     SummaryTableList_constructAndFillByIterator(iterator,
                                                 blockIteratorType,
                                                 header->annotationNames,
@@ -415,14 +418,15 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
                                                 catalog,
                                                 threadPool);
 
-
+    fprintf(stderr, "@@4\n");
     tpool_wait(threadPool);
     tpool_destroy(threadPool);
-
+    fprintf(stderr, "@@5\n");
     SummaryTableList *summaryTableList = SummaryTableListFullCatalog_get(catalog,
                                                                          CATEGORY_ANNOTATION,
                                                                          metricType,
                                                                          COMPARISON_PREDICTION_VS_TRUTH);
+    fprintf(stderr, "@@6\n");
     bool correct = true;
 
     SummaryTable *summaryTable;
@@ -450,7 +454,6 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     summaryTable = SummaryTableList_getTable(summaryTableList, 3, 1);
     correct &= Double_equality2DArray(annotation2Bin2, summaryTable->table, dimension, dimension);
 
-    SummaryTableList_destruct(summaryTableList);
 
     if (chunksCreator != NULL) {
         // free iterator
