@@ -912,9 +912,9 @@ class HomologyRelationChains:
         if len(z) == 1:
             totalSplitNumber = int(z[0].split('_')[0])
             rightLeftEncoding = int(z[0].split('_')[1])
-            binaryString = '{:b}'.format(rightLeftEncoding)
-            rightBinaryString = binaryString + '0'
-            leftBinaryString = binaryString + '1'
+            binaryString = '{1:0{0}b}'.format(totalSplitNumber, rightLeftEncoding) #'{:b}'.format(rightLeftEncoding)
+            rightBinaryString = '0' + binaryString
+            leftBinaryString = '1' + binaryString
             rightNumber = int(rightBinaryString, 2)
             leftNumber = int(leftBinaryString, 2)
             newCtgLeft = newCtg[:-len(z[0])] + str(totalSplitNumber + 1) + "_" + str(leftNumber)
