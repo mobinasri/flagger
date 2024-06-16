@@ -375,8 +375,8 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock7.annotationBlockLists = {"annot1": BlockList([]),
                                                    "annot2": BlockList([(1, 3)])}
 
-        # ctg1.Dup_23_24
-        ctg1DupHomologyBlock = HomologyBlock("ctg1", 23, 24, '+', "ctg1.Dup_23_24", 0)
+        # ctg1.DUP_23_24
+        ctg1DupHomologyBlock = HomologyBlock("ctg1", 23, 24, '+', "ctg1.DUP_23_24", 0)
         ctg1DupHomologyBlock.annotationBlockLists = {"annot1": BlockList([]),
                                                      "annot2": BlockList([(1,2)])}
 
@@ -426,10 +426,10 @@ class TestProjection(unittest.TestCase):
                                     HomologyRelation(ctg2HomologyBlock7, None, None, None)]
 
         truthRelations["ctg3_f"]= [HomologyRelation(ctg3HomologyBlock1, None, None, None)]
-        truthRelations["ctg1.Dup_23_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
+        truthRelations["ctg1.DUP_23_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f", "ctg1.Dup_23_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f", "ctg3_f", "ctg1.DUP_23_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -688,9 +688,9 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock9.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
 
-        # ctg1.Dup_20_24
+        # ctg1.DUP_20_24
         # falsely duplicated block
-        ctg1DupHomologyBlock = HomologyBlock("ctg1", 20, 24, '+', "ctg1.Dup_20_24", 0)
+        ctg1DupHomologyBlock = HomologyBlock("ctg1", 20, 24, '+', "ctg1.DUP_20_24", 0)
         ctg1DupHomologyBlock.annotationBlockLists = {"annot1": BlockList([]),
                                                      "annot2": BlockList([(1,5)])}
         ctg1DupHomologyBlock.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
@@ -779,10 +779,10 @@ class TestProjection(unittest.TestCase):
         truthRelations["ctg2_f.p_1_0"] = [HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock8, None, None),
                                        HomologyRelation(ctg2HomologyBlock8, None, None, None)]
 
-        truthRelations["ctg1.Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
+        truthRelations["ctg1.DUP_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1_1", "ctg2_f.p_1_0", "ctg1.Dup_20_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1_1", "ctg2_f.p_1_0", "ctg1.DUP_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -975,9 +975,9 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock9.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                      "annot2": 0}
 
-        # ctg1.Dup_20_24
+        # ctg1.DUP_20_24
         # falsely duplicated block
-        ctg1DupHomologyBlock = HomologyBlock("ctg1", 20, 24, '+', "ctg1.Dup_20_24", 0)
+        ctg1DupHomologyBlock = HomologyBlock("ctg1", 20, 24, '+', "ctg1.DUP_20_24", 0)
         ctg1DupHomologyBlock.annotationBlockLists = {"annot1": BlockList([]),
                                                      "annot2": BlockList([(1,5)])}
         ctg1DupHomologyBlock.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
@@ -1064,10 +1064,10 @@ class TestProjection(unittest.TestCase):
                                        HomologyRelation(ctg2HomologyBlock7, ctg1HomologyBlock2, None, None),
                                        HomologyRelation(ctg2HomologyBlock8, None, None, None)]
 
-        truthRelations["ctg1.Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
+        truthRelations["ctg1.DUP_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1_1", "ctg2_f.p_1_0", "ctg1.Dup_20_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1_1", "ctg2_f.p_1_0", "ctg1.DUP_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -1288,9 +1288,9 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock11.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                       "annot2": 0}
 
-        # ctg1.Dup_20_24
+        # ctg1.DUP_20_24
         # falsely duplicated block
-        ctg1DupHomologyBlock = HomologyBlock("ctg1", 20, 24, '+', "ctg1.Dup_20_24", 0)
+        ctg1DupHomologyBlock = HomologyBlock("ctg1", 20, 24, '+', "ctg1.DUP_20_24", 0)
         ctg1DupHomologyBlock.annotationBlockLists = {"annot1": BlockList([]),
                                                      "annot2": BlockList([(1,5)])}
         ctg1DupHomologyBlock.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
@@ -1392,10 +1392,10 @@ class TestProjection(unittest.TestCase):
                                        HomologyRelation(ctg2HomologyBlock9, ctg1HomologyBlock10, None, None),
                                        HomologyRelation(ctg2HomologyBlock10, None, None, None)]
 
-        truthRelations["ctg1.Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
+        truthRelations["ctg1.DUP_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1_1", "ctg2_f.p_1_0", "ctg1.Dup_20_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1_1", "ctg2_f.p_1_0", "ctg1.DUP_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -1617,9 +1617,9 @@ class TestProjection(unittest.TestCase):
         ctg1HomologyBlock11.annotationStartTotalLengthsForSampling = {"annot1": 0,
                                                                       "annot2": 0}
 
-        # ctg1.Dup_20_24
+        # ctg1.DUP_20_24
         # falsely duplicated block
-        ctg1DupHomologyBlock = HomologyBlock("ctg1", 20, 24, '+', "ctg1.Dup_20_24", 0)
+        ctg1DupHomologyBlock = HomologyBlock("ctg1", 20, 24, '+', "ctg1.DUP_20_24", 0)
         ctg1DupHomologyBlock.annotationBlockLists = {"annot1": BlockList([]),
                                                      "annot2": BlockList([(1,5)])}
         ctg1DupHomologyBlock.annotationStartBlockListsForSampling = {"annot1": BlockList([]),
@@ -1720,10 +1720,10 @@ class TestProjection(unittest.TestCase):
                                        HomologyRelation(ctg2HomologyBlock9, ctg1HomologyBlock2, None, None),
                                        HomologyRelation(ctg2HomologyBlock10, None, None, None)]
 
-        truthRelations["ctg1.Dup_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
+        truthRelations["ctg1.DUP_20_24"]= [HomologyRelation(ctg1DupHomologyBlock, None, None, None)]
 
         outputRelations = outputRelationChains.relationChains
-        for ctgName in ["ctg1_f", "ctg2_f.p_1_1", "ctg2_f.p_1_0", "ctg1.Dup_20_24"]:
+        for ctgName in ["ctg1_f", "ctg2_f.p_1_1", "ctg2_f.p_1_0", "ctg1.DUP_20_24"]:
 
             self.assertTrue(ctgName in outputRelations, "Contig does not exist")
             self.assertEqual(len(truthRelations[ctgName]), len(outputRelations[ctgName]), "Number of relations do not match")
@@ -2067,7 +2067,7 @@ class TestProjection(unittest.TestCase):
         truthSequences = {"ctg1_f": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACGTAATACTACGAGTTTAAAGTAGTAGGGGT",
                           "ctg2_f.p_1_1": "ACACAGTGAGTAACACTATACAATCGGATATTACTACTAATACCGAGACCA",
                           "ctg2_f.p_1_0": "ATTGTAGTATGT",
-                          "ctg1.Dup_20_24": "ATATA"}
+                          "ctg1.DUP_20_24": "ATATA"}
 
         for newCtg, newSeq in outputRelationChains.yieldNewCtgSequences(self.contigSequencesForAlignment3, singleBaseErrorRate=0.0):
             self.assertEqual(truthSequences[newCtg], newSeq, f"sequence of {newCtg} is not correct")
@@ -2111,7 +2111,7 @@ class TestProjection(unittest.TestCase):
         truthSequences = {"ctg1_f": "TAAAAAGTGTGTCTCTCTCATATATGGGTACTACGTAATACTACGAGTTTAAAGTAGTAGGGGT",
                           "ctg2_f.p_1_1": "ACATACTACAAT",
                           "ctg2_f.p_1_0": "TGGTCTCGGTATTAGTAGTAATATCCGATTGTATAGTGTTACTCACTGTGT",
-                          "ctg1.Dup_20_24": "ATATA"}
+                          "ctg1.DUP_20_24": "ATATA"}
 
         for newCtg, newSeq in outputRelationChains.yieldNewCtgSequences(self.contigSequencesForAlignment4, singleBaseErrorRate=0.0):
             self.assertEqual(truthSequences[newCtg], newSeq, f"sequence of {newCtg} is not correct")
