@@ -538,12 +538,16 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
             // P(s_i = preState, s_(i+1) = state|x)
             double count = em->f[i][preState] * tProb * eProb * em->b[i + 1][state];
             double adjustedCount = count / transition->terminationProb;
-            EmissionDistSeries_updateEstimator(emissionDistSeries,
-                                               state,
-                                               x,
-                                               preX,
-                                               alpha,
-                                               adjustedCount);
+            if (model->modelType == MODEL_NEGATIVE_BINOMIAL) {
+                EmissionDistSeries_incrementCountData(emissionDistSeries,state, x, count);
+            }else {
+                EmissionDistSeries_updateEstimator(emissionDistSeries,
+                                                   state,
+                                                   x,
+                                                   preX,
+                                                   alpha,
+                                                   adjustedCount);
+            }
 
             /*if(count < 1e-3 && i % 50000  == 0){
             fprintf(stdout, "i=%d, count=%.2e, em->f[%d][%d]=%.2e, tProb=%.2e, eProb=%.2e, em->b[%d][%d]=%.2e, scale=%.2e\n", i, count, i, preState, em->f[i][preState],tProb,eProb, i+1, state, em->b[i + 1][state], em->scales[i]);
@@ -560,6 +564,13 @@ void EM_updateEstimators(EM *em) {
     // skip first column since alpha might be > 0
     for (int columnIndex = 1; columnIndex < em->seqLen; columnIndex++) {
         EM_updateEstimatorsUsingOneColumn(em, columnIndex);
+    }
+    // for accelerating EM for negative binomial
+    if (em->model->modelType == MODEL_NEGATIVE_BINOMIAL) {
+        for (int region = 0; region < em->numberOfRegions; region++) {
+            EmissionDistSeries *emissionDistSeries = em->emissionDistSeriesPerRegion[region];
+            EmissionDistSeries_updateAllEstimatorsUsingCountData(emissionDistSeries);
+        }
     }
 }
 

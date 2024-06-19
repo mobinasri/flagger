@@ -5,7 +5,7 @@
 #include "track_reader.h"
 #include "chunk.h"
 
-#define MAX_COVERAGE 2048
+#define MAX_COVERAGE 250
 
 static const char *const LABEL_COLORS[] = {"162,0,37",
                                     "250,104,0",

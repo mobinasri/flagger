@@ -345,6 +345,7 @@ NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numb
     nb->weights = Double_construct1DArray(numberOfComps);
     Double_fill1DArray(nb->weights, numberOfComps, 1.0 / numberOfComps);
     nb->numberOfComps = numberOfComps;
+    nb->digammaTable = NULL;
     NegativeBinomial_fillDigammaTable(nb);
     // wrap nb in EmissionDist for initializing estimator
     nb->thetaEstimator = NULL;
@@ -359,6 +360,7 @@ NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src) {
     dest->lambda = Double_copy1DArray(src->lambda, src->numberOfComps);
     dest->weights = Double_copy1DArray(src->weights, src->numberOfComps);
     dest->numberOfComps = src->numberOfComps;
+    dest->digammaTable = NULL;
     NegativeBinomial_fillDigammaTable(dest);
     // wrap nb in EmissionDist for initializing estimator
     dest->thetaEstimator = src->thetaEstimator != NULL ? ParameterEstimator_copy(src->thetaEstimator) : NULL;
@@ -368,7 +370,9 @@ NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src) {
 }
 
 void NegativeBinomial_fillDigammaTable(NegativeBinomial *nb) {
-    nb->digammaTable = Double_construct2DArray(nb->numberOfComps, MAX_COVERAGE_VALUE + 1);
+    if(nb->digammaTable == NULL) {
+        nb->digammaTable = Double_construct2DArray(nb->numberOfComps, MAX_COVERAGE_VALUE + 1);
+    }
     for (int comp = 0; comp < nb->numberOfComps; comp++) {
         double r = NegativeBinomial_getR(nb->theta[comp], nb->lambda[comp]);
         double digammal_0 = digammal(r); // digamma(r + x) for x = 0
@@ -1286,6 +1290,24 @@ EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
     emissionDistSeries->excludeMisjoin = excludeMisjoin;
     emissionDistSeries->numberOfCollapsedComps = numberOfCompsPerDist[STATE_COL];
     return emissionDistSeries;
+}
+
+void EmissionDistSeries_incrementCountData(EmissionDistSeries *emissionDistSeries,
+                                           int distIndex,
+                                           uint8_t x,
+                                           double count){
+    CountData_increment(emissionDistSeries->countDataPerDist[distIndex], x, count);
+}
+
+// only use this function when alpha = 0
+void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *emissionDistSeries){
+    for(int distIndex=0; distIndex += 1; distIndex++) {
+        EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
+        for(uint8_t x=0; x < MAX_COVERAGE_VALUE; x++) {
+            double count = emissionDistSeries->countDataPerDist[distIndex]->counts[x];
+            EmissionDist_updateEstimator(emissionDist, x, 0, 0, count);
+        }
+    }
 }
 
 EmissionDistSeries *EmissionDistSeries_copy(EmissionDistSeries *src) {

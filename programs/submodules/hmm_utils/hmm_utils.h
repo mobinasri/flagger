@@ -12,7 +12,7 @@
 #define EXP_TRUNC_POINT_COV_FRACTION 0.25
 #define NUMBER_OF_STATES 5
 #define ERR_COMP_BINDING_COEF 0.1
-#define MAX_COVERAGE_VALUE 2048
+#define MAX_COVERAGE_VALUE 250
 #define START_STATE_INDEX 5
 #define END_STATE_INDEX 5
 
@@ -506,6 +506,13 @@ EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
                                                          int *numberOfCompsPerDist,
                                                          int numberOfDists,
                                                          bool excludeMisjoin);
+
+void EmissionDistSeries_incrementCountData(EmissionDistSeries *emissionDistSeries,
+                                           int distIndex,
+                                           uint8_t x,
+                                           double count);
+// only use this function when alpha = 0
+void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *emissionDistSeries);
 
 EmissionDistSeries *EmissionDistSeries_copy(EmissionDistSeries *src);
 
