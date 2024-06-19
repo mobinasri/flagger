@@ -1301,11 +1301,13 @@ void EmissionDistSeries_incrementCountData(EmissionDistSeries *emissionDistSerie
 
 // only use this function when alpha = 0
 void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *emissionDistSeries){
-    for(int distIndex=0; distIndex += 1; distIndex++) {
+    for(int distIndex=0; distIndex < emissionDistSeries->numberOfDists; distIndex++) {
         EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
         for(uint8_t x=0; x < MAX_COVERAGE_VALUE; x++) {
             double count = emissionDistSeries->countDataPerDist[distIndex]->counts[x];
-            EmissionDist_updateEstimator(emissionDist, x, 0, 0, count);
+            if (0 < count) {
+                EmissionDist_updateEstimator(emissionDist, x, 0, 0, count);
+            }
         }
     }
 }
