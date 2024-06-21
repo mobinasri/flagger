@@ -75,6 +75,8 @@ static const char *StateToString[5] = {"Err", "Dup", "Hap", "Col", "Msj"};
 
 ModelType getModelTypeFromString(const char *modelString);
 
+
+
 /*! @typedef
  * @abstract Structure for storing a distribution structure. It can be either Gaussian,
  * Negative Binominal, or TruncExponential.
@@ -85,6 +87,22 @@ typedef struct EmissionDist {
     void *dist;
     DistType distType;
 } EmissionDist;
+
+typedef struct EmissionDistParamIter {
+    void *parameterTypePtr;
+    int compIndex;
+    int numberOfParameters;
+    int numberOfComps;
+    double value;
+    EmissionDist *emissionDist;
+} EmissionDistParamIter;
+
+typedef struct EmissionDistSeriesParamIter {
+    EmissionDistParamIter *emissionDistParamIter;
+    EmissionDistSeries *emissionDistSeries;
+    int distIndex;
+    int numberOfDists;
+} EmissionDistSeriesParamIter;
 
 
 typedef struct ParameterEstimator {
@@ -225,6 +243,8 @@ NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numb
 
 void NegativeBinomial_fillDigammaTable(NegativeBinomial *nb);
 
+bool NegativeBinomial_isFeasible(NegativeBinomial *nb);
+
 NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src);
 
 /*
@@ -279,7 +299,15 @@ bool NegativeBinomial_updateParameter(NegativeBinomial *nb, NegativeBinomialPara
 
 double *NegativeBinomial_getParameterValues(NegativeBinomial *nb, NegativeBinomialParameterType parameterType);
 
-const char *NegativeBinomial_getParameterName(NegativeBinomialParameterType parameterType);
+double NegativeBinomial_getParameterValue(NegativeBinomial *nb,
+                                          NegativeBinomialParameterType parameterType,
+                                          int compIndex);
+
+
+void NegativeBinomial_setParameterValue(NegativeBinomial *nb,
+                                        NegativeBinomialParameterType parameterType,
+                                        int compIndex,
+                                        double value);
 
 /*
  * Destruct a Negative Binomial structure
@@ -314,6 +342,9 @@ Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps);
  */
 Gaussian *Gaussian_constructByMean(double *mean, double factor, int numberOfComps);
 
+
+bool Gaussian_isFeasible(Gaussian *gaussian);
+
 Gaussian *Gaussian_copy(Gaussian *src);
 
 /*
@@ -344,6 +375,11 @@ bool Gaussian_updateParameter(Gaussian *gaussian, GaussianParameterType paramete
 
 double *Gaussian_getParameterValues(Gaussian *gaussian, GaussianParameterType parameterType);
 
+double Gaussian_getParameterValue(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex);
+
+void Gaussian_setParameterValue(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex, double value);
+
+
 const char *Gaussian_getParameterName(GaussianParameterType parameterType);
 
 
@@ -368,6 +404,9 @@ typedef struct TruncExponential {
  * Destruct a TruncExponential structure
  */
 TruncExponential *TruncExponential_construct(double lambda, double truncPoint);
+
+
+bool TruncExponential_isFeasible(TruncExponential *truncExponential);
 
 /*
  * Copy a TruncExponential structure
@@ -417,6 +456,13 @@ TruncExponential_updateParameter(TruncExponential *truncExponential, TruncatedEx
 double *TruncExponential_getParameterValues(TruncExponential *truncExponential,
                                             TruncatedExponentialParameterType parameterType);
 
+double TruncExponential_getParameterValue(TruncExponential *truncExponential,
+                                          TruncatedExponentialParameterType parameterType);
+
+void TruncExponential_setParameterValue(TruncExponential *truncExponential,
+                                        TruncatedExponentialParameterType parameterType,
+                                        double value);
+
 const char *TruncExponential_getParameterName(TruncatedExponentialParameterType parameterType);
 
 
@@ -430,6 +476,8 @@ void TruncExponential_destruct(TruncExponential *truncExponential);
  * Construct a EmissionDist structure
  */
 EmissionDist *EmissionDist_construct(void *dist, DistType distType);
+
+bool EmissionDist_isFeasible(EmissionDist *emissionDist);
 
 EmissionDist *EmissionDist_copy(EmissionDist *src);
 
@@ -446,6 +494,16 @@ double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX,
 
 bool EmissionDist_updateParameter(EmissionDist *emissionDist, void *parameterTypePtr, int compIndex, double value,
                                   double convergenceTol);
+
+
+double EmissionDist_getParameterValue(EmissionDist *emissionDist,
+                                      void *parameterTypePtr,
+                                      int compIndex);
+
+void EmissionDist_setParameterValue(EmissionDist *emissionDist,
+                                    void *parameterTypePtr,
+                                    int compIndex,
+                                    double value);
 
 ParameterEstimator *EmissionDist_getEstimator(EmissionDist *emissionDist, void *parameterTypePtr);
 
@@ -513,6 +571,8 @@ void EmissionDistSeries_incrementCountData(EmissionDistSeries *emissionDistSerie
                                            double count);
 // only use this function when alpha = 0
 void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *emissionDistSeries);
+
+bool EmissionDistSeries_isFeasible(EmissionDistSeries *emissionDistSeries);
 
 EmissionDistSeries *EmissionDistSeries_copy(EmissionDistSeries *src);
 
@@ -582,9 +642,40 @@ EmissionDistSeries_getParameterNames(EmissionDistSeries *emissionDistSeries, int
 double **
 EmissionDistSeries_getParameterValues(EmissionDistSeries *emissionDistSeries, int distIndex, int *numberOfParams);
 
+
+double EmissionDistSeries_getParameterValue(EmissionDistSeries *emissionDistSeries,
+                                            void *parameterTypePtr,
+                                            int distIndex,
+                                            int compIndex);
+
+void EmissionDistSeries_setParameterValue(EmissionDistSeries *emissionDistSeries,
+                                          void *parameterTypePtr,
+                                          int distIndex,
+                                          int compIndex,
+                                          double value);
+
 const char *EmissionDistSeries_getDistributionName(EmissionDistSeries *emissionDistSeries, int distIndex);
 
 const char *EmissionDistSeries_getStateName(int distIndex);
+
+
+EmissionDistParamIter *EmissionDistParamIter_construct(EmissionDist *emissionDist);
+
+bool EmissionDistParamIter_next(EmissionDistParamIter *paramIter,
+                                void **parameterTypePtrPtr,
+                                int *compIndexPtr,
+                                double *valuePtr);
+
+void EmissionDistParamIter_destruct(EmissionDistParamIter *paramIter);
+
+EmissionDistSeriesParamIter *EmissionDistSeriesParamIter_construct(EmissionDistSeries *emissionDistSeries);
+
+bool EmissionDistSeriesParamIter_next(EmissionDistSeriesParamIter *paramIter,
+                                      void **parameterTypePtrPtr,
+                                      int *distIndexPtr,
+                                      int *compIndexPtr,
+                                      double *valuePtr);
+void EmissionDistSeriesParamIter_destruct(EmissionDistSeriesParamIter *paramIter);
 
 /*! @typedef
  * @abstract Structure for holding the attributes that are used for restricting the transitions in an HMM model

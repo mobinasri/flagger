@@ -177,7 +177,6 @@ void ParameterBinding_destruct(ParameterBinding *parameterBinding) {
 }
 
 
-
 ParameterBinding **
 ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfCollapsedComps, bool excludeMisjoin) {
     if (modelType == MODEL_GAUSSIAN) {
@@ -354,6 +353,18 @@ NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numb
     return nb;
 }
 
+
+bool NegativeBinomial_isFeasible(NegativeBinomial *nb) {
+    bool isFeasible = true;
+    for (int comp = 0; comp < nb->numberOfComps; nb++) {
+        isFeasible &= (0 < nb->theta[comp]) && (nb->theta[comp] < 1);
+        isFeasible &= (0 < nb->lambda[comp]);
+        isFeasible &= (0 <= nb->weights[comp]) && (nb->weights[comp] <= 1);
+    }
+    isFeasible &= (0 < nb->numberOfComps);
+    return isFeasible;
+}
+
 NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src) {
     NegativeBinomial *dest = malloc(1 * sizeof(NegativeBinomial));
     dest->theta = Double_copy1DArray(src->theta, src->numberOfComps);
@@ -370,7 +381,7 @@ NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src) {
 }
 
 void NegativeBinomial_fillDigammaTable(NegativeBinomial *nb) {
-    if(nb->digammaTable == NULL) {
+    if (nb->digammaTable == NULL) {
         nb->digammaTable = Double_construct2DArray(nb->numberOfComps, MAX_COVERAGE_VALUE + 1);
     }
     for (int comp = 0; comp < nb->numberOfComps; comp++) {
@@ -580,6 +591,40 @@ double *NegativeBinomial_getParameterValues(NegativeBinomial *nb, NegativeBinomi
     return paramValues;
 }
 
+
+double
+NegativeBinomial_getParameterValue(NegativeBinomial *nb,
+                                   NegativeBinomialParameterType parameterType,
+                                   int compIndex) {
+    if (parameterType == NB_LAMBDA)
+        return nb->lambda[compIndex];
+    else if (parameterType == NB_THETA)
+        return nb->theta[compIndex];
+    else if (parameterType == NB_WEIGHT)
+        return nb->weights[compIndex];
+    else if (parameterType == NB_MEAN)
+        return NegativeBinomial_getMean(nb->theta[compIndex], nb->lambda[compIndex]);
+    else if (parameterType == NB_VAR)
+        return NegativeBinomial_getVar(nb->theta[compIndex], nb->lambda[compIndex]);
+    else
+        exit(EXIT_FAILURE);
+}
+
+
+void NegativeBinomial_setParameterValue(NegativeBinomial *nb,
+                                        NegativeBinomialParameterType parameterType,
+                                        int compIndex,
+                                        double value) {
+    if (parameterType == NB_LAMBDA)
+        nb->lambda[compIndex] = value;
+    else if (parameterType == NB_THETA)
+        nb->theta[compIndex] = value;
+    else if (parameterType == NB_WEIGHT)
+        nb->weights[compIndex] = value;
+    else
+        exit(EXIT_FAILURE);
+}
+
 const char *NegativeBinomial_getParameterName(NegativeBinomialParameterType parameterType) {
     return NegativeBinomialParameterToString[parameterType];
 }
@@ -616,6 +661,18 @@ Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps) {
     gaussian->varEstimator = NULL;
     gaussian->weightsEstimator = NULL;
     return gaussian;
+}
+
+
+bool Gaussian_isFeasible(Gaussian *gaussian) {
+    bool isFeasible = true;
+    for (int comp = 0; comp < gaussian->numberOfComps; nb++) {
+        isFeasible &= (0 < gaussian->mean[comp]);
+        isFeasible &= (0 < gaussian->var[comp]);
+        isFeasible &= (0 <= gaussian->weights[comp]) && (gaussian->weights[comp] <= 1);
+    }
+    isFeasible &= (0 < gaussian->numberOfComps);
+    return isFeasible;
 }
 
 Gaussian *Gaussian_copy(Gaussian *src) {
@@ -740,7 +797,7 @@ void Gaussian_updateEstimator(Gaussian *gaussian,
     double totProb = Double_sum1DArray(componentProbs, gaussian->numberOfComps);
     for (int c = 0; c < gaussian->numberOfComps; c++) {
         double w = count * componentProbs[c] / totProb;
-	//fprintf(stderr, "x = %d, c=%d, w=%.2e, count=%.2e, componentProbs[c] = %.2e, totProb= %.2e\n", x, c, w , count , componentProbs[c] , totProb);
+        //fprintf(stderr, "x = %d, c=%d, w=%.2e, count=%.2e, componentProbs[c] = %.2e, totProb= %.2e\n", x, c, w , count , componentProbs[c] , totProb);
         ParameterEstimator_increment(gaussian->meanEstimator,
                                      w * x_adjusted,
                                      w,
@@ -793,6 +850,28 @@ double *Gaussian_getParameterValues(Gaussian *gaussian, GaussianParameterType pa
     return paramValues;
 }
 
+double Gaussian_getParameterValue(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex) {
+    if (parameterType == GAUSSIAN_MEAN)
+        return gaussian->mean[compIndex];
+    else if (parameterType == GAUSSIAN_VAR)
+        return gaussian->var[compIndex];
+    else if (parameterType == NB_WEIGHT)
+        return gaussian->weights[compIndex];
+    else
+        exit(EXIT_FAILURE);
+}
+
+void Gaussian_setParameterValue(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex, double value) {
+    if (parameterType == GAUSSIAN_MEAN)
+        gaussian->mean[compIndex] = value;
+    else if (parameterType == GAUSSIAN_VAR)
+        gaussian->var[compIndex] = value;
+    else if (parameterType == NB_WEIGHT)
+        gaussian->weights[compIndex] = value;
+    else
+        exit(EXIT_FAILURE);
+}
+
 const char *Gaussian_getParameterName(GaussianParameterType parameterType) {
     return GaussianParameterToString[parameterType];
 }
@@ -811,6 +890,13 @@ TruncExponential *TruncExponential_construct(double lambda, double truncPoint) {
     truncExponential->truncPoint = truncPoint;
     truncExponential->lambdaEstimator = NULL; // wrap TruncExponential in EmissionDist for initializing estimator
     return truncExponential;
+}
+
+bool TruncExponential_isFeasible(TruncExponential *truncExponential) {
+    bool isFeasible = true;
+    isFeasible &= 0 < truncExponential->lambda
+    isFeasible &= 0 < truncExponential->truncPoint;
+    return isFeasible;
 }
 
 TruncExponential *TruncExponential_copy(TruncExponential *src) {
@@ -957,8 +1043,201 @@ double *TruncExponential_getParameterValues(TruncExponential *truncExponential,
     return paramValues;
 }
 
+double *TruncExponential_getParameterValues(TruncExponential *truncExponential,
+                                            TruncatedExponentialParameterType parameterType) {
+    double *paramValues = Double_construct1DArray(1);
+    if (parameterType == TRUNC_EXP_LAMBDA) {
+        paramValues[0] = truncExponential->lambda;
+    } else if (parameterType == TRUNC_EXP_MEAN) {
+        paramValues[0] = 1.0 / truncExponential->lambda;
+    } else if (parameterType == TRUNC_EXP_TRUNC_POINT) {
+        paramValues[0] = truncExponential->truncPoint;
+    } else {
+        exit(EXIT_FAILURE);
+    }
+    return paramValues;
+}
+
+double TruncExponential_getParameterValue(TruncExponential *truncExponential,
+                                          TruncatedExponentialParameterType parameterType) {
+    double paramValue;
+    if (parameterType == TRUNC_EXP_LAMBDA) {
+        paramValue = truncExponential->lambda;
+    } else if (parameterType == TRUNC_EXP_MEAN) {
+        paramValue = 1.0 / truncExponential->lambda;
+    } else if (parameterType == TRUNC_EXP_TRUNC_POINT) {
+        paramValue = truncExponential->truncPoint;
+    } else {
+        exit(EXIT_FAILURE);
+    }
+    return paramValue;
+}
+
+void TruncExponential_setParameterValue(TruncExponential *truncExponential,
+                                        TruncatedExponentialParameterType parameterType,
+                                        double value) {
+    if (parameterType == TRUNC_EXP_LAMBDA) {
+        truncExponential->lambda = value;
+    } else if (parameterType == TRUNC_EXP_TRUNC_POINT) {
+        truncExponential->truncPoint = value;
+    } else {
+        exit(EXIT_FAILURE);
+    }
+}
+
 const char *TruncExponential_getParameterName(TruncatedExponentialParameterType parameterType) {
     return TruncatedExponentialParameterToString[parameterType];
+}
+
+
+
+
+/////////////////////////////////////////
+//// EmissionDistParamIter Functions ////
+////////////////////////////////////////
+
+
+
+EmissionDistParamIter *EmissionDistParamIter_construct(EmissionDist *emissionDist) {
+    EmissionDistParamIter *paramIter = malloc(sizeof(EmissionDist));
+    if (emissionDist->distType == DIST_GAUSSIAN) {
+        Gaussian *gaussian = (Gaussian *) emissionDist->dist;
+        paramIter->numberOfParameters = 3;
+        paramIter->numberOfComps = gaussian->numberOfComps;
+        GaussianParameterType *parameterTypePtr = (GaussianParameterType *) malloc(sizeof(GaussianParameterType));
+        parameterTypePtr[0] = -1;
+        paramIter->parameterTypePtr = (void *) parameterTypePtr;
+        paramIter->compIndex = -1;
+        paramIter->value = -1;
+    } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
+        NegativeBinomial *nb = (NegativeBinomial *) emissionDist->dist;
+        paramIter->numberOfParameters = 3;
+        paramIter->numberOfComps = nb->numberOfComps;
+        NegativeBinomialParameterType *parameterTypePtr = (NegativeBinomialParameterType *) malloc(
+                sizeof(NegativeBinomialParameterType));
+        parameterTypePtr[0] = -1;
+        paramIter->parameterTypePtr = (void *) parameterTypePtr;
+        paramIter->compIndex = -1;
+        paramIter->value = -1;
+    } else if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
+        paramIter->numberOfParameters = 1;
+        paramIter->numberOfComps = 1;
+        TruncatedExponentialParameterType *parameterTypePtr = (TruncatedExponentialParameterType *) malloc(
+                sizeof(TruncatedExponentialParameterType));
+        parameterTypePtr[0] = -1;
+        paramIter->parameterTypePtr = (void *) parameterTypePtr;
+        paramIter->compIndex = -1;
+        paramIter->value = -1;
+    }
+    return paramIter;
+}
+
+bool EmissionDistParamIter_next(EmissionDistParamIter *paramIter,
+                                void **parameterTypePtrPtr,
+                                int *compIndexPtr,
+                                double *valuePtr) {
+    EmissionDist *emissionDist = paramIter->emissionDist;
+    if (emissionDist->distType == DIST_GAUSSIAN) {
+        GaussianParameterType *parameterTypePtr = (GaussianParameterType *) paramIter->parameterTypePtr;
+        if (parameterTypePtr[0] == (paramIter->numberOfParameters - 1)) {
+            parameterTypePtr[0] = 0;
+            paramIter->compIndex += 1;
+        } else {
+            parameterTypePtr[0] += 1;
+        }
+    } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
+        NegativeBinomialParameterType *parameterTypePtr = (NegativeBinomialParameterType *) paramIter->parameterTypePtr;
+        if (parameterTypePtr[0] == (paramIter->numberOfParameters - 1)) {
+            parameterTypePtr[0] = 0;
+            paramIter->compIndex += 1;
+        } else {
+            parameterTypePtr[0] += 1;
+        }
+    } else if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
+        TruncatedExponentialParameterType *parameterTypePtr = (TruncatedExponentialParameterType *) paramIter->parameterTypePtr;
+        if (parameterTypePtr[0] == (paramIter->numberOfParameters - 1)) {
+            parameterTypePtr[0] = 0;
+            paramIter->compIndex += 1;
+        } else {
+            parameterTypePtr[0] += 1;
+        }
+    }
+    if (paramIter->compIndex == paramIter->numberOfComps) {
+        free(paramIter->parameterTypePtr);
+        paramIter->parameterTypePtr = NULL;
+        parameterTypePtrPtr[0] = paramIter->parameterTypePtr;
+        compIndexPtr[0] = -1;
+        valuePtr[0] = -1;
+        return false;
+    } else {
+        paramIter->value = EmissionDist_getParameterValue(emissionDist,
+                                                          paramIter->parameterTypePtr,
+                                                          paramIter->compIndex);
+        parameterTypePtrPtr[0] = paramIter->parameterTypePtr;
+        compIndexPtr[0] = paramIter->compIndex;
+        valuePtr[0] = paramIter->value;
+        return true;
+    }
+}
+
+void EmissionDistParamIter_destruct(EmissionDistParamIter *paramIter) {
+    if (paramIter->parameterTypePtr != NULL) {
+        free(paramIter->parameterTypePtr);
+    }
+    free(paramIter);
+}
+
+///////////////////////////////////////////////
+//// EmissionDistSeriesParamIter Functions ////
+///////////////////////////////////////////////
+
+EmissionDistSeriesParamIter *EmissionDistSeriesParamIter_construct(EmissionDistSeries *emissionDistSeries){
+    if(emissionDistSeries->numberOfDists == 0) return NULL;
+    EmissionDistSeriesParamIter *paramIter = malloc(sizeof(EmissionDistSeriesParamIter));
+    paramIter->numberOfDists = emissionDistSeries->numberOfDists;
+    paramIter->distIndex = 0;
+    paramIter->emissionDistParamIter = EmissionDistParamIter_construct(emissionDistSeries->emissionDists[0]);
+    return paramIter;
+}
+
+bool EmissionDistSeriesParamIter_next(EmissionDistSeriesParamIter *paramIter,
+                                      void **parameterTypePtrPtr,
+                                      int *distIndexPtr,
+                                      int *compIndexPtr,
+                                      double *valuePtr) {
+
+    while(EmissionDistParamIter_next(paramIter->emissionDistParamIter,
+                                     parameterTypePtrPtr,
+                                     compIndexPtr,
+                                     valuePtr) == false){
+
+        paramIter->distIndex += 1; // go to next dist
+        if (paramIter->numberOfDists <= paramIter->distIndex) {
+            distIndexPtr[0] = -1;
+            return false;
+        } else { // create an internal iterator for the new dist
+            // destruct the old internal iterator
+            EmissionDistParamIter_destruct(paramIter->emissionDistParamIter);
+            // construct and replace with the new one
+            EmissionDist *emissionDist = paramIter->emissionDistSeries->emissionDists[paramIter->distIndex];
+            paramIter->emissionDistParamIter = EmissionDist_construct(emissionDist);
+            // it will go back to the while condition above and run EmissionDistParamIter_next
+        }
+    }
+    if(paramIter->distIndex < paramIter->numberOfDists){
+        distIndexPtr[0] = paramIter->distIndex;
+        return true;
+    } else {
+        distIndexPtr[0] = -1;
+        return false;
+    }
+}
+
+void EmissionDistSeriesParamIter_destruct(EmissionDistSeriesParamIter *paramIter){
+    if (paramIter->emissionDistParamIter != NULL){
+        EmissionDistParamIter_destruct(paramIter->emissionDistParamIter);
+    }
+    free(paramIter);
 }
 
 
@@ -967,14 +1246,23 @@ const char *TruncExponential_getParameterName(TruncatedExponentialParameterType 
 ////////////////////////////////
 
 
-
-
 EmissionDist *EmissionDist_construct(void *dist, DistType distType) {
     EmissionDist *emissionDist = malloc(1 * sizeof(EmissionDist));
     emissionDist->dist = dist;
     emissionDist->distType = distType;
     EmissionDist_initParameterEstimators(emissionDist);
     return emissionDist;
+}
+
+bool EmissionDist_isFeasible(EmissionDist *emissionDist) {
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
+        return TruncExponential_isFeasible((TruncExponential *) emissionDist->dist);
+    } else if (emissionDist->distType == DIST_GAUSSIAN) {
+        return Gaussian_isFeasible((Gaussian *) emissionDist->dist);
+    } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
+        NegativeBinomial_isFeasible((NegativeBinomial *) emissionDist->dist);
+    }
+    return false;
 }
 
 EmissionDist *EmissionDist_copy(EmissionDist *src) {
@@ -1146,6 +1434,54 @@ double *EmissionDist_getParameterValuesForOneType(EmissionDist *emissionDist, vo
     }
 }
 
+double EmissionDist_getParameterValue(EmissionDist *emissionDist,
+                                      void *parameterTypePtr,
+                                      int compIndex) {
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
+        TruncatedExponentialParameterType *parameterTypeTruncExpPtr = parameterTypePtr;
+        return TruncExponential_getParameterValue((TruncExponential *) emissionDist->dist,
+                                                  *parameterTypeTruncExpPtr);
+    } else if (emissionDist->distType == DIST_GAUSSIAN) {
+        GaussianParameterType *parameterTypeGaussianPtr = parameterTypePtr;
+        return Gaussian_getParameterValue((Gaussian *) emissionDist->dist,
+                                          *parameterTypeGaussianPtr,
+                                          compIndex);
+    } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
+        NegativeBinomialParameterType *parameterTypeNBPtr = parameterTypePtr;
+        return NegativeBinomial_getParameterValue((NegativeBinomial *) emissionDist->dist,
+                                                  *parameterTypeNBPtr,
+                                                  compIndex);
+    } else {
+        exit(EXIT_FAILURE);
+    }
+}
+
+void EmissionDist_setParameterValue(EmissionDist *emissionDist,
+                                    void *parameterTypePtr,
+                                    int compIndex,
+                                    double value) {
+    if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
+        TruncatedExponentialParameterType *parameterTypeTruncExpPtr = parameterTypePtr;
+        TruncExponential_setParameterValue((TruncExponential *) emissionDist->dist,
+                                           *parameterTypeTruncExpPtr,
+                                           value);
+    } else if (emissionDist->distType == DIST_GAUSSIAN) {
+        GaussianParameterType *parameterTypeGaussianPtr = parameterTypePtr;
+        Gaussian_setParameterValue((Gaussian *) emissionDist->dist,
+                                   *parameterTypeGaussianPtr,
+                                   compIndex,
+                                   value);
+    } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
+        NegativeBinomialParameterType *parameterTypeNBPtr = parameterTypePtr;
+        NegativeBinomial_setParameterValue((NegativeBinomial *) emissionDist->dist,
+                                           *parameterTypeNBPtr,
+                                           compIndex,
+                                           value);
+    } else {
+        exit(EXIT_FAILURE);
+    }
+}
+
 const char *EmissionDist_getParameterName(EmissionDist *emissionDist, void *parameterTypePtr) {
     if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
         TruncatedExponentialParameterType *parameterTypeTruncExpPtr = parameterTypePtr;
@@ -1295,21 +1631,29 @@ EmissionDistSeries *EmissionDistSeries_constructForModel(ModelType modelType,
 void EmissionDistSeries_incrementCountData(EmissionDistSeries *emissionDistSeries,
                                            int distIndex,
                                            uint8_t x,
-                                           double count){
+                                           double count) {
     CountData_increment(emissionDistSeries->countDataPerDist[distIndex], x, count);
 }
 
 // only use this function when alpha = 0
-void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *emissionDistSeries){
-    for(int distIndex=0; distIndex < emissionDistSeries->numberOfDists; distIndex++) {
+void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *emissionDistSeries) {
+    for (int distIndex = 0; distIndex < emissionDistSeries->numberOfDists; distIndex++) {
         EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
-        for(uint8_t x=0; x < MAX_COVERAGE_VALUE; x++) {
+        for (uint8_t x = 0; x < MAX_COVERAGE_VALUE; x++) {
             double count = emissionDistSeries->countDataPerDist[distIndex]->counts[x];
             if (0 < count) {
                 EmissionDist_updateEstimator(emissionDist, x, 0, 0, count);
             }
         }
     }
+}
+
+bool EmissionDistSeries_isFeasible(EmissionDistSeries *emissionDistSeries) {
+    bool isFeasible = true;
+    for (int s = 0; s < emissionDistSeries->numberOfDists; s++) {
+        isFeasible &= EmissionDist_isFeasible(emissionDistSeries->emissionDists[s]);
+    }
+    return isFeasible;
 }
 
 EmissionDistSeries *EmissionDistSeries_copy(EmissionDistSeries *src) {
@@ -1389,12 +1733,23 @@ int EmissionDistSeries_getNumberOfComps(EmissionDistSeries *emissionDistSeries, 
     return EmissionDist_getNumberOfComps(emissionDist);
 }
 
-void EmissionDistSeries_updateEstimatorFromOtherEstimator(EmissionDistSeries *dest, EmissionDistSeries *src) {
-    for(int distIndex=0; distIndex < dest->numberOfDists; distIndex++) {
+void *EmissionDistSeries_iterateParameterTypesAndDistIndices(EmissionDistSeries *emissionDistSeries,
+                                                             int *distIndex,
+                                                             int *compIndex) {
+    for (int distIndex = 0; distIndex < dest->numberOfDists; distIndex++) {
         EmissionDist_updateEstimatorFromOtherEstimator(dest->emissionDists[distIndex],
                                                        src->emissionDists[distIndex]);
     }
 }
+
+
+void EmissionDistSeries_updateEstimatorFromOtherEstimator(EmissionDistSeries *dest, EmissionDistSeries *src) {
+    for (int distIndex = 0; distIndex < dest->numberOfDists; distIndex++) {
+        EmissionDist_updateEstimatorFromOtherEstimator(dest->emissionDists[distIndex],
+                                                       src->emissionDists[distIndex]);
+    }
+}
+
 
 void EmissionDistSeries_updateEstimator(EmissionDistSeries *emissionDistSeries, int distIndex, uint8_t x, uint8_t preX,
                                         double alpha, double count) {
@@ -1538,6 +1893,23 @@ EmissionDistSeries_getParameterValues(EmissionDistSeries *emissionDistSeries, in
     return EmissionDist_getParameterValues(emissionDist, parameterTypePtrs, *numberOfParams);
 }
 
+double EmissionDistSeries_getParameterValue(EmissionDistSeries *emissionDistSeries,
+                                            void *parameterTypePtr,
+                                            int distIndex,
+                                            int compIndex) {
+    EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
+    return EmissionDist_getParameterValue(emissionDist, parameterTypePtr, compIndex);
+}
+
+void EmissionDistSeries_setParameterValue(EmissionDistSeries *emissionDistSeries,
+                                          void *parameterTypePtr,
+                                          int distIndex,
+                                          int compIndex,
+                                          double value) {
+    EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
+    EmissionDist_setParameterValue(emissionDist, parameterTypePtr, compIndex, value);
+}
+
 const char *EmissionDistSeries_getDistributionName(EmissionDistSeries *emissionDistSeries, int distIndex) {
     return EmissionDist_getDistributionName(emissionDistSeries->emissionDists[distIndex]);
 }
@@ -1600,8 +1972,8 @@ TransitionCountData *TransitionCountData_copy(TransitionCountData *src) {
 
 void TransitionCountData_incrementFromOtherCountData(TransitionCountData *dest, TransitionCountData *src) {
     pthread_mutex_lock(dest->mutexPtr);
-    for(int s1=0; s1 < dest->numberOfStates; s1++) {
-        for(int s2=0; s2 < dest->numberOfStates; s2++) {
+    for (int s1 = 0; s1 < dest->numberOfStates; s1++) {
+        for (int s2 = 0; s2 < dest->numberOfStates; s2++) {
             dest->countMatrix->data[s1][s2] += src->countMatrix->data[s1][s2];
         }
     }
@@ -1712,11 +2084,12 @@ Transition *Transition_constructSymmetricBiased(int numberOfStates, double diago
     Transition *transition = malloc(sizeof(Transition));
     transition->terminationProb = 1e-3;
     transition->matrix = MatrixDouble_construct0(dimension, dimension);
-    MatrixDouble_setValue(transition->matrix, (1.0 - diagonalProb) / (numberOfStates - 1) * (1.0 - transition->terminationProb));
+    MatrixDouble_setValue(transition->matrix,
+                          (1.0 - diagonalProb) / (numberOfStates - 1) * (1.0 - transition->terminationProb));
     MatrixDouble_setDiagonalValue(transition->matrix, diagonalProb * (1.0 - transition->terminationProb));
-    for(int state=0; state < numberOfStates;state++){
-	    transition->matrix->data[numberOfStates][state] = 1.0 / numberOfStates;
-	    transition->matrix->data[state][numberOfStates] = transition->terminationProb;
+    for (int state = 0; state < numberOfStates; state++) {
+        transition->matrix->data[numberOfStates][state] = 1.0 / numberOfStates;
+        transition->matrix->data[state][numberOfStates] = transition->terminationProb;
     }
     transition->matrix->data[numberOfStates][numberOfStates] = 0.0;
     transition->transitionCountData = TransitionCountData_construct(numberOfStates);
