@@ -666,7 +666,7 @@ Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps) {
 
 bool Gaussian_isFeasible(Gaussian *gaussian) {
     bool isFeasible = true;
-    for (int comp = 0; comp < gaussian->numberOfComps; nb++) {
+    for (int comp = 0; comp < gaussian->numberOfComps; comp++) {
         isFeasible &= (0 < gaussian->mean[comp]);
         isFeasible &= (0 < gaussian->var[comp]);
         isFeasible &= (0 <= gaussian->weights[comp]) && (gaussian->weights[comp] <= 1);
@@ -894,7 +894,7 @@ TruncExponential *TruncExponential_construct(double lambda, double truncPoint) {
 
 bool TruncExponential_isFeasible(TruncExponential *truncExponential) {
     bool isFeasible = true;
-    isFeasible &= 0 < truncExponential->lambda
+    isFeasible &= 0 < truncExponential->lambda;
     isFeasible &= 0 < truncExponential->truncPoint;
     return isFeasible;
 }
@@ -1026,21 +1026,6 @@ TruncExponential_updateParameter(TruncExponential *truncExponential, TruncatedEx
     double diffRatio = 1.0e-4 < oldLambda ? fabs(newLambda / oldLambda - 1.0) : 0.0;
     bool converged = diffRatio < convergenceTol;
     return converged;
-}
-
-double *TruncExponential_getParameterValues(TruncExponential *truncExponential,
-                                            TruncatedExponentialParameterType parameterType) {
-    double *paramValues = Double_construct1DArray(1);
-    if (parameterType == TRUNC_EXP_LAMBDA) {
-        paramValues[0] = truncExponential->lambda;
-    } else if (parameterType == TRUNC_EXP_MEAN) {
-        paramValues[0] = 1.0 / truncExponential->lambda;
-    } else if (parameterType == TRUNC_EXP_TRUNC_POINT) {
-        paramValues[0] = truncExponential->truncPoint;
-    } else {
-        exit(EXIT_FAILURE);
-    }
-    return paramValues;
 }
 
 double *TruncExponential_getParameterValues(TruncExponential *truncExponential,
@@ -1220,7 +1205,7 @@ bool EmissionDistSeriesParamIter_next(EmissionDistSeriesParamIter *paramIter,
             EmissionDistParamIter_destruct(paramIter->emissionDistParamIter);
             // construct and replace with the new one
             EmissionDist *emissionDist = paramIter->emissionDistSeries->emissionDists[paramIter->distIndex];
-            paramIter->emissionDistParamIter = EmissionDist_construct(emissionDist);
+            paramIter->emissionDistParamIter = EmissionDistParamIter_construct(emissionDist);
             // it will go back to the while condition above and run EmissionDistParamIter_next
         }
     }
@@ -1731,15 +1716,6 @@ double EmissionDistSeries_getProb(EmissionDistSeries *emissionDistSeries,
 int EmissionDistSeries_getNumberOfComps(EmissionDistSeries *emissionDistSeries, int distIndex) {
     EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
     return EmissionDist_getNumberOfComps(emissionDist);
-}
-
-void *EmissionDistSeries_iterateParameterTypesAndDistIndices(EmissionDistSeries *emissionDistSeries,
-                                                             int *distIndex,
-                                                             int *compIndex) {
-    for (int distIndex = 0; distIndex < dest->numberOfDists; distIndex++) {
-        EmissionDist_updateEstimatorFromOtherEstimator(dest->emissionDists[distIndex],
-                                                       src->emissionDists[distIndex]);
-    }
 }
 
 

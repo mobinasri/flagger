@@ -88,21 +88,6 @@ typedef struct EmissionDist {
     DistType distType;
 } EmissionDist;
 
-typedef struct EmissionDistParamIter {
-    void *parameterTypePtr;
-    int compIndex;
-    int numberOfParameters;
-    int numberOfComps;
-    double value;
-    EmissionDist *emissionDist;
-} EmissionDistParamIter;
-
-typedef struct EmissionDistSeriesParamIter {
-    EmissionDistParamIter *emissionDistParamIter;
-    EmissionDistSeries *emissionDistSeries;
-    int distIndex;
-    int numberOfDists;
-} EmissionDistSeriesParamIter;
 
 
 typedef struct ParameterEstimator {
@@ -657,6 +642,23 @@ void EmissionDistSeries_setParameterValue(EmissionDistSeries *emissionDistSeries
 const char *EmissionDistSeries_getDistributionName(EmissionDistSeries *emissionDistSeries, int distIndex);
 
 const char *EmissionDistSeries_getStateName(int distIndex);
+
+
+typedef struct EmissionDistParamIter {
+    void *parameterTypePtr;
+    int compIndex;
+    int numberOfParameters;
+    int numberOfComps;
+    double value;
+    EmissionDist *emissionDist;
+} EmissionDistParamIter;
+
+typedef struct EmissionDistSeriesParamIter {
+    EmissionDistParamIter *emissionDistParamIter;
+    EmissionDistSeries *emissionDistSeries;
+    int distIndex;
+    int numberOfDists;
+} EmissionDistSeriesParamIter;
 
 
 EmissionDistParamIter *EmissionDistParamIter_construct(EmissionDist *emissionDist);
