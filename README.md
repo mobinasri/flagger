@@ -1,18 +1,14 @@
 ## Evaluating dual/diploid assemblies with Flagger
 
 ### Overview
-Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is another pipeline named [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/flagger). Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
+Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). The core component of this pipeline is [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/flagger). Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid (correctly assembled) and collapsed.
 
 
 
 This evaluation has 5 steps:
 - Align long reads to the diploid assembly
 - Phase and relocalize the reads with secondary alignments using [secphase](https://github.com/mobinasri/secphase) (Optional)
-- Call and filter variants (Optional)
-- Use biallelic SNVs to remove the alignments with alternative alleles (Optional)
-- Run Flagger in two modes
-  - Using all alignments
-  - Using the alignments with no alternative alleles (optinal but 3rd and 4th steps are required, recommended only when base-level accuracy is concerned)
+- Run Flagger
 
 ### 1. Align long reads
 The ONT and HiFi reads can be aligned to a dual/diploid assembly (~ 6Gbases long in human) with a long read aligner like winnowmap and minimap2. Since the assembly is dual/diploid the expected base-level coverage should be half of the sequencing coverage.
@@ -37,84 +33,10 @@ whenever neccessary. Secphase can work only if the secondary alignments are avai
 
 More information about Secphase is available [here](https://github.com/mobinasri/secphase)
 
-### 3. Call and filter variants (Optional)
-By calling variants it is possible to detect the regions that need polishing or the regions with alignments from the wrong haplotype. It is recommeneded to use [Deepvariant](https://github.com/google/deepvariant) for calling variants with HiFi alignments and [Pepper-Margin-Deepvariant](https://github.com/kishwarshafin/pepper) for ONT. 
-````
-## For HiFi
-## Taken from deepvariant doc
-BIN_VERSION="1.4.0"
-docker run \
-  -v ${INPUT_DIR}:/input \
-  -v ${OUTPUT_DIR}:/output \
-  google/deepvariant:"${BIN_VERSION}" \
-  /opt/deepvariant/bin/run_deepvariant \
-  --model_type="PACBIO" \
-  --ref="/input/${ASSEMBLY_FASTA}" \
-  --reads="/input/${INPUT_BAM}" \
-  --output_vcf="/output/${OUTPUT_VCF}" \
-  --make_examples_extra_args="keep_supplementary_alignments=true,min_mapping_quality=0" \
-  --call_variants_extra_args="use_openvino=false" \
-  --num_shards=$(nproc) \
-  --dry_run=false 
-  
-## For ONT
-## Taken from pepper-margin-deepvariant doc
-sudo docker run \
-  -v ${INPUT_DIR}:/input \
-  -v ${OUTPUT_DIR}:/output \
-  kishwars/pepper_deepvariant:r0.8 \
-  run_pepper_margin_deepvariant call_variant \
-  -b "/input/${INPUT_BAM}" \
-  -f "/input/${ASSEMBLY_FASTA}" \
-  -o "/output" \
-  -t $(nproc) \
-  --ont_r9_guppy5_sup \
-  --pepper_include_supplementary \
-  --dv_min_mapping_quality 0 \
-  --pepper_min_mapping_quality 0 \
-  
- 
-# --ont_r9_guppy5_sup is preset for ONT R9.4.1 Guppy 5 "Sup" basecaller
-# for ONT R10.4 Q20 reads: --ont_r10_q20
-````
+### 3. Run Flagger
+The produced alignment file (`${INPUT_BAM}` in step 1) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
+erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases that couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
 
-Note that for both variant callers, the minimum mapping quality is set to 0 which is neccessary to do if the assembly under evaluation is dual/diploid.
-
-The called variants are then filtered to include only the biallelic snps with high quality and frequency.
-````
-## Get the biallelic snps
-bcftools view -Ov -f PASS -m2 -M2 -v snps -e 'FORMAT/VAF<~{vafCutoff} | FORMAT/GQ<~{qCutoff}' ${OUTPUT_VCF} > ${SNPS_VCF}
-````
-
-### 4. Remove the alignments with alternative alleles (Optional)
-By having the biallelic snps it is possible to find the alignments with alternative alleles, remove them from the bam file.
-`filter_alt_reads` is a program that can be used for this aim.
-```
-## Run filter_alt_reads to get a bam file with no alternative-contained alignments
-docker run \
- -v ${INPUT_DIR}:/input \
- -v ${OUTPUT_DIR}:/output \
- mobinasri/flagger:v0.3.2 \
- filter_alt_reads \
- -i "/input/${INPUT_BAM}" \
- -o "/output/${ALT_FILTERED_BAM}"
- -f "/output/${ALT_BAM}"
- -v "${SNPS_VCF}"
- -t $(nproc)
- -m 1000 
- -r 0.4
-```
-
-For each alignment `filter_alt_reads` iterates over the CIGAR string and clusters the snps closer than the number given to the `-m` parameter. That alignment will be removed if it encompasses a snp cluster in which more than `-r` ratio of the snps have alternative alleles. 
-`${ALT_FILTERED_BAM}` is the cleaned bam file and `${ALT_BAM}` includes the removed alignments.
-
-### 5. Run Flagger
-#### 5.1 (Mode 1) Using all alignments
-The produced alignment file (`${INPUT_BAM}` prior to step 4) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
-erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
-
-#### 5.2 (Mode 2) Using alignments with no alternative alleles
-`${ALT_FILTERED_BAM}` (after step 4) can also be used as the input to Flagger. Some of the regions flagged as collapsed in `${INPUT_BAM}` may turn out to be haploid in `${ALT_FILTERED_BAM}`, which means in the original alignment they had mismapped reads from other regions. There may be some regions flagged as haploid originally but turn out to be erroneous in `${ALT_FILTERED_BAM}`, which indicates regions that needs polishing.
 
 More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
 
@@ -122,29 +44,55 @@ More information about Flagger is available [here](https://github.com/mobinasri/
 
 It is easier to run the pipeline using the WDLs described below. A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
 
-It is recommended to run the whole pipeline using [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end.wdl). It will run Flagger in both modes mentioned above. `flagger_end_to_end.wdl` requires the alignment of each haplotype assembly to a reference like [chm13v2.0](https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz). It will use these alignments for extracting the potentially coverage-biased regions and also stratifying the final results based on CenSat, SD and sex annotations.
+It is recommended to run the whole pipeline using [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl).
 
-Recommended values for the parameters of flagger_end_to_end.wdl:
+Recommended values for the parameters of flagger_end_to_end_with_mapping.wdl:
 
 
-|Parameter| Value|
-|:--------|:-----|
-|FlaggerEndToEnd.maxReadDivergence | 0.02 for HiFi and 0.09 for ONT|
-|FlaggerEndToEnd.variantCaller | "dv" for HiFi and "pmdv" for ONT|
-|preprocess.deepVariantModelType | Should be set based on the latest version of deepvariant ("PACBIO" for v1.4.0)|
-|preprocess.pepperModelType | Should be set based on the ONT guppy version  (read https://github.com/kishwarshafin/pepper) "--ont_r9_guppy5_sup" for R9-guppy5 |
-|preprocess.moreOptions | "-m 1000 -r 0.4" |
-|preprocess.qCutoff | 10 |
-|preprocess.vafCutoff | 0.3|
-|FlaggerEndToEnd.refBiasedBlocksBedArray | [ "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r1_high_biased.bed", "gs://masri/flagger/v0.3.0/chm13v1.1_hifi_r2_low_biased.bed" ] for HiFi and  [ "gs://masri/flagger/v0.3.0/chm13v1.1_ont_r2_low_biased.bed"] for ONT |
-|FlaggerEndToEnd.refBiasedRegionFactorArray | [ 1.25, 0.75 ] for HiFi and [0.75] for ONT |
-|FlaggerEndToEnd.refBiasedRegionNameArray | [ "hifi_biased_high", "hifi_biased_low" ] for HiFi and  ["ont_biased_low" ] for ONT |
-|FlaggerEndToEnd.refCntrBed | "gs://masri/flagger/v0.3.0/chm13v2.0.censat.bed" |
-|FlaggerEndToEnd.refCntrCtBed | "gs://masri/flagger/v0.3.0/chm13v2.0.ct.bed" |
-|FlaggerEndToEnd.refSDBed| "gs://masri/flagger/v0.3.0/chm13v2.0.sd.bed" |
-|FlaggerEndToEnd.refSexBed| "gs://masri/flagger/v0.3.0/chm13v2.0.sex.bed" |
-|FlaggerEndToEnd.refName | "chm13v2.0"|
-|FlaggerEndToEnd.secphaseOptions | "--hifi" for HiFi and "--ont" for ONT |
+| Parameter | Description | Type | Default | 
+| --- | --- | --- | ------------ |
+|sampleName| Sample name; for example 'HG002'| String | No Default |
+|suffixForFlagger| Suffix string that contains information about this analysis; for example 'hifi_winnowmap_flagger_for_hprc'| String | No Default |
+|suffixForMapping| Suffix string that contains information about this alignment. It will be appended to the name of the final alignment. For example 'hifi_winnowmap_v2.03_hprc_y2'| String | No Default |
+|hap1AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 1st haplotype.| File | No Default |
+|hap2AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype.| File | No Default |
+|readfiles| An array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed.| Array[File] | No Default |
+|aligner| Name of the aligner. It can be either minimap2, winnowmap or veritymap.| String | winnowmap |
+|preset| Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap| String | No Default |
+|kmerSize| The kmer size for using minimap2 or winnowmap. With winnowmap kmer size should be 15 and with minimap2 kmer size should be 17 and 19 for using the presets map-ont and map-hifi/map-pb respectively.| Int | 15 |
+|alignerOptions| Aligner options. It can be something like '--eqx --cs -Y -L -y' for minimap2/winnowmap. Note that if assembly is diploid and aligner is either minimap2 or winnowmap '-I8g' is necessary. If the reads contain modification tags and these tags are supposed to be present in the final alignment file, alignerOptions should contain '-y' and the aligner should be either minimap2 or winnowmap. If running secphase is enabled it is recommended to add '-p0.5' to alignerOptions; it will keep more secondary alignments so secphase will have more candidates per read. For veritymap '--careful' can be used but not recommended for whole-genome assembly since it increases the runtime dramatically.| String | --eqx -Y -L -y |
+|readExtractionOptions| The options to be used while converting bam to fastq with samtools fastq. If the reads contain epigentic modification tags it is necessary to use '-TMm,Ml,MM,ML'| String | -TMm,Ml,MM,ML |
+|referenceFastaForReadExtraction| If reads are in CRAM format then the related reference should be passed to this parameter for read extraction.| File | No Default (Optional) |
+|enableAddingMDTag| If true it will call samtools calmd to add MD tags to the final bam file.| Boolean | true |
+|splitNumber| The number of chunks which the input reads should be equally split into. Note that enableSplittingReadsEqually should be set to true if user wants to split reads into equally sized chunks.| Int | 16 |
+|enableSplittingReadsEqually| If true it will merge all reads together and then split them into multiple chunks of roughly equal size. Each chunk will then be aligned via a separate task. This feature is useful for running alignment on cloud/slurm systems where there are  multiple nodes available with enough computing power and having alignments tasks distributed among small nodes is more efficient or cheaper than running a single alignment task in a large node. If the  whole workflow is being on a single node it is not recommened to use this feature since mergin and splitting reads takes its own time. | Boolean | false |
+|minReadLengthForMapping| If it is greater than zero, a task will be executed for filtering reads shorter than this value before alignment.| Int | 0 |
+|alignerThreadCount | The number of threads for mapping in each alignment task | Int | 16 |
+|alignerMemSize | The size of the memory in Gb for mapping in each alignment task | Int | 48 |
+|alignerDockerImage | The mapping docker image | String | mobinasri/long_read_aligner:v0.4.0 | 
+|correctBamOptions| Options for the correct_bam program that can filters short/highly divergent alignments  | String | --primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1 | 
+|preemptible| Number of retries to use preemptible nodes on Terra/GCP. | Int | 2 |
+|zones| Name of the zone for taking nodes on Terra/GCP. | String | us-west2-a| 
+|maxReadDivergenceForFlagger| Alignments with gap-compressed ratio higher than this will be filtered in the pre-process step of flagger. | Float | 0.1 |
+|potentialBiasesBedArray| Array of bed files each of which contains regions with potential coverage bias for example one bed file can contain HSat2 regions in haplotype 1. | Array[File] | No Default (Optional) |
+|sexBed| Optional bed file containing regions assigned to X/Y chromosomes. (can be either in ref or asm coordinates)| File | No Default (Optional) |
+|SDBed| Optional Bed file containing Segmental Duplications. (can be either in ref or asm coordinates)| File | No Default (Optional) |
+|cntrBed| Optional Bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks.| File | No Default (Optional) |
+|cntrCtBed| Optional Bed file containing centromere transition 'ct' blocks.| File | No Default (Optional) | 
+|additionalStratificationBedArray| Array of additional stratification bed files for final stats tsv file. | Array[File] | No Default (Optional) |
+|additionalStratificationNameArray| Array of names for the stratifications provided in the argument additionalStratificationBedArray. |  Array[File] | No Default (Optional) |
+|enableProjectingBedsFromRef2Asm| If True it means that the given bed files are in ref coors (e.g. chm13v2) and they have to be projected to asm coors. | Boolean | false |
+|projectionReferenceFastaGz| The given bed files are in the coordinates of this reference. A reference should be passed if enableProjectingBedsFromRef2Asm is true. | File | No Default (Optional) |
+|enableRunningSecphase | If true it will run secphase in the marker mode using the wdl parameters starting with 'secphase' otherwise skip it. | Boolean | false |
+|secphaseDockerImage| Docker image for running Secphase | String | mobinasri/secphase:v0.4.3 |
+|secphaseOptions| String containing secphase options (can be either --hifi or --ont). | String | --hifi |
+|secphaseVersion| Secphase version.| String | v0.4.3
+|enableOutputtingWig| If true it will make wig files from cov files and output them. wig files can be easily imported into IGV sessions | Boolean | true |
+|enableOutputtingBam| If true it will output read alignment bam file and its related index | Boolean | false |
+|windowSize| The size of the window flagger uses for finding coverage distrubutions (Default = 5Mb)| Int | 5000000 | 
+|sortPdfPagesByHaplotype| Sort the coverage distributions plotted in the output pdf by haplotype | Boolean | false |
+|hap1ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype1. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap1 |
+|hap2ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype2. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap2 |
 
 
 All files with gs urls are publicly accessible so if you are running the WDL on Terra you can use the same urls. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository for those who want to run locally. This WDL also needs the alignment of each haplotype to the reference (like chm13v2.0). Those alignments can be produced using [asm2asm_aligner.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/tasks/alignment/asm2asm_aligner.wdl). Here is the list of recommended parametes for this workflow:
@@ -164,38 +112,31 @@ wget https://github.com/broadinstitute/cromwell/releases/download/85/cromwell-85
 wget https://github.com/broadinstitute/cromwell/releases/download/85/womtool-85.jar
 
 # Get version 0.3.0 of Flagger
-wget https://github.com/mobinasri/flagger/archive/refs/tags/v0.3.0.zip
+wget https://github.com/mobinasri/flagger/archive/refs/tags/v0.4.0.zip
 
-unzip v0.3.0.zip
+unzip v0.4.0.zip
 
 # make a directory for saving outputs and json files
 mkdir workdir 
 
 cd workdir
 
-java -jar ../womtool-58.jar inputs ../flagger-0.3.0/wdls/workflows/flagger_end_to_end.wdl > inputs.json
+java -jar ../womtool-58.jar inputs ../flagger-0.4.0/wdls/workflows/flagger_end_to_end.wdl > inputs.json
 ```
 
 After modifying `inputs.json` based on the recommended parameters and the paths to input files; `assemblyFastaGz`, `fai`, `hap1ToRefBam`, `hap2ToRefBam`. and removing any other parameter from the json file you can run the command below:
 
 ```
 # run flagger workflow
-java -jar ../cromwell-58.jar run ../flagger-0.3.0/wdls/workflows/flagger_end_to_end.wdl -i inputs.json -m outputs.json
+java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end.wdl -i inputs.json -m outputs.json
 ```
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
 
-It is also possible to run the pipeline in only the first mode using [flagger_end_to_end_no_variant_calling.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling.wdl), which ignores variant calling and filtering alignments.
-
-If the assembly is related to a species without any reliable annotated reference [flagger_end_to_end_no_variant_calling_no_ref.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref.wdl) can be used. This WDL does not need reference annotation files and the alignments to the reference assembly. It operates in the first mode which ignores variant calling and filtering alignments.
 
 #### Dockstore links
 
 All WDLs are uploaded to Dockstore for easier import into platforms like Terra or AnVIL.
-- [Dockstore link for flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEnd:v0.3.0?tab=info)
-
-- [Dockstore link for flagger_end_to_end_no_variant_calling.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndNoVariantCalling:v0.3.0?tab=info)
-
-- [Dockstore link for flagger_end_to_end_no_variant_calling_no_ref.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndNoVariantCallingNoRef:v0.3.0?tab=info)
+- [Dockstore link for flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndWithMapping:v0.4.0?tab=info)
 
 
 
