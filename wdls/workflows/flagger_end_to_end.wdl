@@ -20,8 +20,8 @@ workflow FlaggerEndToEnd{
     parameter_meta {
         sampleName: "Sample name for example 'HG002'"
         suffix: "Suffix string that contains information about this analysis for example 'hifi_winnowmap_flagger_for_hprc'"
-        hap1AssemblyFastaGz: "Path to gzip-compressed fasta file of the 1st haplotype."
-        hap2AssemblyFastaGz: "Path to gzip-compressed fasta file of the 2nd haplotype."
+        hap1AssemblyFasta: "Path to uncompressed or gzip-compressed fasta file of the 1st haplotype."
+        hap2AssemblyFasta: "Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype."
         readAlignmentBam: "Path to sorted read alignment bam."
         readAlignmentBai: "Path to bam index for read alignment"
         maxReadDivergence: "Alignments with gap-compressed ratio higher than this will be filtered in the pre-process step. (Default: 0.1)"
@@ -33,19 +33,23 @@ workflow FlaggerEndToEnd{
         additionalStratificationBedArray: "Array of additional stratification bed files for final stats tsv file. (Default: [])"
         additionalStratificationNameArray: "Array of names for the stratifications provided in the argument additionalStratificationBedArray. (Default: [])"
         enableProjectingBedsFromRef2Asm: "If True it means that the given bed files are in ref coors (e.g. chm13v2) and they have to be projected to asm coors. (Default: false)"
-        projectionReferenceFastaGz: "The given bed files are in the coordinates of this reference. A reference should be passed if enableProjectingBedsFromRef2Asm is true. (Default: '')"
+        projectionReferenceFasta: "The given bed files are in the coordinates of this reference. A reference should be passed if enableProjectingBedsFromRef2Asm is true. (Default: '')"
         enableRunningSecphase : "If True it will run secphase in the marker mode using the parameters starting with 'secphase' otherwise skip it. (Default: false)"
         secphaseDockerImage: "Docker image for running Secphase (Default: mobinasri/secphase:v0.4.3)"
         secphaseOptions: "String containing secphase options (can be either --hifi or --ont). (Default --hifi)"
         secphaseVersion: "Secphase version. (Default: v0.4.3)"
         enableOutputtingWig: "If True it will make wig files from cov files and output them. wig files can be easily imported into IGV sessions (Default: true)"
+        windowSize: "The size of the window flagger uses for finding coverage distrubutions (Default: 5000000)"
+        sortPdfPagesByHaplotype: "Sort the coverage distributions plotted in the output pdf by haplotype (Default: false)"
+        hap1ContigPattern: "The pattern that will be used for finding the names of the contigs belonging to haplotype1. It will be skipped if sortPdfPagesByHaplotype is false. (Default: hap1)"
+        hap2ContigPattern: "The pattern that will be used for finding the names of the contigs belonging to haplotype2. It will be skipped if sortPdfPagesByHaplotype is false. (Default: hap2)"
     }
     input{
         String sampleName
         String suffix
 
-        File hap1AssemblyFastaGz
-        File hap2AssemblyFastaGz
+        File hap1AssemblyFasta
+        File hap2AssemblyFasta
         File readAlignmentBam
         File readAlignmentBai
         Float maxReadDivergence = 0.1
@@ -59,7 +63,7 @@ workflow FlaggerEndToEnd{
         Array[String] additionalStratificationNameArray=[]
         
         Boolean enableProjectingBedsFromRef2Asm = true
-        File projectionReferenceFastaGz = ""
+        File projectionReferenceFasta = ""
 
         Boolean enableRunningSecphase = false
         String secphaseDockerImage = "mobinasri/secphase:v0.4.3--c99e0e9f3561192e127b2d913c932c3e68aa21bf"
@@ -67,6 +71,10 @@ workflow FlaggerEndToEnd{
         String secphaseVersion = "v0.4.3"
 
         Boolean enableOutputtingWig = true
+        Int windowSize=5000000
+        Boolean sortPdfPagesByHaplotype=false
+        String hap1ContigPattern="hap1"
+        String hap2ContigPattern="hap2"
     }
 
     # Make en empty bed file
@@ -85,8 +93,8 @@ workflow FlaggerEndToEnd{
     # from the given haplotypes
     call misc_t.createDipAsm {
         input:
-            hap1AssemblyFastaGz = hap1AssemblyFastaGz,
-            hap2AssemblyFastaGz = hap2AssemblyFastaGz,
+            hap1AssemblyFasta = hap1AssemblyFasta,
+            hap2AssemblyFasta = hap2AssemblyFasta,
             outputName = "${sampleName}.dip.asm"
     }
 
@@ -99,7 +107,7 @@ workflow FlaggerEndToEnd{
     # Get coordinates of canonical bases only (no "N" which may come from scaffolding)
     call misc_t.getCanonicalBasesBed as dipCanonical{
         input: 
-            assemblyFastaGz = createDipAsm.diploidAssemblyFastaGz
+            assemblyFasta = createDipAsm.diploidAssemblyFastaGz
     }
 
     # Run Secphase if it is enabled by user
@@ -144,15 +152,15 @@ workflow FlaggerEndToEnd{
             input :
                 aligner="minimap2",
                 preset="asm5",
-                queryAssemblyFastaGz=hap1AssemblyFastaGz,
-                refAssemblyFastaGz=projectionReferenceFastaGz
+                queryAssemblyFasta=hap1AssemblyFasta,
+                refAssemblyFasta=projectionReferenceFasta
         }
         call asm2asm_t.asm2asmAlignment as hap2ToRef {
             input :
                 aligner="minimap2",
                 preset="asm5",
-                queryAssemblyFastaGz=hap2AssemblyFastaGz,
-                refAssemblyFastaGz=projectionReferenceFastaGz
+                queryAssemblyFasta=hap2AssemblyFasta,
+                refAssemblyFasta=projectionReferenceFasta
         }
         call project_t.runProjectBlocksForFlagger as project{
             input:
@@ -209,7 +217,11 @@ workflow FlaggerEndToEnd{
             sampleName = sampleName,
             suffix = suffix,
             covFloat = preprocess.modeCorrectedCoverageFloat,
-            canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed
+            canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed,
+            windowSize = windowSize,
+            sortPdfPagesByHaplotype = sortPdfPagesByHaplotype,
+            hap1ContigPattern = hap1ContigPattern,
+            hap2ContigPattern = hap2ContigPattern
     }
 
     # Get Flagger stats

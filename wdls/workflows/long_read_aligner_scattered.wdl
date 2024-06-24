@@ -23,7 +23,7 @@ workflow longReadAlignmentScattered {
         aligner: "Name of the aligner. It can be either minimap2, winnowmap or veritymap. (Default = winnowmap)"
         preset: "Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap"
         kmerSize: "The kmer size for using minimap2 or winnowmap. With winnowmap kmer size should be 15 and with minimap2 kmer size should be 17 and 19 for using the presets map-ont and map-hifi/map-pb respectively."
-	alignerOptions: "Aligner options. It can be something like '--eqx --cs -Y -L' for minimap2/winnowmap. Note that if assembly is diploid and aligner is either minimap2 or winnowmap '-I8g' is necessary. If the reads contain modification tags and these tags are supposed to be present in the final alignment file, alignerOptions should contain '-y' and the aligner should be either minimap2 or winnowmap. If running secphase is enabled it is recommended to add '-p0.5' to alignerOptions; it will keep more secondary alignments so secphase will have more candidates per read. For veritymap '--careful' can be used but not recommended for whole-genome assembly since it increases the runtime dramatically."
+	alignerOptions: "Aligner options. It can be something like '--eqx --cs -Y -L -y' for minimap2/winnowmap. Note that if assembly is diploid and aligner is either minimap2 or winnowmap '-I8g' is necessary. If the reads contain modification tags and these tags are supposed to be present in the final alignment file, alignerOptions should contain '-y' and the aligner should be either minimap2 or winnowmap. If running secphase is enabled it is recommended to add '-p0.5' to alignerOptions; it will keep more secondary alignments so secphase will have more candidates per read. For veritymap '--careful' can be used but not recommended for whole-genome assembly since it increases the runtime dramatically."
         readExtractionOptions: "The options to be used while converting bam to fastq with samtools fastq. If the reads contain epigentic modification tags it is necessary to use '-TMm,Ml'"
         sampleName: "Name of the sample or assembly. For example 'HG002', 'GRCh38' or 'HG002_hifiasm_v0.19.5'"
         suffix: "Suffix string that contains information about this alignment. It will be appended to the name of the final alignment. For example 'hifi_winnowmap_v2.03_hprc_y2'"
@@ -32,6 +32,9 @@ workflow longReadAlignmentScattered {
         splitNumber: "The number of chunks which the input reads should be equally split into. Note that enableSplittingReadsEqually should be set to true if user wants to split reads into equally sized chunks. [Default = 16]"
         enableSplittingReadsEqually: "If true it will merge all reads together and then split them into multiple chunks of roughly equal size. Each chunk will then be aligned via a separate task. This feature is useful for running alignment on cloud/slurm systems where there are  multiple nodes available with enough computing power and having alignments tasks distributed among small nodes is more efficient or cheaper than running a single alignment task in a large node. If the  whole workflow is being on a single node it is not recommened to use this feature since mergin and splitting reads takes its own time. [Default = false]"
         minReadLength: "If it is greater than zero, a task will be executed for filtering reads shorter than this value before alignment. [Default = 0]"
+        alignerThreadCount : "The number of threads for mapping in each alignment task [Default = 16]"
+        alignerMemSize : "The size of the memory in Gb for mapping in each alignment task [Default = 48]"
+        alignerDockerImage : "The mapping docker image [Default = 'mobinasri/long_read_aligner:v0.4.0']"
         enableRunningSecphase: "If true it will run Secphase and apply the corrections reported by Secphase to the final output. [Default = false]"
         secphaseOptions: "--hifi for hifi reads and --ont for ont reads [Default = '--hifi'] "
         secphaseDockerImage: "The secphase docker image. [Default = 'mobinasri/secphase:v0.4.3']"
@@ -46,8 +49,8 @@ workflow longReadAlignmentScattered {
         String aligner="winnowmap"
         String preset
         Int kmerSize = 15
-        String alignerOptions="--eqx -Y -L"
-        String readExtractionOptions=""
+        String alignerOptions="--eqx -Y -L -y"
+        String readExtractionOptions="-TMM,ML,Mm,Ml"
         String sampleName
         String suffix
         File? referenceFastaForReadExtraction
@@ -55,11 +58,17 @@ workflow longReadAlignmentScattered {
         Int splitNumber = 16
         Boolean enableSplittingReadsEqually=false
         Int minReadLength = 0
+
+        Int alignerThreadCount = 16
+        Int alignerMemSize = 48
+        String alignerDockerImage = "mobinasri/long_read_aligner:v0.4.0"
+
         Boolean enableRunningSecphase=false
         String secphaseOptions="--hifi"
         String secphaseDockerImage="mobinasri/secphase:v0.4.3"
         String secphaseVersion="v0.4.3"
         String correctBamOptions="--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1"
+
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -109,6 +118,9 @@ workflow longReadAlignmentScattered {
                 refAssembly = assemblyFasta,
                 readFastq_or_queryAssembly = select_first([filterShortReads.longReadFastqGz, readFile]),
                 options = alignerOptions,
+                threadCount = alignerThreadCount,
+                memSize = alignerMemSize,
+                dockerImage = alignerDockerImage,
                 diskSize = 64 + floor(size(readFile, 'GB')) * 6,
                 preemptible = preemptible,
                 zones = zones,

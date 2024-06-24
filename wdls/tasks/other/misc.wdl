@@ -3,12 +3,12 @@ version 1.0
 
 task getCanonicalBasesBed {
     input {
-        File assemblyFastaGz
+        File assemblyFasta
         # runtime configurations
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.4.0"
+        String dockerImage="mobinasri/flagger:v0.4.0--98d66028a969211773077f005511f3d78afdc21c"
         Int preemptible=2
     }
     command <<<
@@ -17,10 +17,19 @@ task getCanonicalBasesBed {
         set -u
         set -o xtrace
 
-        FILENAME=$(basename ~{assemblyFastaGz})
-        PREFIX=${FILENAME%%.fa*(sta).gz}
-        ln -s ~{assemblyFastaGz} ${PREFIX}.fa.gz
-        gunzip -c ${PREFIX}.fa.gz > ${PREFIX}.fa
+        FILENAME=$(basename ~{assemblyFasta})
+
+        EXTENSION=${FILENAME##*.}
+
+        if [[ ${EXTENSION} == "gz" ]];then
+            PREFIX=${FILENAME%%.fa*(sta).gz}
+            gunzip -c ~{assemblyFasta} > ${PREFIX}.fa
+        else
+            PREFIX=${FILENAME%%.fa*(sta)}
+            ln -s ~{assemblyFasta} ${PREFIX}.fa 
+        fi
+        
+
         # ignore Ns
         python3 /home/scripts/get_contig_coords.py --inputFasta ${PREFIX}.fa | bedtools sort -i - > ${PREFIX}.canonical_only.bed
 
@@ -77,8 +86,8 @@ task gzipCompress {
 
 task createDipAsm {
     input {
-        File hap1AssemblyFastaGz
-        File hap2AssemblyFastaGz
+        File hap1AssemblyFasta
+        File hap2AssemblyFasta
         String outputName
         # runtime configurations
         Int memSize=8
@@ -93,7 +102,16 @@ task createDipAsm {
         set -u
         set -o xtrace
 
-        zcat ~{hap1AssemblyFastaGz} ~{hap2AssemblyFastaGz} > ~{outputName}.fa
+
+        FILENAME=$(basename ~{hap1AssemblyFasta})
+        EXTENSION=${FILENAME##*.}
+        if [[ ${EXTENSION} == "gz" ]];then
+            CAT_COMMAND="zcat"
+        else
+            CAT_COMMAND="cat"
+        fi
+
+        ${CAT_COMMAND} ~{hap1AssemblyFasta} ~{hap2AssemblyFasta} > ~{outputName}.fa
         samtools faidx ~{outputName}.fa
         pigz -p~{threadCount} ~{outputName}.fa
 
