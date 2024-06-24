@@ -51,14 +51,14 @@ Recommended values for the parameters of flagger_end_to_end_with_mapping.wdl:
 
 | Parameter | Description | Type | Default | 
 | --- | --- | --- | ------------ |
-|sampleName| Sample name; for example 'HG002'| String | No Default |
-|suffixForFlagger| Suffix string that contains information about this analysis; for example 'hifi_winnowmap_flagger_for_hprc'| String | No Default |
-|suffixForMapping| Suffix string that contains information about this alignment. It will be appended to the name of the final alignment. For example 'hifi_winnowmap_v2.03_hprc_y2'| String | No Default |
-|hap1AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 1st haplotype.| File | No Default |
-|hap2AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype.| File | No Default |
-|readfiles| An array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed.| Array[File] | No Default |
+|sampleName| Sample name; for example 'HG002'| String | **No Default (Mandatory)** |
+|suffixForFlagger| Suffix string that contains information about this analysis; for example 'hifi_winnowmap_flagger_for_hprc'| String | **No Default (Mandatory)** |
+|suffixForMapping| Suffix string that contains information about this alignment. It will be appended to the name of the final alignment. For example 'hifi_winnowmap_v2.03_hprc_y2'| String | **No Default (Mandatory)** |
+|hap1AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 1st haplotype.| File | **No Default (Mandatory)** |
+|hap2AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype.| File | **No Default (Mandatory)** |
+|readfiles| An array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed.| Array[File] | **No Default (Mandatory)** |
+|preset| Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap| String | **No Default (Mandatory)** |
 |aligner| Name of the aligner. It can be either minimap2, winnowmap or veritymap.| String | winnowmap |
-|preset| Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap| String | No Default |
 |kmerSize| The kmer size for using minimap2 or winnowmap. With winnowmap kmer size should be 15 and with minimap2 kmer size should be 17 and 19 for using the presets map-ont and map-hifi/map-pb respectively.| Int | 15 |
 |alignerOptions| Aligner options. It can be something like '--eqx --cs -Y -L -y' for minimap2/winnowmap. Note that if assembly is diploid and aligner is either minimap2 or winnowmap '-I8g' is necessary. If the reads contain modification tags and these tags are supposed to be present in the final alignment file, alignerOptions should contain '-y' and the aligner should be either minimap2 or winnowmap. If running secphase is enabled it is recommended to add '-p0.5' to alignerOptions; it will keep more secondary alignments so secphase will have more candidates per read. For veritymap '--careful' can be used but not recommended for whole-genome assembly since it increases the runtime dramatically.| String | --eqx -Y -L -y |
 |readExtractionOptions| The options to be used while converting bam to fastq with samtools fastq. If the reads contain epigentic modification tags it is necessary to use '-TMm,Ml,MM,ML'| String | -TMm,Ml,MM,ML |
@@ -94,6 +94,21 @@ Recommended values for the parameters of flagger_end_to_end_with_mapping.wdl:
 |hap1ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype1. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap1 |
 |hap2ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype2. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap2 |
 
+#### CHM13 annotation files
+
+A set of annotations files in the coordinates of chm13v2.0 are prepared beforehand and they can be used as inputs to the workflow. These bed files are useful when there is no denovo annotation for the assemblies and we like to project annotations from chm13v2.0 to the assembly coordinates for two main purposes:
+
+1. Detecting regions with coverage biases: Satellite repeat arrays might have coverage biases so before running Flagger the pipeline will detect potentially baised regions and fit a separate Gaussian model to each detected annotation.
+2. Stratifying final results with the projected annotations.
+
+|Parameter| Value|
+|:--------|:-----|
+|potentialBiasesBedArray| ['https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_bsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hsat1A.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hsat1B.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hsat2.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hsat3.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hor.bed'] |
+|censat_bed|https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_no_ct.bed|
+|sd_bed|https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.all.bed|
+|sex_bed|https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sex/chm13v2.0_sex.bed|
+|additional_bed_array| ['https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_no_ct.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_only_ct.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_bsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_gsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hor.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hsat1A.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hsat1B.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hsat2.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hsat3.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_mon.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.g99.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.g98_le99.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.g90_le98.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.le90.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.all.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/repeat_masker/chm13v2.0_RM_4.1.2p1_le6_STR.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/repeat_masker/chm13v2.0_RM_4.1.2p1_ge7_VNTR.bed'] |
+|additional_name_array|['sat_no_ct','only_ct','bsat','gsat','hor','hsat1A','hsat1B','hsat2','hsat3','mon','sd_g99','sd_g98_le99','sd_g90_le98','sd_le90','sd_all','STR','VNTR']|
 
 All files with gs urls are publicly accessible so if you are running the WDL on Terra you can use the same urls. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository for those who want to run locally. This WDL also needs the alignment of each haplotype to the reference (like chm13v2.0). Those alignments can be produced using [asm2asm_aligner.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/tasks/alignment/asm2asm_aligner.wdl). Here is the list of recommended parametes for this workflow:
 |Parameter| Value|
