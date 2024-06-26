@@ -5,12 +5,12 @@ Here is a description of a read-based pipeline that can detect different types o
 
 
 
-This evaluation has 5 steps:
+This evaluation has 3 steps:
 - Align long reads to the diploid assembly
 - Phase and relocalize the reads with secondary alignments using [secphase](https://github.com/mobinasri/secphase) (Optional)
 - Run Flagger
 
-### 1. Align long reads
+#### 1. Align long reads
 The ONT and HiFi reads can be aligned to a dual/diploid assembly (~ 6Gbases long in human) with a long read aligner like winnowmap and minimap2. Since the assembly is dual/diploid the expected base-level coverage should be half of the sequencing coverage.
 Here are the commands for producing the alignments (taken from the [winnowmap docs](https://github.com/marbl/Winnowmap)):
 ```` 
@@ -24,36 +24,36 @@ Here are the commands for producing the alignments (taken from the [winnowmap do
 ````
 Any other appropriate long read aligner can also be employed in this step.
 
-### 2. Relocalize wrongly phased reads (Optional)
+#### 2. Relocalize wrongly phased reads (Optional)
 In this step we use Secphase to phase and relocalize the reads with multiple alignments. To be more precise all the secondary and primary
 alignments of the same read are scored based on marker consistency and 
 the alignment with the highest score is selected as the primary alignment. The output of this section is 
 a corrected version of the input bam file, in which the primary and secondary alignments are swapped 
-whenever neccessary. Secphase can work only if the secondary alignments are available with the full sequence and base quality array.
+whenever neccessary. Secphase can work only if the secondary alignments are available with their full sequence and base quality array.
 
 More information about Secphase is available [here](https://github.com/mobinasri/secphase)
 
-### 3. Run Flagger
-The produced alignment file (`${INPUT_BAM}` in step 1) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
+#### 3. Run Flagger
+The produced alignment file (step 1) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
 erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases that couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
 
 
 More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
 
-#### Running pipeline with WDL
+### Running pipeline with WDL
 
 It is easier to run the pipeline using the WDLs described below. A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
 
 It is recommended to run the whole pipeline using [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl).
 
-Recommended values for the parameters of flagger_end_to_end_with_mapping.wdl:
+Here is a list of input parameters for flagger_end_to_end_with_mapping.wdl (The parameters marked as **"(Mandatory)"** are mandatory to be defined in the input json):
 
 
 | Parameter | Description | Type | Default | 
 | --- | --- | --- | ------------ |
 |sampleName| Sample name; for example 'HG002'| String | **No Default (Mandatory)** |
 |suffixForFlagger| Suffix string that contains information about this analysis; for example 'hifi_winnowmap_flagger_for_hprc'| String | **No Default (Mandatory)** |
-|suffixForMapping| Suffix string that contains information about this alignment. It will be appended to the name of the final alignment. For example 'hifi_winnowmap_v2.03_hprc_y2'| String | **No Default (Mandatory)** |
+|suffixForMapping| Suffix string that contains information about this alignment. It will be appended to the name of the final alignment file. For example 'hifi_winnowmap_v2.03_hprc_y2'| String | **No Default (Mandatory)** |
 |hap1AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 1st haplotype.| File | **No Default (Mandatory)** |
 |hap2AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype.| File | **No Default (Mandatory)** |
 |readfiles| An array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed.| Array[File] | **No Default (Mandatory)** |
@@ -65,7 +65,7 @@ Recommended values for the parameters of flagger_end_to_end_with_mapping.wdl:
 |referenceFastaForReadExtraction| If reads are in CRAM format then the related reference should be passed to this parameter for read extraction.| File | No Default (Optional) |
 |enableAddingMDTag| If true it will call samtools calmd to add MD tags to the final bam file.| Boolean | true |
 |splitNumber| The number of chunks which the input reads should be equally split into. Note that enableSplittingReadsEqually should be set to true if user wants to split reads into equally sized chunks.| Int | 16 |
-|enableSplittingReadsEqually| If true it will merge all reads together and then split them into multiple chunks of roughly equal size. Each chunk will then be aligned via a separate task. This feature is useful for running alignment on cloud/slurm systems where there are  multiple nodes available with enough computing power and having alignments tasks distributed among small nodes is more efficient or cheaper than running a single alignment task in a large node. If the  whole workflow is being on a single node it is not recommened to use this feature since mergin and splitting reads takes its own time. | Boolean | false |
+|enableSplittingReadsEqually| If true it will merge all reads together and then split them into multiple chunks of roughly equal size. Each chunk will then be aligned via a separate task. This feature is useful for running alignment on cloud/slurm systems where there are  multiple nodes available with enough computing power and having alignments tasks distributed among small nodes is more efficient or cheaper than running a single alignment task in a large node. If the  whole workflow is being on a single node it is not recommened to use this feature since merging and splitting reads takes its own time. | Boolean | false |
 |minReadLengthForMapping| If it is greater than zero, a task will be executed for filtering reads shorter than this value before alignment.| Int | 0 |
 |alignerThreadCount | The number of threads for mapping in each alignment task | Int | 16 |
 |alignerMemSize | The size of the memory in Gb for mapping in each alignment task | Int | 48 |
@@ -94,15 +94,17 @@ Recommended values for the parameters of flagger_end_to_end_with_mapping.wdl:
 |hap1ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype1. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap1 |
 |hap2ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype2. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap2 |
 
-#### CHM13 annotation files
+### CHM13 annotation files
 
 A set of annotations files in the coordinates of chm13v2.0 are prepared beforehand and they can be used as inputs to the workflow. These bed files are useful when there is no denovo annotation for the assemblies and we like to project annotations from chm13v2.0 to the assembly coordinates for two main purposes:
 
-1. Detecting regions with coverage biases: Satellite repeat arrays might have coverage biases so before running Flagger the pipeline will detect potentially baised regions and fit a separate Gaussian model to each detected annotation.
+1. Detecting regions with coverage biases: Satellite repeat arrays might have coverage biases so before running Flagger the pipeline will detect potentially baised regions. Flagger will then fit a separate Gaussian model to each detected annotation.
 2. Stratifying final results with the projected annotations.
 
 |Parameter| Value|
 |:--------|:-----|
+|enableProjectingBedsFromRef2Asm|true|
+|projectionReferenceFastaGz| https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz|
 |potentialBiasesBedArray| ['https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_bsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hsat1A.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hsat1B.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hsat2.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hsat3.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/potential_biases/chm13v2.0_hor.bed'] |
 |censat_bed|https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_no_ct.bed|
 |sd_bed|https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.all.bed|
@@ -110,23 +112,23 @@ A set of annotations files in the coordinates of chm13v2.0 are prepared beforeha
 |additional_bed_array| ['https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_no_ct.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_only_ct.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_bsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_gsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hor.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hsat1A.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hsat1B.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hsat2.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_hsat3.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/censat/chm13v2.0_mon.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.g99.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.g98_le99.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.g90_le98.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.le90.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/sd/chm13v2.0_SD.all.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/repeat_masker/chm13v2.0_RM_4.1.2p1_le6_STR.bed','https://raw.githubusercontent.com/mobinasri/flagger/dev-0.3.0/misc/stratifications/repeat_masker/chm13v2.0_RM_4.1.2p1_ge7_VNTR.bed'] |
 |additional_name_array|['sat_no_ct','only_ct','bsat','gsat','hor','hsat1A','hsat1B','hsat2','hsat3','mon','sd_g99','sd_g98_le99','sd_g90_le98','sd_le90','sd_all','STR','VNTR']|
 
-All files with gs urls are publicly accessible so if you are running the WDL on Terra you can use the same urls. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository for those who want to run locally. This WDL also needs the alignment of each haplotype to the reference (like chm13v2.0). Those alignments can be produced using [asm2asm_aligner.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/tasks/alignment/asm2asm_aligner.wdl). Here is the list of recommended parametes for this workflow:
-|Parameter| Value|
-|:--------|:-----|
-|asm2asmAlignment.aligner|"minimap2" |
-|asm2asmAlignment.alignmentBam.options |"-L --eqx --cs"|
-|asm2asmAlignment.refAssemblyFastaGz | "gs://masri/flagger/v0.3.0/chm13v2.0.fa.gz" |
-|asm2asmAlignment.alignmentBam.threadCount |32|
-|asm2asmAlignment.preset | asm5|
-|asm2asmAlignment.suffix | "chm13_v2.0" |
-|asm2asmAlignment.alignmentBam.memSize | 48|
+All files with git and s3 urls are publicly accessible so if you are running the WDL on Terra/AnVIL platforms you can use the same urls. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository for those who want to run locally. 
 
-Below are the main commands for running Flagger locally using Cromwell.
+### Other major workflows
+
+[flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl) is running two major workflows; [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/long_read_aligner_scattered.wdl) and [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end.wdl). The first one runs read mapping and the second one runs the end-to-end flagger pipeline (including annotation projection, bias detection, secphase and flagger). 
+
+Users can run each of them separately. For example if there is a read alignment file available beforehand users can run only [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end.wdl). The parameters for each of these workflows is a subset of the parameters listed above for [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl) therefore this table can still be used as a reference for either long_read_aligner_scattered.wdl or flagger_end_to_end.wdl.
+
+
+### Running WDLs locally using Cromwell
+
+Below are the main commands for running flagger_end_to_end_with_mapping.wdl locally using Cromwell.
 ```
 wget https://github.com/broadinstitute/cromwell/releases/download/85/cromwell-85.jar
 wget https://github.com/broadinstitute/cromwell/releases/download/85/womtool-85.jar
 
-# Get version 0.3.0 of Flagger
+# Get version 0.4.0 of Flagger
 wget https://github.com/mobinasri/flagger/archive/refs/tags/v0.4.0.zip
 
 unzip v0.4.0.zip
@@ -136,14 +138,14 @@ mkdir workdir
 
 cd workdir
 
-java -jar ../womtool-58.jar inputs ../flagger-0.4.0/wdls/workflows/flagger_end_to_end.wdl > inputs.json
+java -jar ../womtool-58.jar inputs ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl > inputs.json
 ```
 
-After modifying `inputs.json` based on the recommended parameters and the paths to input files; `assemblyFastaGz`, `fai`, `hap1ToRefBam`, `hap2ToRefBam`. and removing any other parameter from the json file you can run the command below:
+After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suffixForFlagger`, `suffixForMapping`, `hap1AssemblyFasta`, `hap2AssemblyFasta`, `readfiles`, `preset` and removing unspecified parameters (they will be set to default values), users can run the command below:
 
 ```
 # run flagger workflow
-java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end.wdl -i inputs.json -m outputs.json
+java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
 ```
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
 
