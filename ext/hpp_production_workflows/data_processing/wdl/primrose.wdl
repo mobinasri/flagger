@@ -34,6 +34,8 @@ task primrose {
         Int threadCount = 8
         Int addlDisk    = 50        
         Int preempts    = 3
+
+        String extraArgs = "--keep-kinetics"
     }
 
     parameter_meta {
@@ -50,7 +52,17 @@ task primrose {
 
         FILENAME=$(basename -- "~{input_bam}" .hifi_reads.bam)
 
-        primrose ~{input_bam} ${FILENAME}.5mc.hifi_reads.bam
+
+        ## Pass extra arguments if extraArgs is set, if not just pass empty string
+        if [ -z "~{extraArgs}" ]
+        then
+            EXTRA_ARGS=""
+        else
+            EXTRA_ARGS="~{extraArgs}"
+        fi
+            
+
+        primrose ${EXTRA_ARGS} ~{input_bam} ${FILENAME}.5mc.hifi_reads.bam
 
     >>>
 

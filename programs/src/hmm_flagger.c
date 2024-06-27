@@ -22,6 +22,14 @@ struct stat st = {0};
 
 pthread_mutex_t mutex;
 
+typedef struct ArgumentsTrain {
+    HMM *model;
+    Chunk *chunk;
+    int chunkIndex;
+    int nChunks;
+    int iter;
+} ArgumentsTrain;
+
 typedef struct Arguments {
     HMM *model;
     EM *em;
@@ -408,11 +416,12 @@ Batch_inferSaveOutput(stList *chunks, HMM *model, int nThreads, FILE *outputFile
 void *readChunkAndUpdateStats(void *arg_) {
 
     work_arg_t *arg = arg_;
-    Chunk *chunk = arg->chunk;
-    HMM *model = arg->model;
-    int iter = arg->iter;
-    int nChunks = arg->nChunks;
-    int chunkIndex = arg->chunkIndex;
+    ArgumentsTrain *argumentsTrain = arg->data;
+    Chunk *chunk = argumentsTrain->chunk;
+    HMM *model = argumentsTrain->model;
+    int iter = argumentsTrain->iter;
+    int nChunks = argumentsTrain->nChunks;
+    int chunkIndex = argumentsTrain->chunkIndex;
     fprintf(stderr, "[%s] (iter=%d) Chunk (%d/%d) [len=%d]: %d, %d, %d, ..., %d, %d, %d\n", get_timestamp(), iter + 1,
             chunkIndex + 1, nChunks, chunk->seqLen,
             chunk->seqEmit[0]->data[0],
@@ -449,17 +458,27 @@ runOneRound(HMM *model, stList *chunks, int nThreads, int iter) {
     // Create a thread pool
     // Each thread recieves only one batch
     tpool_t *tm = tpool_create(nThreads);
+    stList* work_args = stList_construct3(0, NULL);
     for (int i = 0; i < stList_length(chunks); i++) {
         work_arg_t *work_arg = malloc(sizeof(work_arg_t));
-        work_arg->chunk = stList_get(chunks, i);
-        work_arg->model = model;
-        work_arg->chunkIndex = i;
-        work_arg->nChunks = stList_length(chunks);
-        work_arg->iter = iter;
+        ArgumentsTrain *argumentsTrain = malloc(sizeof(ArgumentsTrain));
+        argumentsTrain->chunk = stList_get(chunks, i);
+        argumentsTrain->model = model;
+        argumentsTrain->chunkIndex = i;
+        argumentsTrain->nChunks = stList_length(chunks);
+        argumentsTrain->iter = iter;
+        work_arg->data = (void*) argumentsTrain;
         tpool_add_work(tm, readChunkAndUpdateStats, work_arg);
+        stList_append(work_args, work_arg);
     }
     tpool_wait(tm);
     tpool_destroy(tm);
+    for(int i = 0; i < stList_length(work_args); i++){
+        work_arg_t *work_arg = stList_get(work_args, i);
+        free(work_arg->data);
+        free(work_arg);
+    }
+    stList_destruct(work_args);
 }
 
 static struct option long_options[] =

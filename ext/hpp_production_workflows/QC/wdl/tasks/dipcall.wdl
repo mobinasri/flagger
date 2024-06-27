@@ -2,6 +2,12 @@ version 1.0
 
 workflow runDipcall {
 	call dipcall
+
+    output{
+        File outputTarball    = dipcall.outputTarball
+        File outputVCF        = dipcall.outputVCF
+        File outputBED        = dipcall.outputBED
+    }
 }
 
 task dipcall {

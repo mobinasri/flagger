@@ -9,12 +9,12 @@ workflow runCalMD{
 task calmd {
     input {
         File bamFile
-        File assemblyFastaGz
+        File assemblyFasta
         # runtime configurations
         Int memSize=16
         Int threadCount=8
         Int diskSize=500
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -33,10 +33,17 @@ task calmd {
         BAM_FILENAME=$(basename ~{bamFile})
         BAM_PREFIX=${BAM_FILENAME%.bam}
        
-        ASM_FILENAME=$(basename ~{assemblyFastaGz})
-        ASM_PREFIX=${ASM_FILENAME%.fa.gz}
-        gunzip -c  ~{assemblyFastaGz} > ${ASM_PREFIX}.fa
-        samtools calmd -@8 -b ~{bamFile} ${ASM_PREFIX}.fa > ${BAM_PREFIX}.bam
+        REF_FILENAME=$(basename ~{assemblyFasta})
+        REF_EXTENSION=${REF_FILENAME##*.}
+
+        if [[ ${REF_EXTENSION} == "gz" ]];then
+            gunzip -c ~{assemblyFasta} > asm.fa
+        else
+            ln -s ~{assemblyFasta} asm.fa
+        fi
+
+        
+        samtools calmd -@~{threadCount} -b ~{bamFile} asm.fa > ${BAM_PREFIX}.bam
         samtools index ${BAM_PREFIX}.bam
     >>> 
     runtime {

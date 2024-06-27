@@ -32,10 +32,10 @@ void mergeBlocks(Format_t format1, char* block1Path,
 
     // Block for the first coverage file
     Block_t* block1 = Block_construct(format1);
-    char preContig1[50];
+    char preContig1[200];
     // Block for the second coverage file
     Block_t* block2 = Block_construct(format2);
-    char preContig2[50];
+    char preContig2[200];
     assert(Block_next(fp2, block2) == 1);
     while (Block_next(fp1, block1) == 1) {
 	    if (strcmp(preContig1, block1->ctg) != 0){

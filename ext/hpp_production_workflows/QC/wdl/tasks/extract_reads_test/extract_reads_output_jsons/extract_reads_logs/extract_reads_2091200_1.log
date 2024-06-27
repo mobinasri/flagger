@@ -1,0 +1,39 @@
+[Thu Feb 15 04:33:51 PM PST 2024] The retrieved sample id is HG002_fastq_gz
+[Thu Feb 15 04:33:51 PM PST 2024] Start downloading external data ...
+[Thu Feb 15 04:33:51 PM PST 2024] Start downloading https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/006d0ef0-56ea-4f42-bed3-ae0b09672e0f--HG002_FILT_FASTQS/m54238_180901_011437.Q20.filt.fastq.gz ...
+[Thu Feb 15 04:34:31 PM PST 2024] Downloaded https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/006d0ef0-56ea-4f42-bed3-ae0b09672e0f--HG002_FILT_FASTQS/m54238_180901_011437.Q20.filt.fastq.gz
+[Thu Feb 15 04:34:31 PM PST 2024] Start running Toil job ...
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T16:34:33-0800] [MainThread] [W] [toil.utils.toilClean] Job store does not appear to exist. Deleting anyway.
+[2024-02-15T16:34:33-0800] [MainThread] [I] [toil.utils.toilClean] Successfully deleted the job store: /data/tmp/masri/HG002_fastq_gz_extract_reads/jobstore
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+Traceback (most recent call last):
+  File "/private/home/masri/.local/bin/toil-wdl-runner", line 8, in <module>
+    sys.exit(main())
+  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/wdl/wdltoil.py", line 2013, in main
+    input_bindings = WDL.values_from_json(
+  File "/private/home/masri/.local/lib/python3.10/site-packages/WDL/__init__.py", line 267, in values_from_json
+    raise Error.InputError("unknown input/output: " + key) from None
+WDL.Error.InputError: unknown input/output: runExtractReads.inputFilesArray
+[Thu Feb 15 04:34:36 PM PST 2024] Toil job is finished.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+Batch System: single_machine
+Default Cores: 1  Default Memory: 2097152K
+Max Cores: 8
+Total Clock: 0.00  Total Runtime: 0.00
+Worker
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        0 |     0.00    0.00    0.00    0.00    0.00 |     0.00    0.00    0.00    0.00    0.00 |     0.00    0.00    0.00    0.00    0.00 |       0K      0K      0K      0K      0K
+Job
+ Worker Jobs  |     min    med    ave    max
+              |       0      0      0      0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        0 |     0.00    0.00    0.00    0.00    0.00 |     0.00    0.00    0.00    0.00    0.00 |     0.00    0.00    0.00    0.00    0.00 |       0K      0K      0K      0K      0K
+
+[Thu Feb 15 04:34:38 PM PST 2024] Your Toil job succeeded! :)
+[Thu Feb 15 04:34:38 PM PST 2024] Start copying output files to the current directory and updating output json file...
+[Thu Feb 15 04:34:38 PM PST 2024] Output json file is located here: /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/HG002_fastq_gz/HG002_fastq_gz_extract_reads_outputs.json
+[Thu Feb 15 04:34:38 PM PST 2024] Cleaning up /data/tmp/masri/HG002_fastq_gz_extract_reads
+[Thu Feb 15 04:34:38 PM PST 2024] Finished!

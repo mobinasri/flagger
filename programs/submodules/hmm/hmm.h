@@ -103,7 +103,7 @@ typedef struct Chunk {
     // longer than chunkLen and shorter than 2 * chunkLen
     VectorChar **seqEmit; // [2 * chunkLen] * [nEmit] the emitted sequence
     uint8_t *seqClass; // [2 * chunkLen] the sequence of class of regions
-    char ctg[50]; // the name of the contig this chunk is located
+    char ctg[200]; // the name of the contig this chunk is located
     int ctgLen; // the length of the contig
     int s; // start location of the chunk on the contig 0-based
     int e; // end location of the chunk on the contig 0-based

@@ -1,0 +1,12 @@
+name: verkko_hic
+channels:
+  - conda-forge 
+  - bioconda 
+  - defaults
+
+dependencies:
+  - verkko=1.3
+  - mashmap
+  - networkx
+  - openssl=1.0
+  - samtools

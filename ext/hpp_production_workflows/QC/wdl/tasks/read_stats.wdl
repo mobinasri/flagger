@@ -12,7 +12,7 @@ workflow runReadStats {
         String identifier="sample"
         Int histogramMinLength=0
         Int histogramMaxLength=0
-        Int fileExtractionDiskSizeGB = 256
+        Int fileExtractionDiskSizeGB = 512
         String dockerImage = "humanpangenomics/fai_read_stats:latest"
 
         String identifierAll = "${identifier}_all"
@@ -72,6 +72,8 @@ workflow runReadStats {
             indexFile=concatFais.indexFile,
             histogramMinLength=histogramMinLength,
             histogramMaxLength=histogramMaxLength,
+            memSizeGB=64,
+            diskSizeGB=128,
             dockerImage=dockerImage,
         }
 
@@ -146,9 +148,9 @@ task readStats {
         File indexFile
         Int histogramMinLength = 0
         Int histogramMaxLength = 0
-        Int memSizeGB = 2
+        Int memSizeGB = 16
         Int threadCount = 2
-        Int diskSizeGB = 64
+        Int diskSizeGB = 128
         String dockerImage = "humanpangenomics/fai_read_stats:latest"
     }
 
@@ -263,7 +265,7 @@ task concatFais {
     input {
         Array[File] indexFiles
         String identifier="sample"
-        Int memSizeGB = 4
+        Int memSizeGB = 24
         Int threadCount = 1
         Int diskSizeGB = 64
         String dockerImage = "humanpangenomics/fai_read_stats:latest"

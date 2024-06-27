@@ -9,13 +9,12 @@ workflow runProjectBlocksForFlagger{
     input{
         File hap1AssemblyBam
         File hap2AssemblyBam
-        File refSuffix
         Array[File] refBiasedBlocksBedArray
-        Array[File] biasedBlocksNameStringArray
         File refSexBed
         File refSDBed
         File refCntrBed
         File refCntrCtBed
+        Array[File] additionalBedArray 
         # isAssemblySplit should be true if assembly is split before alignment to reference
         Boolean isAssemblySplit = false
         String sampleName
@@ -41,23 +40,24 @@ workflow runProjectBlocksForFlagger{
     }
 
     # Project ref biased blocks to hap1 and hap2 assemblies separately
-    scatter (blocksBed_suffix in zip(refBiasedBlocksBedArray, biasedBlocksNameStringArray)){
+    scatter (bed in refBiasedBlocksBedArray) {
+        String bed_suffix = basename(bed, ".bed")
         call project_blocks_t.project as projectHap1{
             input:
-                blocksBed = blocksBed_suffix.left,
+                blocksBed = bed,
                 asm2refPaf = bam2pafHap1.pafFile,
                 sampleName = sampleName,
-                suffix = "${blocksBed_suffix.right}.hap1",
+                suffix = "hap1.${bed_suffix}",
                 mode = "ref2asm",
                 mergingMargin = mergingMargin,
                 isAssemblySplit = isAssemblySplit
         }
         call project_blocks_t.project as projectHap2{
             input:
-                blocksBed = blocksBed_suffix.left,
+                blocksBed = bed,
                 asm2refPaf = bam2pafHap2.pafFile,
                 sampleName = sampleName,
-                suffix = "${blocksBed_suffix.right}.hap2",
+                suffix = "hap2.${bed_suffix}",
                 mode = "ref2asm",
                 mergingMargin = mergingMargin,
                 isAssemblySplit = isAssemblySplit
@@ -104,7 +104,7 @@ workflow runProjectBlocksForFlagger{
             sampleName = sampleName,
             suffix = "Cntr_Projected",
             mode = "ref2asm",
-            mergingMargin = 100000,
+            mergingMargin = 50000,
             isAssemblySplit = isAssemblySplit
     }
 
@@ -116,8 +116,22 @@ workflow runProjectBlocksForFlagger{
             sampleName = sampleName,
             suffix = "Cntr_Trans_Projected",
             mode = "ref2asm",
-            mergingMargin = 10000,
+            mergingMargin = 50000,
             isAssemblySplit = isAssemblySplit
+    }
+    
+    scatter (bed_additional in additionalBedArray) {
+        String bed_suffix_additional = basename(bed_additional, ".bed")
+        call project_blocks_t.project as projectAdditional{
+            input:
+                blocksBed = bed_additional,
+                asm2refPaf = concatPaf.outputFile,
+                sampleName = sampleName,
+                suffix = bed_suffix_additional,
+                mode = "ref2asm",
+                mergingMargin = 1,
+                isAssemblySplit = isAssemblySplit
+       }
     }
     
     # Subtract centric transition regions from centromeres
@@ -125,11 +139,12 @@ workflow runProjectBlocksForFlagger{
         input:
             firstBed = projectCntr.projectionBed,
             secondBed = projectCntrCt.projectionBed,
-            outputPrefix = "${sampleName}" + "censat_no_ct"
+            outputPrefix = "${sampleName}" + ".censat_no_ct"
     }
 
     output {
         Array[File] projectionBiasedBedArray = flatten([projectHap1.projectionBed, projectHap2.projectionBed])
+        Array[File] projectionAdditionalBedArray = projectAdditional.projectionBed
         File projectionSDBed = projectSD.projectionBed
         File projectionSexBed = projectSex.projectionBed
         File projectionCntrBed = subtractCntr.subtractBed
@@ -145,7 +160,7 @@ task concatFiles {
         Int memSize=4
         Int threadCount=2
         Int diskSize=128
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
     }
     command <<<

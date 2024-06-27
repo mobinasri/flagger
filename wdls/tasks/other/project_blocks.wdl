@@ -49,7 +49,7 @@ task project {
         Int memSize=4
         Int threadCount=8
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:dev-v0.1"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -73,17 +73,19 @@ task project {
             then
                 mv output/output.tmp.bed output/${OUTPUT_FILENAME}
             else
-                bedtools merge -d ~{mergingMargin} -i output/output.tmp.bed > output/${OUTPUT_FILENAME}
+                cat output/output.tmp.bed | cut -f1-3 | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+                rm -rf output/output.tmp.bed
             fi
         else
             # Convert bed coordinates to the originial one if assembly was split before alignment
             python3 /home/programs/src/convert_bed_coors.py projection.bed > projection_orig_coors.bed
-            bedtools sort -i projection_orig_coors.bed > output/output.tmp.bed 
+            bedtools sort -i projection_orig_coors.bed > output/output.tmp.bed
             if [[ ~{mergeOutput} == "false" ]]
             then
                 mv output/output.tmp.bed output/${OUTPUT_FILENAME}
             else
-                bedtools merge -d ~{mergingMargin} -i output/output.tmp.bed > output/${OUTPUT_FILENAME}
+                cat output/output.tmp.bed | cut -f1-3 | bedtools merge -d ~{mergingMargin} -i - > output/${OUTPUT_FILENAME}
+                rm -rf output/output.tmp.bed
             fi
         fi
 

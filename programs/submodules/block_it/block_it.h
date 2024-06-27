@@ -7,7 +7,7 @@ typedef enum Format_t {COV, BED} Format_t;
 
 typedef struct Block_t{
 	Format_t format;
-        char ctg[50];
+        char ctg[200];
         int ctgLen;
         int s; // 1-based
         int e; // 1-based

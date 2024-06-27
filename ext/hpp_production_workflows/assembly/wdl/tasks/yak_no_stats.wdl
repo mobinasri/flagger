@@ -21,8 +21,7 @@ workflow runYak {
                 referenceFasta=referenceFasta,
                 memSizeGB=4,
                 threadCount=4,
-                diskSizeGB=fileExtractionDiskSizeGB,
-                dockerImage=dockerImage
+                diskSizeGB=fileExtractionDiskSizeGB
         }
     }
 

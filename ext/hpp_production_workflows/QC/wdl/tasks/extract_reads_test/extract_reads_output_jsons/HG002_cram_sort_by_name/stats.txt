@@ -1,0 +1,59 @@
+Batch System: single_machine
+Default Cores: 1  Default Memory: 2097152K
+Max Cores: 8
+Total Clock: 31527.83  Total Runtime: 9823.10
+Worker
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+       11 |     0.07    0.09  889.83 9787.23 9788.11 |     0.06     0.08  2859.66 31455.44 31456.21 |  -21668.21    0.01  -1969.83    0.03 -21668.11 |  173456K 174000K 866358K7787348K9529948K
+Job
+ Worker Jobs  |     min    med    ave    max
+              |      14     14     14     14
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+       14 |     0.00    0.01  699.09 9787.15 9787.25 |     0.00     0.01  2246.82 31455.36 31455.46 |  -21668.21    0.00  -1547.73    0.00 -21668.21 |  173224K 174000K 717938K7787348K10051140K
+ WDLOutputsJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        1 |     0.00    0.00    0.00    0.00    0.00 |     0.00     0.00     0.00     0.00     0.00 |       0.00    0.00      0.00    0.00      0.00 |  175968K 175968K 175968K 175968K 175968K
+ WDLCombineBindingsJob
+    Total Cores: 3.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        3 |     0.01    0.01    0.01    0.01    0.02 |     0.01     0.01     0.01     0.01     0.02 |      -0.00    0.00      0.00    0.00      0.00 |  174384K 174672K 174600K 174744K 523800K
+ WDLNamespaceBindingsJob
+    Total Cores: 2.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        2 |     0.00    0.01    0.01    0.01    0.01 |     0.00     0.01     0.01     0.01     0.01 |       0.00    0.00      0.00    0.00      0.00 |  173456K 173856K 173656K 173856K 347312K
+ WDLArrayBindingsJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01     0.01     0.01     0.01     0.01 |       0.00    0.00      0.00    0.00      0.00 |  174000K 174000K 174000K 174000K 174000K
+ WDLRootJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01     0.01     0.01     0.01     0.01 |       0.00    0.00      0.00    0.00      0.00 |  173224K 173224K 173224K 173224K 173224K
+ scatter-L11C5-file
+    Total Cores: 2.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        2 |     0.01    0.01    0.01    0.01    0.02 |     0.01     0.01     0.01     0.01     0.02 |      -0.00   -0.00     -0.00   -0.00     -0.00 |  173584K 173848K 173716K 173848K 347432K
+ WDLWorkflowJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01     0.01     0.01     0.01     0.01 |       0.00    0.00      0.00    0.00      0.00 |  174280K 174280K 174280K 174280K 174280K
+ call-extractReads
+    Total Cores: 1.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        1 |     0.02    0.02    0.02    0.02    0.02 |     0.01     0.01     0.01     0.01     0.01 |       0.00    0.00      0.00    0.00      0.00 |  173880K 173880K 173880K 173880K 173880K
+ runExtractReads.extractReads
+    Total Cores: 9.0
+    Count |                                    Time* |                                        Clock |                                           Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min      med      ave      max    total |        min     med       ave     max     total |      min     med     ave     max   total 
+        2 |     0.01 9787.15 4893.58 9787.15 9787.16 |     0.01 31455.36 15727.69 31455.36 31455.37 |  -21668.21   -0.00 -10834.10   -0.00 -21668.21 |  173896K7787348K3980622K7787348K7961244K

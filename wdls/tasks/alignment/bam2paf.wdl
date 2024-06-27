@@ -16,7 +16,7 @@ task bam2paf{
         Int memSize=16
         Int threadCount=4
         Int diskSize=256
-        String dockerImage="mobinasri/long_read_aligner:v0.1"
+        String dockerImage="mobinasri/long_read_aligner:v0.4.0"
         Int preemptible=2
     }
     command <<<

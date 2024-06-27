@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <assert.h>
 #include "sonLib.h"
+#include "common.h"
 
 int getBlockTypeIndex(float* probArray){
     float max = -1;
@@ -58,9 +59,9 @@ void splitCov(char* covPath, int segmentLen, char* wigPath, char* name, int thre
     if (fp == NULL)
         exit(EXIT_FAILURE);
 
-    char* contig = malloc(50);
+    char* contig = malloc(200);
     int contigLength = 0;
-    char* preContig = malloc(50);
+    char* preContig = malloc(200);
     int start=0, end=0, cov=0;
     int segmentStart = 0; int segmentEnd = -1;
     int sumCov=0;
@@ -81,7 +82,7 @@ void splitCov(char* covPath, int segmentLen, char* wigPath, char* name, int thre
 		while ( segmentLen <= end - segmentStart + 1 )  {
 			//printf("%d\t%d\n",blockLen, (end - blockStart + 1));
 			segmentEnd = segmentStart + segmentLen - 1;
-			sumCov += (segmentEnd - start + 1) * cov;
+			sumCov += (segmentEnd - max(start, segmentStart) + 1) * cov;
 			avgCov = (double) sumCov / (segmentEnd - segmentStart + 1);
                         avgCov = avgCov < threshold ? avgCov : threshold;
                         fprintf(fo,"%.2f\n", avgCov);

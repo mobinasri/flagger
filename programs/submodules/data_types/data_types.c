@@ -86,7 +86,7 @@ void VectorChar_copyInPlace(VectorChar* dest, VectorChar* src){
 }
 
 char* VectorChar_toString(VectorChar* vec){
-	char tmp[50];
+	char tmp[200];
 	char* str = malloc(vec->dim * 10);
 	str[0] = '[';
 	int offset = 1;
@@ -202,7 +202,7 @@ void VectorDouble_copyInPlace(VectorDouble* dest, VectorDouble* src){
 }
 
 char* VectorDouble_toString(VectorDouble* vec){
-        char tmp[50];
+        char tmp[200];
         char* str = malloc(vec->dim * 10);
         str[0] = '[';
         int offset = 1;
@@ -329,7 +329,7 @@ void MatrixChar_destruct(MatrixChar* mat){
 }
 
 char* MatrixChar_toString(MatrixChar* mat){
-        char tmp[50];
+        char tmp[200];
         char* str = malloc(mat->dim1 * mat->dim2 * 10);
         str[0] = '[';
         int offset = 1;
@@ -418,6 +418,12 @@ void MatrixDouble_setValue(MatrixDouble* mat, double value){
         }
 }
 
+void MatrixDouble_setDiagonalValue(MatrixDouble* mat, double value){
+    for(int i1 = 0; i1 < min(mat->dim1, mat->dim2); i1++){
+            mat->data[i1][i1] = value;
+    }
+}
+
 void MatrixDouble_divideByValue(MatrixDouble* mat, double value){
         assert(value != 0.0);
 	for(int i1 = 0; i1 < mat->dim1; i1++){
@@ -444,7 +450,7 @@ void MatrixDouble_copyInPlace(MatrixDouble* dest, MatrixDouble* src){
 }
 
 char* MatrixDouble_toString(MatrixDouble* mat){
-        char tmp[50];
+        char tmp[200];
         char* str = malloc(mat->dim1 * mat->dim2 * 30);
         str[0] = '[';
         int offset = 1;
@@ -484,9 +490,9 @@ MatrixDouble* MatrixDouble_parseFromFile(char* filePath, int dim1, int dim2){
 	MatrixDouble* mat = MatrixDouble_construct0(dim1, dim2);
 	FILE* f = fopen(filePath, "r");
 	size_t len = 0;
-    	char* line = NULL;
-    	char* token;
-    	ssize_t read; 
+    char* line = NULL;
+    char* token;
+    ssize_t read;
 	int i = 0;
 	int j = 0;
 	Splitter* splitter;
@@ -496,13 +502,11 @@ MatrixDouble* MatrixDouble_parseFromFile(char* filePath, int dim1, int dim2){
 		j = 0;
     		while ((token = Splitter_getToken(splitter)) != NULL){
 			mat->data[i][j] = atof(token);
-			fprintf(stderr, "(%d,%d)%s\n",i,j,token);
 			j += 1;
 		}
 		Splitter_destruct(splitter);
 		i += 1;
 	}
-	fprintf(stderr, "done\n");
 	fclose(f);
 	return mat;
 }

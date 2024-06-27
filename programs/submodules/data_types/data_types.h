@@ -122,6 +122,8 @@ MatrixDouble*** MatrixDouble_constructArray2D(int len1, int len2, int dim1, int 
 
 void MatrixDouble_setValue(MatrixDouble* mat, double value);
 
+void MatrixDouble_setDiagonalValue(MatrixDouble* mat, double value);
+
 void MatrixDouble_divideByValue(MatrixDouble* mat, double value);
 
 MatrixDouble* MatrixDouble_copy(MatrixDouble* src);

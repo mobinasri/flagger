@@ -2,55 +2,7 @@ import sys
 import argparse
 from collections import defaultdict
 import re
-from block_utils import findProjections, Alignment
-from multiprocessing import Pool
-
-def runProjection(line, mode, blocks):
-    # Extract the alignment attributes like the contig name, alignment boundaries, orientation and cigar 
-    alignment = Alignment(line);
-    chromName = alignment.chromName
-    contigName = alignment.contigName
-    if alignment.isPrimary == False:
-        return [chromName, contigName, [], []]
-    # rBlocks contains the projections and 
-    # qBlocks contains the projectable blocks
-    if mode == "asm2ref":
-        if len(blocks[contigName]) == 0: # Continue if there is no block in the contig
-            return [chromName, contigName, [], []]
-                #print(blocks[contigName], contigStart, contigEnd, chrom, chromStart, chromEnd)
-        qBlocks, rBlocks = findProjections(mode,
-                                            alignment.cigarList,
-                                            blocks[contigName],
-                                            alignment.chromLength,
-                                            alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
-                                            alignment.contigLength,
-                                            alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
-                                            alignment.orientation)
-    else:
-        if len(blocks[chromName]) == 0: # Continue if there is no block in the chrom
-            return [chromName, contigName, [], []]
-        qBlocks, rBlocks = findProjections(mode,
-                                            alignment.cigarList,
-                                            blocks[chromName],
-                                            alignment.chromLength,
-                                            alignment.chromStart + 1, alignment.chromEnd, # make 1-based start
-                                            alignment.contigLength,
-                                            alignment.contigStart + 1, alignment.contigEnd, # make 1-based start
-                                            alignment.orientation)
-    return [chromName, contigName, qBlocks, rBlocks]
-
-def runProjectionParallel(pafPath, mode, blocks, threads):
-    allPafLines = []
-    with open(pafPath,"r") as fPaf:
-        for line in fPaf:
-            allPafLines.append(line)
-    pool = Pool(threads)
-    print("Started projecting")
-    results = pool.starmap(runProjection, [(line, mode, blocks) for line in allPafLines])
-    pool.close()
-    return results
-
-
+from block_utils import *
 
 def main():
     parser = argparse.ArgumentParser(description='Given the alignments find the projection of a set of assembly blocks onto the reference (\'asm2ref\') or vice versa (\'ref2asm\')')
@@ -76,7 +28,16 @@ def main():
                     help='Print divergence percentage (between asm and ref block) as the 4th column in the output bed file')
     parser.add_argument('--flagger', action='store_true',
                     help='Only use when the input bed file in the output of flagger. It will add similar fields to the output bed file.')
-    
+    parser.add_argument('--printCigar', action='store_true',
+                        help='Add the subset cigar for each projection (in the last column)')
+    parser.add_argument('--includeEndingIndel', action='store_true',
+                        help='If a projection ended in an indel add that the overlapping indel to the projection')
+    parser.add_argument('--includePostIndel', action='store_true',
+                        help='If a projection ended right before an indel add that indel will be added to the projection \
+                               It will be insertion for ref2asm and deletion for asm2ref \
+                             (This option has very limited applications so should not be on usually)')
+
+
     # Fetch the arguments
     args = parser.parse_args()
     mode = args.mode
@@ -87,6 +48,9 @@ def main():
     threads = args.threads
     printDiv = args.divergence
     flagger = args.flagger
+    printCigar = args.printCigar
+    includeEndingIndel = args.includeEndingIndel
+    includePostIndel = args.includePostIndel
 
     # Save the track line if there is one
     trackLine = None
@@ -98,6 +62,9 @@ def main():
                 trackLine = line.strip()
                 continue
             attrbs = line.strip().split()
+            # skip incomplete tracks
+            if len(attrbs) < 3:
+                continue
             contigName = attrbs[0]
             # start is 0-based in bed format, it gets converted to 1-based here
             start = int(attrbs[1]) + 1
@@ -105,7 +72,12 @@ def main():
             info = attrbs[3:] if len(attrbs) > 3 else [""]
             blocks[contigName].append((start, end, info))
 
-    results = runProjectionParallel(pafPath, mode, blocks, threads)
+    alignments = []
+    with open(pafPath,"r") as fPaf:
+        for line in fPaf:
+            alignments.append(Alignment(line))
+
+    results = runProjectionParallel(alignments, mode, blocks, includeEndingIndel, includePostIndel, threads)
 
     # Read the alignments one by one and for each of them find the projections by calling findProjections
     with open(outputProjection, "w") as fRef, open(outputProjectable, "w") as fQuery:
@@ -116,8 +88,10 @@ def main():
         for res in results:
             chromName = res[0]
             contigName = res[1]
-            qBlocks = res[2]
-            rBlocks = res[3]
+            orientation = res[2]
+            qBlocks = res[3]
+            rBlocks = res[4]
+            cigarList = res[5]
 
 
             if mode == "asm2ref":
@@ -126,21 +100,30 @@ def main():
             else:
                 ctgRef = contigName
                 ctgQuery = chromName
-            for rBlock in rBlocks:
+            for rBlock, qBlock, cigar in zip(rBlocks, qBlocks, cigarList):
+                cigarString = makeCigarString(cigar)
+                # Skip if there is no valid projection
+                if rBlock[0] == None or qBlock[0] == None: continue
                 if flagger:
                     rBlock[2][3] = str(rBlock[0] - 1)
                     rBlock[2][4] = str(rBlock[1])
                 if printDiv == True:
-                    fRef.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], rBlock[3], "\t".join(rBlock[2])))
+                    fRef.write("{}\t{}\t{}\t{:.3f}\t{}".format(ctgRef, rBlock[0] - 1, rBlock[1], rBlock[3], "\t".join(rBlock[2])))
                 else:
-                    fRef.write("{}\t{}\t{}\t{}\n".format(ctgRef, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
-            for qBlock in qBlocks:
+                    fRef.write("{}\t{}\t{}\t{}".format(ctgRef, rBlock[0] - 1, rBlock[1], "\t".join(rBlock[2])))
                 if flagger: 
                     qBlock[2][3] = str(qBlock[0] - 1)
                     qBlock[2][4] = str(qBlock[1])
                 if printDiv == True:
-                    fQuery.write("{}\t{}\t{}\t{:.3f}\t{}\n".format(ctgQuery, qBlock[0] - 1, qBlock[1], qBlock[3], "\t".join(qBlock[2])))
+                    fQuery.write("{}\t{}\t{}\t{:.3f}\t{}".format(ctgQuery, qBlock[0] - 1, qBlock[1], qBlock[3], "\t".join(qBlock[2])))
                 else:
-                    fQuery.write("{}\t{}\t{}\t{}\n".format(ctgQuery, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
-main()
+                    fQuery.write("{}\t{}\t{}\t{}".format(ctgQuery, qBlock[0] - 1, qBlock[1], "\t".join(qBlock[2])))
+
+                if printCigar:
+                    fQuery.write("\t{}".format(cigarString))
+                    fRef.write("\t{}".format(cigarString))
+                fQuery.write("\n")
+                fRef.write("\n")
+
+if __name__ == "__main__": main()
 

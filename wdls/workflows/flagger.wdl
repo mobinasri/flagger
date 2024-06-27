@@ -30,8 +30,11 @@ workflow runFlagger{
         File coverageGz
         File highMapqCoverageGz
         File fai
+        File canonicalBasesDiploidBed
         Float covFloat # the coverage with the highest frequency (most of the time same as mean coverage)
-        Boolean isDiploid=false # This is only used for pdf generation and separating the pages for each haplotype
+        Boolean sortPdfPagesByHaplotype=false # This is only used for pdf generation and separating the pages for each haplotype
+        String hap1ContigPattern = ""
+        String hap2ContigPattern = ""
         Int windowSize = 5000000 # Size of windows for spliting assembly and calculating coverage dist
         String sampleName
         String suffix = "flagger"
@@ -46,7 +49,7 @@ workflow runFlagger{
             call bedtools_t.merge {
                 input:
                     bed = biasedRegionBed,
-                    margin = 50000,
+                    margin = 20000,
                     outputPrefix = basename(biasedRegionBed, ".bed")
             }
             call fit_model_bed_t.runFitModelBed as biasedRegionModels {
@@ -101,7 +104,9 @@ workflow runFlagger{
         input:
             windowProbTablesTarGz = fitModelByWindow.windowProbTablesTarGz,
             genomeProbTable = fitModel.probabilityTable,
-            isDiploid = isDiploid
+            sortPdfPagesByHaplotype = sortPdfPagesByHaplotype,
+            hap1ContigPattern = hap1ContigPattern,
+            hap2ContigPattern = hap2ContigPattern
     }
     call combineBeds as combineWindowBased{
         input:
@@ -135,6 +140,7 @@ workflow runFlagger{
     call getFinalBed {
         input:
             bedsTarGz = filterBeds.filteredBedsTarGz,
+            canonicalBasesDiploidBed = canonicalBasesDiploidBed,
             sampleName = sampleName,
             suffix = suffix
     }
@@ -148,7 +154,8 @@ workflow runFlagger{
     output {
         File miscFilesTarGz = gatherFiles.outputTarGz
         File pdf = pdfGenerator.pdf
-        File finalBed = getFinalBed.finalBed 
+        File finalBed = getFinalBed.finalBed
+        File finalBedNoHap = getFinalBed.finalBedNoHap 
     }
 }
 
@@ -160,7 +167,7 @@ task gatherFiles {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -194,7 +201,7 @@ task String2Float {
         echo ~{str} > file.txt
     >>>
     runtime {
-        docker: "mobinasri/flagger:v0.3.2"
+        docker: "mobinasri/flagger:v0.4.0"
         memory: "1 GB"
         cpu: 1
         disks: "local-disk 1 SSD"
@@ -214,7 +221,7 @@ task combineBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -272,7 +279,7 @@ task dupCorrectBeds {
         Int memSize=16
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
 
@@ -288,7 +295,7 @@ task dupCorrectBeds {
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
  
-        FILENAME=$(basename ~{highMapqCovGz})
+        FILENAME=$(basename ~{covGz})
         PREFIX=${FILENAME%.cov.gz}
 
         mkdir ~{prefix}
@@ -346,7 +353,7 @@ task filterBeds {
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
 
@@ -429,7 +436,7 @@ task mergeHsatBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -483,13 +490,14 @@ task mergeHsatBeds {
 task getFinalBed {
     input {
         File bedsTarGz
+        File canonicalBasesDiploidBed
         String sampleName
         String suffix
         # runtime configurations
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -510,6 +518,31 @@ task getFinalBed {
             -m /home/scripts/colors.txt \
             -t ~{sampleName}.~{suffix} \
             -o output/~{sampleName}.~{suffix}.flagger_final.bed
+
+        # make a bed file for Ns only
+        # the color is black with an rgb of "0,0,0"
+        # the label is "NNN"
+        bedtools subtract \
+            -a output/~{sampleName}.~{suffix}.flagger_final.bed \
+            -b ~{canonicalBasesDiploidBed} | \
+            awk '{print $1"\t"$2"\t"$3"\tNNN\t"$5"\t.\t"$2"\t"$3"\t0,0,0"}' > non_canonical.bed
+
+        # make a bed file after excluding Ns
+        # keep the label and color 
+        # just update the columns 7 and 8
+        bedtools intersect \
+            -a output/~{sampleName}.~{suffix}.flagger_final.bed \
+            -b ~{canonicalBasesDiploidBed} | \
+            awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t.\t"$2"\t"$3"\t"$9}' > only_canonical.bed
+
+        # add tack name
+        echo "track name=\"~{sampleName}.~{suffix}\" visibility=2 itemRgb=\"On\"" > output/~{sampleName}.~{suffix}.flagger_final.bed
+         
+        # overwrite the bed file with adjusted colors and labels
+        cat non_canonical.bed only_canonical.bed | bedtools sort -i - >> output/~{sampleName}.~{suffix}.flagger_final.bed
+
+        # make a BED with no Hap tracks
+        cat output/~{sampleName}.~{suffix}.flagger_final.bed | grep -v "Hap" > output/~{sampleName}.~{suffix}.flagger_final.no_Hap.bed
     >>>
     runtime {
         docker: dockerImage
@@ -520,5 +553,6 @@ task getFinalBed {
     }
     output {
         File finalBed = glob("output/*.flagger_final.bed")[0]
+        File finalBedNoHap = glob("output/*.flagger_final.no_Hap.bed")[0]
     }
 }

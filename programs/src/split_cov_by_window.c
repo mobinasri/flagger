@@ -17,7 +17,7 @@ stHash *getEffectiveContigLens(char *contigLenPath) {
     int n;
     while (getline(&line, &len, f) != -1) {
         token = strtok(line, "\t");
-        contigName = malloc(50 * sizeof(char));
+        contigName = malloc(200 * sizeof(char));
         strcpy(contigName, token);
         token = strtok(NULL, "\t");
         int *contigSize = malloc(sizeof(int));
@@ -82,10 +82,10 @@ void splitCov(char *covPath, char *prefix, stHash *contigLenTable, int windowLen
     if (fp == NULL)
         exit(EXIT_FAILURE);
 
-    char *contig = malloc(50);
+    char *contig = malloc(200);
     contig[0] = '\0';
     int contigLength = 0;
-    char *preContig = malloc(50);
+    char *preContig = malloc(200);
     preContig[0] = '\0';
     int blockStart = 0;
     int start = 0, end = 0, cov = 0;

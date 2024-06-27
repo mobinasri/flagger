@@ -95,7 +95,7 @@ task getLowMapq {
         Int memSize=4
         Int threadCount=2
         Int diskSize=512
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -134,7 +134,7 @@ task phaseBam {
         Int memSize=4
         Int threadCount=2
         Int diskSize=512
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -176,7 +176,7 @@ task getMapqTable {
         Int memSize=4
         Int threadCount=2
         Int diskSize=512
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -218,7 +218,7 @@ task extractReads {
         Int memSizeGB = 4
         Int threadCount = 8
         Int diskSizeGB = 128
-        String dockerImage = "mobinasri/bio_base:v0.1"
+        String dockerImage = "mobinasri/bio_base:v0.4.0"
     }
 
 

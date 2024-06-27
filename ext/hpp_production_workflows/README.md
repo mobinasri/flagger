@@ -34,7 +34,6 @@ Assemblies are produced with Hifiasm from reads filtered with HiFiAdapterFilt:
 
 ------------------
 
-
 ## QC
 
 ### Automated Assembly QC

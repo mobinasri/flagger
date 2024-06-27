@@ -1,0 +1,125 @@
+[Thu Feb 15 08:24:24 PM PST 2024] The retrieved sample id is HG002_cram
+[Thu Feb 15 08:24:24 PM PST 2024] Start downloading external data ...
+[Thu Feb 15 08:24:24 PM PST 2024] Start downloading https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00480/raw_data/Illumina/child/HG00480.final.cram ...
+[Thu Feb 15 09:05:55 PM PST 2024] Downloaded https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00480/raw_data/Illumina/child/HG00480.final.cram
+[Thu Feb 15 09:05:55 PM PST 2024] Start running Toil job ...
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:05:57-0800] [MainThread] [W] [toil.utils.toilClean] Job store does not appear to exist. Deleting anyway.
+[2024-02-15T21:05:57-0800] [MainThread] [I] [toil.utils.toilClean] Successfully deleted the job store: /data/tmp/masri/HG002_cram_extract_reads_toGZ/jobstore
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:06:02-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///data/tmp/masri/HG002_cram_extract_reads_toGZ/HG00480.final.cram
+[2024-02-15T21:06:02-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///private/groups/patenlab/masri/hprc/polishing/HG002/assemblies/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+[2024-02-15T21:06:02-0800] [MainThread] [I] [toil.job] Saving graph of 1 jobs, 1 non-service, 1 new
+[2024-02-15T21:06:02-0800] [MainThread] [I] [toil.job] Processing job 'WDLRootJob' kind-WDLRootJob/instance-rcljv6cn v0
+[2024-02-15T21:06:02-0800] [MainThread] [I] [toil] Running Toil version 5.12.0a1-f0f3133896b1004769e52ca8141dd8177ed62fc9 on host phoenix-21.prism.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:06:03-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:06:03-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/8d8f/worker_log.txt
+[2024-02-15T21:06:04-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:06:05-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:06:05-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/6e60/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:06:07-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:06:07-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/6227/worker_log.txt
+[2024-02-15T21:06:07-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReadstoGZ.extractReadstoGZ kind-WDLTaskJob/instance-677da800 v1 with job batch system ID: 4 and disk: 2.0 Gi, memory: 2.0 Gi, cores: 1, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:06:09-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:06:09-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/d3d2/worker_log.txt
+[2024-02-15T21:06:09-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReadstoGZ.extractReadstoGZ kind-WDLTaskJob/instance-87gp9ad2 v1 with job batch system ID: 5 and disk: 119.2 Gi, memory: 3.7 Gi, cores: 1, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:06:10-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:06:10-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/2211/worker_log.txt
+[2024-02-15T22:06:05-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-15T23:06:05-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T00:06:05-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:53:35-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-16T00:53:35-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/5f99/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:53:37-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-16T00:53:37-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/7f6d/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:53:43-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-16T00:53:43-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/54b2/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:53:45-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-16T00:53:45-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/b965/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:53:53-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-16T00:53:53-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/5519/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-16T00:53:57-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-16T00:53:57-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/51b5dffb35705b809535db7716e80a91/f596/worker_log.txt
+[2024-02-16T00:54:01-0800] [MainThread] [I] [toil.leader] Finished toil run successfully.
+[2024-02-16T00:54:01-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-16T00:54:01-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[Fri Feb 16 12:55:24 AM PST 2024] Toil job is finished.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+Batch System: single_machine
+Default Cores: 1  Default Memory: 2097152K
+Max Cores: 8
+Total Clock: 12648.87  Total Runtime: 13679.51
+Worker
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+       11 |     0.07     0.11 1240.15 13640.64 13641.69 |     0.07     0.09 1138.40 12521.57 12522.44 |     0.00    0.01  101.75 1119.07 1119.25 |  176384K 177056K 195197K 376512K2147168K
+Job
+ Worker Jobs  |     min    med    ave    max
+              |      14     14     14     14
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+       14 |     0.01     0.01  974.34 13640.55 13640.69 |     0.01     0.01  894.40 12521.50 12521.60 |    -0.00    0.00   79.93 1119.06 1119.09 |  176176K 177000K 191194K 376512K2676720K
+ WDLOutputsJob
+    Total Cores: 1.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01     0.01    0.01     0.01     0.01 |     0.01     0.01    0.01     0.01     0.01 |     0.00    0.00    0.00    0.00    0.00 |  178584K 178584K 178584K 178584K 178584K
+ WDLNamespaceBindingsJob
+    Total Cores: 2.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        2 |     0.01     0.01    0.01     0.01     0.01 |     0.01     0.01    0.01     0.01     0.01 |    -0.00    0.00    0.00    0.00    0.00 |  176384K 177128K 176756K 177128K 353512K
+ WDLCombineBindingsJob
+    Total Cores: 3.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        3 |     0.01     0.01    0.01     0.01     0.02 |     0.01     0.01    0.01     0.01     0.02 |    -0.00   -0.00   -0.00    0.00   -0.00 |  176656K 177000K 176904K 177056K 530712K
+ call-extractReadstoGZ
+    Total Cores: 1.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01     0.01    0.01     0.01     0.01 |     0.01     0.01    0.01     0.01     0.01 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  177272K 177272K 177272K 177272K 177272K
+ WDLWorkflowJob
+    Total Cores: 1.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01     0.01    0.01     0.01     0.01 |     0.01     0.01    0.01     0.01     0.01 |     0.00    0.00    0.00    0.00    0.00 |  176904K 176904K 176904K 176904K 176904K
+ WDLRootJob
+    Total Cores: 1.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01     0.01    0.01     0.01     0.01 |     0.01     0.01    0.01     0.01     0.01 |     0.01    0.01    0.01    0.01    0.01 |  176376K 176376K 176376K 176376K 176376K
+ scatter-L11C5-file
+    Total Cores: 2.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        2 |     0.01     0.01    0.01     0.01     0.02 |     0.01     0.01    0.01     0.01     0.02 |     0.00    0.00    0.00    0.00    0.00 |  176176K 176704K 176440K 176704K 352880K
+ WDLArrayBindingsJob
+    Total Cores: 1.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.03     0.03    0.03     0.03     0.03 |     0.01     0.01    0.01     0.01     0.01 |     0.02    0.02    0.02    0.02    0.02 |  177192K 177192K 177192K 177192K 177192K
+ runExtractReadstoGZ.extractReadstoGZ
+    Total Cores: 2.0
+    Count |                                       Time* |                                       Clock |                                     Wait |                                   Memory 
+        n |      min     med*     ave      max    total |      min      med     ave      max    total |      min     med     ave     max   total |      min     med     ave     max   total 
+        2 |     0.01 13640.55 6820.28 13640.55 13640.56 |     0.01 12521.50 6260.75 12521.50 12521.51 |    -0.00 1119.06  559.53 1119.06 1119.06 |  176776K 376512K 276644K 376512K 553288K
+
+[Fri Feb 16 12:55:26 AM PST 2024] Your Toil job succeeded! :)
+[Fri Feb 16 12:55:26 AM PST 2024] Start copying output files to the current directory and updating output json file...
+[Fri Feb 16 12:55:26 AM PST 2024] Start copying /data/tmp/masri/HG002_cram_extract_reads_toGZ/extract_reads_toGZ_outputs/HG00480.final.fq.gz to /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_toGZ_test/extract_reads_toGZ_output_jsons/HG002_cram/extract_reads_toGZ_outputs/
+[Fri Feb 16 12:58:12 AM PST 2024] Copied /data/tmp/masri/HG002_cram_extract_reads_toGZ/extract_reads_toGZ_outputs/HG00480.final.fq.gz
+[Fri Feb 16 12:58:14 AM PST 2024] Output json file is located here: /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_toGZ_test/extract_reads_toGZ_output_jsons/HG002_cram/HG002_cram_extract_reads_toGZ_outputs.json
+[Fri Feb 16 12:58:15 AM PST 2024] Cleaning up /data/tmp/masri/HG002_cram_extract_reads_toGZ
+[Fri Feb 16 12:58:15 AM PST 2024] Finished!

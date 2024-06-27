@@ -1,7 +1,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <pthread.h>
-#include "hmm.h"
 
 #ifndef __THREAD_POOL_H__
 #define __THREAD_POOL_H__
@@ -18,11 +17,7 @@ struct tpool_work {
 typedef struct tpool_work tpool_work_t;
 
 typedef struct work_arg_t {
-	HMM* model;
-	Chunk* chunk;
-    int chunkIndex;
-    int nChunks;
-    int iter;
+    void* data;
 }work_arg_t;
 
 struct tpool {

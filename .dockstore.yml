@@ -18,9 +18,6 @@ workflows:
    -  name: LongReadAlignerScattered
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/long_read_aligner_scattered.wdl
-   -  name: LongReadAlignerSecphase
-      subclass: WDL
-      primaryDescriptorPath: /wdls/workflows/long_read_aligner_secphase.wdl
    -  name: LongReadAlignerScatteredPaf
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/alignment/long_read_aligner_scattered_paf.wdl
@@ -72,9 +69,6 @@ workflows:
    -  name: FlaggerPreprocess
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/flagger_preprocess.wdl
-   -  name: FlaggerPreprocessNoVariantCalling
-      subclass: WDL
-      primaryDescriptorPath: /wdls/workflows/flagger_preprocess_no_variant_calling.wdl
    -  name: DeepVariant
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/variant_calling/deep_variant.wdl
@@ -105,15 +99,6 @@ workflows:
    -  name: FlaggerEndToEnd
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/flagger_end_to_end.wdl
-   -  name: FlaggerEndToEndNoVariantCalling
-      subclass: WDL
-      primaryDescriptorPath: /wdls/workflows/flagger_end_to_end_no_variant_calling.wdl
-   -  name: FlaggerEndToEndNoVariantCallingNoRef
-      subclass: WDL
-      primaryDescriptorPath: /wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref.wdl
-   -  name: FlaggerEndToEndNoVariantCallingNoRefNoSecphase
-      subclass: WDL
-      primaryDescriptorPath: /wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl
    -  name: SubsetAlignment
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/alignment/subset_alignment.wdl 

@@ -5,8 +5,8 @@ workflow asm2asmAlignment {
     input {
         String aligner="winnowmap"
         String preset
-        File queryAssemblyFastaGz
-        File refAssemblyFastaGz
+        File queryAssemblyFasta
+        File refAssemblyFasta
         String suffix=""
         # splitAssembly is recommended to be true if the assembly is having almost
         # the same quality as reference (including complete centromeres) since minimap2/winnowmap tests showed
@@ -15,28 +15,35 @@ workflow asm2asmAlignment {
         Int splitSize = 20000000 # maximum size (in bases) of split contigs
         String zones = "us-west2-a"
     }
-    if (splitAssembly){
-        call runSplitAssembly{
-            input:
-                assemblyFastaGz = queryAssemblyFastaGz,
-                splitSize = splitSize
-        }
-    }
+    ##if (splitAssembly){
+    ##    call runSplitAssembly{
+    ##        input:
+    ##            assemblyFastaGz = queryAssemblyFastaGz,
+    ##            splitSize = splitSize
+    ##    }
+    ##}
+    ##File queryAssemblyFastaProcessed = select_first([runSplitAssembly.splitAssemblyFastaGz, queryAssemblyFasta])
 
-    File queryAssemblyFastaGzProcessed = select_first([runSplitAssembly.splitAssemblyFastaGz, queryAssemblyFastaGz])
     ## align query assembly to the ref assembly
     call aligner_t.alignmentBam{
         input:
             aligner =  aligner,
             preset = preset,
             suffix = suffix,
-            refAssembly = refAssemblyFastaGz,
-            readFastq_or_queryAssembly = queryAssemblyFastaGzProcessed,
+            refAssembly = refAssemblyFasta,
+            readFastq_or_queryAssembly = queryAssemblyFasta,
             kmerSize = 19,
+            dockerImage="mobinasri/long_read_aligner:v0.4.0",
+            diskSize = 64,
             zones = zones
+    }
+    call aligner_t.indexBam{
+        input:
+            bam = alignmentBam.sortedBamFile
     }
     output {
         File sortedBamFile = alignmentBam.sortedBamFile
+        File sortedBamIndexFile = indexBam.bamIndex
     }
 }
 
@@ -48,7 +55,7 @@ task runSplitAssembly {
         Int memSize=8
         Int threadCount=8
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.3.2"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<

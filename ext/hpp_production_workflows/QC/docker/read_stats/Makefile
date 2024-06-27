@@ -1,10 +1,10 @@
 # Definitions
-repository = humanpangenomics
-identifier = fai_read_stats
-version = 0.0.2
-git_commit ?= $(shell git log --pretty=oneline -n 1 | cut -f1 -d " ")
-name = ${repository}/${identifier}
-tag = ${version}--${git_commit}
+repository=humanpangenomics
+identifier=fai_read_stats
+version=0.0.3
+git_commit?=$(shell git log --pretty=oneline -n 1 | cut -f1 -d " ")
+name=${repository}/${identifier}
+tag=${version}--${git_commit}
 
 # Steps
 build:
