@@ -20,7 +20,7 @@ Here are the commands for producing the alignments (taken from the [winnowmap do
   
   # alignment with winnowmap
   winnowmap -W repetitive_k15.txt -ax [map-ont | map-pb] -Y -L --eqx --cs -I8g <(cat pat_asm.fa mat_asm.fa) reads.fq.gz | \
-    samtools view -hb > read_alignment.bam
+    samtools view -hb | samtools sort -@8 > read_alignment.bam
 ````
 Any other appropriate long read aligner can also be employed in this step.
 
@@ -133,27 +133,34 @@ wget https://github.com/mobinasri/flagger/archive/refs/tags/v0.4.0.zip
 
 unzip v0.4.0.zip
 
+
 # make a directory for saving outputs and json files
 mkdir workdir 
 
 cd workdir
 
+
 java -jar ../womtool-58.jar inputs ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl > inputs.json
-```
+
 
 After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suffixForFlagger`, `suffixForMapping`, `hap1AssemblyFasta`, `hap2AssemblyFasta`, `readfiles`, `preset` and removing unspecified parameters (they will be set to default values), users can run the command below:
 
 ```
 # run flagger workflow
+
 java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
-```
+
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
 
+
+There is also a more simplified version of flagger_end_to_end_no_variant_calling_no_ref without running secphase. It is available in [flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl)
 
 #### Dockstore links
 
 All WDLs are uploaded to Dockstore for easier import into platforms like Terra or AnVIL.
+
 - [Dockstore link for flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndWithMapping:v0.4.0?tab=info)
+
 
 
 
