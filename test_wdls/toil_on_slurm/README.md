@@ -332,7 +332,7 @@ WORKING_DIR=${PWD}
 
 #### 2. Downloading datasets
 
-flagger_end_to_end_with_mapping.wdl has the same set of test files as flagger_end_to_end.wdl: test_1 and test_2. The only difference with the tests for flagger_end_to_end.wdl is that in these csv files we pass the bam file as `readFiles` to go through the mapping workflow first (using long_read_aligner_scattered.wdl) and then Flagger workflow (using flagger_end_to_end.wdl).
+flagger_end_to_end_with_mapping.wdl has the same set of test files as flagger_end_to_end.wdl: test_1 and test_2. The only difference with the tests for flagger_end_to_end.wdl is that in the csv files for flagger_end_to_end_with_mapping.wdl we pass the bam file as `readFiles` to go through the mapping workflow first (using long_read_aligner_scattered.wdl) and then Flagger workflow (using flagger_end_to_end.wdl).
 
 #### Steps 3 and 4
 
