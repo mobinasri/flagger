@@ -160,7 +160,7 @@ For running this WDL on Slurm we are using [a bash script](https://github.com/hu
 cd ${WORKING_DIR}
 
 ## Get the bash script for running WDLs on Slurm using Toil
-wget https://raw.githubusercontent.com/human-pangenomics/hprc_intermediate_assembly/2e5155690ec365e906dc82e72be39014dc38de27/hpc/toil_sbatch_single_machine.sh
+wget https://raw.githubusercontent.com/human-pangenomics/hprc_intermediate_assembly/b81bbb9540eaf5632a53faba43be71a0974f14f6/hpc/toil_sbatch_single_machine.sh
 
 ## Set environment variables for sbatch
 USERNAME="your_user_name"
