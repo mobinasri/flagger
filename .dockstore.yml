@@ -99,7 +99,7 @@ workflows:
    -  name: FlaggerEndToEnd
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/flagger_end_to_end.wdl
--  name: FlaggerEndToEndWithMapping
+   -  name: FlaggerEndToEndWithMapping
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/flagger_end_to_end_with_mapping.wdl
    -  name: SubsetAlignment
