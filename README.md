@@ -82,7 +82,7 @@ Here is a list of input parameters for flagger_end_to_end_with_mapping.wdl (The 
 |additionalStratificationBedArray| Array of additional stratification bed files for final stats tsv file. | Array[File] | No Default (Optional) |
 |additionalStratificationNameArray| Array of names for the stratifications provided in the argument additionalStratificationBedArray. |  Array[File] | No Default (Optional) |
 |enableProjectingBedsFromRef2Asm| If True it means that the given bed files are in ref coors (e.g. chm13v2) and they have to be projected to asm coors. | Boolean | false |
-|projectionReferenceFastaGz| The given bed files are in the coordinates of this reference. A reference should be passed if enableProjectingBedsFromRef2Asm is true. | File | No Default (Optional) |
+|projectionReferenceFasta| The given bed files are in the coordinates of this reference. A reference should be passed if enableProjectingBedsFromRef2Asm is true. | File | No Default (Optional) |
 |enableRunningSecphase | If true it will run secphase in the marker mode using the wdl parameters starting with 'secphase' otherwise skip it. | Boolean | false |
 |secphaseDockerImage| Docker image for running Secphase | String | mobinasri/secphase:v0.4.3 |
 |secphaseOptions| String containing secphase options (can be either --hifi or --ont). | String | --hifi |
