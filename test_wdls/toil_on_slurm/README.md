@@ -4,11 +4,11 @@
 
 This directory contains test files and tables for the workflows listed below:
 
-1. **long_read_aligner_scattered.wdl**: This workflow is designed to align long reads to any reference or assembly which can be either diploid or haploid. Currently this workflow supports using minimap2, winnowmap and veritymap (veritymap is experimental and not tested reliably yet). Detailed descriptions of input parameters are included in the related WDL file. ([github link](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/long_read_aligner_scattered.wdl), [dockstore link](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:dev-0.3.0?tab=info))
+1. **long_read_aligner_scattered.wdl**: This workflow is designed to align long reads to any reference or assembly which can be either diploid or haploid. Currently this workflow supports using minimap2, winnowmap and veritymap (veritymap is experimental and not tested reliably yet). Detailed descriptions of input parameters are included in the related WDL file. ([github link](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/long_read_aligner_scattered.wdl), [dockstore link](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:v0.4.0?tab=info))
 
-2. **flagger_end_to_end.wdl**: This workflow is designed to run Flagger for evaluating a diploid assembly. Its primary inputs consist of one fasta file per assembled haplotype and one bam file containing the long read alignments to the diploid assembly. ([github link](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end.wdl), [dockstore link](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEnd:dev-0.3.0?tab=info))
+2. **flagger_end_to_end.wdl**: This workflow is designed to run Flagger for evaluating a diploid assembly. Its primary inputs consist of one fasta file per assembled haplotype and one bam file containing the long read alignments to the diploid assembly. ([github link](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/flagger_end_to_end.wdl), [dockstore link](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEnd:v0.4.0?tab=info))
 
-2. **flagger_end_to_end_with_mapping.wdl**: This workflow is designed for running both read mapping and Flagger (one after the other). This workflow will run long_read_aligner_scattered.wdl and then flagger_end_to_end.wdl. Its primary inputs consist of one fasta file per assembled haplotype and a list of read files for mapping. ([github link](https://github.com/mobinasri/flagger/blob/dev-0.3.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl), [dockstore link](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndWithMapping:dev-0.3.0?tab=info))
+2. **flagger_end_to_end_with_mapping.wdl**: This workflow is designed for running both read mapping and Flagger (one after the other). This workflow will run long_read_aligner_scattered.wdl and then flagger_end_to_end.wdl. Its primary inputs consist of one fasta file per assembled haplotype and a list of read files for mapping. ([github link](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl), [dockstore link](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndWithMapping:v0.4.0?tab=info))
 
 These wdls can be found in `wdls/workflows/` including detailed descriptions of their input parameters.
 
@@ -309,7 +309,7 @@ Description of the files in test_2:
 
 #### Steps 3 and 4
 
-For running either of Test_1 or Test_2 users can use the steps explained in [step3](https://github.com/mobinasri/flagger/edit/dev-0.3.0/test_wdls/toil_on_slurm/README.md#3-creating-input-json-files) and [step4](https://github.com/mobinasri/flagger/edit/dev-0.3.0/test_wdls/toil_on_slurm/README.md#4-executing-workflow-using-a-toil-based-bash-script) with some small modifications (e.g. changing test_1 to test_2 if test_2 is being invoked and setting `--array=1-1%1` while running sbatch command since for each test there would be only one input json).
+For running either of Test_1 or Test_2 users can use the steps explained in [step3](https://github.com/mobinasri/flagger/edit/v0.4.0/test_wdls/toil_on_slurm/README.md#3-creating-input-json-files) and [step4](https://github.com/mobinasri/flagger/edit/v0.4.0/test_wdls/toil_on_slurm/README.md#4-executing-workflow-using-a-toil-based-bash-script) with some small modifications (e.g. changing test_1 to test_2 if test_2 is being invoked and setting `--array=1-1%1` while running sbatch command since for each test there would be only one input json).
 
 
 ### Running flagger_end_to_end_with_mapping.wdl on test datasets
@@ -336,7 +336,7 @@ flagger_end_to_end_with_mapping.wdl has the same set of test files as flagger_en
 
 #### Steps 3 and 4
 
-For running either of Test_1 or Test_2 users can use the steps explained in [step3](https://github.com/mobinasri/flagger/edit/dev-0.3.0/test_wdls/toil_on_slurm/README.md#3-creating-input-json-files) and [step4](https://github.com/mobinasri/flagger/edit/dev-0.3.0/test_wdls/toil_on_slurm/README.md#4-executing-workflow-using-a-toil-based-bash-script) with some small modifications (e.g. changing test_1 to test_2 if test_2 is being invoked and setting `--array=1-1%1` while running sbatch command since for each test there would be only one input json). 
+For running either of Test_1 or Test_2 users can use the steps explained in [step3](https://github.com/mobinasri/flagger/edit/v0.4.0/test_wdls/toil_on_slurm/README.md#3-creating-input-json-files) and [step4](https://github.com/mobinasri/flagger/edit/v0.4.0/test_wdls/toil_on_slurm/README.md#4-executing-workflow-using-a-toil-based-bash-script) with some small modifications (e.g. changing test_1 to test_2 if test_2 is being invoked and setting `--array=1-1%1` while running sbatch command since for each test there would be only one input json). 
 
 
 
