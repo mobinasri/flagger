@@ -182,7 +182,7 @@ All WDLs are uploaded to Dockstore for easier import into platforms like Terra o
 |Component| Status| Color |Description|
 |:--------|:-----|:-----|:----------|
 |Err  |**Erroneous** |Red| This block has low read coverage. If it is located in the middle of a contig it could be either a misjoin or a region that needs polishing|
-|Dup  |**Duplicated** |Orange| This block is potentially a false duplication of another block. It should mainly include low-MAPQ alignments with half of the expected coverage. Probably one of the copies has to be polished to fix this issue|
+|Dup  |**Duplicated** |Orange| This block is potentially a false duplication of another block. It should mainly include low-MAPQ alignments with half of the expected coverage. Probably one of the copies has to be polished or removed to fix this issue|
 |Hap  | **Haploid** |Green| This block is correctly assembled and has the expected read coverage |
 |Col |**Collapsed** |Purple| Two or more highly similar haplotypes are collapsed into this block |
 |Unk |**Unknown** |Gray| These blocks could not be assigned confidently (usually on the edges of other components)|
