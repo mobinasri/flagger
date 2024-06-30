@@ -101,7 +101,7 @@ A set of annotations files in the coordinates of chm13v2.0 are prepared beforeha
 1. Detecting regions with coverage biases: Satellite repeat arrays might have coverage biases so before running Flagger the pipeline will detect potentially baised regions. Flagger will then fit a separate Gaussian model to each detected annotation.
 2. Stratifying final results with the projected annotations.
 
-Using these bed files are optional and the related parameters can be left undefined (being absent from the input json) and the workflow should still work properly. Users should be aware that in this case coverage biases in HSat arrays may mislead the pipeline and the final summary tsv files will contain zero values for any stratification whose bed file was left undefined.
+Using these bed files are optional and the related parameters can be left undefined (being absent from the input json). In this case the workflow should still work properly. However users should be aware that in this case potential coverage biases in HSat arrays may mislead the pipeline. The final summary tsv files will contain zero values for any stratification whose bed file was left undefined.
 
 |Parameter| Value|
 |:--------|:-----|
