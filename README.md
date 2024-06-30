@@ -1,7 +1,7 @@
 ## Evaluating dual/diploid assemblies with Flagger
 
 ### Overview
-Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). The core component of this pipeline is [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/flagger). Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid (correctly assembled) and collapsed.
+Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). The core component of this pipeline is [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/flagger). Flagger recieves the read alignments to a draft diploid assembly, detects anomalies in read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid (correctly assembled) and collapsed.
 
 
 
@@ -11,7 +11,7 @@ This evaluation has 3 steps:
 - Run Flagger
 
 #### 1. Align long reads
-The ONT and HiFi reads can be aligned to a dual/diploid assembly (~ 6Gbases long in human) with a long read aligner like winnowmap and minimap2. Since the assembly is dual/diploid the expected base-level coverage should be half of the sequencing coverage.
+The ONT and HiFi reads can be aligned to a dual/diploid assembly (~ 6Gbases long in human) with a long read aligner like winnowmap and minimap2.
 Here are the commands for producing the alignments (taken from the [winnowmap docs](https://github.com/marbl/Winnowmap)):
 ```` 
   # making the k-mer table with meryl
@@ -22,20 +22,20 @@ Here are the commands for producing the alignments (taken from the [winnowmap do
   winnowmap -W repetitive_k15.txt -ax [map-ont | map-pb] -Y -L --eqx --cs -I8g <(cat pat_asm.fa mat_asm.fa) reads.fq.gz | \
     samtools view -hb | samtools sort -@8 > read_alignment.bam
 ````
-Any other appropriate long read aligner can also be employed in this step.
+Any other appropriate long read aligner can be employed in this step.
 
 #### 2. Relocalize wrongly phased reads (Optional)
 In this step we use Secphase to phase and relocalize the reads with multiple alignments. To be more precise all the secondary and primary
 alignments of the same read are scored based on marker consistency and 
 the alignment with the highest score is selected as the primary alignment. The output of this section is 
 a corrected version of the input bam file, in which the primary and secondary alignments are swapped 
-whenever neccessary. Secphase can work only if the secondary alignments are available with their full sequence and base quality array.
+whenever neccessary. Secphase can work properly only if the secondary alignments are available with their full sequence and base quality array.
 
 More information about Secphase is available [here](https://github.com/mobinasri/secphase)
 
 #### 3. Run Flagger
-The produced alignment file (step 1) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
-erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than the haploid one is pointing to unreliable blocks in assembly and unkown label is for the bases that couldn't be assigned confidently. The 4 components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/coverage#2-coverage-distribution-and-fitting-the-mixture-model). 
+The produced alignment file (in step 1) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
+erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than "haploid" is pointing to unreliable blocks in assembly and unkown label is for the bases that couldn't be assigned confidently. These components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger#2-coverage-distribution-and-fitting-the-mixture-model). 
 
 
 More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
@@ -146,6 +146,7 @@ java -jar ../womtool-58.jar inputs ../flagger-0.4.0/wdls/workflows/flagger_end_t
 After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suffixForFlagger`, `suffixForMapping`, `hap1AssemblyFasta`, `hap2AssemblyFasta`, `readfiles`, `preset` and removing unspecified parameters (they will be set to default values), users can run the command below:
 
 ```
+
 # run flagger workflow
 
 java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
@@ -154,6 +155,14 @@ The paths to output files will be saved in `outputs.json`. The instructions for 
 
 
 There is also a more simplified version of flagger_end_to_end_no_variant_calling_no_ref without running secphase. It is available in [flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl)
+
+
+### Running WDLs locally using Toil on Slurm
+Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
+- [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-long_read_aligner_scatteredwdl-on-test-datasets)
+- [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-flagger_end_to_endwdl-on-test-datasets)
+- [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-flagger_end_to_end_with_mappingwdl-on-test-datasets)
+
 
 #### Dockstore links
 
