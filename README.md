@@ -94,12 +94,14 @@ Here is a list of input parameters for flagger_end_to_end_with_mapping.wdl (The 
 |hap1ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype1. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap1 |
 |hap2ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype2. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap2 |
 
-### CHM13 annotation files
+### Using CHM13 annotation files (Optional)
 
 A set of annotations files in the coordinates of chm13v2.0 are prepared beforehand and they can be used as inputs to the workflow. These bed files are useful when there is no denovo annotation for the assemblies and we like to project annotations from chm13v2.0 to the assembly coordinates for two main purposes:
 
 1. Detecting regions with coverage biases: Satellite repeat arrays might have coverage biases so before running Flagger the pipeline will detect potentially baised regions. Flagger will then fit a separate Gaussian model to each detected annotation.
 2. Stratifying final results with the projected annotations.
+
+Using these bed files are optional and the related parameters can be left undefined (being absent from the input json) and the workflow should still work properly. Users should be aware that in this case coverage biases in HSat arrays may mislead the pipeline and the final summary tsv files will contain zero values for any stratification whose bed file was left undefined.
 
 |Parameter| Value|
 |:--------|:-----|
