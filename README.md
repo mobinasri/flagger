@@ -156,8 +156,6 @@ java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
 ```
 
-There is also a more simplified version of flagger_end_to_end_no_variant_calling_no_ref without running secphase. It is available in [flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl)
-
 
 ### Running WDLs on Slurm using Toil
 Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
