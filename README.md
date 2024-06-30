@@ -142,33 +142,35 @@ cd workdir
 
 java -jar ../womtool-58.jar inputs ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl > inputs.json
 
+```
 
 After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suffixForFlagger`, `suffixForMapping`, `hap1AssemblyFasta`, `hap2AssemblyFasta`, `readfiles`, `preset` and removing unspecified parameters (they will be set to default values), users can run the command below:
 
+
 ```
-
-# run flagger workflow
-
+## run flagger workflow
 java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
 
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
-
+```
 
 There is also a more simplified version of flagger_end_to_end_no_variant_calling_no_ref without running secphase. It is available in [flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl](https://github.com/mobinasri/flagger/blob/main/wdls/workflows/flagger_end_to_end_no_variant_calling_no_ref_no_secphase.wdl)
 
 
-### Running WDLs locally using Toil on Slurm
+### Running WDLs on Slurm using Toil
 Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
 - [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-long_read_aligner_scatteredwdl-on-test-datasets)
 - [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-flagger_end_to_endwdl-on-test-datasets)
 - [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-flagger_end_to_end_with_mappingwdl-on-test-datasets)
 
 
-#### Dockstore links
+### Dockstore links
 
 All WDLs are uploaded to Dockstore for easier import into platforms like Terra or AnVIL.
 
-- [Dockstore link for flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndWithMapping:v0.4.0?tab=info)
+- [Dockstore link for long_read_aligner_scattered.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:v0.4.0?tab=info)
+- [Dockstore link for flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEnd:v0.4.0?tab=info)
+- [Dockstore link for flagger_end_to_end_with_mapping.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndWithMapping:v0.4.0?tab=info)
 
 
 
@@ -201,5 +203,5 @@ We have used the Genbank version of the HPRC-Y1 assemblies.
 The v0.1 results are available in 
 https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=submissions/e9ad8022-1b30-11ec-ab04-0a13c5208311--COVERAGE_ANALYSIS_Y1_GENBANK/FLAGGER/
 
-### Publications
+## Publications
 Liao, Wen-Wei, Mobin Asri, Jana Ebler, Daniel Doerr, Marina Haukness, Glenn Hickey, Shuangjia Lu et al. "[A draft human pangenome reference.](https://www.nature.com/articles/s41586-023-05896-x)" Nature 617, no. 7960 (2023): 312-324.
