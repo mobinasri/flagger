@@ -151,7 +151,7 @@ After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suff
 
 ```
 ## run flagger workflow
-java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
+java -jar ../cromwell-85.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
 ```
 
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
