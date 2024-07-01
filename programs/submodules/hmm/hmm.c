@@ -69,7 +69,41 @@ HMM *HMM_construct(int numberOfStates,
     model->numberOfRegions = numberOfRegions;
     model->maxNumberOfComps = maxNumberOfComps;
     model->modelType = modelType;
+    model->loglikelihood = 0.0;
     return model;
+}
+
+
+bool HMM_isFeasible(HMM *model){
+    bool isFeasible = true;
+    for (int region = 0; region < model->numberOfRegions; region++) {
+        isFeasible &= EmissionDistSeries_isFeasible(model->emissionDistSeriesPerRegion[region]);
+        isFeasible &= Transition_isFeasible(model->transitionPerRegion[region]);
+    }
+    return isFeasible;
+}
+
+void HMM_normalizeWeightsAndTransitionRows(HMM *model){
+    for (int region = 0; region < model->numberOfRegions; region++) {
+        EmissionDistSeries_normalizeWeights(model->emissionDistSeriesPerRegion[region]);
+        Transition_normalizeTransitionRows(model->transitionPerRegion[region]);
+    }
+}
+
+HMM *HMM_copy(HMM* src){
+    HMM *dest = malloc(1 * sizeof(HMM));
+    dest->emissionDistSeriesPerRegion = EmissionDistSeries_copy1DArray(src->emissionDistSeriesPerRegion,
+                                                                       src->numberOfRegions);
+    dest->transitionPerRegion = Transition_copy1DArray(src->transitionPerRegion,
+                                                         src->numberOfRegions);
+    dest->modelType = src->modelType;
+    dest->maxNumberOfComps = src->maxNumberOfComps;
+    dest->numberOfRegions = src->numberOfRegions;
+    dest->numberOfStates = src->numberOfStates;
+    dest->alpha = MatrixDouble_copy(src->alpha);
+    dest->excludeMisjoin = src->excludeMisjoin;
+    dest->loglikelihood = src->loglikelihood;
+    return dest;
 }
 
 int HMM_getStartStateIndex(HMM *model) {
@@ -227,6 +261,7 @@ EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model) {
     // Initialize scale to avoid underflow
     em->scales = Double_construct1DArray(em->seqLen);
     em->px = -1.0;
+    em->loglikelihood = 0.0;
     em->numberOfRegions = model->numberOfRegions;
     return em;
 }
@@ -262,7 +297,9 @@ void EM_resetAllColumnsForward(EM *em) {
         for (int s = 0; s < model->numberOfStates; s++) {
             em->f[i][s] = 0.0;
         }
+        em->scales[i] = 0.0;
     }
+    em->loglikelihood = 0.0;
 }
 
 void EM_fillFirstColumnForward(EM *em) {
@@ -356,6 +393,7 @@ void EM_runForward(EM *em) {
     // Fill columns of the forward matrix
     for (int columnIndex = 0; columnIndex < em->seqLen; columnIndex++) {
         EM_fillOneColumnForward(em, columnIndex);
+        em->loglikelihood += log(em->scales[i]);
     }
     // Update P(x)
     // TODO: P(x) is not calculated here p(x) = s(1) x s(2) x ... x s(L) check Durbin's
@@ -637,7 +675,6 @@ void EM_printPosteriorInTsvFormat(EM *em, FILE *fout) {
     }
 }
 
-
 void EM_runOneIterationAndUpdateEstimatorsForThreadPool(void *arg_) {
     work_arg_t *arg = arg_;
     EM *em = arg->data;
@@ -683,6 +720,7 @@ void EM_runOneIterationForList(stList *emList, HMM *model, int threads) {
 
     for (int i = 0; i < stList_length(emList); i++) {
 	    EM *em = stList_get(emList, i);
+        model->loglikelihood += em->loglikelihood;
         EM_updateModelEstimators(em);
     }
 
@@ -701,4 +739,304 @@ void EM_runOneIterationForList(stList *emList, HMM *model, int threads) {
 	fprintf(stderr, "i=%d, denom = %f\n",i, denom);
     }
     fprintf(stderr, "sum = %f\n", sum);*/
+}
+
+
+void EM_runForwardForThreadPool(void *arg_) {
+    work_arg_t *arg = arg_;
+    EM *em = arg->data;
+
+    EM_runForward(em);
+}
+
+void EM_runForwardForList(stList *emList, HMM *model, int threads) {
+    model->loglikelihood = 0.0;
+
+    tpool_t *tm = tpool_create(threads);
+    for (int i = 0; i < stList_length(emList); i++) {
+        // get EM struct for this chunk index
+        EM *em = stList_get(emList, i);
+        EM_renewParametersAndEstimatorsFromModel(em, model);
+        // add EM to the work struct
+        work_arg_t *argWork = malloc(sizeof(work_arg_t));
+        argWork->data = (void *) em;
+        // queue job
+        tpool_add_work(tm, EM_runForwardForThreadPool, argWork);
+    } // jobs for running EM on all chunks are queued
+
+    // wait until all jobs are finished for this iteration
+    tpool_wait(tm);
+    // destroy thread pool
+    tpool_destroy(tm);
+
+    for (int i = 0; i < stList_length(emList); i++) {
+        EM *em = stList_get(emList, i);
+        // update model loglikelihood
+        model->loglikelihood += em->loglikelihood;
+    }
+
+}
+
+
+
+typedef struct SquareAccelerator {
+    HMM *model0;
+    HMM *model1;
+    HMM *model2;
+    HMM *modelPrime;
+    HMM *modelRatesV;
+    HMM *modelRatesR;
+    double alphaRate;
+} SquareAccelerator;
+
+SquareAccelerator *SquareAccelerator_construct() {
+    SquareAccelerator *accelerator = malloc(sizeof(SquareAccelerator));
+    accelerator->model0 = NULL;
+    accelerator->model1 = NULL;
+    accelerator->model2 = NULL;
+    accelerator->modelPrime = NULL;
+    accelerator->modelRatesR = NULL;
+    accelerator->modelRatesV = NULL;
+    accelerator->alphaRate = 0.0;
+    return accelerator;
+}
+
+void SquareAccelerator_destruct(SquareAccelerator *accelerator) {
+    if (accelerator->model0 != NULL) {
+        HMM_destruct(accelerator->model0);
+    }
+    if (accelerator->model1 != NULL) {
+        HMM_destruct(accelerator->model1);
+    }
+    if (accelerator->model2 != NULL) {
+        HMM_destruct(accelerator->model2);
+    }
+    if (accelerator->modelRatesV != NULL) {
+        HMM_destruct(accelerator->modelRatesV);
+    }
+    if (accelerator->modelRatesR == NULL) {
+        HMM_destruct(accelerator->modelRatesR);
+    }
+    if (accelerator->modelPrime == NULL) {
+        HMM_destruct(accelerator->modelPrime);
+    }
+    free(accelerator);
+}
+
+
+void SquareAccelerator_setModel0(SquareAccelerator *accelerator, HMM *model0) {
+    accelerator->model0 = HMM_copy(model0);
+    accelerator->modelRatesR = HMM_copy(model0);
+    accelerator->modelRatesV = HMM_copy(model0);
+    accelerator->modelPrime = HMM_copy(model0);
+}
+
+void SquareAccelerator_setModel1(SquareAccelerator *accelerator, HMM *model1) {
+    accelerator->model1 = HMM_copy(model1);
+}
+
+void SquareAccelerator_setModel2(SquareAccelerator *accelerator, HMM *model2) {
+    accelerator->model2 = HMM_copy(model2);
+}
+
+HMM *SquareAccelerator_getModelPrime(SquareAccelerator *accelerator, stList *emList, int threads){
+
+    HMM *modelPrime = NULL;
+    double loglikelihoodModel0 = accelerator->model0->loglikelihood;
+    double loglikelihoodModelPrime = 0.0;
+
+    SquareAccelerator_computeRates(accelerator);
+    modelPrime = SquareAccelerator_computeValuesForModelPrime(accelerator);
+    // running forward will update loglikelihood
+    EM_runForwardForList(emList, modelPrime, threads);
+    loglikelihoodModelPrime = modelPrime->loglikelihood;
+    // update alpha and recompute model prime until the parameter values are feasible
+    // and the loglikelihood value is improved
+    while ((HMM_isFeasible(modelPrime) == false) || (loglikelihoodModelPrime < loglikelihoodModel0)){
+        // if alpha rate is so close to -1 it means model prime will be very close to model 0
+        if ( accelerator->alphaRate > (-1 - 1e-10)) {
+            HMM_destruct(accelerator->modelPrime);
+            accelerator->modelPrime = HMM_copy(accelerator->model0);
+            break;
+        }
+        // update alpha to make changes in parameter values smaller
+        accelerator->alphaRate = (accelerator->alphaRate - 1) / 2;
+        // update parameters for modelPrime with the new alpha rate
+        modelPrime = SquareAccelerator_computeValuesForModelPrime(accelerator);
+        // running forward will update loglikelihood
+        EM_runForwardForList(emList, modelPrime, threads);
+        loglikelihoodModelPrime = modelPrime->loglikelihood;
+    }
+    return accelerator->modelPrime;
+}
+
+// run SquareAccelerator_computeRates before running this function
+HMM *SquareAccelerator_computeValuesForModelPrime(SquareAccelerator *accelerator) {
+    HMM *model0 = accelerator->model0;
+    HMM *modelPrime = accelerator->modelPrime;
+    HMM *modelRatesV = accelerator->modelRatesV;
+    HMM *modelRatesR = accelerator->modelRatesR;
+
+    int numberOfRegions = model0->numberOfRegions;
+    // iterate over regions
+    for (int region = 0; region < numberOfRegions; region++) {
+
+        ////////////////////////////
+        // For emission parameters
+        ///////////////////////////
+
+        EmissionDistSeries *emissionDistSeriesModel0 = model0->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries *emissionDistSeriesModelPrime = modelPrime->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries *emissionDistSeriesModelRatesV = modelRatesV->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries *emissionDistSeriesModelRatesR = modelRatesR->emissionDistSeriesPerRegion[region];
+
+        void *parameterTypePtr;
+        int distIndex;
+        int compIndex;
+        double valueForModel0;
+        // iterating over all emission parameters and their values for computing parameters using r,v and alpha
+        EmissionDistSeriesParamIter *paramIter = EmissionDistSeriesParamIter_construct(emissionDistSeriesModel0);
+        while (EmissionDistSeriesParamIter_next(paramIter,
+                                                &parameterTypePtr,
+                                                &distIndex,
+                                                &compIndex,
+                                                &valueForModel0)) {
+            double r = EmissionDistSeries_getParameterValue(emissionDistSeriesModelRatesR,
+                                                            parameterTypePtr,
+                                                            distIndex,
+                                                            compIndex);
+            double v = EmissionDistSeries_getParameterValue(emissionDistSeriesModelRatesV,
+                                                            parameterTypePtr,
+                                                            distIndex,
+                                                            compIndex);
+            // new value = value0 - 2 x r x alpha + v x alpha ^ 2
+            double newValue = valueForModel0 - 2 * r * accelerator->alphaRate + v * pow(accelerator->alphaRate, 2);
+
+            // set new value in prime model
+            EmissionDistSeries_setParameterValue(emissionDistSeriesModelPrime,
+                                                 parameterTypePtr,
+                                                 distIndex,
+                                                 compIndex,
+                                                 newValue);
+        }
+
+        /////////////////////////////
+        // For transition parameters
+        ///////////////////////////
+
+        Transition *transitionModel0 = model0->transitionPerRegion[region];
+        Transition *transitionModelPrime = modelPrime->transitionPerRegion[region];
+        Transition *transitionModelRatesR = modelRatesR->transitionPerRegion[region];
+        Transition *transitionModelRatesV = modelRatesV->transitionPerRegion[region];
+
+        for (int s1 = 0; s1 < transitionModel0->numberOfStates; s1++) {
+            for (int s2 = 0; s2 < transitionModel0->numberOfStates; s2++) {
+                valueForModel0 = transitionModel0->matrix->data[s1][s2];
+                double r = transitionModelRatesR->matrix->data[s1][s2];
+                double v = transitionModelRatesV->matrix->data[s1][s2];
+
+                // new value = value0 - 2 x r x alpha + v x alpha ^ 2
+                double newValue = valueForModel0 - 2 * r * accelerator->alphaRate + v * pow(accelerator->alphaRate, 2);
+                transitionModelPrime->matrix->data[s1][s2] = newValue;
+
+            } // finished iterating s2
+        } // finish iterating s1
+
+    } // finished iterating over regions
+
+    return accelerator->modelPrime;
+}
+
+void SquareAccelerator_computeRates(SquareAccelerator *accelerator) {
+    HMM *model0 = accelerator->model0;
+    HMM *model1 = accelerator->model1;
+    HMM *model2 = accelerator->model2;
+    HMM *modelRatesV = accelerator->modelRatesV;
+    HMM *modelRatesR = accelerator->modelRatesR;
+
+    int numberOfRegions = model0->numberOfRegions;
+    double alphaRateNumerator = 0.0;
+    double alphaRateDenominator = 0.0;
+    for (int region = 0; region < numberOfRegions; region++) {
+        ////////////////////////////
+        // For emission parameters
+        ///////////////////////////
+
+        EmissionDistSeries *emissionDistSeriesModel0 = model0->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries *emissionDistSeriesModel1 = model1->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries *emissionDistSeriesModel2 = model2->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries *emissionDistSeriesModelRatesV = modelRatesV->emissionDistSeriesPerRegion[region];
+        EmissionDistSeries *emissionDistSeriesModelRatesR = modelRatesR->emissionDistSeriesPerRegion[region];
+
+        void *parameterTypePtr;
+        int distIndex;
+        int compIndex;
+        double valueForModel0;
+        double valueForModel1;
+        double valueForModel2;
+
+        // iterate over all emission parameters and their values for computing r, v and alpha
+        EmissionDistSeriesParamIter *paramIter = EmissionDistSeriesParamIter_construct(emissionDistSeriesModel0);
+        while (EmissionDistSeriesParamIter_next(paramIter,
+                                                &parameterTypePtr,
+                                                &distIndex,
+                                                &compIndex,
+                                                &valueForModel0)) {
+            valueForModel1 = EmissionDistSeries_getParameterValue(emissionDistSeriesModel1,
+                                                                  parameterTypePtr,
+                                                                  distIndex,
+                                                                  compIndex);
+            valueForModel2 = EmissionDistSeries_getParameterValue(emissionDistSeriesModel2,
+                                                                  parameterTypePtr,
+                                                                  distIndex,
+                                                                  compIndex);
+            double r = valueForModel1 - valueForModel0;
+            double v = valueForModel2 - valueForModel1 - r;
+            alphaRateNumerator += pow(r, 2);
+            alphaRateDenominator += pow(v, 2);
+
+            // set r value for this parameter
+            EmissionDistSeries_setParameterValue(emissionDistSeriesModelRatesR,
+                                                 parameterTypePtr,
+                                                 distIndex,
+                                                 compIndex,
+                                                 r);
+            // set v value for this parameter
+            EmissionDistSeries_setParameterValue(emissionDistSeriesModelRatesV,
+                                                 parameterTypePtr,
+                                                 distIndex,
+                                                 compIndex,
+                                                 v);
+
+        } // finished iterating over all emission parameters and their values for computing r, v and alpha
+        EmissionDistSeriesParamIter_destruct(paramIter);
+
+        /////////////////////////////
+        // For transition parameters
+        ///////////////////////////
+
+        Transition *transitionModel0 = model0->transitionPerRegion[region];
+        Transition *transitionModel1 = model1->transitionPerRegion[region];
+        Transition *transitionModel2 = model2->transitionPerRegion[region];
+        Transition *transitionModelRatesR = modelRatesR->transitionPerRegion[region];
+        Transition *transitionModelRatesV = modelRatesV->transitionPerRegion[region];
+
+        for (int s1 = 0; s1 < transitionModel0->numberOfStates; s1++) {
+            for (int s2 = 0; s2 < transitionModel0->numberOfStates; s2++) {
+                valueForModel0 = transitionModel0->matrix->data[s1][s2];
+                valueForModel1 = transitionModel1->matrix->data[s1][s2];
+                valueForModel2 = transitionModel2->matrix->data[s1][s2];
+
+                double r = valueForModel1 - valueForModel0;
+                double v = valueForModel2 - valueForModel1 - r;
+                alphaRateNumerator += pow(r, 2);
+                alphaRateDenominator += pow(v, 2);
+
+                transitionModelRatesR->matrix->data[s1][s2] = r;
+                transitionModelRatesV->matrix->data[s1][s2] = v;
+            } // finished iterating s2
+        } // finish iterating s1
+    } // finished iterating over regions
+    // compute alpha rate
+    accelerator->alphaRate = -1 * sqrt(alphaRateNumerator / alphaRateDenominator);
 }

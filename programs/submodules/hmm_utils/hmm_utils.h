@@ -228,6 +228,8 @@ NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numb
 
 void NegativeBinomial_fillDigammaTable(NegativeBinomial *nb);
 
+void NegativeBinomial_normalizeWeights(NegativeBinomial *nb);
+
 bool NegativeBinomial_isFeasible(NegativeBinomial *nb);
 
 NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src);
@@ -327,6 +329,7 @@ Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps);
  */
 Gaussian *Gaussian_constructByMean(double *mean, double factor, int numberOfComps);
 
+void Gaussian_normalizeWeights(Gaussian *gaussian);
 
 bool Gaussian_isFeasible(Gaussian *gaussian);
 
@@ -462,6 +465,8 @@ void TruncExponential_destruct(TruncExponential *truncExponential);
  */
 EmissionDist *EmissionDist_construct(void *dist, DistType distType);
 
+void EmissionDist_normalizeWeights(EmissionDist *emissionDist);
+
 bool EmissionDist_isFeasible(EmissionDist *emissionDist);
 
 EmissionDist *EmissionDist_copy(EmissionDist *src);
@@ -556,6 +561,8 @@ void EmissionDistSeries_incrementCountData(EmissionDistSeries *emissionDistSerie
                                            double count);
 // only use this function when alpha = 0
 void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *emissionDistSeries);
+
+void EmissionDistSeries_normalizeWeights(EmissionDistSeries *emissionDistSeries);
 
 bool EmissionDistSeries_isFeasible(EmissionDistSeries *emissionDistSeries);
 
@@ -827,7 +834,11 @@ void Transition_addRequirements(Transition *transition, TransitionRequirements *
  */
 void Transition_addValidityFunction(Transition *transition, ValidityFunction validityFunction);
 
+void Transition_normalizeTransitionRows(Transition *transition);
+
 bool Transition_estimateTransitionMatrix(Transition *transition, double convergenceTol);
+
+bool Transition_isFeasible(Transition *transition);
 
 void Transition_resetCountData(Transition *transition);
 

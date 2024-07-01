@@ -200,7 +200,8 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                    bool writeBenchmarkingStatsPerIteration,
                    stList *labelNamesWithUnknown,
                    char *binArrayFilePath,
-                   double overlapRatioThreshold) {
+                   double overlapRatioThreshold,
+                   bool acceleration) {
 
     char suffix[200];
     stList *chunks = chunksCreator->chunks;
@@ -224,15 +225,17 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     int iter = 1;
     bool converged = false;
     while (iter <= numberOfIterations && converged == false) {
-        fprintf(stderr, "[%s] [Iteration = %d] Running EM jobs for %d chunks (with %d threads) ...\n",
+        fprintf(stderr, "[%s] [Iteration %s = %d] Running EM jobs for %d chunks (with %d threads) ...\n",
                 get_timestamp(),
+                acceleration ? "accelerated" : "",
                 iter,
                 numberOfChunks,
                 threads);
         EM_runOneIterationForList(emPerChunk, model, threads);
 
-        fprintf(stderr, "[%s] [Iteration = %d] EM jobs are all finished.\n",
+        fprintf(stderr, "[%s] [Iteration %s = %d] EM jobs are all finished.\n",
                 get_timestamp(),
+                acceleration ? "accelerated" : "",
                 iter);
 
         // chunks now definitely contain prediction labels
@@ -245,7 +248,11 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                 strcpy(suffix, "initial");
             } else {
                 // (iter - 1) because this prediction is for the parameters updated after the previous iteration
-                sprintf(suffix, "iteration_%d", iter - 1);
+                if (acceleration) {
+                    sprintf(suffix, "iteration_accelerated_%d", iter - 1);
+                } else {
+                    sprintf(suffix, "iteration_%d", iter - 1);
+                }
             }
             writeBenchmarkingStats(chunksCreator,
                                    outputDir,
@@ -256,23 +263,55 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                                    threads);
         }
 
+        // if acceleration is true it will run two more EM update per iteration
+        if (acceleration) {
+            SquareAccelerator *accelerator = SquareAccelerator_construct();
+            // set model 0
+            SquareAccelerator_setModel0(model);
+            // compute and set model 1
+            HMM_estimateParameters(model, convergenceTol);
+            SquareAccelerator_setModel1(model);
+            // compute and set model 2
+            HMM_resetEstimators(model);
+            EM_runOneIterationForList(emPerChunk, model, threads);
+            HMM_estimateParameters(model, convergenceTol);
+            SquareAccelerator_setModel2(model);
+            // get model prime and run an additional round of EM on it
+            HMM *modelPrime = SquareAccelerator_getModelPrime(accelerator, emPerChunk, threads);
+            // run EM on model prime
+            HMM_resetEstimators(modelPrime);
+            EM_runOneIterationForList(emPerChunk, modelPrime, threads);
+            // destruct old model and replace with a copy of the final model after acceleration
+            HMM_destruct(model);
+            model = HMM_copy(modelPrime);
+            // destruct accelerator
+            SquareAccelerator_destruct(accelerator);
+        }
+
         // update parameters
         converged = HMM_estimateParameters(model, convergenceTol);
-        fprintf(stderr, "[%s] [Iteration = %d] Parameters are estimated and updated.\n",
+        fprintf(stderr, "[%s] [Iteration %s = %d] Parameters are estimated and updated.\n",
                 get_timestamp(),
+                acceleration ? "accelerated" : "",
                 iter);
 
         HMM_resetEstimators(model);
-        fprintf(stderr, "[%s] [Iteration = %d] Model parameter estimators are reset.\n",
+        fprintf(stderr, "[%s] [Iteration %s = %d] Model parameter estimators are reset.\n",
                 get_timestamp(),
+                acceleration ? "accelerated" : "",
                 iter);
 
         if (writeParameterStatsPerIteration) {
             fprintf(stderr,
-                    "[%s] [Iteration = %d] Writing parameter values into tsv file.\n",
-                    get_timestamp(),
+                    "[%s] [Iteration %s = %d] Writing parameter values into tsv file.\n",
+                    acceleration ? "accelerated" : ""
+            get_timestamp(),
                     iter);
-            sprintf(suffix, "iteration_%d", iter);
+            if (acceleration) {
+                sprintf(suffix, "iteration_accelerated_%d", iter);
+            } else {
+                sprintf(suffix, "iteration_%d", iter);
+            }
             writeParameterStats(model, outputDir, suffix);
         }
         iter += 1;
@@ -375,6 +414,7 @@ static struct option long_options[] =
                 {"initialRandomDev",                   required_argument, NULL, 'D'},
                 {"trackName",                          required_argument, NULL, 'N'},
                 {"dumpBin",                            no_argument,       NULL, 'B'},
+                {"accelerate",                         no_argument,       NULL, 's'},
                 {NULL,                                 0,                 NULL, 0}
         };
 
@@ -402,9 +442,10 @@ int main(int argc, char *argv[]) {
     int windowLen = 100;
     int threads = 4;
     bool dumpBin = false;
+    bool acceleration = false;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:BN:", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:BN:s", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -466,6 +507,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'q':
                 maxHighMapqRatio = atof(optarg);
+                break;
+            case 's':
+                acceleration = true;
                 break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
@@ -574,6 +618,13 @@ int main(int argc, char *argv[]) {
                         "                           Dump chunks in binary format in the output dir (it will make \n"
                         "                           later runs faster by skipping chunk creation part if using the\n"
                         "                           same bin file) [default: disabled]\n");
+                fprintf(stderr,
+                        "         --accelerate, -s\n"
+                        "                           Run EM in accelerated mode. Each iteration will run 3 rounds \n"
+                        "                           of EM internally so each iteration will take longer in the \n"
+                        "                           acceleration mode but it will have a boosted update for \n"
+                        "                           parameters. The whole run should converge faster \n"
+                        "                           [default: disabled]\n");
                 return 1;
         }
     }
@@ -688,7 +739,8 @@ int main(int argc, char *argv[]) {
                   writeBenchmarkingStatsPerIteration,
                   labelNamesWithUnknown,
                   binArrayFilePath,
-                  overlapRatioThreshold);
+                  overlapRatioThreshold,
+                  acceleration);
 
 
     // 5. write final BED

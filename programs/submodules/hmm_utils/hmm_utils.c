@@ -353,6 +353,15 @@ NegativeBinomial *NegativeBinomial_construct(double *mean, double *var, int numb
     return nb;
 }
 
+void NegativeBinomial_normalizeWeights(NegativeBinomial *nb) {
+    double sum = Double_sum1DArray(nb->weights, nb->numberOfComps);
+    if (0.0 < sum) {
+        Double_multiply1DArray(nb->weights, nb->numberOfComps, 1.0 / sum);
+    } else {
+        fprintf(stderr, "[%s] (Error) Sum of weights is not > 0", get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+}
 
 bool NegativeBinomial_isFeasible(NegativeBinomial *nb) {
     bool isFeasible = true;
@@ -663,6 +672,15 @@ Gaussian *Gaussian_construct(double *mean, double *var, int numberOfComps) {
     return gaussian;
 }
 
+void Gaussian_normalizeWeights(Gaussian *gaussian) {
+    double sum = Double_sum1DArray(gaussian->weights, gaussian->numberOfComps);
+    if (0.0 < sum) {
+        Double_multiply1DArray(gaussian->weights, gaussian->numberOfComps, 1.0 / sum);
+    } else {
+        fprintf(stderr, "[%s] (Error) Sum of weights is not > 0", get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+}
 
 bool Gaussian_isFeasible(Gaussian *gaussian) {
     bool isFeasible = true;
@@ -875,6 +893,8 @@ void Gaussian_setParameterValue(Gaussian *gaussian, GaussianParameterType parame
 const char *Gaussian_getParameterName(GaussianParameterType parameterType) {
     return GaussianParameterToString[parameterType];
 }
+
+
 
 
 ////////////////////////////////////
@@ -1239,13 +1259,21 @@ EmissionDist *EmissionDist_construct(void *dist, DistType distType) {
     return emissionDist;
 }
 
+void EmissionDist_normalizeWeights(EmissionDist *emissionDist) {
+    if (emissionDist->distType == DIST_GAUSSIAN) {
+        Gaussian_normalizeWeights((Gaussian *) emissionDist->dist);
+    } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
+        NegativeBinomial_normalizeWeights((NegativeBinomial *) emissionDist->dist);
+    }
+}
+
 bool EmissionDist_isFeasible(EmissionDist *emissionDist) {
     if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
         return TruncExponential_isFeasible((TruncExponential *) emissionDist->dist);
     } else if (emissionDist->distType == DIST_GAUSSIAN) {
         return Gaussian_isFeasible((Gaussian *) emissionDist->dist);
     } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
-        NegativeBinomial_isFeasible((NegativeBinomial *) emissionDist->dist);
+        return NegativeBinomial_isFeasible((NegativeBinomial *) emissionDist->dist);
     }
     return false;
 }
@@ -1630,6 +1658,13 @@ void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *em
                 EmissionDist_updateEstimator(emissionDist, x, 0, 0, count);
             }
         }
+    }
+}
+
+
+void EmissionDistSeries_normalizeWeights(EmissionDistSeries *emissionDistSeries) {
+    for (int s = 0; s < emissionDistSeries->numberOfDists; s++) {
+        EmissionDist_normalizeWeights(emissionDistSeries->emissionDists[s]);
     }
 }
 
@@ -2076,6 +2111,16 @@ Transition *Transition_constructSymmetricBiased(int numberOfStates, double diago
     return transition;
 }
 
+bool Transition_isFeasible(Transition *transition) {
+    for (int s1 = 0; s1 < transition->numberOfStates; s1++) {
+        for (int s2 = 0; s2 < transition->numberOfStates; s2++) {
+            if (transition->matrix->data[s1][s2] < 0 || 1 < transition->matrix->data[s1][s2]){
+                return false;
+            }
+        } // finished iterating s2
+    } // finish iterating s1
+    return true;
+}
 
 void Transition_resetCountData(Transition *transition) {
     TransitionCountData_resetCountMatrix(transition->transitionCountData);
@@ -2099,6 +2144,26 @@ void Transition_addValidityFunction(Transition *transition, ValidityFunction val
                                             (transition->numberOfValidityFunctions + 1) * sizeof(ValidityFunction));
     transition->validityFunctions[transition->numberOfValidityFunctions] = validityFunction;
     transition->numberOfValidityFunctions += 1;
+}
+
+void Transition_normalizeTransitionRows(Transition *transition){
+    double terminationProb = transition->terminationProb;
+    for (int i1 = 0; i1 < transition->numberOfStates; i1++) {
+        double rowSum = 0.0;
+        // take sum per row
+        for (int i2 = 0; i2 < transition->numberOfStates; i2++) {
+            rowSum += transition->matrix->data[i1][i2];
+        }
+        for (int i2 = 0; i2 < transition->numberOfStates; i2++) {
+            transition->matrix->data[i1][i2] = transition->matrix->data[i1][i2] / rowSum * (1.0 - terminationProb);
+        }
+    }
+    // termination probs
+    for (int i1 = 0; i1 < transition->numberOfStates; i1++) {
+        transition->matrix->data[i1][transition->numberOfStates] = terminationProb;
+    }
+    // the probability of empty sequence
+    transition->matrix->data[transition->numberOfStates][transition->numberOfStates] = 0.0;
 }
 
 bool Transition_estimateTransitionMatrix(Transition *transition, double convergenceTol) {
