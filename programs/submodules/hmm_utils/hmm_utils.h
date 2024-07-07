@@ -117,7 +117,7 @@ void ParameterEstimator_reset(ParameterEstimator *parameterEstimator);
 
 void ParameterEstimator_destruct(ParameterEstimator *parameterEstimator);
 
-ParameterEstimator *ParameterEstimator_copy(ParameterEstimator *src);
+ParameterEstimator *ParameterEstimator_copy(ParameterEstimator *src, EmissionDist *emissionDistDest);
 
 /*! @typedef
  * @abstract Structure for representing the relationship between parameters of different components
@@ -232,7 +232,7 @@ void NegativeBinomial_normalizeWeights(NegativeBinomial *nb);
 
 bool NegativeBinomial_isFeasible(NegativeBinomial *nb);
 
-NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src);
+NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src, EmissionDist *emissionDistDest);
 
 /*
  * Construct a Negative Binomial structure using an array of means and a factor to scale mean for getting variances
@@ -333,7 +333,7 @@ void Gaussian_normalizeWeights(Gaussian *gaussian);
 
 bool Gaussian_isFeasible(Gaussian *gaussian);
 
-Gaussian *Gaussian_copy(Gaussian *src);
+Gaussian *Gaussian_copy(Gaussian *src, EmissionDist *emissionDistDest);
 
 /*
  * Get the probability of observing x given the previous observation preX and alpha the factor for adjusting
@@ -399,7 +399,7 @@ bool TruncExponential_isFeasible(TruncExponential *truncExponential);
 /*
  * Copy a TruncExponential structure
  */
-TruncExponential *TruncExponential_copy(TruncExponential *src);
+TruncExponential *TruncExponential_copy(TruncExponential *src, EmissionDist *emissionDistDest);
 
 /*
  * Get the probability of observing x

@@ -191,7 +191,7 @@ HMM *createModel(ModelType modelType,
 }
 
 void runHMMFlagger(ChunksCreator *chunksCreator,
-                   HMM *model,
+                   HMM **modelPtr,
                    int numberOfIterations,
                    double convergenceTol,
                    char *outputDir,
@@ -203,6 +203,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                    double overlapRatioThreshold,
                    bool acceleration) {
 
+    HMM *model = *modelPtr;
     char suffix[200];
     stList *chunks = chunksCreator->chunks;
     int numberOfChunks = stList_length(chunks);
@@ -231,7 +232,9 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                 iter,
                 numberOfChunks,
                 threads);
+	fprintf(stderr, "model 0\n");
         EM_runOneIterationForList(emPerChunk, model, threads);
+	fprintf(stderr, "model 0 done\n");
 
         fprintf(stderr, "[%s] [Iteration %s = %d] EM jobs are all finished.\n",
                 get_timestamp(),
@@ -267,23 +270,32 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
         if (acceleration) {
             SquareAccelerator *accelerator = SquareAccelerator_construct();
             // set model 0
-            SquareAccelerator_setModel0(model);
+            SquareAccelerator_setModel0(accelerator, model);
             // compute and set model 1
             HMM_estimateParameters(model, convergenceTol);
-            SquareAccelerator_setModel1(model);
+            SquareAccelerator_setModel1(accelerator, model);
             // compute and set model 2
             HMM_resetEstimators(model);
+	    fprintf(stderr, "model 2\n");
             EM_runOneIterationForList(emPerChunk, model, threads);
             HMM_estimateParameters(model, convergenceTol);
-            SquareAccelerator_setModel2(model);
+            SquareAccelerator_setModel2(accelerator, model);
             // get model prime and run an additional round of EM on it
             HMM *modelPrime = SquareAccelerator_getModelPrime(accelerator, emPerChunk, threads);
             // run EM on model prime
             HMM_resetEstimators(modelPrime);
+	    fprintf(stderr, "model prime\n");
             EM_runOneIterationForList(emPerChunk, modelPrime, threads);
             // destruct old model and replace with a copy of the final model after acceleration
             HMM_destruct(model);
             model = HMM_copy(modelPrime);
+	    *modelPtr = model;
+	    fprintf(stderr, "model prime done\n");
+	    // update model object in em objects
+	    for (int chunkIndex=0; chunkIndex < stList_length(emPerChunk); chunkIndex++){
+		    EM *em = stList_get(emPerChunk, chunkIndex);
+		    EM_renewParametersAndEstimatorsFromModel(em, model); 
+	    }
             // destruct accelerator
             SquareAccelerator_destruct(accelerator);
         }
@@ -304,8 +316,8 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
         if (writeParameterStatsPerIteration) {
             fprintf(stderr,
                     "[%s] [Iteration %s = %d] Writing parameter values into tsv file.\n",
-                    acceleration ? "accelerated" : ""
-            get_timestamp(),
+                    acceleration ? "accelerated" : "",
+		    get_timestamp(),
                     iter);
             if (acceleration) {
                 sprintf(suffix, "iteration_accelerated_%d", iter);
@@ -730,7 +742,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "[%s] Running EM for estimating parameters. \n", get_timestamp());
 
     runHMMFlagger(chunksCreator,
-                  model,
+                  &model,
                   numberOfIterations,
                   convergenceTol,
                   outputDir,

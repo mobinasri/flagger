@@ -104,12 +104,12 @@ void ParameterEstimator_destruct(ParameterEstimator *parameterEstimator) {
     free(parameterEstimator);
 }
 
-ParameterEstimator *ParameterEstimator_copy(ParameterEstimator *src) {
+ParameterEstimator *ParameterEstimator_copy(ParameterEstimator *src, EmissionDist *emissionDistDest) {
     ParameterEstimator *dest = malloc(1 * sizeof(ParameterEstimator));
     dest->numeratorPerComp = Double_copy1DArray(src->numeratorPerComp, src->numberOfComps);
     dest->denominatorPerComp = Double_copy1DArray(src->denominatorPerComp, src->numberOfComps);
     dest->numberOfComps = src->numberOfComps;
-    dest->emissionDist = src->emissionDist;
+    dest->emissionDist = emissionDistDest;
     dest->mutexPtr = malloc(sizeof(pthread_mutex_t));
     pthread_mutex_init(dest->mutexPtr, NULL);
     return dest;
@@ -365,7 +365,7 @@ void NegativeBinomial_normalizeWeights(NegativeBinomial *nb) {
 
 bool NegativeBinomial_isFeasible(NegativeBinomial *nb) {
     bool isFeasible = true;
-    for (int comp = 0; comp < nb->numberOfComps; nb++) {
+    for (int comp = 0; comp < nb->numberOfComps; comp++) {
         isFeasible &= (0 < nb->theta[comp]) && (nb->theta[comp] < 1);
         isFeasible &= (0 < nb->lambda[comp]);
         isFeasible &= (0 <= nb->weights[comp]) && (nb->weights[comp] <= 1);
@@ -374,7 +374,7 @@ bool NegativeBinomial_isFeasible(NegativeBinomial *nb) {
     return isFeasible;
 }
 
-NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src) {
+NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src, EmissionDist *emissionDistDest) {
     NegativeBinomial *dest = malloc(1 * sizeof(NegativeBinomial));
     dest->theta = Double_copy1DArray(src->theta, src->numberOfComps);
     dest->lambda = Double_copy1DArray(src->lambda, src->numberOfComps);
@@ -383,9 +383,9 @@ NegativeBinomial *NegativeBinomial_copy(NegativeBinomial *src) {
     dest->digammaTable = NULL;
     NegativeBinomial_fillDigammaTable(dest);
     // wrap nb in EmissionDist for initializing estimator
-    dest->thetaEstimator = src->thetaEstimator != NULL ? ParameterEstimator_copy(src->thetaEstimator) : NULL;
-    dest->lambdaEstimator = src->lambdaEstimator != NULL ? ParameterEstimator_copy(src->lambdaEstimator) : NULL;
-    dest->weightsEstimator = src->weightsEstimator != NULL ? ParameterEstimator_copy(src->weightsEstimator) : NULL;
+    dest->thetaEstimator = src->thetaEstimator != NULL ? ParameterEstimator_copy(src->thetaEstimator, emissionDistDest) : NULL;
+    dest->lambdaEstimator = src->lambdaEstimator != NULL ? ParameterEstimator_copy(src->lambdaEstimator, emissionDistDest) : NULL;
+    dest->weightsEstimator = src->weightsEstimator != NULL ? ParameterEstimator_copy(src->weightsEstimator, emissionDistDest) : NULL;
     return dest;
 }
 
@@ -693,16 +693,16 @@ bool Gaussian_isFeasible(Gaussian *gaussian) {
     return isFeasible;
 }
 
-Gaussian *Gaussian_copy(Gaussian *src) {
+Gaussian *Gaussian_copy(Gaussian *src, EmissionDist *emissionDistDest) {
     Gaussian *dest = malloc(1 * sizeof(Gaussian));
     dest->mean = Double_copy1DArray(src->mean, src->numberOfComps);
     dest->var = Double_copy1DArray(src->var, src->numberOfComps);
     dest->weights = Double_copy1DArray(src->weights, src->numberOfComps);
     dest->numberOfComps = src->numberOfComps;
 
-    dest->meanEstimator = src->meanEstimator != NULL ? ParameterEstimator_copy(src->meanEstimator) : NULL;
-    dest->varEstimator = src->varEstimator != NULL ? ParameterEstimator_copy(src->varEstimator) : NULL;
-    dest->weightsEstimator = src->weightsEstimator != NULL ? ParameterEstimator_copy(src->weightsEstimator) : NULL;
+    dest->meanEstimator = src->meanEstimator != NULL ? ParameterEstimator_copy(src->meanEstimator, emissionDistDest) : NULL;
+    dest->varEstimator = src->varEstimator != NULL ? ParameterEstimator_copy(src->varEstimator, emissionDistDest) : NULL;
+    dest->weightsEstimator = src->weightsEstimator != NULL ? ParameterEstimator_copy(src->weightsEstimator, emissionDistDest) : NULL;
     return dest;
 }
 
@@ -919,11 +919,11 @@ bool TruncExponential_isFeasible(TruncExponential *truncExponential) {
     return isFeasible;
 }
 
-TruncExponential *TruncExponential_copy(TruncExponential *src) {
+TruncExponential *TruncExponential_copy(TruncExponential *src, EmissionDist *emissionDistDest) {
     TruncExponential *dest = malloc(sizeof(TruncExponential));
     dest->lambda = src->lambda;
     dest->truncPoint = src->truncPoint;
-    dest->lambdaEstimator = src->lambdaEstimator != NULL ? ParameterEstimator_copy(src->lambdaEstimator) : NULL;
+    dest->lambdaEstimator = src->lambdaEstimator != NULL ? ParameterEstimator_copy(src->lambdaEstimator, emissionDistDest) : NULL;
 
     return dest;
 }
@@ -1104,7 +1104,7 @@ const char *TruncExponential_getParameterName(TruncatedExponentialParameterType 
 
 
 EmissionDistParamIter *EmissionDistParamIter_construct(EmissionDist *emissionDist) {
-    EmissionDistParamIter *paramIter = malloc(sizeof(EmissionDist));
+    EmissionDistParamIter *paramIter = malloc(sizeof(EmissionDistParamIter));
     if (emissionDist->distType == DIST_GAUSSIAN) {
         Gaussian *gaussian = (Gaussian *) emissionDist->dist;
         paramIter->numberOfParameters = 3;
@@ -1134,6 +1134,7 @@ EmissionDistParamIter *EmissionDistParamIter_construct(EmissionDist *emissionDis
         paramIter->compIndex = -1;
         paramIter->value = -1;
     }
+    paramIter->emissionDist = emissionDist;
     return paramIter;
 }
 
@@ -1142,6 +1143,9 @@ bool EmissionDistParamIter_next(EmissionDistParamIter *paramIter,
                                 int *compIndexPtr,
                                 double *valuePtr) {
     EmissionDist *emissionDist = paramIter->emissionDist;
+    if (paramIter->compIndex < 0) {
+	    paramIter->compIndex = 0; 
+    }
     if (emissionDist->distType == DIST_GAUSSIAN) {
         GaussianParameterType *parameterTypePtr = (GaussianParameterType *) paramIter->parameterTypePtr;
         if (parameterTypePtr[0] == (paramIter->numberOfParameters - 1)) {
@@ -1202,6 +1206,7 @@ EmissionDistSeriesParamIter *EmissionDistSeriesParamIter_construct(EmissionDistS
     paramIter->numberOfDists = emissionDistSeries->numberOfDists;
     paramIter->distIndex = 0;
     paramIter->emissionDistParamIter = EmissionDistParamIter_construct(emissionDistSeries->emissionDists[0]);
+    paramIter->emissionDistSeries = emissionDistSeries;
     return paramIter;
 }
 
@@ -1282,13 +1287,13 @@ EmissionDist *EmissionDist_copy(EmissionDist *src) {
     EmissionDist *dest = malloc(1 * sizeof(EmissionDist));
     dest->distType = src->distType;
     if (src->distType == DIST_TRUNC_EXPONENTIAL) {
-        TruncExponential *truncExponential = TruncExponential_copy((TruncExponential *) src->dist);
+        TruncExponential *truncExponential = TruncExponential_copy((TruncExponential *) src->dist, dest);
         dest->dist = (void *) truncExponential;
     } else if (src->distType == DIST_GAUSSIAN) {
-        Gaussian *gaussian = Gaussian_copy((Gaussian *) src->dist);
+        Gaussian *gaussian = Gaussian_copy((Gaussian *) src->dist, dest);
         dest->dist = (void *) gaussian;
     } else if (src->distType == DIST_NEGATIVE_BINOMIAL) {
-        NegativeBinomial *nb = NegativeBinomial_copy((NegativeBinomial *) src->dist);
+        NegativeBinomial *nb = NegativeBinomial_copy((NegativeBinomial *) src->dist, dest);
         dest->dist = (void *) nb;
     }
     return dest;

@@ -283,6 +283,7 @@ void EM_renewParametersAndEstimatorsFromModel(EM *em, HMM *model){
     }
     em->emissionDistSeriesPerRegion = EmissionDistSeries_copy1DArray(model->emissionDistSeriesPerRegion, model->numberOfRegions);
     em->transitionPerRegion = Transition_copy1DArray(model->transitionPerRegion, model->numberOfRegions);
+    em->model = model;
 }
 
 
@@ -313,7 +314,7 @@ void EM_fillFirstColumnForward(EM *em) {
     scale = 0.0;
     for (int state = 0; state < model->numberOfStates; state++) {
         uint8_t region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[0]);
-        uint8_t x = em->coverageInfoSeq[0]->coverage;
+	uint8_t x = em->coverageInfoSeq[0]->coverage;
         // Emission probability
         eProb = EmissionDistSeries_getProb(model->emissionDistSeriesPerRegion[region],
                                            state,
@@ -393,7 +394,7 @@ void EM_runForward(EM *em) {
     // Fill columns of the forward matrix
     for (int columnIndex = 0; columnIndex < em->seqLen; columnIndex++) {
         EM_fillOneColumnForward(em, columnIndex);
-        em->loglikelihood += log(em->scales[i]);
+        em->loglikelihood += log(em->scales[columnIndex]);
     }
     // Update P(x)
     // TODO: P(x) is not calculated here p(x) = s(1) x s(2) x ... x s(L) check Durbin's
@@ -778,16 +779,6 @@ void EM_runForwardForList(stList *emList, HMM *model, int threads) {
 }
 
 
-
-typedef struct SquareAccelerator {
-    HMM *model0;
-    HMM *model1;
-    HMM *model2;
-    HMM *modelPrime;
-    HMM *modelRatesV;
-    HMM *modelRatesR;
-    double alphaRate;
-} SquareAccelerator;
 
 SquareAccelerator *SquareAccelerator_construct() {
     SquareAccelerator *accelerator = malloc(sizeof(SquareAccelerator));
