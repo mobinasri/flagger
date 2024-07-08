@@ -141,7 +141,7 @@ cd workdir
 
 
 java -jar ../womtool-58.jar inputs ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl > inputs.json
-
+```
 
 After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suffixForFlagger`, `suffixForMapping`, `hap1AssemblyFasta`, `hap2AssemblyFasta`, `readfiles`, `preset` and removing unspecified parameters (they will be set to default values), users can run the command below:
 
@@ -149,6 +149,7 @@ After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suff
 # run flagger workflow
 
 java -jar ../cromwell-58.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
+```
 
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
 
@@ -169,7 +170,7 @@ All WDLs are uploaded to Dockstore for easier import into platforms like Terra o
 |Component| Status| Color |Description|
 |:--------|:-----|:-----|:----------|
 |Err  |**Erroneous** |Red| This block has low read coverage. If it is located in the middle of a contig it could be either a misjoin or a region that needs polishing|
-|Dup  |**Duplicated** |Orange| This block is potentially a false duplication of another block. It should mainly include low-MAPQ alignments with half of the expected coverage. Probably one of the copies has to be polished to fix this issue|
+|Dup  |**Duplicated** |Orange| This block is potentially a false duplication of another block. It should mainly include low-MAPQ alignments with half of the expected coverage. Probably one of the copies has to be polished or removed to fix this issue|
 |Hap  | **Haploid** |Green| This block is correctly assembled and has the expected read coverage |
 |Col |**Collapsed** |Purple| Two or more highly similar haplotypes are collapsed into this block |
 |Unk |**Unknown** |Gray| These blocks could not be assigned confidently (usually on the edges of other components)|
