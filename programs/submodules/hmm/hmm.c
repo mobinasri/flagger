@@ -36,8 +36,8 @@ HMM *HMM_construct(int numberOfStates,
     model->transitionPerRegion = malloc(numberOfRegions * sizeof(Transition *));
     int maxNumberOfComps = Int_getMaxValue1DArray(numberOfCompsPerState, numberOfStates);
     for (int region = 0; region < numberOfRegions; region++) {
-        fprintf(stdout, "region=%d\n", region);
-        fprintf(stdout, "construct emissions\n");
+        //fprintf(stdout, "region=%d\n", region);
+        //fprintf(stdout, "construct emissions\n");
         // construct emissionDistSeries
         double **meansForRegion = Double_copy2DArray(means, numberOfStates, maxNumberOfComps);
         Double_multiply2DArray(meansForRegion,
@@ -51,7 +51,7 @@ HMM *HMM_construct(int numberOfStates,
                                                                                           excludeMisjoin);
         Double_destruct2DArray(meansForRegion, numberOfStates);
 
-        fprintf(stdout, "construct transition\n");
+        //fprintf(stdout, "construct transition\n");
         // construct transition
         model->transitionPerRegion[region] = Transition_constructSymmetricBiased(numberOfStates,
                                                                                  TRANSITION_INITIAL_DIAG_PROB);
@@ -578,7 +578,7 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
             double count = em->f[i][preState] * tProb * eProb * em->b[i + 1][state];
             double adjustedCount = count / transition->terminationProb;
             if (model->modelType == MODEL_NEGATIVE_BINOMIAL) {
-                EmissionDistSeries_incrementCountData(emissionDistSeries,state, x, count);
+                EmissionDistSeries_incrementCountData(emissionDistSeries,state, x, adjustedCount);
             }else {
                 EmissionDistSeries_updateEstimator(emissionDistSeries,
                                                    state,
@@ -701,6 +701,7 @@ void EM_runOneIterationAndUpdateEstimatorsForThreadPool(void *arg_) {
 }
 
 void EM_runOneIterationForList(stList *emList, HMM *model, int threads) {
+    model->loglikelihood = 0.0;
     tpool_t *tm = tpool_create(threads);
     for (int i = 0; i < stList_length(emList); i++) {
 
@@ -838,12 +839,19 @@ HMM *SquareAccelerator_getModelPrime(SquareAccelerator *accelerator, stList *emL
 
     SquareAccelerator_computeRates(accelerator);
     modelPrime = SquareAccelerator_computeValuesForModelPrime(accelerator);
+    while ((HMM_isFeasible(modelPrime) == false)){
+	// update alpha to make changes in parameter values smaller
+        accelerator->alphaRate = (accelerator->alphaRate - 1) / 2;
+        // update parameters for modelPrime with the new alpha rate
+        modelPrime = SquareAccelerator_computeValuesForModelPrime(accelerator);
+    }
+
     // running forward will update loglikelihood
     EM_runForwardForList(emList, modelPrime, threads);
     loglikelihoodModelPrime = modelPrime->loglikelihood;
     // update alpha and recompute model prime until the parameter values are feasible
     // and the loglikelihood value is improved
-    while ((HMM_isFeasible(modelPrime) == false) || (loglikelihoodModelPrime < loglikelihoodModel0)){
+    while (loglikelihoodModelPrime < loglikelihoodModel0){
         // if alpha rate is so close to -1 it means model prime will be very close to model 0
         if ( accelerator->alphaRate > (-1 - 1e-10)) {
             HMM_destruct(accelerator->modelPrime);
@@ -858,6 +866,7 @@ HMM *SquareAccelerator_getModelPrime(SquareAccelerator *accelerator, stList *emL
         EM_runForwardForList(emList, modelPrime, threads);
         loglikelihoodModelPrime = modelPrime->loglikelihood;
     }
+    fprintf(stderr, "[%s] Computed alpha rate for accelerating EM = %.4f\n", get_timestamp(), accelerator->alphaRate);
     return accelerator->modelPrime;
 }
 
@@ -903,6 +912,8 @@ HMM *SquareAccelerator_computeValuesForModelPrime(SquareAccelerator *accelerator
             // new value = value0 - 2 x r x alpha + v x alpha ^ 2
             double newValue = valueForModel0 - 2 * r * accelerator->alphaRate + v * pow(accelerator->alphaRate, 2);
 
+	    //NegativeBinomialParameterType * xx = (NegativeBinomialParameterType *) parameterTypePtr;
+	    //fprintf(stderr, "param=%d,distIndex=%d,compIndex=%d, valueForModel0=%.2e, r=%.2e, v=%.2e, accelerator->alphaRate=%.2e, newValue=%.2e\n", xx[0], distIndex,compIndex,valueForModel0, r, v, accelerator->alphaRate, newValue);
             // set new value in prime model
             EmissionDistSeries_setParameterValue(emissionDistSeriesModelPrime,
                                                  parameterTypePtr,
@@ -934,7 +945,7 @@ HMM *SquareAccelerator_computeValuesForModelPrime(SquareAccelerator *accelerator
         } // finish iterating s1
 
     } // finished iterating over regions
-
+    HMM_normalizeWeightsAndTransitionRows(accelerator->modelPrime);
     return accelerator->modelPrime;
 }
 
@@ -983,6 +994,10 @@ void SquareAccelerator_computeRates(SquareAccelerator *accelerator) {
                                                                   compIndex);
             double r = valueForModel1 - valueForModel0;
             double v = valueForModel2 - valueForModel1 - r;
+
+	    //NegativeBinomialParameterType * xx = (NegativeBinomialParameterType *) parameterTypePtr;
+           // fprintf(stderr, "@@@@@ param=%d,distIndex=%d,compIndex=%d, valueForModel0=%.2e, valueForModel1=%.2e, valueForModel2=%.2e, r=%.2e, v=%.2e \n", xx[0], distIndex,compIndex,valueForModel0, valueForModel1, valueForModel2, r, v);
+
             alphaRateNumerator += pow(r, 2);
             alphaRateDenominator += pow(v, 2);
 
@@ -1030,4 +1045,7 @@ void SquareAccelerator_computeRates(SquareAccelerator *accelerator) {
     } // finished iterating over regions
     // compute alpha rate
     accelerator->alphaRate = -1 * sqrt(alphaRateNumerator / alphaRateDenominator);
+    if (accelerator->alphaRate > -1){
+	    accelerator->alphaRate = -1 - 1e-5;
+    }
 }

@@ -71,9 +71,10 @@ double getRandomNumber(double start, double end) {
     return (double) rand() / (double) (RAND_MAX / (end - start)) + start;
 }
 
+
+
 void writeParameterStats(HMM *model, char *outputDir, char *suffix) {
     char path[2000];
-
     /*
     if (writePosterior) {
         fprintf(stderr, "writing posterior tsv...\n");
@@ -82,15 +83,14 @@ void writeParameterStats(HMM *model, char *outputDir, char *suffix) {
         EM_printPosteriorInTsvFormat(em, posteriorTsvFile);
         fclose(posteriorTsvFile);
     }*/
-
     sprintf(path, "%s/transition_%s.tsv", outputDir, suffix);
-    fprintf(stderr, "writing transition tsv...\n");
+    fprintf(stderr, "[%s] Writing transition tsv...\n", get_timestamp());
     FILE *transitionTsvFile = fopen(path, "w+");
     HMM_printTransitionMatrixInTsvFormat(model, transitionTsvFile);
     fclose(transitionTsvFile);
 
     sprintf(path, "%s/emission_%s.tsv", outputDir, suffix);
-    fprintf(stderr, "writing emission tsv ...\n");
+    fprintf(stderr, "[%s] Writing emission tsv ...\n", get_timestamp());
     FILE *emissionTsvFile = fopen(path, "w+");
     HMM_printEmissionParametersInTsvFormat(model, emissionTsvFile);
     fclose(emissionTsvFile);
@@ -204,6 +204,14 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                    bool acceleration) {
 
     HMM *model = *modelPtr;
+
+    char loglikelihoodPath[2000];
+    sprintf(loglikelihoodPath, "%s/loglikelihood.tsv", outputDir);
+    fprintf(stderr, "[%s] Opening file for writing loglikelihood value per EM iteration...\n", get_timestamp());
+    FILE *loglikelihoodTsvFile = fopen(loglikelihoodPath, "w+");
+    // write header for loglikelihood tsv
+    fprintf(loglikelihoodTsvFile, "#Iteration\tEffective_Iteration\tLoglikelihood\n");
+
     char suffix[200];
     stList *chunks = chunksCreator->chunks;
     int numberOfChunks = stList_length(chunks);
@@ -232,9 +240,9 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                 iter,
                 numberOfChunks,
                 threads);
-	fprintf(stderr, "model 0\n");
         EM_runOneIterationForList(emPerChunk, model, threads);
-	fprintf(stderr, "model 0 done\n");
+
+
 
         fprintf(stderr, "[%s] [Iteration %s = %d] EM jobs are all finished.\n",
                 get_timestamp(),
@@ -244,6 +252,9 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
         // chunks now definitely contain prediction labels
         chunksCreator->header->isPredictionAvailable = true;
         chunksCreator->header->numberOfLabels = 4;
+
+	// save loglikelihood 
+	fprintf(loglikelihoodTsvFile, "%d\t%d\t%.4f\n", iter - 1, acceleration ? 3 * (iter -1) : iter - 1, model->loglikelihood);
 
         // write benchmarking stats
         if (writeBenchmarkingStatsPerIteration || iter == 1) {
@@ -268,6 +279,9 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
 
         // if acceleration is true it will run two more EM update per iteration
         if (acceleration) {
+	    fprintf(stderr, "[%s] [Iteration %s = %d] Running SQUAREM acceleration.\n", get_timestamp(), 
+			                                                               acceleration ? "accelerated" : "",
+										       iter);
             SquareAccelerator *accelerator = SquareAccelerator_construct();
             // set model 0
             SquareAccelerator_setModel0(accelerator, model);
@@ -276,7 +290,6 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
             SquareAccelerator_setModel1(accelerator, model);
             // compute and set model 2
             HMM_resetEstimators(model);
-	    fprintf(stderr, "model 2\n");
             EM_runOneIterationForList(emPerChunk, model, threads);
             HMM_estimateParameters(model, convergenceTol);
             SquareAccelerator_setModel2(accelerator, model);
@@ -284,13 +297,11 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
             HMM *modelPrime = SquareAccelerator_getModelPrime(accelerator, emPerChunk, threads);
             // run EM on model prime
             HMM_resetEstimators(modelPrime);
-	    fprintf(stderr, "model prime\n");
             EM_runOneIterationForList(emPerChunk, modelPrime, threads);
             // destruct old model and replace with a copy of the final model after acceleration
             HMM_destruct(model);
             model = HMM_copy(modelPrime);
 	    *modelPtr = model;
-	    fprintf(stderr, "model prime done\n");
 	    // update model object in em objects
 	    for (int chunkIndex=0; chunkIndex < stList_length(emPerChunk); chunkIndex++){
 		    EM *em = stList_get(emPerChunk, chunkIndex);
@@ -298,6 +309,9 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
 	    }
             // destruct accelerator
             SquareAccelerator_destruct(accelerator);
+	    fprintf(stderr, "[%s] [Iteration %s = %d] Finished SQUAREM acceleration.\n", get_timestamp(),
+                                                                                       acceleration ? "accelerated" : "",
+                                                                                       iter);
         }
 
         // update parameters
@@ -349,6 +363,8 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     EM_runOneIterationForList(emPerChunk, model, threads);
     fprintf(stderr, "[%s] [Final Inference] EM jobs are all finished.\n", get_timestamp());
 
+    fprintf(loglikelihoodTsvFile, "%d\t%d\t%.4f\n", iter - 1, acceleration ? 3 * (iter -1) : iter - 1, model->loglikelihood);
+
 
     sprintf(suffix, "final");
     fprintf(stderr,
@@ -364,6 +380,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                            threads);
 
     stList_destruct(emPerChunk);
+    fclose(loglikelihoodTsvFile);
 }
 
 // input can be NULL
