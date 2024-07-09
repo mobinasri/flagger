@@ -121,7 +121,7 @@ def generateObservations(transitionMatrixPerRegion, emissionParametersPerRegion,
                                                preRegion=region, 
                                                preState=state,
                                                regionChangeRate=regionChangeRate)
-        if i == 0 or preState == None or preObs == None or alphaMatrix == None:
+        if i == 0 or preState is None or preObs is None or alphaMatrix is None:
             obs = generateOneObservation(emissionParametersPerRegion[region][state], 0, None)
         else:
             obs = generateOneObservation(emissionParametersPerRegion[region][state], alphaMatrix[preState][state], preObs)
