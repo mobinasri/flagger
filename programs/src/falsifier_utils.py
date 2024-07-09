@@ -355,15 +355,15 @@ class HomologyRelation:
 
         rBlock = self.block
         # Note that all rBlock.origStart ,  rBlock.origEnd, start and end coordinates are 1-based closed
-        segments = [(rBlock.origStart             ,  rBlock.origStart + start - 2),
-                    (rBlock.origStart + start - 1 ,  rBlock.origStart + end - 1),
-                    (rBlock.origStart + end       ,  rBlock.origEnd)]
+        segments = [(1      , start - 1),
+                    (start  ,  end),
+                    (end + 1,  blockLen)]
 
         # create split homology blocks
         # ref blocks
         rBlockPart1 =  HomologyBlock(rBlock.origCtg,
-                                     segments[0][0],
-                                     segments[0][1],
+                                     rBlock.origStart + segments[0][0] - 1,
+                                     rBlock.origStart + segments[0][1] - 1,
                                      '+',
                                      rBlock.newCtg,
                                      rBlock.orderIndex)
@@ -373,8 +373,8 @@ class HomologyRelation:
         rBlockPart1.updateAnnotationBlocksForSampling()
 
         rBlockPart2 = HomologyBlock(rBlock.origCtg,
-                                    segments[1][0],
-                                    segments[1][1],
+                                    rBlock.origStart + segments[1][0] - 1,
+                                    rBlock.origStart + segments[1][1] - 1,
                                     '+',
                                     rBlock.newCtg,
                                     rBlock.orderIndex + 1)
@@ -384,8 +384,8 @@ class HomologyRelation:
         rBlockPart2.updateAnnotationBlocksForSampling()
 
         rBlockPart3 = HomologyBlock(rBlock.origCtg,
-                                    segments[2][0],
-                                    segments[2][1],
+                                    rBlock.origStart + segments[2][0] - 1,
+                                    rBlock.origStart + segments[2][1] - 1,
                                     '+',
                                     rBlock.newCtg,
                                     rBlock.orderIndex + 2)
