@@ -47,7 +47,10 @@ def induceSingleBaseErrors(seq, errorRate):
     erroneousSeq = []
     for x in seq:
         if random.uniform(0,1) < errorRate:
-            erroneousSeq.append(random.choice(otherBases[x]))
+            if x not in otherBases: # if base is not canonical
+                erroneousSeq.append(x)
+            else:
+                erroneousSeq.append(random.choice(otherBases[x]))
         else:
             erroneousSeq.append(x)
     return "".join(erroneousSeq)
