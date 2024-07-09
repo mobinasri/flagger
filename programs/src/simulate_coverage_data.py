@@ -64,7 +64,7 @@ def generateGaussianObservation(means , variances, weights):
     return 0 if obs <= 0 else obs
 
 def generateTruncatedExponentialObservation(mean, truncPoint):
-    obs = np.round(truncexpon.rvs(scale=mean, loc=0, b=truncPoint, size=1)[0])
+    obs = np.round(truncexpon.rvs(scale=mean, loc=0, b=truncPoint/mean, size=1)[0])
     return 0 if obs <= 0 else obs
 
 
