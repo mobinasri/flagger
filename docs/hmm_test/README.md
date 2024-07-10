@@ -34,7 +34,9 @@ optional arguments:
 
 ## How to run simulate_coverage_data.py
 
-`simulate_coverage_data.py` needs two main tsv file contating the HMM parameters:
+`simulate_coverage_data.py` needs two main tsv files contating the HMM parameters:
+
+### Emission TSV
 - A TSV file for emission parameters: This tsv file should contain the distribution types and parameters for each state of the HMM that we want
   to use for simulating data. If there are multiple regions with different HMM parameters the parameters for each region should be written
   in a separate column. Below is an example of such a file:
@@ -59,6 +61,9 @@ The columns of emission tsv file:
 3. `Components`: The number of components for each state.
 4. `Parameter`: The name of the parameter that will be defined in `Values_Region_` columns. It can be either "Mean", "Var", "Weight" or "Trunc_Point" . "Trunc_Point" is valid only for "Truncated Exponential".
 5. `Values_Region_X`: (X should be replaced with a number). Each entry in this column is a comma-separated list of numbers (One number don't need a comma). These numbers are the values of the specified parameter for all components per state and region. The region index can be identifed by the ending number in the column name.
+
+
+### Transition TSV
 - A TSV file for transition parameters: This tsv file should contain the probabilities of transitioning between HMM states for all regions. Below is an example of such a file:
 ```
 #Region	State	Err	Dup	Hap	Col	End
@@ -66,18 +71,20 @@ The columns of emission tsv file:
 0	Dup	0.01	0.8999	0.08	0.01	1.0e-4
 0	Hap	0.001	0.005	0.9899	0.004	1.0e-4
 0	Col	0.02	0.02	0.06	0.8999	1.0e-4
-0	Start	2.50e-3	2.50e-03	2.50e-03	2.50e-03	9.90e-01
+0	Start	2.50e-1	2.50e-01	2.50e-01	2.50e-01	0.0
 1	Err	0.8999	0.04	0.05	0.01	1.0e-4
 1	Dup	0.01	0.8999	0.08	0.01	1.0e-4  
 1	Hap	0.003	0.003	0.9899	0.004	1.0e-4
 1	Col	0.02	0.03	0.05	0.8999	1.0e-4
-1	Start	2.50e-3	2.50e-03	2.50e-03	2.50e-03	9.90e-01
+1	Start	2.50e-1	2.50e-01	2.50e-01	2.50e-01	0.0
 ```
 
 The columns of transition tsv file:
 1. `#Region`: The region index. The index should start from 0 and the number of region indices should match the number of `Values_Region_` columns in the emission tsv file. For example in this example we have region indices of 0 and 1 so the number of `Values_Region_` columns should be 2.
 2. `State`: The name of HMM state from which the transition begins. It can be either "Err", "Dup", "Hap" or "Col".
-3. The remaining columns are "Err", "Dup", "Hap" and "End". Each of them is a the HMM state that the related transition ends in.
+3. The remaining columns are "Err", "Dup", "Hap" and "End". Each of them is a the HMM state that the related transition ends in. "End" is for termination.
+
+Since the start and end transition values are not important for testing hmm_flagger users can set start probabilities to 0.25 and end probabilites to an arbitrary small number (e.g. 1e-4).
 
 If we keep all rows with the same region index we can extract the transition matrix for that region.
 
