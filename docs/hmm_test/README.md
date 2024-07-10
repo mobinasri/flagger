@@ -19,7 +19,7 @@ optional arguments:
   --pathToTransition PATHTOTRANSITION
                         Path to the tsv file that contains transition matrices for different regions.
   --pathOutput PATHOUTPUT
-                        Path for the output tsv file that contains the simulated observations, states and regions. (Default= "observations.tsv")
+                        Path for the output tsv file that contains the simulated observations, states and regions. (Default= "observations.cov")
   --numberOfObservations NUMBEROFOBSERVATIONS
                         Total number of observations for simulation.(Default = 10000)
   --regionChangeRate REGIONCHANGERATE
@@ -82,10 +82,12 @@ The columns of emission tsv file:
 The columns of transition tsv file:
 1. `#Region`: The region index. The index should start from 0 and the number of region indices should match the number of `Values_Region_` columns in the emission tsv file. For example in this example we have region indices of 0 and 1 so the number of `Values_Region_` columns should be 2.
 2. `State`: The name of HMM state from which the transition begins. It can be either "Err", "Dup", "Hap" or "Col".
-3. The remaining columns are "Err", "Dup", "Hap" and "End". Each of them is a the HMM state that the related transition ends in. "End" is for termination.
+3. The remaining columns are "Err", "Dup", "Hap" and "End". Each of them is the HMM state that the related transition ends in. "End" is for termination.
 
 Since the start and end transition values are not important for testing hmm_flagger users can set start probabilities to 0.25 and end probabilites to an arbitrary small number (e.g. 1e-4).
 
 If we keep all rows with the same region index we can extract the transition matrix for that region.
+
+## Run 
 
   
