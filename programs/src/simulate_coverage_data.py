@@ -182,16 +182,16 @@ def main():
                     help='Path to the tsv file that contains emission parameters for different states and regions.')
     parser.add_argument('--pathToTransition', type=str,
                     help='Path to the tsv file that contains transition matrices for different regions.')
-    parser.add_argument('--pathOutput', type=str, default="observations.tsv",
-                    help='Path for the output tsv file that contains the simulated observations, states and regions. (Default= "observations.tsv")')
+    parser.add_argument('--pathOutput', type=str, default="observations.cov",
+                    help='Path for the output tsv file that contains the simulated observations, states and regions. (Default= "observations.cov")')
     parser.add_argument('--numberOfObservations', type=int, default=10000,
                     help='Total number of observations for simulation.(Default = 10000)')
     parser.add_argument('--regionChangeRate', type=float, default=0.001,
                     help='Rate of changing regions (will be ignored if there is only one region). (Default= 0.001)')
     parser.add_argument('--contigLengths', type=str, default="",
-                        help='A comma separated list of numbers. The sum of number of should be equal to the number of observations. For example for --numberOfObservations 100 use can pass --contigLengths 30,40,30  (Default= one contig covering all observations)')
+                        help='A comma separated list of numbers. The sum of numbers should be equal to the number of observations. For example for --numberOfObservations 100 users can pass --contigLengths 30,40,30  (Default= one contig covering all observations)')
     parser.add_argument('--alpha', type=str, default="",
-                        help='The dependency factors of the current emission density to the previous emission (Only works for Gaussian). It should be a comma-separated string of 5 numbers for these states respectively err,dup,hap,col,trans. (trans is for transitioning from one state to a different one) [Default = all alpha factors set to 0]')
+                        help='The dependency factors of the current emission density to the previous emission (Only works for Gaussian). It should be a comma-separated string of 5 numbers for these states respectively err,dup,hap,col,trans. (trans is for transitioning from one state to a different one) [Default = all alpha factors are set to 0]')
 
 
 # Fetch the arguments
@@ -207,7 +207,7 @@ def main():
     alphaMatrix = createAlphaMatrix(alphaString)
 
     contigLengths = [int(i) for i in contigLengthsStr.strip().split(',')]
-    if len(contigLengths) == 0:
+    if len(contigLengths) is 0 or contigLengths[0] is '':
         contigLengths = [numberOfObservations]
 
     if sum(contigLengths) != numberOfObservations:

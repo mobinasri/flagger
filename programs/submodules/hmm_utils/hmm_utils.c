@@ -2051,7 +2051,7 @@ Transition *Transition_constructUniform(int numberOfStates) {
     transition->transitionCountData = TransitionCountData_construct(numberOfStates);
     transition->numberOfValidityFunctions = 0;
     transition->numberOfStates = numberOfStates;
-    transition->terminationProb = 1e-3;
+    transition->terminationProb = 1e-4;
     return transition;
 }
 
@@ -2098,7 +2098,7 @@ void Transition_destruct1DArray(Transition **array, int length) {
 Transition *Transition_constructSymmetricBiased(int numberOfStates, double diagonalProb) {
     int dimension = numberOfStates + 1;
     Transition *transition = malloc(sizeof(Transition));
-    transition->terminationProb = 1e-3;
+    transition->terminationProb = 1e-4;
     transition->matrix = MatrixDouble_construct0(dimension, dimension);
     MatrixDouble_setValue(transition->matrix,
                           (1.0 - diagonalProb) / (numberOfStates - 1) * (1.0 - transition->terminationProb));
