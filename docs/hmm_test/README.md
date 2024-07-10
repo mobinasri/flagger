@@ -135,6 +135,8 @@ docker run --rm -it -u$(id -u):$(id -g) -v$PWD:/data \
     --initialRandomDev 0.25
 ```
 
+`--windowLen 1` is required when running hmm_flagger with simulated coverage file (It means each base is an observation). `--initialRandomDev` is set to 0.25 to show that initial parameter values may not be exact and EM can work properly with inexact initial values to some extent (for example here 25% off).
+
 List of files generated in hmm_flagger_runs/gaussian_100k:
 
 ```
