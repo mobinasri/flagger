@@ -1,6 +1,6 @@
 # Testing hmm_flagger with simulated coverage data
 
-## Simulating coverage data
+## Overview
 It is possible to simulate a coverage file with previously defined emission and transition probabilities. For this simulation
 the python script, [simulate_coverage_data.py](https://github.com/mobinasri/flagger/blob/dev-hmm-flagger-v1.0.0/programs/src/simulate_coverage_data.py) can be used.
 
@@ -32,7 +32,7 @@ optional arguments:
                         state to a different one) [Default = all alpha factors are set to 0]
 ```
 
-## How to run simulate_coverage_data.py
+## Input files for simulate_coverage_data.py
 
 `simulate_coverage_data.py` needs two main tsv files contating the HMM parameters:
 
@@ -88,6 +88,97 @@ Since the start and end transition values are not important for testing hmm_flag
 
 If we keep all rows with the same region index we can extract the transition matrix for that region.
 
-## Run 
+### Run simulate_coverage_data.py
 
+Three examples of emission tsv file are available in flagger git directory `programs/tests/test_files/simulate_coverage/` and also one transition tsv file.
+- `emission_exp_gaussian.tsv`
+- `emission_gaussian.tsv`
+- `emission_negative_binomial.tsv`
+- `transition.tsv`
+
+Here we use `emission_gaussian.tsv` and `transition.tsv` to generate a coverage file with 100k observations (bases). These observations are put in two contigs with lengths of 80k and 20k (`--contigLengths 80000,20000`). Setting `--contigLengths` is optional.
+```
+cd programs/tests/test_files/simulate_coverage/
+
+docker run --rm -v$PWD:/data \
+    mobinasri/hmm_flagger_dev:v1.0.0--143aab948f3c3fdbd5c23bbdb23dd8357d6c1378 \
+    python3 /home/programs/src/simulate_coverage_data.py \
+    --pathToEmission emission_gaussian.tsv \
+    --pathToTransition transition.tsv \
+    --pathOutput test_gaussian_100k.cov \
+    --numberOfObservations 100000 \
+    --regionChangeRate 0.001 \
+    --contigLengths 80000,20000
+```
+
+`--regionChangeRate 0.001` means that it will randomly change the region while generating the observations. With a probability of 0.001 the average length of contiguous blocks with the same region will be 1000.
+
+### Run hmm_flagger on the generated coverage file
+
+```
+cd programs/tests/test_files/simulate_coverage/
+mkdir -p hmm_flagger_runs/gaussian_100k
+
+docker run --rm -it -u$(id -u):$(id -g) -v$PWD:/data \
+    mobinasri/hmm_flagger_dev:v1.0.0--143aab948f3c3fdbd5c23bbdb23dd8357d6c1378 \
+    hmm_flagger_new \
+    --input test_gaussian_100k.cov \
+    --outputDir hmm_flagger_runs/gaussian_100k \
+    --modelType gaussian \
+    --trackName gaussian_100k \
+    --chunkLen 1000 \
+    --windowLen 1 \
+    --labelNames Err,Dup,Hap,Col \
+    --threads 8 \
+    --convergenceTol 1e-4 \
+    --collapsedComps 4 \
+    --initialRandomDev 0.25
+```
+
+List of files generated in hmm_flagger_runs/gaussian_100k:
+
+```
+ls hmm_flagger_runs/gaussian_100k/
+emission_final.tsv	      prediction_summary_final.benchmarking.auN_ratio.tsv    prediction_summary_initial.benchmarking.tsv
+emission_initial.tsv	      prediction_summary_final.benchmarking.tsv		     prediction_summary_initial.tsv
+final_flagger_prediction.bed  prediction_summary_final.tsv			     transition_final.tsv
+loglikelihood.tsv	      prediction_summary_initial.benchmarking.auN_ratio.tsv  transition_initial.tsv
+```
+
+`emission_final.tsv` contains the values of emission parameters fit by EM:
+```
+cat hmm_flagger_runs/gaussian_100k/emission_final.tsv 
+#State	Distribution	Components	Parameter	Values_Region_0	Values_Region_1
+Err	Gaussian	1	Mean	2.00e+00	3.01e+00
+Err	Gaussian	1	Var	2.40e+00	3.99e+00
+Err	Gaussian	1	Weight	1.00e+00	1.00e+00
+Dup	Gaussian	1	Mean	1.00e+01	1.50e+01
+Dup	Gaussian	1	Var	1.20e+01	1.99e+01
+Dup	Gaussian	1	Weight	1.00e+00	1.00e+00
+Hap	Gaussian	1	Mean	2.00e+01	3.01e+01
+Hap	Gaussian	1	Var	2.40e+01	3.99e+01
+Hap	Gaussian	1	Weight	1.00e+00	1.00e+00
+Col	Gaussian	4	Mean	4.00e+01,6.00e+01,8.00e+01,1.00e+02	6.02e+01,9.03e+01,1.20e+02,1.50e+02
+Col	Gaussian	4	Var	4.80e+01,7.19e+01,9.59e+01,1.20e+02	7.97e+01,1.20e+02,1.59e+02,1.99e+02
+Col	Gaussian	4	Weight	3.96e-01,2.95e-01,2.17e-01,9.29e-02	5.12e-01,4.00e-01,4.42e-02,4.35e-02
+```
+
+
+`transition_final.tsv` contains the values of transition parameters fit by EM:
+```
+cat hmm_flagger_runs/gaussian_100k/transition_final.tsv 
+#Region	State	Err	Dup	Hap	Col	End
+0	Err	8.88e-01	1.41e-02	8.94e-02	7.98e-03	1.00e-04
+0	Dup	9.98e-03	8.87e-01	9.41e-02	8.34e-03	1.00e-04
+0	Hap	1.12e-03	5.60e-03	9.89e-01	4.59e-03	1.00e-04
+0	Col	2.34e-02	1.57e-02	6.61e-02	8.95e-01	1.00e-04
+0	Start	2.50e-01	2.50e-01	2.50e-01	2.50e-01	0.00e+00
+1	Err	8.99e-01	4.09e-02	5.08e-02	9.07e-03	1.00e-04
+1	Dup	1.34e-02	8.99e-01	7.73e-02	1.03e-02	1.00e-04
+1	Hap	3.37e-03	2.87e-03	9.90e-01	4.02e-03	1.00e-04
+1	Col	1.79e-02	3.46e-02	4.72e-02	9.00e-01	1.00e-04
+1	Start	2.50e-01	2.50e-01	2.50e-01	2.50e-01	0.00e+00
+```
+
+One can compare these numbers with the truth tsv files passed to `/home/programs/src/simulate_coverage_data.py`.
   
