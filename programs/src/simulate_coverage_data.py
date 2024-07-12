@@ -133,19 +133,11 @@ def generateObservations(transitionMatrixPerRegion, emissionParametersPerRegion,
     return regions, states, observations
 
 
-def createAlphaMatrix(alphaString):
-    if alphaString == None or len(alphaString) == 0:
+def createAlphaMatrix(alphaTsv):
+    if alphaTsv == None or len(alphaTsv) == 0:
         return None
-    alphaValues = [float(num) for num in alphaString.strip().split(',')]
-    numberOfStates = len(alphaValues) - 1
-    alphaMatrix = np.zeros((numberOfStates, numberOfStates))
-
-    alphaTrans = alphaValues[-1]
-    alphaMatrix.fill(alphaTrans)
-
-    for state in range(numberOfStates):
-        alphaMatrix[state][state] = alphaValues[state]
-    return alphaMatrix
+    else:
+        return np.loadtxt(alphaTsv)
 
 def writeObservationsIntoCov(regions, states, observations, regionCoverages, contigLengths, pathToWrite):
     numberOfRegions = len(regionCoverages)
@@ -190,11 +182,11 @@ def main():
                     help='Rate of changing regions (will be ignored if there is only one region). (Default= 0.001)')
     parser.add_argument('--contigLengths', type=str, default="",
                         help='A comma separated list of numbers. The sum of numbers should be equal to the number of observations. For example for --numberOfObservations 100 users can pass --contigLengths 30,40,30  (Default= one contig covering all observations)')
-    parser.add_argument('--alpha', type=str, default="",
-                        help='The dependency factors of the current emission density to the previous emission (Only works for Gaussian). It should be a comma-separated string of 5 numbers for these states respectively err,dup,hap,col,trans. (trans is for transitioning from one state to a different one) [Default = all alpha factors are set to 0]')
+    parser.add_argument('--alphaTsv', type=str, default="",
+                        help='The dependency factors of the current emission density to the previous emission (Only works for Gaussian). A tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. [Default = all alpha factors are set to 0]')
 
 
-# Fetch the arguments
+    # Fetch the arguments
     args = parser.parse_args()
     pathOutput = args.pathOutput
     pathToEmission = args.pathToEmission
@@ -202,9 +194,9 @@ def main():
     numberOfObservations = args.numberOfObservations
     regionChangeRate = args.regionChangeRate
     contigLengthsStr = args.contigLengths
-    alphaString = args.alpha
+    alphaTsv = args.alphaTsv.strip()
 
-    alphaMatrix = createAlphaMatrix(alphaString)
+    alphaMatrix = createAlphaMatrix(alphaTsv)
 
     contigLengths = [int(i) for i in contigLengthsStr.strip().split(',')]
     if len(contigLengths) is 0 or contigLengths[0] is '':
