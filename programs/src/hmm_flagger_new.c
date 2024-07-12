@@ -72,7 +72,6 @@ double getRandomNumber(double start, double end) {
 }
 
 
-
 void writeParameterStats(HMM *model, char *outputDir, char *suffix) {
     char path[2000];
     /*
@@ -243,7 +242,6 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
         EM_runOneIterationForList(emPerChunk, model, threads);
 
 
-
         fprintf(stderr, "[%s] [Iteration %s = %d] EM jobs are all finished.\n",
                 get_timestamp(),
                 acceleration ? "accelerated" : "",
@@ -253,8 +251,9 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
         chunksCreator->header->isPredictionAvailable = true;
         chunksCreator->header->numberOfLabels = 4;
 
-	// save loglikelihood 
-	fprintf(loglikelihoodTsvFile, "%d\t%d\t%.4f\n", iter - 1, acceleration ? 3 * (iter -1) : iter - 1, model->loglikelihood);
+        // save loglikelihood
+        fprintf(loglikelihoodTsvFile, "%d\t%d\t%.4f\n", iter - 1, acceleration ? 3 * (iter - 1) : iter - 1,
+                model->loglikelihood);
 
         // write benchmarking stats
         if (writeBenchmarkingStatsPerIteration || iter == 1) {
@@ -279,9 +278,9 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
 
         // if acceleration is true it will run two more EM update per iteration
         if (acceleration) {
-	    fprintf(stderr, "[%s] [Iteration %s = %d] Running SQUAREM acceleration.\n", get_timestamp(), 
-			                                                               acceleration ? "accelerated" : "",
-										       iter);
+            fprintf(stderr, "[%s] [Iteration %s = %d] Running SQUAREM acceleration.\n", get_timestamp(),
+                    acceleration ? "accelerated" : "",
+                    iter);
             SquareAccelerator *accelerator = SquareAccelerator_construct();
             // set model 0
             SquareAccelerator_setModel0(accelerator, model);
@@ -301,17 +300,17 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
             // destruct old model and replace with a copy of the final model after acceleration
             HMM_destruct(model);
             model = HMM_copy(modelPrime);
-	    *modelPtr = model;
-	    // update model object in em objects
-	    for (int chunkIndex=0; chunkIndex < stList_length(emPerChunk); chunkIndex++){
-		    EM *em = stList_get(emPerChunk, chunkIndex);
-		    EM_renewParametersAndEstimatorsFromModel(em, model); 
-	    }
+            *modelPtr = model;
+            // update model object in em objects
+            for (int chunkIndex = 0; chunkIndex < stList_length(emPerChunk); chunkIndex++) {
+                EM *em = stList_get(emPerChunk, chunkIndex);
+                EM_renewParametersAndEstimatorsFromModel(em, model);
+            }
             // destruct accelerator
             SquareAccelerator_destruct(accelerator);
-	    fprintf(stderr, "[%s] [Iteration %s = %d] Finished SQUAREM acceleration.\n", get_timestamp(),
-                                                                                       acceleration ? "accelerated" : "",
-                                                                                       iter);
+            fprintf(stderr, "[%s] [Iteration %s = %d] Finished SQUAREM acceleration.\n", get_timestamp(),
+                    acceleration ? "accelerated" : "",
+                    iter);
         }
 
         // update parameters
@@ -331,7 +330,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
             fprintf(stderr,
                     "[%s] [Iteration %s = %d] Writing parameter values into tsv file.\n",
                     acceleration ? "accelerated" : "",
-		    get_timestamp(),
+                    get_timestamp(),
                     iter);
             if (acceleration) {
                 sprintf(suffix, "iteration_accelerated_%d", iter);
@@ -363,7 +362,8 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     EM_runOneIterationForList(emPerChunk, model, threads);
     fprintf(stderr, "[%s] [Final Inference] EM jobs are all finished.\n", get_timestamp());
 
-    fprintf(loglikelihoodTsvFile, "%d\t%d\t%.4f\n", iter - 1, acceleration ? 3 * (iter -1) : iter - 1, model->loglikelihood);
+    fprintf(loglikelihoodTsvFile, "%d\t%d\t%.4f\n", iter - 1, acceleration ? 3 * (iter - 1) : iter - 1,
+            model->loglikelihood);
 
 
     sprintf(suffix, "final");
@@ -384,38 +384,28 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
 }
 
 // input can be NULL
-MatrixDouble *getAlphaMatrix(char *alphaInputString) {
+MatrixDouble *getAlphaMatrix(char *alphaTsvPath) {
+    if (alphaTsvPath == NULL) {
+        MatrixDouble *alpha = MatrixDouble_construct0(NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1);
+        MatrixDouble_setValue(alpha, 0.0);
+        return alpha
+    }
 
+    skipFirstLine = false;
     // -1 because of ignoring MSJ
-    MatrixDouble *alpha = MatrixDouble_construct0(NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1);
-
-    MatrixDouble_setValue(alpha, 0.0);
-
-    //overwrite alpha if it's given as a comma-separated string
-    if (alphaInputString != NULL && alphaInputString[0] != '\0') {
-        int alphaSize = 0;
-        double *alphaInputArray = Splitter_getDoubleArray(alphaInputString, ',', &alphaSize);
-        if (alphaSize < 5) {
-            fprintf(stderr, "[%s] Error: alpha string '%s' should be comma-separated and has at least 5 numbers \n",
-                    get_timestamp(),
-                    alphaInputString);
-            exit(EXIT_FAILURE);
-        }
-        // check all alpha values are between 0 and 1
-        for (int i = 0; i < alphaSize; i++) {
-            if (1.0 < alphaInputArray[i] || alphaInputArray[i] < 0.0) {
-                fprintf(stderr, "[%s] Error: There is at least one alpha value in '%s' not between 0 and 1. \n",
+    MatrixDouble *alpha = MatrixDouble_parseFromFile(alphaTsvPath, NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1,
+                                                     skipFirstLine);
+    // check all alpha values are between 0 and 1
+    for (int i = 0; i < alpha->dim1; i++) {
+        for (int j = 0; j < alpha->dim2; j++) {
+            if (1.0 < alpha->data[i][j] || alpha->data[i][j] < 0.0) {
+                fprintf(stderr, "[%s] Error: There is at least one alpha value in '%s' not between 0 and 1. \n%s\n",
                         get_timestamp(),
-                        alphaInputString);
+                        MatrixDouble_toString(alpha)
+                );
                 exit(EXIT_FAILURE);
             }
         }
-        MatrixDouble_setValue(alpha, alphaInputArray[4]);
-        alpha->data[ALPHA_ERR][ALPHA_ERR] = alphaInputArray[0];
-        alpha->data[ALPHA_DUP][ALPHA_DUP] = alphaInputArray[1];
-        alpha->data[ALPHA_HAP][ALPHA_HAP] = alphaInputArray[2];
-        alpha->data[ALPHA_COL][ALPHA_COL] = alphaInputArray[3];
-        free(alphaInputArray);
     }
     return alpha;
 }
@@ -433,7 +423,7 @@ static struct option long_options[] =
                 {"contigsList",                        required_argument, NULL, 'c'},
                 {"threads",                            required_argument, NULL, '@'},
                 {"collapsedComps",                     required_argument, NULL, 'p'},
-                {"alpha",                              required_argument, NULL, 'A'},
+                {"alphaTsv",                           required_argument, NULL, 'A'},
                 {"binArrayFile",                       required_argument, NULL, 'a'},
                 {"writeParameterStatsPerIteration",    no_argument,       NULL, 'w'},
                 {"writeBenchmarkingStatsPerIteration", no_argument,       NULL, 'k'},
@@ -452,7 +442,7 @@ int main(int argc, char *argv[]) {
     int c;
     char *trackName = copyString("final_flagger");
     char *inputPath = NULL;
-    char *alphaString = NULL;
+    char *alphaTsvPath = NULL;
     char *contigListPath = NULL;
     char *binArrayFilePath = NULL;
     stList *labelNamesWithUnknown = NULL;
@@ -507,7 +497,7 @@ int main(int argc, char *argv[]) {
                 threads = atoi(optarg);
                 break;
             case 'A':
-                alphaString = optarg;
+                alphaTsvPath = optarg;
                 break;
             case 'C':
                 chunkCanonicalLen = atoi(optarg);
@@ -596,9 +586,9 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         --alpha, -A\n"
                         "                           (Optional) The dependency factors of the current emission density\n"
-                        "                           to the previous emission. It should be a comma-separated string\n"
-                        "                           of 5 numbers for these states respectively err,dup,hap,col,trans.\n"
-                        "                           (trans is for transitioning from one state to a different one)\n"
+                        "                           to the previous emission. This parameter is a tsv file with 4 rows\n"
+                        "                           and 4 columns with no header line. All numbers should be between \n"
+                        "                           0 and 1. \n"
                         "                           [Default = all alpha factors set to 0]\n");
                 fprintf(stderr,
                         "         --collapsedComps, -p\n"
@@ -747,7 +737,7 @@ int main(int argc, char *argv[]) {
     // 3. create a model
     fprintf(stderr, "[%s] Creating HMM model. \n", get_timestamp());
 
-    MatrixDouble *alphaMatrix = getAlphaMatrix(alphaString);
+    MatrixDouble *alphaMatrix = getAlphaMatrix(alphaTsvPath);
     HMM *model = createModel(modelType,
                              numberOfCollapsedComps,
                              chunksCreator->header,
