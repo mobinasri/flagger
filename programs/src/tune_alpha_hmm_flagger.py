@@ -226,7 +226,7 @@ def runHMMFlagger(paramsString):
     :param paramsString: hmm_flagger parameters
     """
 
-    cmdString = f"hmm_flagger_new {paramsString}"
+    cmdString = f"hmm_flagger {paramsString}"
     x = subprocess.run(shlex.split(cmdString), capture_output=True)
 
     return x.returncode

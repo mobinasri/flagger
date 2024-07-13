@@ -1,3 +1,4 @@
+#include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -5,747 +6,778 @@
 #include <string.h>
 #include <getopt.h>
 #include <assert.h>
-#include "sonLib.h"
-#include "common.h"
+#include "hmm_utils.h"
 #include "hmm.h"
-#include "tpool.h"
-#include <pthread.h>
-#include <time.h>
+#include "data_types.h"
+#include "common.h"
+#include "chunk.h"
+#include "summary_table.h"
 
-typedef enum StatType {
-    FORWARD, BACKWARD, POSTERIOR, EMISSION, TRANSITION
-} StatType;
-const char *const COMP_COLORS[] = {"162,0,37", "250,104,0", "0,138,0", "170,0,255"};
-const char *const COMP_NAMES[] = {"Err", "Dup", "Hap", "Col"};
+ChunksCreator *getChunksCreator(char *inputPath,
+                                int chunkCanonicalLen,
+                                int windowLen,
+                                int threads,
+                                stList *contigList) {
+    ChunksCreator *chunksCreator = NULL;
 
-struct stat st = {0};
+    char *inputExtension = extractFileExtension(inputPath);
+    if (strcmp(inputExtension, "cov") == 0 ||
+        strcmp(inputExtension, "cov.gz") == 0) {
+        char *faiPath = NULL;
+        fprintf(stderr, "[%s] The given input file is not binary so chunks will be constructed from cov file.\n",
+                get_timestamp());
+        chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLen, threads, windowLen);
+        if (ChunksCreator_parseChunks(chunksCreator) != 0) {
+            fprintf(stderr, "[%s] Error: creating chunks from cov file failed.\n", get_timestamp());
+            exit(EXIT_FAILURE);
+        }
+        fprintf(stderr, "[%s] Chunks are constructed from cov file.\n", get_timestamp());
+    } else if (strcmp(inputExtension, "bin") == 0) {
+        chunksCreator = ChunksCreator_constructEmpty();
+        ChunksCreator_parseChunksFromBinaryFile(chunksCreator, inputPath);
+        fprintf(stderr, "[%s] Binary chunks are parsed. Based on the header chunkCanonicalLen=%d and windowLen=%d .\n",
+                get_timestamp(),
+                chunksCreator->chunkCanonicalLen,
+                chunksCreator->windowLen);
+        if (chunksCreator->chunkCanonicalLen != chunkCanonicalLen || chunksCreator->windowLen != windowLen) {
+            fprintf(stderr,
+                    "[%s] Warning: chunk/window lengths (based on bin file) do not match the values given through program parameters. The values read from the binary file will be considered.\n",
+                    get_timestamp());
+        }
+    }
 
-pthread_mutex_t mutex;
+    // if there is a list keep only the given contigs
+    if (contigList != NULL) {
+        fprintf(stderr,
+                "[%s] Including only the chunks whose contigs match the given contig list.\n",
+                get_timestamp());
+        ChunksCreator_subsetChunksToContigs(chunksCreator, contigList);
+    }
+    free(inputExtension);
 
-typedef struct ArgumentsTrain {
-    HMM *model;
-    Chunk *chunk;
-    int chunkIndex;
-    int nChunks;
-    int iter;
-} ArgumentsTrain;
+    return chunksCreator;
+}
 
-typedef struct Arguments {
-    HMM *model;
-    EM *em;
-    char name[200];
-    char path[200];
-    pthread_mutex_t *mutexPtr;
-} Arguments;
+int getBestNumberOfCollapsedComps(ChunksCreator *chunksCreator) {
+    CoverageHeader *header = chunksCreator->header;
+    int maxCoverage = ChunksCreator_getMaximumCoverageValue(chunksCreator);
+    int minRegionModeCoverage = Int_getMinValue1DArray(header->regionCoverages, header->numberOfRegions);
+    int numberOfCollapsedComps = maxCoverage / minRegionModeCoverage + 1;
+    return numberOfCollapsedComps;
+}
 
-Arguments *Arguments_construct(HMM *model, EM *em, char *name, char *path, pthread_mutex_t *mutexPtr) {
-    Arguments *args = malloc(sizeof(Arguments));
-    args->model = model;
-    args->em = em;
-    args->name[0] = '\0';
-    args->path[0] = '\0';
-    if (name != NULL)
-        strcpy(args->name, name);
-    if (path != NULL)
-        strcpy(args->path, path);
-    args->mutexPtr = mutexPtr;
+double getRandomNumber(double start, double end) {
+    srand(time(NULL));
+    return (double) rand() / (double) (RAND_MAX / (end - start)) + start;
 }
 
 
-void saveHMMStats(StatType statType, char *path, HMM *model) {
-    FILE *fp;
+void writeParameterStats(HMM *model, char *outputDir, char *suffix) {
+    char path[2000];
+    /*
+    if (writePosterior) {
+        fprintf(stderr, "writing posterior tsv...\n");
+        sprintf(path, "%s/posterior_prediction_%s.tsv", outputDir, suffix);
+        FILE *posteriorTsvFile = fopen(path, "w+");
+        EM_printPosteriorInTsvFormat(em, posteriorTsvFile);
+        fclose(posteriorTsvFile);
+    }*/
+    sprintf(path, "%s/transition_%s.tsv", outputDir, suffix);
+    fprintf(stderr, "[%s] Writing transition tsv...\n", get_timestamp());
+    FILE *transitionTsvFile = fopen(path, "w+");
+    HMM_printTransitionMatrixInTsvFormat(model, transitionTsvFile);
+    fclose(transitionTsvFile);
 
-    fp = fopen(path, "w+");
-    if (fp == NULL) {
-        printf("Couldn't open %s\n", path);
+    sprintf(path, "%s/emission_%s.tsv", outputDir, suffix);
+    fprintf(stderr, "[%s] Writing emission tsv ...\n", get_timestamp());
+    FILE *emissionTsvFile = fopen(path, "w+");
+    HMM_printEmissionParametersInTsvFormat(model, emissionTsvFile);
+    fclose(emissionTsvFile);
+}
+
+void writeBenchmarkingStats(ChunksCreator *chunksCreator,
+                            char *outputDir,
+                            char *suffix,
+                            stList *labelNamesWithUnknown,
+                            char *binArrayFilePath,
+                            double overlapRatioThreshold,
+                            int threads) {
+    char outputPath[2000];
+    sprintf(outputPath, "%s/prediction_summary_%s.tsv", outputDir, suffix);
+
+    // define object and functions for iterating blocks
+    BlockIteratorType blockIteratorType = ITERATOR_BY_CHUNK;
+    void *iterator = (void *) ChunkIterator_construct(chunksCreator);
+    CoverageHeader *header = chunksCreator->header;
+
+    // create and write all summary tables with final stats
+    SummaryTableList_createAndWriteAllTables(iterator,
+                                             blockIteratorType,
+                                             header,
+                                             outputPath,
+                                             binArrayFilePath,
+                                             labelNamesWithUnknown,
+                                             overlapRatioThreshold,
+                                             threads);
+
+    // free iterator
+    ChunkIterator_destruct((ChunkIterator *) iterator);
+}
+
+
+HMM *createModel(ModelType modelType,
+                 int numberOfCollapsedComps,
+                 CoverageHeader *header,
+                 MatrixDouble *alphaMatrix,
+                 double maxHighMapqRatio,
+                 double initialDeviation) {
+    // calculate initial mean coverages for all region classes
+    int numberOfStates = 4; // Err, Dup, Hap, and Col
+    int numberOfRegions = header->numberOfRegions;
+
+    // set number of mixture components for each state
+    int *numberOfCompsPerState = Int_construct1DArray(numberOfStates);
+    numberOfCompsPerState[STATE_ERR] = 1;
+    numberOfCompsPerState[STATE_DUP] = 1;
+    numberOfCompsPerState[STATE_HAP] = 1;
+    numberOfCompsPerState[STATE_COL] = numberOfCollapsedComps;
+
+
+    int maxNumberOfComps = Int_getMaxValue1DArray(numberOfCompsPerState, numberOfStates);
+
+    // select the coverage of the first region as the baseline
+    double medianCoverage = header->regionCoverages[0];
+    // calculate region scales against the baseline (first region)
+    double *regionScales = Double_construct1DArray(header->numberOfRegions);
+    for (int i = 0; i < header->numberOfRegions; i++) {
+        regionScales[i] = header->regionCoverages[i] / medianCoverage;
+    }
+
+    double **means = Double_construct2DArray(numberOfStates, maxNumberOfComps);
+    // initialize mean values and deviate them from the real values randomly
+    // by at most a factor of 0.2 which can be either upward or downward
+    // This is to make sure the EM algorithm can find the real values even if
+    // out inital values are not exact
+    if (0.5 < initialDeviation) {
+        fprintf(stderr, "[%s] Error: Initial random deviation for the model parameters cannot be greater than 0.5. \n",
+                get_timestamp());
         exit(EXIT_FAILURE);
     }
-
-    // Print transition or emission probs
-    for (int r = 0; r < model->nClasses; r++) {
-        fprintf(fp, "#r=%d\n------------\n", r);
-        if (statType == TRANSITION) {
-            char *matrixStr = MatrixDouble_toString(model->trans[r]);
-            fprintf(fp, "%s\n\n", matrixStr);
-        } else if (statType == EMISSION) {
-            for (int c = 0; c < model->nComps; c++) {
-                fprintf(fp, "##c=%d\n", c);
-
-                if (model->modelType == GAUSSIAN) {
-                    Gaussian *gaussian = model->emit[r][c];
-                    for (int m = 0; m < gaussian->n; m++) {
-                        fprintf(fp, "##m=%d\n", m);
-                        char *vecStr = VectorDouble_toString(gaussian->mu[m]);
-                        fprintf(fp, "mu = \n%s\n\n", vecStr);
-                        char *matrixStr = MatrixDouble_toString(gaussian->cov[m]);
-                        fprintf(fp, "cov = \n%s\n\n", matrixStr);
-                        fprintf(fp, "w = %.2e\n\n", gaussian->weights[m]);
-                    }
-                }
-                if (model->modelType == NEGATIVE_BINOMIAL) {
-                    NegativeBinomial *nb = model->emit[r][c];
-                    for (int m = 0; m < nb->n; m++) {
-                        fprintf(fp, "##m=%d\n", m);
-                        char *vecStr = VectorDouble_toString(nb->mu[m]);
-                        fprintf(fp, "mu = \n%s\n\n", vecStr);
-                        char *matrixStr = MatrixDouble_toString(nb->cov[m]);
-                        fprintf(fp, "cov = \n%s\n\n", matrixStr);
-                        fprintf(fp, "w = %.2e\n\n", nb->weights[m]);
-                    }
-                }
-            }
-        }
-    }
-    fclose(fp);
-}
-
-
-void saveEMStats(StatType statType, char *path, EM *em) {
-    FILE *fp;
-
-    fp = fopen(path, "w+");
-    if (fp == NULL) {
-        printf("Couldn't open %s\n", path);
-        exit(EXIT_FAILURE);
+    // ERR_COMP_BINDING_COEF is 0.1 (defined in hmm_utils.h)
+    means[STATE_ERR][0] =
+            medianCoverage * ERR_COMP_BINDING_COEF * getRandomNumber(1.0 - initialDeviation, 1.0 + initialDeviation);
+    means[STATE_DUP][0] = medianCoverage * 0.5 * getRandomNumber(1.0 - initialDeviation, 1.0 + initialDeviation);
+    means[STATE_HAP][0] = medianCoverage * 1.0 * getRandomNumber(1.0 - initialDeviation, 1.0 + initialDeviation);
+    for (int i = 0; i < numberOfCompsPerState[STATE_COL]; i++) {
+        means[STATE_COL][i] =
+                means[STATE_HAP][0] * (i + 2) * getRandomNumber(1.0 - initialDeviation, 1.0 + initialDeviation);
     }
 
-    // Print header
-    fprintf(fp, "#i\t");
-    for (int c = 0; c < em->nComps; c++) {
-        fprintf(fp, "comp_%d\t", c);
-    }
-    fprintf(fp, "Scale\n");
+    double minHighlyClippedRatio = 1.0; // Msj is not supported now
 
-    double *p;
-    // Print numbers one position per each line
-    for (int i = 0; i < em->seqLength; i++) {
-        switch (statType) {
-            case FORWARD:
-                p = getForward(em, i);
-                break;
-            case BACKWARD:
-                p = getBackward(em, i);
-                break;
-            case POSTERIOR:
-                p = getPosterior(em, i);
-                break;
-        }
-        fprintf(fp, "%d\t", i);
-        for (int c = 0; c < em->nComps; c++) {
-            fprintf(fp, "%.3E\t", p[c]);
-        }
-        fprintf(fp, "%.3E\t\n", em->scales[i]);
-        free(p);
-    }
-    fclose(fp);
-}
-
-void initMuFourComps(VectorDouble ***mu, int coverage, int *nMixtures) {
-    double errCov = coverage > 20 ? (double) coverage / 20 : 1;
-    double dupCov = (double) coverage / 2.0;
-    double hapCov = (double) coverage;
-    double colCov = (double) coverage * 2.0;
-
-    // Erroneous
-    mu[0][0]->data[0] = errCov;
-
-    // Duplicated
-    mu[1][0]->data[0] = dupCov;
-
-    // Haploid Hom
-    mu[2][0]->data[0] = hapCov;
-
-    // Collapsed
-    for (int i = 0; i < nMixtures[3]; i++) {
-        mu[3][i]->data[0] = colCov * ((double) i * 0.5 + 1);
-    }
-    fprintf(stderr, "Set collapsed initials\n");
-}
-
-HMM *makeAndInitModel(int *coverages, int nClasses, int nComps, int nEmit, int *nMixtures, double maxHighMapqRatio,
-                      double *regionFreqRatios, char *numMatrixFile, ModelType modelType, double* alpha) {
-
-    int maxMixtures = maxIntArray(nMixtures, nComps);
-    VectorDouble ****mu = malloc(nClasses * sizeof(VectorDouble * **));
-    for (int r = 0; r < nClasses; r++) {
-        mu[r] = malloc(nComps * sizeof(VectorDouble * *));
-        for (int c = 0; c < nComps; c++) {
-            mu[r][c] = VectorDouble_constructArray1D(nMixtures[c], nEmit);
-        }
-    }
-    for (int r = 0; r < nClasses; r++) {
-        initMuFourComps(mu[r], coverages[r], nMixtures);
-    }
-    VectorDouble ***muFactors = VectorDouble_constructArray2D(nComps, maxMixtures, nEmit);
-
-    //Erroneous
-    muFactors[0][0]->data[0] = 0.1;
-    // Duplicated
-    muFactors[1][0]->data[0] = 0.5;
-
-    // Haploid
-    /// Hom
-    muFactors[2][0]->data[0] = 1.0;
-
-    // Collapsed
-    for (int i = 0; i < nMixtures[3]; i++) {
-        fprintf(stderr, "%d\n", i);
-        VectorDouble_setValue(muFactors[3][i], i + 2);
-    }
-    fprintf(stderr, "Set mu factors\n");
-
-    MatrixDouble ***covFactors = MatrixDouble_constructArray2D(nComps, maxMixtures, nEmit, nEmit);
-
-    MatrixDouble_setValue(covFactors[0][0], 0.1);
-    MatrixDouble_setValue(covFactors[1][0], 0.5);
-
-    MatrixDouble_setValue(covFactors[2][0], 1);
-
-    // Collapsed
-    for (int i = 0; i < nMixtures[3]; i++) {
-        MatrixDouble_setValue(covFactors[3][i], i + 2);
-    }
-    fprintf(stderr, "Set cov factors\n");
-
-    MatrixDouble *pseudoCountMatrix = MatrixDouble_parseFromFile(numMatrixFile, nComps, nComps);
-
-    fprintf(stderr, "read pseudoCountMatrix\n");
-    fprintf(stderr, "pseudoCountMatrix = \n%s\n\n", MatrixDouble_toString(pseudoCountMatrix));
-    // Numerator pseudo-counts for updating transition probs
-    MatrixDouble **transNum = MatrixDouble_constructArray1D(nClasses, nComps, nComps);
-
-    // Denominator pseudo-counts for updating transition probs
-    MatrixDouble **transDenom = MatrixDouble_constructArray1D(nClasses, nComps, nComps);
-
-    double rowSum = 0;
-    for (int r = 0; r < nClasses; r++) {
-        for (int i = 0; i < nComps; i++) {
-            rowSum = 0;
-            for (int j = 0; j < nComps; j++) {
-                rowSum += pseudoCountMatrix->data[i][j]; //* regionFreqRatios[r];
-                transNum[r]->data[i][j] = pseudoCountMatrix->data[i][j]; // * regionFreqRatios[r];
-            }
-            for (int j = 0; j < nComps; j++) {
-                transDenom[r]->data[i][j] = rowSum;
-            }
-        }
-    }
-
-    // Numerator pseudo-counts for updating transition probs
-    // MatrixDouble** transDenom = MatrixDouble_constructArray1D(nClasses, nComps, nComps);
-
-    int maxEmission = 255;
-    HMM *model = HMM_construct(nClasses, nComps, nEmit, nMixtures, mu, muFactors, covFactors, maxHighMapqRatio,
-                               transNum, transDenom, modelType, maxEmission, alpha);
-
-    //model->emit[1][1]->cov->data[1][1] = model->emit[1][2]->mu->data[0] / 8.0;
-    //model->emit[1][2]->cov->data[1][1] = 4.0 * model->emit[1][2]->mu->data[0];
-    //model->emit[1][3]->cov->data[1][1] = 8.0 * model->emit[1][2]->mu->data[0];
-    for (int r = 0; r < nClasses; r++) {
-        for (int c = 0; c < nComps; c++) {
-            VectorDouble_destructArray1D(mu[r][c], nMixtures[c]);
-        }
-        free(mu[r]);
-    }
-    free(mu);
+    HMM *model = HMM_construct(numberOfStates,
+                               numberOfRegions,
+                               numberOfCompsPerState,
+                               means,
+                               regionScales,
+                               maxHighMapqRatio,
+                               minHighlyClippedRatio,
+                               NULL,
+                               modelType,
+                               alphaMatrix,
+                               true);
     return model;
 }
 
-EM **Chunks_buildEmArray(Batch *batch, HMM *model) {
-    EM **emArray = (EM **) malloc(batch->nThreadChunks * sizeof(EM * ));
-    Chunk *chunk;
-    for (int t = 0; t < batch->nThreadChunks; t++) {
-        chunk = batch->threadChunks[t];
-        emArray[t] = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
+void runHMMFlagger(ChunksCreator *chunksCreator,
+                   HMM **modelPtr,
+                   int numberOfIterations,
+                   double convergenceTol,
+                   char *outputDir,
+                   int threads,
+                   bool writeParameterStatsPerIteration,
+                   bool writeBenchmarkingStatsPerIteration,
+                   stList *labelNamesWithUnknown,
+                   char *binArrayFilePath,
+                   double overlapRatioThreshold,
+                   bool acceleration) {
+
+    HMM *model = *modelPtr;
+
+    char loglikelihoodPath[2000];
+    sprintf(loglikelihoodPath, "%s/loglikelihood.tsv", outputDir);
+    fprintf(stderr, "[%s] Opening file for writing loglikelihood value per EM iteration...\n", get_timestamp());
+    FILE *loglikelihoodTsvFile = fopen(loglikelihoodPath, "w+");
+    // write header for loglikelihood tsv
+    fprintf(loglikelihoodTsvFile, "#Iteration\tEffective_Iteration\tLoglikelihood\n");
+
+    char suffix[200];
+    stList *chunks = chunksCreator->chunks;
+    int numberOfChunks = stList_length(chunks);
+
+
+    fprintf(stderr, "[%s] Creating EM arrays (for %d chunks) ...\n",
+            get_timestamp(),
+            numberOfChunks);
+
+    stList *emPerChunk = stList_construct3(0, EM_destruct);
+    for (int chunkIndex = 0; chunkIndex < numberOfChunks; chunkIndex++) {
+        Chunk *chunk = stList_get(chunks, chunkIndex);
+        EM *em = EM_construct(chunk->coverageInfoSeq, chunk->coverageInfoSeqLen, model);
+        stList_append(emPerChunk, em);
     }
-    return emArray;
-}
 
-void *trainModelSaveStats(void *args_) {
-    Arguments *args = (Arguments *) args_;
-    HMM *model = args->model;
-    EM *em = args->em;
-    char *name = args->name;
-    char *dir = args->path;
-    pthread_mutex_t *mutexPtr = args->mutexPtr;
-    char path[200];
-    //for(int itr=1; itr <= nItr; itr++){
-    //fprintf(stderr,"\t\tIteration %d\n", itr);
-    //fprintf(stderr,"\t\t\tRun forward\n");
-    runForward(model, em);
-    //fprintf(stderr,"\t\t\tRun borward\n");
-    runBackward(model, em);
+    // write initial parameter values in a tsv file
+    writeParameterStats(model, outputDir, "initial");
 
-    sprintf(path, "%s/forward_%s.txt", dir, name);
-    saveEMStats(FORWARD, path, em);
-    sprintf(path, "%s/backward_%s.txt", dir, name);
-    saveEMStats(BACKWARD, path, em);
-    //sprintf(path, "%s/posterior_%d.txt", dir, itr);
-    //saveEMStats(POSTERIOR, path, em);
+    int iter = 1;
+    bool converged = false;
+    while (iter <= numberOfIterations && converged == false) {
+        fprintf(stderr, "[%s] [Iteration %s = %d] Running EM jobs for %d chunks (with %d threads) ...\n",
+                get_timestamp(),
+                acceleration ? "accelerated" : "",
+                iter,
+                numberOfChunks,
+                threads);
+        EM_runOneIterationForList(emPerChunk, model, threads);
 
-    //fprintf(stderr, "\t\t\tUpdate sufficient Stats ...\n");
-    pthread_mutex_lock(mutexPtr);
-    updateSufficientStats(model, em);
-    pthread_mutex_unlock(mutexPtr);
 
-    //estimateParameters(model);
-    //resetSufficientStats(model);
+        fprintf(stderr, "[%s] [Iteration %s = %d] EM jobs are all finished.\n",
+                get_timestamp(),
+                acceleration ? "accelerated" : "",
+                iter);
 
-    //sprintf(path, "%s/transition_%d.txt", dir, itr);
-    //saveHMMStats(TRANSITION, path, model);
-    //sprintf(path, "%s/emission_%d.txt", dir, itr);
-    //saveHMMStats(EMISSION, path, model);
-    //}
-}
+        // chunks now definitely contain prediction labels
+        chunksCreator->header->isPredictionAvailable = true;
+        chunksCreator->header->numberOfLabels = 4;
 
-void *infer(void *args_) {
-    Arguments *args = (Arguments *) args_;
-    HMM *model = args->model;
-    EM *em = args->em;
-    char path[200];
-    runForward(model, em);
-    runBackward(model, em);
+        // save loglikelihood
+        fprintf(loglikelihoodTsvFile, "%d\t%d\t%.4f\n", iter - 1, acceleration ? 3 * (iter - 1) : iter - 1,
+                model->loglikelihood);
 
-    //sprintf(path, "%s/forward_%d.txt", dir, itr);
-    //saveEMStats(FORWARD, path, em);
-    //sprintf(path, "%s/backward_%d.txt", dir, itr);
-    //saveEMStats(BACKWARD, path, em);
-    //sprintf(path, "%s/posterior_%d.txt", dir, itr);
-    //saveEMStats(POSTERIOR, path, em);
-    //}
-}
-
-uint8_t getCompIdx(EM *em, int loc) {
-    double *p = getPosterior(em, loc);
-    uint8_t idx = 0;
-    for (int c = 1; c < em->nComps; c++) {
-        idx = p[idx] < p[c] ? c : idx;
-    }
-    free(p);
-    return idx;
-}
-
-void
-Batch_inferSaveOutput(stList *chunks, HMM *model, int nThreads, FILE *outputFile, double minColScore, int minColLen,
-                      double maxDupScore, int minDupLen) {
-    int chunkStartIndex = -1;
-    int chunkEndIndex = -1;
-    pthread_t *tids = malloc(nThreads * sizeof(pthread_t));
-    EM **emArray = (EM **) malloc(nThreads * sizeof(EM * ));
-    // Run every nThreads chunks in parallel except for the last chunks if the number of
-    // chunks is not a multiple of nThreads
-    while (chunkEndIndex < stList_length(chunks) - 1) {
-        chunkStartIndex = chunkEndIndex + 1;
-        chunkEndIndex = chunkStartIndex + min(stList_length(chunks) - chunkStartIndex, nThreads) - 1;
-        for (int chunkIndex = chunkStartIndex; chunkIndex <= chunkEndIndex; chunkIndex++) {
-            int threadIndex = chunkIndex - chunkStartIndex;
-            Chunk *chunk = stList_get(chunks, chunkIndex);
-            emArray[threadIndex] = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
-            fprintf(stderr, "Chunk %d, %s: [%d-%d] \n", chunkIndex, chunk->ctg, chunk->s, chunk->e);
-            Arguments *args = Arguments_construct(model, emArray[threadIndex], "infer", NULL, NULL);
-            pthread_create(&tids[threadIndex], NULL, infer, (void *) args);
-            fprintf(stderr, "Thread %d is running\n", threadIndex);
-        }
-        int s = -1;
-        int e = -1;
-        int compIdx = -1;
-        int preCompIdx = -1;
-        int windowLen; // windowLen may be different for small contigs; look at chunk->windowLen instead of batch->windowLen
-        double cov;
-        double hapMu;
-        double score;
-        double sumScore = 0.0;
-        double avgScore = 0.0;
-        for (int chunkIndex = chunkStartIndex; chunkIndex <= chunkEndIndex; chunkIndex++) {
-            int threadIndex = chunkIndex - chunkStartIndex;
-            assert(pthread_join(tids[threadIndex], NULL) == 0);
-            fprintf(stderr, "Thread %d is finished\n", threadIndex);
-            fprintf(stderr, "Writing the output...\n");
-            Chunk *chunk = stList_get(chunks, chunkIndex);
-            windowLen = chunk->windowLen;
-            s = chunk->s;
-            e = chunk->s;
-            preCompIdx = -1;
-            for (int i = 0; i < chunk->seqLen; i++) {
-                compIdx = getCompIdx(emArray[threadIndex], i);
-                cov = (double) chunk->seqEmit[i]->data[0];
-                if (model->modelType == GAUSSIAN) {
-                    Gaussian *gaussian = model->emit[chunk->seqClass[i]][2];
-                    hapMu = (double) gaussian->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
-
-                } else if (model->modelType == NEGATIVE_BINOMIAL) {
-                    NegativeBinomial *nb = model->emit[chunk->seqClass[i]][2];
-                    hapMu = (double) nb->mu[0]->data[0]; // TODO: assuming index 2 is always haploid
+        // write benchmarking stats
+        if (writeBenchmarkingStatsPerIteration || iter == 1) {
+            if (iter == 1) {
+                strcpy(suffix, "initial");
+            } else {
+                // (iter - 1) because this prediction is for the parameters updated after the previous iteration
+                if (acceleration) {
+                    sprintf(suffix, "iteration_accelerated_%d", iter - 1);
+                } else {
+                    sprintf(suffix, "iteration_%d", iter - 1);
                 }
-                score = cov / hapMu;
-                sumScore += score * chunk->windowLen;
-                // if component changed write the block
-                if (preCompIdx != -1 && preCompIdx != compIdx) {
-                    avgScore = sumScore / (e - s);
-                    if (preCompIdx == 1 && avgScore > maxDupScore && e - s < minDupLen) {
-                        preCompIdx = 2;
-                    } else if (preCompIdx == 3 && avgScore < minColScore && e - s < minColLen) {
-                        preCompIdx = 2;
-                    }
-                    fprintf(outputFile, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\t%.2f\n",
-                            chunk->ctg, s, e, COMP_NAMES[preCompIdx],
-                            s, e, COMP_COLORS[preCompIdx], avgScore);
-                    s = e;
-                    sumScore = 0;
-                }
-                e = i == chunk->seqLen - 1 ? chunk->e + 1 : e + windowLen; // maybe the last window is not complete
-                preCompIdx = compIdx;
             }
-            avgScore = sumScore / (e - s);
-            if (preCompIdx == 1 && avgScore > maxDupScore && e - s < minDupLen) {
-                preCompIdx = 2;
-            } else if (preCompIdx == 3 && avgScore < minColScore && e - s < minColLen) {
-                preCompIdx = 2;
+            writeBenchmarkingStats(chunksCreator,
+                                   outputDir,
+                                   suffix,
+                                   labelNamesWithUnknown,
+                                   binArrayFilePath,
+                                   overlapRatioThreshold,
+                                   threads);
+        }
+
+        // if acceleration is true it will run two more EM update per iteration
+        if (acceleration) {
+            fprintf(stderr, "[%s] [Iteration %s = %d] Running SQUAREM acceleration.\n", get_timestamp(),
+                    acceleration ? "accelerated" : "",
+                    iter);
+            SquareAccelerator *accelerator = SquareAccelerator_construct();
+            // set model 0
+            SquareAccelerator_setModel0(accelerator, model);
+            // compute and set model 1
+            HMM_estimateParameters(model, convergenceTol);
+            SquareAccelerator_setModel1(accelerator, model);
+            // compute and set model 2
+            HMM_resetEstimators(model);
+            EM_runOneIterationForList(emPerChunk, model, threads);
+            HMM_estimateParameters(model, convergenceTol);
+            SquareAccelerator_setModel2(accelerator, model);
+            // get model prime and run an additional round of EM on it
+            HMM *modelPrime = SquareAccelerator_getModelPrime(accelerator, emPerChunk, threads);
+            // run EM on model prime
+            HMM_resetEstimators(modelPrime);
+            EM_runOneIterationForList(emPerChunk, modelPrime, threads);
+            // destruct old model and replace with a copy of the final model after acceleration
+            HMM_destruct(model);
+            model = HMM_copy(modelPrime);
+            *modelPtr = model;
+            // update model object in em objects
+            for (int chunkIndex = 0; chunkIndex < stList_length(emPerChunk); chunkIndex++) {
+                EM *em = stList_get(emPerChunk, chunkIndex);
+                EM_renewParametersAndEstimatorsFromModel(em, model);
             }
-            fprintf(outputFile, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\t%0.2f\n",
-                    chunk->ctg, s, e, COMP_NAMES[preCompIdx],
-                    s, e, COMP_COLORS[preCompIdx], avgScore); // there will be an unwritten component finally
-            fprintf(stderr, "Done writing!\n");
-            EM_destruct(emArray[threadIndex]);
+            // destruct accelerator
+            SquareAccelerator_destruct(accelerator);
+            fprintf(stderr, "[%s] [Iteration %s = %d] Finished SQUAREM acceleration.\n", get_timestamp(),
+                    acceleration ? "accelerated" : "",
+                    iter);
+        }
+
+        // update parameters
+        converged = HMM_estimateParameters(model, convergenceTol);
+        fprintf(stderr, "[%s] [Iteration %s = %d] Parameters are estimated and updated.\n",
+                get_timestamp(),
+                acceleration ? "accelerated" : "",
+                iter);
+
+        HMM_resetEstimators(model);
+        fprintf(stderr, "[%s] [Iteration %s = %d] Model parameter estimators are reset.\n",
+                get_timestamp(),
+                acceleration ? "accelerated" : "",
+                iter);
+
+        if (writeParameterStatsPerIteration) {
+            fprintf(stderr,
+                    "[%s] [Iteration %s = %d] Writing parameter values into tsv file.\n",
+                    acceleration ? "accelerated" : "",
+                    get_timestamp(),
+                    iter);
+            if (acceleration) {
+                sprintf(suffix, "iteration_accelerated_%d", iter);
+            } else {
+                sprintf(suffix, "iteration_%d", iter);
+            }
+            writeParameterStats(model, outputDir, suffix);
+        }
+        iter += 1;
+    }
+
+    if (converged == true) {
+        fprintf(stderr, "[%s] Parameters converged after %d iterations (tol=%.2e)\n",
+                get_timestamp(),
+                iter - 1,
+                convergenceTol);
+    } else {
+        fprintf(stderr,
+                "[%s] Parameter estimation stopped (not yet converged based on the given tolerance) after %d iterations (tol=%.2e)\n",
+                get_timestamp(),
+                iter - 1,
+                convergenceTol);
+    }
+
+    fprintf(stderr, "[%s] [Final Inference] Running EM jobs for %d chunks (with %d threads) ...\n",
+            get_timestamp(),
+            numberOfChunks,
+            threads);
+    EM_runOneIterationForList(emPerChunk, model, threads);
+    fprintf(stderr, "[%s] [Final Inference] EM jobs are all finished.\n", get_timestamp());
+
+    fprintf(loglikelihoodTsvFile, "%d\t%d\t%.4f\n", iter - 1, acceleration ? 3 * (iter - 1) : iter - 1,
+            model->loglikelihood);
+
+
+    sprintf(suffix, "final");
+    fprintf(stderr,
+            "[%s] [Final Inference] Writing final parameter and benchmarking stats into tsv file.\n",
+            get_timestamp());
+    writeParameterStats(model, outputDir, suffix);
+    writeBenchmarkingStats(chunksCreator,
+                           outputDir,
+                           suffix,
+                           labelNamesWithUnknown,
+                           binArrayFilePath,
+                           overlapRatioThreshold,
+                           threads);
+
+    stList_destruct(emPerChunk);
+    fclose(loglikelihoodTsvFile);
+}
+
+// input can be NULL
+MatrixDouble *getAlphaMatrix(char *alphaTsvPath) {
+    if (alphaTsvPath == NULL) {
+        MatrixDouble *alpha = MatrixDouble_construct0(NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1);
+        MatrixDouble_setValue(alpha, 0.0);
+        return alpha;
+    }
+
+    bool skipFirstLine = false;
+    // -1 because of ignoring MSJ
+    MatrixDouble *alpha = MatrixDouble_parseFromFile(alphaTsvPath, NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1, skipFirstLine);
+    // check all alpha values are between 0 and 1
+    for (int i = 0; i < alpha->dim1; i++) {
+        for (int j = 0; j < alpha->dim2; j++) {
+            if (1.0 < alpha->data[i][j] || alpha->data[i][j] < 0.0) {
+                fprintf(stderr, "[%s] Error: There is at least one alpha value in '%s' not between 0 and 1. \n%s\n",
+                        get_timestamp(),
+                        MatrixDouble_toString(alpha)
+                );
+                exit(EXIT_FAILURE);
+            }
         }
     }
-    free(emArray);
-    free(tids);
+    return alpha;
 }
 
-void *readChunkAndUpdateStats(void *arg_) {
-
-    work_arg_t *arg = arg_;
-    ArgumentsTrain *argumentsTrain = arg->data;
-    Chunk *chunk = argumentsTrain->chunk;
-    HMM *model = argumentsTrain->model;
-    int iter = argumentsTrain->iter;
-    int nChunks = argumentsTrain->nChunks;
-    int chunkIndex = argumentsTrain->chunkIndex;
-    fprintf(stderr, "[%s] (iter=%d) Chunk (%d/%d) [len=%d]: %d, %d, %d, ..., %d, %d, %d\n", get_timestamp(), iter + 1,
-            chunkIndex + 1, nChunks, chunk->seqLen,
-            chunk->seqEmit[0]->data[0],
-            chunk->seqEmit[1]->data[0],
-            chunk->seqEmit[2]->data[0],
-            chunk->seqEmit[chunk->seqLen - 3]->data[0],
-            chunk->seqEmit[chunk->seqLen - 2]->data[0],
-            chunk->seqEmit[chunk->seqLen - 1]->data[0]);
-    // Make an EM object
-
-    EM *em = EM_construct(chunk->seqEmit, chunk->seqClass, chunk->seqLen, model);
-    // Run forward and backward
-    runForward(model, em);
-    runBackward(model, em);
-    /*char path[200];
-    sprintf(path, "%s/forward.%s.txt", arg->dir, arg->name);
-        saveEMStats(FORWARD, path, em);
-        sprintf(path, "%s/backward.%s.txt", arg->dir, arg->name);
-        saveEMStats(BACKWARD, path, em);*/
-    // Update statistics for estimating parameters
-    //pthread_mutex_lock(model->mutexPtr);
-    if (model->modelType == NEGATIVE_BINOMIAL) {
-        NegativeBinomial_updateSufficientStats(model, em);
-    } else if (model->modelType == GAUSSIAN) {
-        updateSufficientStats(model, em);
-    }
-    // Free the EM object
-    EM_destruct(em);
-}
-
-void *
-runOneRound(HMM *model, stList *chunks, int nThreads, int iter) {
-
-    // Create a thread pool
-    // Each thread recieves only one batch
-    tpool_t *tm = tpool_create(nThreads);
-    stList* work_args = stList_construct3(0, NULL);
-    for (int i = 0; i < stList_length(chunks); i++) {
-        work_arg_t *work_arg = malloc(sizeof(work_arg_t));
-        ArgumentsTrain *argumentsTrain = malloc(sizeof(ArgumentsTrain));
-        argumentsTrain->chunk = stList_get(chunks, i);
-        argumentsTrain->model = model;
-        argumentsTrain->chunkIndex = i;
-        argumentsTrain->nChunks = stList_length(chunks);
-        argumentsTrain->iter = iter;
-        work_arg->data = (void*) argumentsTrain;
-        tpool_add_work(tm, readChunkAndUpdateStats, work_arg);
-        stList_append(work_args, work_arg);
-    }
-    tpool_wait(tm);
-    tpool_destroy(tm);
-    for(int i = 0; i < stList_length(work_args); i++){
-        work_arg_t *work_arg = stList_get(work_args, i);
-        free(work_arg->data);
-        free(work_arg);
-    }
-    stList_destruct(work_args);
-}
 
 static struct option long_options[] =
         {
-                {"inputCov",         required_argument, NULL, 'i'},
-                {"threads",          required_argument, NULL, 't'},
-                {"chunkLen",         required_argument, NULL, 'l'},
-                {"iterations",       required_argument, NULL, 'n'},
-                {"windowLen",        required_argument, NULL, 'w'},
-                {"coverage",         required_argument, NULL, 'c'},
-                {"regions",          required_argument, NULL, 'r'},
-                {"trackName",        required_argument, NULL, 'm'},
-                {"outputDir",        required_argument, NULL, 'o'},
-                {"regionFactors",    required_argument, NULL, 'f'},
-                {"minColScore",      required_argument, NULL, 's'},
-                {"minColLen",        required_argument, NULL, 'e'},
-                {"maxDupScore",      required_argument, NULL, 'd'},
-                {"minDupLen",        required_argument, NULL, 'a'},
-                {"maxHighMapqRatio", required_argument, NULL, 'p'},
-                {"regionRatios",     required_argument, NULL, 'g'},
-                {"transPseudoPath",  required_argument, NULL, 'u'},
-                {"model",            required_argument, NULL, 'M'},
-                {"alphaErr",            required_argument, NULL, '0'},
-                {"alphaDup",            required_argument, NULL, '1'},
-                {"alphaHap",            required_argument, NULL, '2'},
-                {"alphaCol",            required_argument, NULL, '3'},
-                {"alphaTrans",            required_argument, NULL, '4'},
-                {NULL,               0,                 NULL, 0}
+                {"input",                              required_argument, NULL, 'i'},
+                {"iterations",                         required_argument, NULL, 'n'},
+                {"convergenceTol",                     required_argument, NULL, 't'},
+                {"modelType",                          required_argument, NULL, 'm'},
+                {"maxHighMapqRatio",                   required_argument, NULL, 'q'},
+                {"chunkLen",                           required_argument, NULL, 'C'},
+                {"windowLen",                          required_argument, NULL, 'W'},
+                {"contigsList",                        required_argument, NULL, 'c'},
+                {"threads",                            required_argument, NULL, '@'},
+                {"collapsedComps",                     required_argument, NULL, 'p'},
+                {"alphaTsv",                           required_argument, NULL, 'A'},
+                {"binArrayFile",                       required_argument, NULL, 'a'},
+                {"writeParameterStatsPerIteration",    no_argument,       NULL, 'w'},
+                {"writeBenchmarkingStatsPerIteration", no_argument,       NULL, 'k'},
+                {"outputDir",                          required_argument, NULL, 'o'},
+                {"overlapRatioThreshold",              required_argument, NULL, 'v'},
+                {"labelNames",                         required_argument, NULL, 'l'},
+                {"initialRandomDev",                   required_argument, NULL, 'D'},
+                {"trackName",                          required_argument, NULL, 'N'},
+                {"dumpBin",                            no_argument,       NULL, 'B'},
+                {"accelerate",                         no_argument,       NULL, 's'},
+                {NULL,                                 0,                 NULL, 0}
         };
 
 
 int main(int argc, char *argv[]) {
     int c;
-    char covPath[200];
-    char covIndexPath[200];
-    char outputDir[200];
-    char trackName[200];
-    int nThreads;
-    int chunkLen;
-    int windowLen = 1000;
-    int nIteration = 5;
-    int meanCoverage = -1;
-    int nClasses = -1;
-    double minColScore = 1.8;
-    int minColLen = 40e3;
-    double maxDupScore = 0.4;
-    int minDupLen = 40e3;
-    char regionFactors[200];
+    char *trackName = copyString("final_flagger");
+    char *inputPath = NULL;
+    char *alphaTsvPath = NULL;
+    char *contigListPath = NULL;
+    char *binArrayFilePath = NULL;
+    stList *labelNamesWithUnknown = NULL;
+    stList *contigList = NULL;
+    int numberOfIterations = 100;
+    double convergenceTol = 0.001;
     double maxHighMapqRatio = 0.25;
-    char regionFreqRatios[200];
-    char transPseudoPath[200];
-    double alphaErr = 0.0;
-    double alphaDup = 0.4;
-    double alphaHap = 0.4;
-    double alphaCol = 0.4;
-    double alphaTrans = 0.0;
+    int numberOfCollapsedComps = -1;
+    char *outputDir = NULL;
+    bool writeParameterStatsPerIteration = false;
+    bool writeBenchmarkingStatsPerIteration = false;
+    ModelType modelType = MODEL_GAUSSIAN;
+    double overlapRatioThreshold = 0.4;
+    double initialRandomDeviation = 0.0;
+    int chunkCanonicalLen = 20000000; //20Mb
+    int windowLen = 100;
+    int threads = 4;
+    bool dumpBin = false;
+    bool acceleration = false;
     char *program;
-    ModelType modelType;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:t:l:n:w:c:r:f:g:m:o:s:e:d:a:p:u:M:0:1:2:3:4:h", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:BN:s", long_options, NULL))) {
         switch (c) {
             case 'i':
-                strcpy(covPath, optarg);
-                break;
-            case 't':
-                nThreads = atoi(optarg);
-                break;
-            case 'o':
-                strcpy(outputDir, optarg);
-                break;
-            case 'l':
-                chunkLen = atoi(optarg);
-                break;
-            case 'w':
-                windowLen = atoi(optarg);
+                inputPath = optarg;
                 break;
             case 'n':
-                nIteration = atoi(optarg);
+                numberOfIterations = atoi(optarg);
+                break;
+            case 'B':
+                dumpBin = true;
+                break;
+            case 'N':
+                trackName = optarg;
+                break;
+            case 't':
+                convergenceTol = atof(optarg);
                 break;
             case 'm':
-                strcpy(trackName, optarg);
-                break;
-            case 'c':
-                meanCoverage = atoi(optarg);
-                break;
-            case 'r':
-                nClasses = atoi(optarg);
-                break;
-            case 's':
-                minColScore = atof(optarg);
-                break;
-            case 'e':
-                minColLen = atoi(optarg);
-                break;
-            case 'd':
-                maxDupScore = atof(optarg);
+                modelType = getModelTypeFromString(optarg);
                 break;
             case 'a':
-                minDupLen = atoi(optarg);
+                binArrayFilePath = optarg;
                 break;
-            case 'f':
-                strcpy(regionFactors, optarg);
+            case 'c':
+                contigListPath = optarg;
                 break;
             case 'p':
+                numberOfCollapsedComps = atoi(optarg);
+                break;
+            case '@':
+                threads = atoi(optarg);
+                break;
+            case 'A':
+                alphaTsvPath = optarg;
+                break;
+            case 'C':
+                chunkCanonicalLen = atoi(optarg);
+                break;
+            case 'W':
+                windowLen = atoi(optarg);
+                break;
+            case 'w':
+                writeParameterStatsPerIteration = true;
+                break;
+            case 'k':
+                writeBenchmarkingStatsPerIteration = true;
+                break;
+            case 'o':
+                outputDir = optarg;
+                break;
+            case 'D':
+                initialRandomDeviation = atof(optarg);
+                break;
+            case 'l':
+                labelNamesWithUnknown = Splitter_getStringList(optarg, ',');
+                stList_append(labelNamesWithUnknown, copyString("Unk"));
+                break;
+            case 'v':
+                overlapRatioThreshold = atof(optarg);
+                break;
+            case 'q':
                 maxHighMapqRatio = atof(optarg);
                 break;
-            case 'g':
-                strcpy(regionFreqRatios, optarg);
-                break;
-            case 'u':
-                strcpy(transPseudoPath, optarg);
-                break;
-            case 'M':
-                if (strcmp(optarg, "gaussian") == 0) {
-                    modelType = GAUSSIAN;
-                } else if (strcmp(optarg, "nb") == 0) {
-                    modelType = NEGATIVE_BINOMIAL;
-                } else {
-                    fprintf(stderr, "Error: --model should be either 'gaussian' or 'nb'!");
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            case '0':
-                alphaErr = atof(optarg);
-                break;
-            case '1':
-                alphaDup = atof(optarg);
-                break;
-            case '2':
-                alphaHap = atof(optarg);
-                break;
-            case '3':
-                alphaCol = atof(optarg);
-                break;
-            case '4':
-                alphaTrans = atof(optarg);
+            case 's':
+                acceleration = true;
                 break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
             help:
-                fprintf(stderr, "\nUsage: %s\n", program);
-                fprintf(stderr, "Options:\n");
-                fprintf(stderr, "         --inputCov, -i         path to .cov file\n");
+                fprintf(stderr, "\nUsage: %s  -i <INPUT_FILE> -o <OUTPUT_DIR> \n", program);
                 fprintf(stderr,
-                        "         --model, -M         use gaussian or negative binomial emission model (values can be either 'gaussian' or 'nb' [default:'nb'])\n");
-                fprintf(stderr, "         --alpha, -A         alpha is the dependency factor of the current emission density to the previous emission of the same state\n");
-                fprintf(stderr, "         --threads, -t         number of threads\n");
-                fprintf(stderr, "         --chunkLen, -l         chunk length\n");
-                fprintf(stderr, "         --iterations, -n         number of iterations\n");
-                fprintf(stderr, "         --windowLen, -w         window length (default = 100)\n");
-                fprintf(stderr, "         --coverage, -c         mean coverage\n");
-                fprintf(stderr, "         --regions, -r         number of region classes [only 2 or 3]\n");
-                fprintf(stderr, "         --trackName, -m         track name\n");
-                fprintf(stderr, "         --outputDir, -o         output dir\n");
-                fprintf(stderr, "         --minColScore, -s       minimum score of short collapsed blocks\n");
-                fprintf(stderr, "         --minColLen, -e       minimum length of low score collapsed blocks\n");
-                fprintf(stderr, "         --maxDupScore, -d       maximum score of short duplicated blocks\n");
-                fprintf(stderr, "         --minDupLen, -a       minimum length of high score duplicated blocks\n");
+                        "Options:\n");
                 fprintf(stderr,
-                        "         --regionFactors, -f       factors to scale the initial mean values for different regions\n");
+                        "         --input, -i\n"
+                        "                           Path to the input file (cov/cov.gz or binary output of create_bin_chunks) \n");
                 fprintf(stderr,
-                        "         --maxHighMapqRatio, -p       maximum ratio of high mapq coverage for duplicated component\n");
-                fprintf(stderr, "         --transPseudoPath, -u       path to transition pseudo counts\n");
+                        "         --outputDir, -o\n"
+                        "                           Directory for saving output files.\n");
                 fprintf(stderr,
-                        "         --regionFreqRatios, -g	region frequency ratios for adjusting transition pseudo counts\n");
+                        "         --modelType, -m\n"
+                        "                           Model type can be either 'gaussian', 'negative_binomial', or \n"
+                        "                           'trunc_exp_gaussian' [Default = 'gaussian']\n");
+                fprintf(stderr,
+                        "         --trackName, -N\n"
+                        "                           The track name that will appear in the final BED.[Default = 'final_flagger']\n");
+                fprintf(stderr,
+                        "         --chunkLen, -C\n"
+                        "                           Chunk length. Each chunk is the length of the genome (in bases) for which \n"
+                        "                           forward/backward algorithm will be performed once in each iteration. Splitting\n"
+                        "                           genome into chunks is mainly for enabling multi-threading and running \n"
+                        "                           this algorithm for multiple parts of the genome simultaneously. \n"
+                        "                           [Default = 20000000 (20Mb)]\n");
+                fprintf(stderr,
+                        "         --windowLen, -W\n"
+                        "                           Window length. Coverage information will be averaged along each window \n"
+                        "                           (non-overlapping) and the average value of each window will be regarded \n"
+                        "                           as one observation for the EM algorithm. Having larger windows will lead \n"
+                        "                           to lower resolution but faster runtime. (default = 100)\n");
+                fprintf(stderr,
+                        "         --labelNames, -l\n"
+                        "                           (Optional) (For naming rows in the final benchmarking tsv file) A \n"
+                        "                           comma-delimited string of label names (for example \n"
+                        "                           'Err,Dup,Hap,Col'). It should match the number of labels in the \n"
+                        "                           header of the input file.[default: none]\n");
+                fprintf(stderr,
+                        "         --iterations, -n\n"
+                        "                           Maximum number of iterations [Default = 100]\n");
+                fprintf(stderr,
+                        "         --contigsList, -c\n"
+                        "                           (Optional) Path to a file with a list of contig names to include (one \n"
+                        "                           contig name per line) [Optional]\n");
+                fprintf(stderr,
+                        "         --convergenceTol, -t\n"
+                        "                           Convergence tolerance. The EM iteration will stop once the difference \n"
+                        "                           between all model parameter values in two consecutive iterations is \n"
+                        "                           less than this value. [Default = 0.001]\n");
+                fprintf(stderr,
+                        "         --maxHighMapqRatio, -q\n"
+                        "                           Maximum ratio of high mapq coverage for duplicated component\n");
+                fprintf(stderr,
+                        "         --alphaTsv, -A\n"
+                        "                           (Optional) The dependency factors of the current emission density\n"
+                        "                           to the previous emission. This parameter is a tsv file with 4 rows\n"
+                        "                           and 4 columns with no header line. All numbers should be between \n"
+                        "                           0 and 1. \n"
+                        "                           [Default = all alpha factors set to 0]\n");
+                fprintf(stderr,
+                        "         --collapsedComps, -p\n"
+                        "                           (Optional) Force the number of components of the collapsed state\n"
+                        "                           to this positive integer number (Only for testing purposes) \n"
+                        "                           [Default = it will automatically detect the best number of \n"
+                        "                           components by taking the maximum observed coverage.]\n");
+                fprintf(stderr,
+                        "         --writeParameterStatsPerIteration, -w\n"
+                        "                           (Optional) Write emission, transition statistics per \n"
+                        "                           each iteration (For only investigating how the model \n"
+                        "                           is improved over EM iterations) [Default = disabled].\n");
+                fprintf(stderr,
+                        "         --writeBenchmarkingStatsPerIteration, -k\n"
+                        "                           (Optional) Write benchmarking (precision/recall/f1score)\n"
+                        "                           statistics per each iteration (For only investigating how \n"
+                        "                           the model is improved over EM iterations) [Default = disabled].\n");
 
+                fprintf(stderr,
+                        "         --binArrayFile, -b\n"
+                        "                           (Optional) A tsv file (tab-delimited) that contains bin arrays \n"
+                        "                           for stratifying results by event size. Bin intervals can have overlap.\n"
+                        "                           It should contain three columns. \n"
+                        "                           1st column is the closed start of the bin and the 2nd \n"
+                        "                           column is the open end. The 3rd column has a name for each bin. \n"
+                        "                           For example one row can be '0\t100\t[0-100)'\n"
+                        "                           If no file is passed it will consider one large bin as the default value.\n"
+                        "                           (Default = [0,1e9) with the name 'ALL_SIZES')\n");
+                fprintf(stderr,
+                        "         --overlapRatioThreshold, -v\n"
+                        "                           Minimum overlap ratio in calculating overlap-based metrics for \n"
+                        "                           considering a hit between a ref label (for example truth label for\n"
+                        "                           recall) and query label (for example prediction label for recall) \n"
+                        "                           [default: 0.4]\n");
+                fprintf(stderr,
+                        "         --initialRandomDev, -D\n"
+                        "                           Randomly deviate the initial mean values for EM algorithm.\n"
+                        "                           This is only for experimenting how much HMM-Flagger is tolerant to\n"
+                        "                           starting with approximate values. It should be greater than or equal\n"
+                        "                           to 0 and less than 0.5 . [default: 0.0]\n");
+                fprintf(stderr,
+                        "         --threads, -@\n"
+                        "                           Number of threads [default: 4]\n");
+                fprintf(stderr,
+                        "         --dumpBin, -B\n"
+                        "                           Dump chunks in binary format in the output dir (it will make \n"
+                        "                           later runs faster by skipping chunk creation part if using the\n"
+                        "                           same bin file) [default: disabled]\n");
+                fprintf(stderr,
+                        "         --accelerate, -s\n"
+                        "                           Run EM in accelerated mode. Each iteration will run 3 rounds \n"
+                        "                           of EM internally so each iteration will take longer in the \n"
+                        "                           acceleration mode but it will have a boosted update for \n"
+                        "                           parameters. The whole run should converge faster \n"
+                        "                           [default: disabled]\n");
                 return 1;
         }
     }
-    fprintf(stderr, "CONSTRUCTED MODEL\n");
-    int nComps = 4;
-    int nEmit = 2;
-    int *coverages = malloc(nClasses * sizeof(int));
-    Splitter *splitter = Splitter_construct(regionFactors, ',');
-    char *token;
-    double *numericalFactors = malloc(nClasses * sizeof(double));
-    int i = 0;
-    while ((token = Splitter_getToken(splitter)) != NULL) {
-        numericalFactors[i] = atof(token);
-        coverages[i] = meanCoverage * numericalFactors[i];
-        i++;
+
+    double realtimeStart = System_getRealTimePoint();
+
+    if (inputPath == NULL) {
+        fprintf(stderr, "[%s] Error: Input path cannot be NULL.\n", get_timestamp());
+        exit(EXIT_FAILURE);
     }
-    Splitter_destruct(splitter);
-    int *nMixtures = malloc(nComps * sizeof(int));
-    nMixtures[0] = 1;
-    nMixtures[1] = 1;
-    nMixtures[2] = 1;
-    nMixtures[3] = 10;
-    fprintf(stderr, "CONSTRUCTED MODEL\n");
-
-    // Read region freq ratios to adjust transition pseudo counts
-    splitter = Splitter_construct(regionFreqRatios, ',');
-    double *regionFreqRatiosDouble = malloc(nClasses * sizeof(double));
-    i = 0;
-    while ((token = Splitter_getToken(splitter)) != NULL) {
-        regionFreqRatiosDouble[i] = atof(token);
-        i++;
+    if (modelType == MODEL_UNDEFINED) {
+        fprintf(stderr,
+                "[%s] Error: Model type is not defined. Specify the model type with --model (-m) argument.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
     }
-    Splitter_destruct(splitter);
-
-    double alpha[5];
-    alpha[0] = alphaErr;
-    alpha[1] = alphaDup;
-    alpha[2] = alphaHap;
-    alpha[3] = alphaCol;
-    alpha[4] = alphaTrans;
-    HMM *model = makeAndInitModel(coverages, nClasses, nComps, nEmit, nMixtures, maxHighMapqRatio,
-                                  regionFreqRatiosDouble, transPseudoPath, modelType, alpha);
-
-    fprintf(stderr, "CONSTRUCTED MODEL\n");
-    for (int r = 0; r < nClasses; r++) {
-        char *transStr = MatrixDouble_toString(model->trans[r]);
-        fprintf(stderr, "r=%d, trans=\n%s\n", r, transStr);
-        for (int c = 0; c < nComps; c++) {
-            if (model->modelType == GAUSSIAN) {
-                Gaussian *gaussian = model->emit[r][c];
-                for (int m = 0; m < gaussian->n; m++) {
-                    char *muStr = VectorDouble_toString(gaussian->mu[m]);
-                    char *covStr = MatrixDouble_toString(gaussian->cov[m]);
-                    fprintf(stderr, "r=%d, c=%d, m=%d\n%s\n%s\n\n", r, c, m, muStr, covStr);
-                }
-            } else if (model->modelType == NEGATIVE_BINOMIAL) {
-                NegativeBinomial *nb = model->emit[r][c];
-                for (int m = 0; m < nb->n; m++) {
-                    char *muStr = VectorDouble_toString(nb->mu[m]);
-                    char *covStr = MatrixDouble_toString(nb->cov[m]);
-                    fprintf(stderr, "r=%d, c=%d, m=%d\n%s\n%s\n\n", r, c, m, muStr, covStr);
-                }
-            }
-        }
+    if (convergenceTol <= 0.0 || convergenceTol > 1.0) {
+        fprintf(stderr, "[%s] Error: convergence tol = %2.f should be between 0 and 1.\n",
+                get_timestamp(),
+                convergenceTol);
+        exit(EXIT_FAILURE);
+    }
+    if (outputDir == NULL) {
+        fprintf(stderr, "[%s] Error: --outputDir, -o should be specified.\n", get_timestamp());
+        exit(EXIT_FAILURE);
+    } else if (folder_exists(outputDir) == false) {
+        fprintf(stderr, "[%s] Error: Output directory %s does not exist!\n", get_timestamp(), outputDir);
+        exit(EXIT_FAILURE);
+    }
+    if (contigListPath != NULL) {
+        contigList = Splitter_parseLinesIntoList(contigListPath);
+        fprintf(stderr,
+                "[%s] Parsed the list of contig names to include for this analysis. (Number of contigs = %d)",
+                get_timestamp(),
+                stList_length(contigList));
     }
 
-    stList *chunks = Chunk_readAllChunksFromBin(covPath, chunkLen, windowLen, nEmit);
-    char outputPath[1000];
-    for (int itr = 0; itr < nIteration; itr++) {
-        fprintf(stderr, "ROUND STARTED\n");
-        runOneRound(model, chunks, nThreads, itr);
-        fprintf(stderr, "ROUND FINISHED\n");
+    // check input file extensions
+    char *inputExtension = extractFileExtension(inputPath);
+    if (strcmp(inputExtension, "cov") != 0 &&
+        strcmp(inputExtension, "cov.gz") != 0 &&
+        strcmp(inputExtension, "bin") != 0) {
+        fprintf(stderr,
+                "[%s] Error: input file should either cov/cov.gz or a binary file made with create_bin_chunks.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+    free(inputExtension);
 
-        if (model->modelType == GAUSSIAN) {
-            fprintf(stderr, "Estimating parameters for Gaussian model\n");
-            estimateParameters(model);
-            fprintf(stderr, "Reseting sufficient stats\n");
-            resetSufficientStats(model);
-        } else if (model->modelType == NEGATIVE_BINOMIAL) {
-            fprintf(stderr, "Estimating parameters for Negative Binomial model\n");
-            NegativeBinomial_estimateParameters(model);
-            fprintf(stderr, "Reseting sufficient stats\n");
-            NegativeBinomial_resetSufficientStats(model);
-        }
+    // 1. get chunks and subset to contigs if given
+    fprintf(stderr, "[%s] Parsing/Creating coverage chunks. \n", get_timestamp());
 
-        fprintf(stderr, "Saving HMM stats\n");
-        sprintf(outputPath, "%s/transition_%d.txt", outputDir, itr);
-        fprintf(stderr, "%s\n", outputPath);
-        saveHMMStats(TRANSITION, outputPath, model);
-        sprintf(outputPath, "%s/emission_%d.txt", outputDir, itr);
-        saveHMMStats(EMISSION, outputPath, model);
+    ChunksCreator *chunksCreator = getChunksCreator(inputPath,
+                                                    chunkCanonicalLen,
+                                                    windowLen,
+                                                    threads,
+                                                    contigList);
+
+    if (dumpBin) {
+        char binPath[1000];
+        sprintf(binPath, "%s/chunks.c_%d.w_%d.bin", outputDir, chunksCreator->chunkCanonicalLen,
+                chunksCreator->windowLen);
+        fprintf(stderr, "[%s] Writing bin file into %s . \n", get_timestamp(), binPath);
+        ChunksCreator_writeChunksIntoBinaryFile(chunksCreator, binPath);
     }
 
-    //Run inference
-    sprintf(outputPath, "%s/%s.flagger.bed", outputDir, trackName);
-    FILE *fp = fopen(outputPath, "w+");
-    fprintf(fp, "track name=%s visibility=1 itemRgb=\"On\"\n", trackName);
-    fprintf(stderr, "[Inference] Running EM for final inference\n");
-    Batch_inferSaveOutput(chunks, model, nThreads, fp, minColScore, minColLen, maxDupScore, minDupLen);
-    fflush(fp);
-    fclose(fp);
+    int numberOfChunks = ChunksCreator_getTotalNumberOfChunks(chunksCreator);
+    int64_t totalLengthOfChunks = ChunksCreator_getTotalLength(chunksCreator);
+    fprintf(stderr, "[%s] %d chunks are parsed covering total length of %ld bases. \n",
+            get_timestamp(),
+            numberOfChunks,
+            totalLengthOfChunks);
+
+    // 2. get maximum coverage and set number of collapsed comps
+    if (numberOfCollapsedComps == -1) {
+        fprintf(stderr, "[%s] Determining the number of components for the 'collapsed' state. \n", get_timestamp());
+        numberOfCollapsedComps = getBestNumberOfCollapsedComps(chunksCreator);
+        // make sure the number of components is not too large or too small
+        numberOfCollapsedComps = numberOfCollapsedComps < 2 ? 2 : numberOfCollapsedComps;
+        numberOfCollapsedComps = numberOfCollapsedComps > 20 ? 20 : numberOfCollapsedComps;
+        fprintf(stderr,
+                "[%s] The number of collapsed components (n=%d) is determined and adjusted automatically by taking the maximum observed coverage. \n",
+                get_timestamp(),
+                numberOfCollapsedComps);
+    } else {
+        fprintf(stderr, "[%s] The number of components for the 'collapsed' state is set by the program argument %d. \n",
+                get_timestamp(),
+                numberOfCollapsedComps);
+    }
+
+    // 3. create a model
+    fprintf(stderr, "[%s] Creating HMM model. \n", get_timestamp());
+
+    MatrixDouble *alphaMatrix = getAlphaMatrix(alphaTsvPath);
+    HMM *model = createModel(modelType,
+                             numberOfCollapsedComps,
+                             chunksCreator->header,
+                             alphaMatrix,
+                             maxHighMapqRatio,
+                             initialRandomDeviation);
+
+    // 4. run EM for estimating parameters
+    fprintf(stderr, "[%s] Running EM for estimating parameters. \n", get_timestamp());
+
+    runHMMFlagger(chunksCreator,
+                  &model,
+                  numberOfIterations,
+                  convergenceTol,
+                  outputDir,
+                  threads,
+                  writeParameterStatsPerIteration,
+                  writeBenchmarkingStatsPerIteration,
+                  labelNamesWithUnknown,
+                  binArrayFilePath,
+                  overlapRatioThreshold,
+                  acceleration);
+
+
+    // 5. write final BED
+    fprintf(stderr, "[%s] Writing final BED file. \n", get_timestamp());
+
+    char outputBEDPath[2000];
+    sprintf(outputBEDPath, "%s/final_flagger_prediction.bed", outputDir);
+    ChunksCreator_writePredictionIntoFinalBED(chunksCreator, outputBEDPath, trackName);
+
+    ChunksCreator_destruct(chunksCreator);
     HMM_destruct(model);
-    stList_destruct(chunks);
+
+    fprintf(stderr, "[%s] Done! \n", get_timestamp());
+
+    double realtime = System_getRealTimePoint() - realtimeStart;
+    double cputime = System_getCpuTime();
+    double rssgb = System_getPeakRSSInGB();
+    double usage = System_getCpuUsage(cputime, realtime);
+    // copied from https://github.com/chhylp123/hifiasm/blob/70fd9a0b1fea45e442eb5f331922ea91ef4f71ae/main.cpp#L73
+    fprintf(stderr, "Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB; CPU usage: %.1f\%\n", realtime, cputime,
+            rssgb, usage * 100.0);
 }
