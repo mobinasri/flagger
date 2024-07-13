@@ -332,7 +332,7 @@ def main():
         # write header line
         f.write("Point_Index\tPoint_Type\tFinal_Score\tIs_Optimum_By_Train")
         for inputIndex in range(1, trainSize + 1):
-            f.write("\tOverlap_Based_{inputIndex}\tBase_Level_{inputIndex}\tAuN_Based_{inputIndex}\tCombined_{inputIndex}")
+            f.write(f"\tOverlap_Based_{inputIndex}\tBase_Level_{inputIndex}\tAuN_Based_{inputIndex}\tCombined_{inputIndex}")
         f.write("\n")
 
         for i, scores in enumerate(functionToMinimizeInternal.allScoresTrain):
@@ -356,7 +356,7 @@ def main():
             # write header line
             f.write("Point_Index\tPoint_Type\tFinal_Score\tIs_Optimum_By_Train")
             for inputIndex in range(1, testSize + 1):
-                f.write("\tOverlap_Based_{inputIndex}\tBase_Level_{inputIndex}\tAuN_Based_{inputIndex}\tCombined_{inputIndex}")
+                f.write(f"\tOverlap_Based_{inputIndex}\tBase_Level_{inputIndex}\tAuN_Based_{inputIndex}\tCombined_{inputIndex}")
             f.write("\n")
 
             for i, scores in enumerate(functionToMinimizeInternal.allScoresTest):
