@@ -199,7 +199,7 @@ def main():
     alphaMatrix = createAlphaMatrix(alphaTsv)
 
     contigLengths = [int(i) for i in contigLengthsStr.strip().split(',')]
-    if len(contigLengths) is 0 or contigLengths[0] is '':
+    if len(contigLengths) == 0 or contigLengths[0] == '':
         contigLengths = [numberOfObservations]
 
     if sum(contigLengths) != numberOfObservations:
