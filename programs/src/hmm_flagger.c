@@ -778,6 +778,6 @@ int main(int argc, char *argv[]) {
     double rssgb = System_getPeakRSSInGB();
     double usage = System_getCpuUsage(cputime, realtime);
     // copied from https://github.com/chhylp123/hifiasm/blob/70fd9a0b1fea45e442eb5f331922ea91ef4f71ae/main.cpp#L73
-    fprintf(stderr, "Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB; CPU usage: %.1f\%\n", realtime, cputime,
+    fprintf(stderr, "Real time:  %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB; CPU usage: %.1f\%\n", realtime, cputime,
             rssgb, usage * 100.0);
 }
