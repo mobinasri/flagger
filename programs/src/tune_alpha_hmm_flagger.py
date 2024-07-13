@@ -96,13 +96,7 @@ def getContiguityScore(outputDir, annotationLabel, sizeLabel):
     table = table.loc[lambda table: table.Category_Name == annotationLabel]
     table = table.loc[lambda table: table.Size_Bin_Name == sizeLabel]
     table = table.loc[lambda table: table.Label == "HARMONIC_MEAN"]
-    return float(table["auN_Ratio"].item())
-
-def getCombinedScore(outputDir, annotationLabel, sizeLabel):
-    score1 = getOverlapBasedScore(outputDir, annotationLabel, sizeLabel)
-    score2 = getBaseLevelScore(outputDir, annotationLabel, sizeLabel)
-    score3 = getContiguityScore(outputDir, annotationLabel, sizeLabel)
-    return (score1 + score2 + score3) / 3
+    return 100 * float(table["auN_Ratio"].item())
 
 
 def functionToMinimize(x):
@@ -126,7 +120,7 @@ def functionToMinimizeInternal(x):
 
     alphaMatrix = convertXToAlphaMatrix(x)
     os.makedirs(f"{outputDir}/optimization_point_{pointIndex}", exist_ok=True)
-    alphaTsvPath = f"{outputDir}/optimization_point_{pointIndex}/alpha_mat.tsv"
+    alphaTsvPath = f"{outputDir}/optimization_point_{pointIndex}/alpha_mat_point_{pointIndex}.tsv"
     saveAlphaMatrixInTSV(alphaMatrix, alphaTsvPath)
 
     internalOutputDirList = []
@@ -139,17 +133,48 @@ def functionToMinimizeInternal(x):
         paramsString = getParametersString(alphaTsvPath, inputPath, internalOutputDir, modelType, otherParamsString)
         paramsStringList.append(paramsString)
 
+    i = functionToMinimizeInternal.pointIndex
+    n = functionToMinimizeInternal.numberOfStartPoints
+    nIter = functionToMinimizeInternal.numberOfIterations
+    isStartPoint = False
+    if i <= n:
+        print(f"[{datetime.datetime.now()}] Point Index (for EGO) = {i} (Start point {i} out of {n}) ", file=sys.stderr)
+        isStartPoint = True
+    else:
+
+        print(f"[{datetime.datetime.now()}] Point Index (for EGO) = {i} (Iteration {i - n} out of {nIter})", file=sys.stderr)
+
+    print(f"[{datetime.datetime.now()}] Running hmm_flagger jobs", file=sys.stderr)
     runHMMFlaggerForList(paramsStringList, maxJobs)
 
     combinedScoreList = []
-    for internalOutputDir in internalOutputDirList:
-        combinedScoreList.append(getCombinedScore(internalOutputDir, annotationLabel, sizeLabel))
+    score1List = []
+    score2List = []
+    score3List = []
+    for inputIndex, internalOutputDir in enumerate(internalOutputDirList):
+        score1 = getOverlapBasedScore(internalOutputDir, annotationLabel, sizeLabel)
+        score2 = getBaseLevelScore(internalOutputDir, annotationLabel, sizeLabel)
+        score3 = getContiguityScore(internalOutputDir, annotationLabel, sizeLabel)
+        score1List.append(score1)
+        score2List.append(score2)
+        score3List.append(score3)
+        combined = (score1 + score2 + score3) / 3.0
+        print(f"[{datetime.datetime.now()}] [input index = {inputIndex}] OverlapBased = {score1:.3f}, BaseLevel = {score2:.3f}, Contiguity = {score3:.3f}, Combined = {combined:.3f}", file=sys.stderr)
+        combinedScoreList.append(combined)
 
     # times -1 since EGO algorithm minimizes the objective function
     finalScore = -1 * sum(combinedScoreList) / len(combinedScoreList)
 
-    print(f"[{datetime.datetime.now()}] Alpha = {alphaMatrix} , Final Score = {finalScore}", file=sys.stderr)
+    print(f"[{datetime.datetime.now()}] Alpha = ", file=sys.stderr)
+    np.savetxt(sys.stderr, alphaMatrix, delimiter='\t', fmt="%.3f")
+    print(f"Final Score = {finalScore:.3f}", file=sys.stderr)
     sys.stderr.flush()
+
+    score1Avg = sum(score1List) / len(score1List)
+    score2Avg = sum(score2List) / len(score3List)
+    score3Avg = sum(score3List) / len(score3List)
+
+    functionToMinimizeInternal.allScores.append(["start" if isStartPoint else "iteration", score1Avg, score2Avg, score3Avg, -1 * finalScore])
 
     return finalScore
 
@@ -161,10 +186,10 @@ def runHMMFlaggerForList(paramsStringList, maxJobs):
         for future in as_completed(futures):
             # retrieve the result
             result = future.result()
-            print(result[0])
-            if result[1] == 0:
+            ##print(result[0])
+            if result == 0:
                 success += 1
-    print(f"[{datetime.datetime.now()}] Successfully ran {len(paramsStringList)} jobs for hmm_flagger", file=sys.stderr)
+    #print(f"[{datetime.datetime.now()}] Successfully ran {len(paramsStringList)} jobs for hmm_flagger", file=sys.stderr)
     sys.stderr.flush()
 
 def runHMMFlagger(paramsString):
@@ -189,29 +214,35 @@ def main():
     parser.add_argument('--otherParamsText', type=str, default="",
                         help='Text file with one line that contains the optional parameters other than input file, model type and output dir')
     parser.add_argument('--numberOfStartPoints', type=int, default=10,
-                        help='EGO algorithm needs a set of start points to compute an initial estimation of the objective function. These points will be selected randomly in the feasibility space of the alpha matrix.')
+                        help='EGO algorithm needs a set of start points to compute an initial estimation of the objective function. These points will be selected randomly in the feasibility space of the alpha matrix. (Default=10)')
     parser.add_argument('--lowerBound', type=float, default=0.0,
-                        help='Lower bound on each entry of alpha matrix')
+                        help='Lower bound on each entry of alpha matrix (Default=0.0)')
     parser.add_argument('--upperBound', type=float, default=0.8,
-                        help='Upper bound on each entry of alpha matrix')
+                        help='Upper bound on each entry of alpha matrix (Default=0.8)')
     parser.add_argument('--iterations', type=int, default=50,
-                        help='Number of iterations for EGO algorithm (After computing start points)')
+                        help='Number of iterations for EGO algorithm (After computing start points) (Default=50)')
     parser.add_argument('--modelType', type=str, default='gaussian',
                         help='modelType can be either gaussian or trunc_exp_gaussian')
     parser.add_argument('--annotationLabel', type=str, default="whole_genome",
-                        help='Annotation label whose score will be used for optimizing alpha matrix')
+                        help='Annotation label whose score will be used for optimizing alpha matrix (Default=whole_genome)')
     parser.add_argument('--sizeLabel', type=str, default="ALL_SIZES",
-                        help='Size label whose score will be used for optimizing alpha matrix')
+                        help='Size label whose score will be used for optimizing alpha matrix (Default=ALL_SIZES)')
     parser.add_argument('--maxJobs', type=str, default=8,
                         help='Maximum number of hmm_flagger jobs that can be run at the same time. It is useful to adjust this number based on total number of cores available and the number of threads that each hmm_flagger job will take.')
+    parser.add_argument('--egoCriterion', type=str, default="EI",
+                        help='Criterion for EGO. It can be one of EI, SBO or LCB. https://smt.readthedocs.io/en/latest/_src_docs/applications/ego.html#implementation-notes (Default = EI)')
 
     args = parser.parse_args()
     lowerBound = args.lowerBound
     upperBound = args.upperBound
     numberOfStartPoints = args.numberOfStartPoints
     numberOfIterations = args.iterations
+    criterion = args.egoCriterion
 
     functionToMinimizeInternal.pointIndex = 0
+    functionToMinimizeInternal.allScores = []
+    functionToMinimizeInternal.numberOfStartPoints = numberOfStartPoints
+    functionToMinimizeInternal.numberOfIterations = numberOfIterations
     functionToMinimizeInternal.paramsDict = {}
     functionToMinimizeInternal.paramsDict["inputPathList"] = args.inputFiles.strip().split(',')
     functionToMinimizeInternal.paramsDict["outputDir"] = args.outputDir
@@ -220,7 +251,7 @@ def main():
     functionToMinimizeInternal.paramsDict["annotationLabel"] = args.annotationLabel
     functionToMinimizeInternal.paramsDict["sizeLabel"] = args.sizeLabel
 
-    if args.otherParamsText.strip() is not "":
+    if args.otherParamsText.strip() != "":
         with open(args.otherParamsText.strip(), "r") as f:
             lines = f.readlines()
             if 0 < len(lines):
@@ -246,4 +277,27 @@ def main():
     )
 
     x_opt, y_opt, _, x_data, y_data = ego.optimize(fun=functionToMinimize)
-    print("Minimum in x={} with f(x)={}".format(x_opt, y_opt))
+
+    optimumAlphaMatrix = convertXToAlphaMatrix(x_opt) 
+    print(f"[{datetime.datetime.now()}] Optimum in Alpha =",file=sys.stderr)
+    np.savetxt(sys.stderr, optimumAlphaMatrix, delimiter='\t', fmt="%.3f")
+    print(f"with f(x)={y_opt}", file=sys.stderr)
+
+    os.makedirs(args.outputDir, exist_ok=True)
+    alphaTsvPath = os.path.join(args.outputDir, "alpha_optimum.tsv")
+
+    print(f"[{datetime.datetime.now()}] Saving optimum alpha matrix in {alphaTsvPath}", file=sys.stderr)
+    saveAlphaMatrixInTSV(optimumAlphaMatrix, alphaTsvPath)
+
+    scoresTsvPath = os.path.join(args.outputDir, "scores.tsv")
+    print(f"[{datetime.datetime.now()}] Saving scores table in {scoresTsvPath}", file=sys.stderr)
+    with open(scoresTsvPath, "w") as f:
+        f.write("Point_Index\tPoint_Type\tOverlap_Based\tBase_Level\tauN_Based\tCombined\tIs_Optimum\n")
+        for i, scores in enumerate(functionToMinimizeInternal.allScores):
+            div = abs(-1 * y_opt[0] - scores[4]) / (-1 * y_opt[0])
+            isOptimum = "YES" if div < 1e-4 else "NO"
+            f.write(f"{i}\t{scores[0]}\t{scores[1]:.3f}\t{scores[2]:.3f}\t{scores[3]:.3f}\t{scores[4]:.3f}\t{isOptimum}\n")
+
+    print(f"[{datetime.datetime.now()}] Done!", file=sys.stderr)
+
+main()

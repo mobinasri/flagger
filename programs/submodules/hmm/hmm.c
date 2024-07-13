@@ -852,20 +852,23 @@ HMM *SquareAccelerator_getModelPrime(SquareAccelerator *accelerator, stList *emL
     // update alpha and recompute model prime until the parameter values are feasible
     // and the loglikelihood value is improved
     while (loglikelihoodModelPrime < loglikelihoodModel0){
+	//fprintf(stderr, "old = %.4f, new = %.4f\n", loglikelihoodModel0, loglikelihoodModelPrime);
         // if alpha rate is so close to -1 it means model prime will be very close to model 0
-        if ( accelerator->alphaRate > (-1 - 1e-10)) {
+        if ( accelerator->alphaRate > (-1 - 1e-2)) {
+	    accelerator->alphaRate = -1.0;
             HMM_destruct(accelerator->modelPrime);
             accelerator->modelPrime = HMM_copy(accelerator->model0);
             break;
         }
         // update alpha to make changes in parameter values smaller
-        accelerator->alphaRate = (accelerator->alphaRate - 1) / 2;
+        accelerator->alphaRate = accelerator->alphaRate * 0.25   - 0.75;
         // update parameters for modelPrime with the new alpha rate
         modelPrime = SquareAccelerator_computeValuesForModelPrime(accelerator);
         // running forward will update loglikelihood
         EM_runForwardForList(emList, modelPrime, threads);
         loglikelihoodModelPrime = modelPrime->loglikelihood;
     }
+    //fprintf(stderr, "old = %.4f, new = %.4f\n", loglikelihoodModel0, loglikelihoodModelPrime);
     fprintf(stderr, "[%s] Computed alpha rate for accelerating EM = %.4f\n", get_timestamp(), accelerator->alphaRate);
     return accelerator->modelPrime;
 }
@@ -1046,6 +1049,6 @@ void SquareAccelerator_computeRates(SquareAccelerator *accelerator) {
     // compute alpha rate
     accelerator->alphaRate = -1 * sqrt(alphaRateNumerator / alphaRateDenominator);
     if (accelerator->alphaRate > -1){
-	    accelerator->alphaRate = -1 - 1e-5;
+	    accelerator->alphaRate = -1;
     }
 }
