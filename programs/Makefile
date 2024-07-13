@@ -1,5 +1,5 @@
 CC=gcc
-INC=-I /home/apps/sonLib/C/inc/ -I /usr/local/include/htslib -I submodules/ptAlignment -I submodules/ptBlock -I submodules/cigar_it -I submodules/common -I submodules/track_reader -I submodules/hmm_utils -I submodules/data_types -I submodules/tpool -I submodules/digamma -I submodules/cJSON -I submodules/hmm -I submodules/chunk -I submodules/bias_detector -I submodules/count_data -I submodules/summary_table
+INC=-I /home/apps/sonLib/C/inc/ -I /usr/local/include/htslib -I submodules/ptAlignment -I submodules/ptBlock -I submodules/cigar_it -I submodules/common -I submodules/track_reader -I submodules/hmm_utils -I submodules/data_types -I submodules/tpool -I submodules/digamma -I submodules/cJSON -I submodules/hmm -I submodules/chunk -I submodules/bias_detector -I submodules/count_data -I submodules/summary_table -I submodules/cov_fast_reader
 STATIC_LIBS=/home/apps/sonLib/lib/sonLib.a
 CCFLAGS= -w $(STATIC_LIBS) $(INC) -lm -lhts -lpthread -lz
 BIN_DIR=bin
