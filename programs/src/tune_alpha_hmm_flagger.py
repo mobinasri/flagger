@@ -77,7 +77,7 @@ def getOverlapBasedScore(outputDir, annotationLabel, sizeLabel):
     table = table.loc[lambda table: table.Metric_Type == "overlap_based"]
     table = table.loc[lambda table: table.Category_Name == annotationLabel]
     table = table.loc[lambda table: table.Size_Bin_Name == sizeLabel]
-    table = table.loc[lambda table: table.Label == "HARMONIC_MEAN"]
+    table = table.loc[lambda table: table.Label == "HARMONIC_MEAN_NO_HAP"]
     return float(table["F1-Score"].item())
 
 def getBaseLevelScore(outputDir, annotationLabel, sizeLabel):
@@ -87,7 +87,7 @@ def getBaseLevelScore(outputDir, annotationLabel, sizeLabel):
     table = table.loc[lambda table: table.Metric_Type == "base_level"]
     table = table.loc[lambda table: table.Category_Name == annotationLabel]
     table = table.loc[lambda table: table.Size_Bin_Name == sizeLabel]
-    table = table.loc[lambda table: table.Label == "HARMONIC_MEAN"]
+    table = table.loc[lambda table: table.Label == "HARMONIC_MEAN_NO_HAP"]
     return float(table["F1-Score"].item())
 
 def getContiguityScore(outputDir, annotationLabel, sizeLabel):
