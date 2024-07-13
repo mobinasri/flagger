@@ -12,6 +12,8 @@
 #include <time.h>
 #include "sonLib.h"
 
+#define HAP_INDEX 2
+
 SummaryTable *SummaryTable_construct(int numberOfRows, int numberOfColumns) {
     SummaryTable *summaryTable = malloc(sizeof(SummaryTable));
     summaryTable->table = Double_construct2DArray(numberOfRows, numberOfColumns);
@@ -477,12 +479,27 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
             double totalTpPrecision = 0.0;
             double totalRecall = 0.0;
             double totalPrecision = 0.0;
+
+            // macro mean
             double sumOfRecall = 0.0;
             double sumOfPrecision = 0.0;
+            // macro mean no hap
+            double sumOfRecallNoHap = 0.0;
+            double sumOfPrecisionNoHap = 0.0;
+
+            // harmonic mean
             double sumOfReciprocalRecall = 0.0;
             double sumOfReciprocalPrecision = 0.0;
+            // harmonic mean no hap
+            double sumOfReciprocalRecallNoHap = 0.0;
+            double sumOfReciprocalPrecisionNoHap = 0.0;
+
+            // number of states with non-zero denominator
             int numberOfNonZeroDenomRecall = 0;
             int numberOfNonZeroDenomPrecision = 0;
+            // no hap
+            int numberOfNonZeroDenomRecallNoHap = 0;
+            int numberOfNonZeroDenomPrecisionNoHap = 0;
             // iterate over row indices
             for (int rowIndex = 0; rowIndex < numberOfLabels; rowIndex++) {
                 // recall is used as suffix for the variables related to the table whose reference label is truth
@@ -500,16 +517,32 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 double precisionPercent = tpPrecision / (tpPrecision + fp + 1.0e-9) * 100.0;
                 numberOfNonZeroDenomRecall += 1e-9 < (tpRecall + fn) ? 1 : 0;
                 numberOfNonZeroDenomPrecision += 1e-9 < (tpPrecision + fp) ? 1 : 0;
+
+                if(rowIndex != HAP_INDEX){ // hap index is 2
+                    numberOfNonZeroDenomRecallNoHap += 1e-9 < (tpRecall + fn) ? 1 : 0;
+                    numberOfNonZeroDenomPrecisionNoHap += 1e-9 < (tpPrecision + fp) ? 1 : 0;
+                }
                 // for calculating macro-average later
                 sumOfRecall += recallPercent;
                 sumOfPrecision += precisionPercent;
+                if(rowIndex != HAP_INDEX) { // hap index is 2
+                    sumOfRecallNoHap += recallPercent;
+                    sumOfPrecisionNoHap += precisionPercent;
+                }
+
                 // for calculating harmonic mean later
                 // 1.0e9 is sufficiently large
                 if (1e-9 < (tpRecall + fn)) {
                     sumOfReciprocalRecall += 0.0 < recallPercent ? 1.0 / recallPercent : 1.0e9;
+                    if(rowIndex != HAP_INDEX) { // hap index is 2
+                        sumOfReciprocalRecallNoHap += 0.0 < recallPercent ? 1.0 / recallPercent : 1.0e9;
+                    }
                 }
                 if (1e-9 < (tpPrecision + fp)) {
                     sumOfReciprocalPrecision += 0.0 < precisionPercent ? 1.0 / precisionPercent : 1.0e9;
+                    if(rowIndex != HAP_INDEX) { // hap index is 2
+                        sumOfReciprocalPrecisionNoHap += 0.0 < precisionPercent ? 1.0 / precisionPercent : 1.0e9;
+                    }
                 }
                 double f1Score = 2 * precisionPercent * recallPercent / (precisionPercent + recallPercent + 1.0e-9);
 
@@ -554,6 +587,8 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
             }
             double macroAverageRecall = 0.0;
             double macroAveragePrecision = 0.0;
+            double macroAverageRecallNoHap = 0.0;
+            double macroAveragePrecisionNoHap = 0.0;
 
             char macroAverageRecallStr[20];
             if (0 < numberOfNonZeroDenomRecall) {
@@ -571,8 +606,26 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 sprintf(macroAveragePrecisionStr, "NA");
             }
 
+            char macroAverageRecallStrNoHap[20];
+            if (0 < numberOfNonZeroDenomRecallNoHap) {
+                macroAverageRecallNoHap = sumOfRecallNoHap / numberOfNonZeroDenomRecallNoHap;
+                sprintf(macroAverageRecallStrNoHap, "%.2f", macroAverageRecallNoHap);
+            } else {
+                sprintf(macroAverageRecallStrNoHap, "NA");
+            }
+
+            char macroAveragePrecisionStrNoHap[20];
+            if (0 < numberOfNonZeroDenomPrecisionNoHap) {
+                macroAveragePrecisionNoHap = sumOfPrecisionNoHap / numberOfNonZeroDenomPrecisionNoHap;
+                sprintf(macroAveragePrecisionStrNoHap, "%.2f", macroAveragePrecisionNoHap);
+            } else {
+                sprintf(macroAveragePrecisionStrNoHap, "NA");
+            }
+
             double harmonicMeanRecall = 0.0;
             double harmonicMeanPrecision = 0.0;
+            double harmonicMeanRecallNoHap = 0.0;
+            double harmonicMeanPrecisionNoHap = 0.0;
 
             char harmonicMeanRecallStr[20];
             if (0 < numberOfNonZeroDenomRecall) {
@@ -590,6 +643,22 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 sprintf(harmonicMeanPrecisionStr, "NA");
             }
 
+            char harmonicMeanRecallStrNoHap[20];
+            if (0 < numberOfNonZeroDenomRecallNoHap) {
+                harmonicMeanRecallNoHap = (double) numberOfNonZeroDenomRecallNoHap / sumOfReciprocalRecallNoHap;
+                sprintf(harmonicMeanRecallStrNoHap, "%.2f", harmonicMeanRecallNoHap);
+            } else {
+                sprintf(harmonicMeanRecallStrNoHap, "NA");
+            }
+
+            char harmonicMeanPrecisionStrNoHap[20];
+            if (0 < numberOfNonZeroDenomPrecisionNoHap) {
+                harmonicMeanPrecisionNoHap = (double) numberOfNonZeroDenomPrecisionNoHap / sumOfReciprocalPrecisionNoHap;
+                sprintf(harmonicMeanPrecisionStrNoHap, "%.2f", harmonicMeanPrecisionNoHap);
+            } else {
+                sprintf(harmonicMeanPrecisionStrNoHap, "NA");
+            }
+
             char macroF1ScoreStr[20];
             if (0 < numberOfNonZeroDenomRecall && 0 < numberOfNonZeroDenomPrecision) {
                 double macroF1Score = 2 * macroAverageRecall * macroAveragePrecision /
@@ -599,6 +668,15 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 sprintf(macroF1ScoreStr, "NA");
             }
 
+            char macroF1ScoreStrNoHap[20];
+            if (0 < numberOfNonZeroDenomRecallNoHap && 0 < numberOfNonZeroDenomPrecisionNoHap) {
+                double macroF1ScoreNoHap = 2 * macroAverageRecallNoHap * macroAveragePrecisionNoHap /
+                                      (macroAverageRecallNoHap + macroAveragePrecisionNoHap + 1.0e-9);
+                sprintf(macroF1ScoreStrNoHap, "%.2f", macroF1ScoreNoHap);
+            } else {
+                sprintf(macroF1ScoreStrNoHap, "NA");
+            }
+
             char harmonicF1ScoreStr[20];
             if (0 < numberOfNonZeroDenomRecall && 0 < numberOfNonZeroDenomPrecision) {
                 double harmonicF1Score = 2 * harmonicMeanRecall * harmonicMeanPrecision /
@@ -606,6 +684,15 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
                 sprintf(harmonicF1ScoreStr, "%.2f", harmonicF1Score);
             } else {
                 sprintf(harmonicF1ScoreStr, "NA");
+            }
+
+            char harmonicF1ScoreStrNoHap[20];
+            if (0 < numberOfNonZeroDenomRecallNoHap && 0 < numberOfNonZeroDenomPrecisionNoHap) {
+                double harmonicF1ScoreNoHap = 2 * harmonicMeanRecallNoHap * harmonicMeanPrecisionNoHap /
+                                         (harmonicMeanRecallNoHap + harmonicMeanPrecisionNoHap + 1.0e-9);
+                sprintf(harmonicF1ScoreStrNoHap, "%.2f", harmonicF1ScoreNoHap);
+            } else {
+                sprintf(harmonicF1ScoreStrNoHap, "NA");
             }
 
             fprintf(fout, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
@@ -619,10 +706,26 @@ void SummaryTableList_writeFinalStatisticsIntoFile(SummaryTableList *recallTable
             fprintf(fout, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
                     linePrefix,
                     c1Name, c2Name,
+                    "MACRO_AVERAGE_NO_HAP",
+                    "NA", "NA", "NA", "NA",
+                    "NA", "NA",
+                    macroAveragePrecisionStrNoHap, macroAverageRecallStrNoHap, macroF1ScoreStrNoHap, "NA", "NA");
+
+            fprintf(fout, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                    linePrefix,
+                    c1Name, c2Name,
                     "HARMONIC_MEAN",
                     "NA", "NA", "NA", "NA",
                     "NA", "NA",
                     harmonicMeanPrecisionStr, harmonicMeanRecallStr, harmonicF1ScoreStr, "NA", "NA");
+
+            fprintf(fout, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                    linePrefix,
+                    c1Name, c2Name,
+                    "HARMONIC_MEAN_NO_HAP",
+                    "NA", "NA", "NA", "NA",
+                    "NA", "NA",
+                    harmonicMeanPrecisionStrNoHap, harmonicMeanRecallStrNoHap, harmonicF1ScoreStrNoHap, "NA", "NA");
 
             double accuracyPredictionRef = totalTpPrecision / (totalPrecision + 1.0e-9) * 100.0;
             double accuracyTruthRef = totalTpRecall / (totalRecall + 1e-9) * 100.0;
