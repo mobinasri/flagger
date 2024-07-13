@@ -1,7 +1,7 @@
 # Definitions
 repository = mobinasri
-identifier = hmm_flagger_dev
-version = v1.0.0
+identifier = flagger
+version = v1.0.0_alpha
 git_commit ?= $(shell git log --pretty=oneline -n 1 | cut -f1 -d " ")
 name = ${repository}/${identifier}
 tag = ${version}--${git_commit}
