@@ -388,13 +388,12 @@ MatrixDouble *getAlphaMatrix(char *alphaTsvPath) {
     if (alphaTsvPath == NULL) {
         MatrixDouble *alpha = MatrixDouble_construct0(NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1);
         MatrixDouble_setValue(alpha, 0.0);
-        return alpha
+        return alpha;
     }
 
-    skipFirstLine = false;
+    bool skipFirstLine = false;
     // -1 because of ignoring MSJ
-    MatrixDouble *alpha = MatrixDouble_parseFromFile(alphaTsvPath, NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1,
-                                                     skipFirstLine);
+    MatrixDouble *alpha = MatrixDouble_parseFromFile(alphaTsvPath, NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1, skipFirstLine);
     // check all alpha values are between 0 and 1
     for (int i = 0; i < alpha->dim1; i++) {
         for (int j = 0; j < alpha->dim2; j++) {
