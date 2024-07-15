@@ -43,6 +43,10 @@ double System_getCpuUsage(double cputime, double realtime) {
     return (cputime + 1e-9) / (realtime + 1e-9);
 }
 
+double get_random_number(double start, double end){
+    srand(time(NULL));
+    return (double) rand() / (double)(RAND_MAX/(end - start)) + start;
+}
 
 char *extractFileExtension(char *filePath) {
     int len = strlen(filePath);
@@ -630,6 +634,31 @@ stList *Splitter_parseLinesIntoList(const char *filepath) {
         // get contig name
         token = Splitter_getToken(splitter);
         stList_append(lines, copyString(token));
+        Splitter_destruct(splitter);
+    }
+    fclose(fp);
+    free(line);
+    return lines;
+}
+
+
+stSet *Splitter_parseLinesIntoSet(const char *filepath) {
+    stSet *lines = stSet_construct3(stHash_stringKey, stHash_stringEqualKey, free);
+    FILE *fp = fopen(filepath, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Error: Unable to open %s\n", filepath);
+    }
+    size_t len;
+    int read;
+    char *token;
+    char *line = malloc(1000);
+    while ((read = getline(&line, &len, fp)) > 0) {
+        //fprintf(stderr, "%s %d\n",line, read);
+        if (0 < read && line[read - 1] == '\n') line[read - 1] = '\0';
+        Splitter *splitter = Splitter_construct(line, ' ');
+        // get contig name
+        token = Splitter_getToken(splitter);
+        stSet_insert(lines, (void *)copyString(token));
         Splitter_destruct(splitter);
     }
     fclose(fp);

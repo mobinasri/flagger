@@ -10,7 +10,9 @@ bool test_BiasDetector_getAnnotationToRegionMap(char *bamPath, char *jsonPath) {
     int threads = 2;
     int minMapq = 10;
     int minClip = 0.1;
-    stHash *blockTable = ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(bamPath, jsonPath,
+    double downsampleRate = 1.0;
+    stHash *blockTable = ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(bamPath, NULL,
+                                                                                                      downsampleRate, jsonPath,
                                                                                                       threads, minMapq,
                                                                                                       minClip);
 

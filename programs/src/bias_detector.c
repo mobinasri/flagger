@@ -105,6 +105,8 @@ int main(int argc, char *argv[]) {
     //merge and create the final block table
     stHash * final_block_table = ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(
             bam_path,
+            NULL,
+            1.0,
             json_path,
             threads,
             min_mapq,

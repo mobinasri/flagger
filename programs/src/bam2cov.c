@@ -47,6 +47,8 @@ static struct option long_options[] =
                 {"output",                  required_argument, NULL, 'o'},
                 {"format",                  required_argument, NULL, 'f'},
                 {"runBiasDetection",        no_argument,       NULL, 'u'},
+                {"includeContigs",          required_argument, NULL, 'I'},
+                {"downsampleRate",          required_argument, NULL, 'D'},
                 {NULL,                      0,                 NULL, 0}
         };
 
@@ -55,12 +57,14 @@ int main(int argc, char *argv[]) {
     int c;
     int mapqThreshold = 20;
     double clipRatioThreshold = 0.1;
+    double downsampleRate = 1.0;
     int threads = 4;
     char *bamPath;
     char *outPath;
     char *jsonPath;
     char *program;
     char *restrictBiasAnnotationsPath = NULL;
+    char *includeContigsPath = NULL;
     char *baselineAnnotationName = copyString("no_annotation");
     double covDiffNormalizedThreshold = 0.15;
     int minBiasCoverage = 4;
@@ -69,7 +73,7 @@ int main(int argc, char *argv[]) {
     char *format = copyString("all");
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
 
-    while (~(c = getopt_long(argc, argv, "i:t:j:m:r:f:o:g:c:b:d:g:a:uh", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:t:j:m:r:f:o:g:c:b:d:g:a:I:D:uh", long_options, NULL))) {
         switch (c) {
             case 'i':
                 bamPath = optarg;
@@ -110,6 +114,16 @@ int main(int argc, char *argv[]) {
                 break;
             case 'u':
                 runBiasDetection = true;
+                break;
+            case 'I':
+                includeContigsPath = optarg;
+                break;
+            case 'D':
+                downsampleRate = atof(optarg);
+                if (downsampleRate > 1.0 || downsampleRate <= 0.0){
+                    fprintf(stderr, "[%s] --downsampleRate, -D  %.3f should be <=1.0 and >0.0 \n", get_timestamp(), downsampleRate);
+                    exit(EXIT_FAILURE);
+                }
                 break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
@@ -175,6 +189,13 @@ int main(int argc, char *argv[]) {
                         "         -u, --runBiasDetection\n"
                         "                           Run coverage bias detection. It will update the number \n"
                         "                           of regions. [Default: disabled]\n");
+                fprintf(stderr,
+                        "         -I, --includeContigs\n"
+                        "                           (Optional) Path to a text file with a list of contigs to include;\n"
+                        "                           one line per contig name. [Default: include all contigs]\n");
+                fprintf(stderr,
+                        "         -D, --downsampleRate\n"
+                        "                           Downsampling rate [Default : 1.0 means keeping everything]\n");
                 return 1;
         }
     }
@@ -182,6 +203,8 @@ int main(int argc, char *argv[]) {
 
     //merge and create the final block table
     stHash *blockTable = ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(bamPath,
+                                                                                                      includeContigsPath,
+                                                                                                      downsampleRate,
                                                                                                       jsonPath,
                                                                                                       threads,
                                                                                                       mapqThreshold,

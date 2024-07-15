@@ -867,6 +867,60 @@ stHash *ptBlock_parse_bed(char *bed_path) {
     return blocks_per_contig;
 }
 
+
+stHash *ptBlock_parse_bed_with_filtering_contigs(char *bed_path, stSet *contigs_to_include) {
+    FILE *fp = fopen(bed_path, "r");
+    size_t read;
+    size_t len;
+    char *line = NULL;
+    char *contig_name;
+    int start;
+    int end;
+    char *token;
+    ptBlock *block = NULL;
+    stList *blocks = NULL;
+    stHash *blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
+                                                  (void (*)(void *)) stList_destruct);
+    while ((read = getline(&line, &len, fp)) != -1) {
+        // replace '\n' by '\0'
+        if (line[strlen(line) - 1] == '\n') {
+            line[strlen(line) - 1] = '\0';
+        }
+        token = strtok(line, "\t");
+        contig_name = copyString(token);
+        if (contigs_to_include != NULL){
+            void *search_out = stSet_search(contigs_to_include, (void *)contig_name);
+            if (search_out == NULL){
+                free(contig_name);
+                continue;
+            }
+        }
+        token = strtok(NULL, "\t");
+        start = atoi(token); // 0-based
+        token = strtok(NULL, "\t");
+        end = atoi(token) - 1; // 0-based
+        block = ptBlock_construct(start, end, -1, -1, -1, -1);
+        blocks = stHash_search(blocks_per_contig, contig_name);
+        // if contig does not exist as a key in the table
+        // add contig along with an empty list as its value
+        if (blocks == NULL) {
+            blocks = stList_construct3(0, ptBlock_destruct);
+            stHash_insert(blocks_per_contig, contig_name, blocks);
+        }else{
+            free(contig_name);
+        }
+        stList_append(blocks, block);
+    }
+    // sort blocks per contig
+    stHashIterator *it = stHash_getIterator(blocks_per_contig);
+    while ((contig_name = stHash_getNext(it)) != NULL) {
+        blocks = stHash_search(blocks_per_contig, contig_name);
+        stList_sort(blocks, ptBlock_cmp_rfs);
+    }
+    stHash_destructIterator(it);
+    return blocks_per_contig;
+}
+
 void ptBlock_write_blocks_stHash_in_bed(stHash *blocks_per_contig,
                                         char *(*get_string_function)(void *),
                                         void *file_ptr,
@@ -1628,6 +1682,7 @@ void _update_coverage_blocks_with_alignments(void *arg_) {
     pthread_mutex_t *mutexPtr = argsCovExt->mutexPtr;
     int min_mapq = argsCovExt->min_mapq;
     double min_clipping_ratio = argsCovExt->min_clipping_ratio;
+    double downsample_rate = argsCovExt->downsample_rate;
 
     //open bam file
     samFile *fp = sam_open(bam_path, "r");
@@ -1658,6 +1713,7 @@ void _update_coverage_blocks_with_alignments(void *arg_) {
                 if (b->core.flag & BAM_FUNMAP) continue; // skip unmapped
                 if ((b->core.flag & BAM_FSECONDARY) > 0) continue; // skip secondary alignments
                 if (b->core.pos < block->rfs) continue; // make sure the alignment starts after block->rfs
+                if (downsample_rate < get_random_number(0.0, 1.0)) continue; // skip alignments randomly with the given rate
                 ptAlignment *alignment = ptAlignment_construct(b, sam_hdr);
                 // lock the mutex, add the coverage block and unlock the mutex
                 pthread_mutex_lock(mutexPtr);
@@ -1686,7 +1742,7 @@ void _update_coverage_blocks_with_alignments(void *arg_) {
     bam_destroy1(b);
 }
 
-stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path) {
+stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path, stSet *contigs) {
     stHash *blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, free,
                                                   (void (*)(void *)) stList_destruct);
     samFile *fp = sam_open(bam_path, "r");
@@ -1694,6 +1750,12 @@ stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path) {
     int64_t total_len = 0;
     for (int i = 0; i < sam_hdr->n_targets; i++) {
         char *ctg_name = sam_hdr->target_name[i];
+        if (contigs != NULL){
+            void *search_out = stSet_search(contigs, (void *)contig_name);
+            if (search_out == NULL){
+                continue;
+            }
+        }
         int ctg_len = sam_hdr->target_len[i];
         ptBlock *block = ptBlock_construct(0, ctg_len - 1,
                                            -1, -1,
@@ -1709,11 +1771,30 @@ stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path) {
     return blocks_per_contig;
 }
 
+
+stHash *ptBlock_filter_blocks_per_contig(stHash *blocks_per_contig, stSet *contigs) {
+    stHashIterator *it = stHash_getIterator(blocks_per_contig);
+    stHash *blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, free,
+                                                  (void (*)(void *)) stList_destruct);
+    while ((contig_name = stHash_getNext(it)) != NULL) {
+        void * search_out = stSet_search(contigs, (void *)contig_name);
+        if (search_out == NULL){
+            void *stHash_removeAndFreeKey(blocks_per_contig, void *key);
+        }
+        blocks_1 = stHash_search(blocks_per_contig_1, contig_name);
+        blocks_2 = stHash_search(blocks_per_contig_2, contig_name);
+        is_equal &= ptBlock_is_equal_stList(blocks_1, blocks_2);
+    }
+    return blocks_per_contig;
+}
+
 stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
+                                                   stSet *contigs_to_include,
+                                                   double downsample_rate,
                                                    int threads,
                                                    int min_mapq,
                                                    double min_clipping_ratio) {
-    stHash *whole_genome_blocks_per_contig = ptBlock_get_whole_genome_blocks_per_contig(bam_path);
+    stHash *whole_genome_blocks_per_contig = ptBlock_get_whole_genome_blocks_per_contig(bam_path, contigs_to_include);
     stList *block_batches = ptBlock_split_into_batches(whole_genome_blocks_per_contig, threads);
     stHash *coverage_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                            (void (*)(void *)) stList_destruct);
@@ -1732,6 +1813,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
         argsCovExt->mutexPtr = mutexPtr;
         argsCovExt->min_mapq = min_mapq;
         argsCovExt->min_clipping_ratio = min_clipping_ratio;
+        argsCovExt->downsample_rate = downsample_rate;
         work_arg_t *arg = malloc(sizeof(work_arg_t));
         arg->data = (void *) argsCovExt;
         // Add a new job to the thread pool
@@ -1845,7 +1927,9 @@ stList *parse_annotation_paths_and_save_in_stList(const char *json_path, const c
 }
 
 // annotation_zero_block_table can be NULL
-stList *parse_all_annotations_and_save_in_stList(const char *json_path, stHash *annotation_zero_block_table) {
+stList *parse_all_annotations_and_save_in_stList(const char *json_path,
+                                                 stHash *annotation_zero_block_table,
+                                                 stSet *contigs_to_include) {
     stList *block_table_list = stList_construct3(0, stHash_destruct);
     // first add block table for annotation 0 (no_annotation)
     if (annotation_zero_block_table != NULL) {
@@ -1873,7 +1957,7 @@ stList *parse_all_annotations_and_save_in_stList(const char *json_path, stHash *
         cJSON_ArrayForEach(element, annotation_json) {
             if (cJSON_IsString(element)) {
                 char *bed_path = cJSON_GetStringValue(element);
-                stHash *annotation_block_table = ptBlock_parse_bed(bed_path);
+                stHash *annotation_block_table = ptBlock_parse_bed_with_filtering_contigs(bed_path, contigs_to_include);
                 fprintf(stderr, "[%s] Parsed  annotation %s:%s\n", get_timestamp(), element->string,
                         cJSON_GetStringValue(element));
                 stList_append(block_table_list, annotation_block_table);
@@ -2020,15 +2104,24 @@ void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list) 
 }
 
 stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(char *bam_path,
+                                                                                     char *contigs_path,
+                                                                                     double downsample_rate,
                                                                                      char *json_path,
                                                                                      int threads,
                                                                                      int min_mapq,
                                                                                      double min_clipping_ratio) {
 
+    stSet *contigs_to_include = NULL;
+    if (contigs_path != NULL){
+        contigs_to_include = Splitter_parseLinesIntoSet(contigs_path);
+    }
+
     // parse alignments and make a block table that contains the necessary coverage values per block
     // the coverage values will be related to the total alignments, alignments with high mapq and
     // each block in the output table is a maximal contiguous block with no change in the depth of coverage
     stHash *coverage_block_table = ptBlock_multi_threaded_coverage_extraction(bam_path,
+                                                                              contigs_to_include,
+                                                                              downsample_rate,
                                                                               threads,
                                                                               min_mapq,
                                                                               min_clipping_ratio);
@@ -2039,7 +2132,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
 
     // cover the whole genome with blocks that have zero coverage
     // this is useful to save the blocks with no coverage
-    stHash *whole_genome_block_table = ptBlock_get_whole_genome_blocks_per_contig(bam_path);
+    stHash *whole_genome_block_table = ptBlock_get_whole_genome_blocks_per_contig(bam_path, contigs_to_include);
 
     CoverageInfo *cov_info = CoverageInfo_construct(CoverageInfo_getAnnotationFlag(0), 0, 0, 0);
     // The cov_info object created above will be copied and added as "data" to all whole genome blocks
@@ -2057,7 +2150,9 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
 
 
     // parse annotation bed files
-    stList *annotation_block_table_list = parse_all_annotations_and_save_in_stList(json_path, whole_genome_block_table);
+    stList *annotation_block_table_list = parse_all_annotations_and_save_in_stList(json_path,
+                                                                                   whole_genome_block_table,
+                                                                                   contigs_to_include);
 
     if (MAX_NUMBER_OF_ANNOTATIONS < stList_length(annotation_block_table_list)) {
         fprintf(stderr,

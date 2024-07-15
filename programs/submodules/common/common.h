@@ -42,6 +42,7 @@ double System_getPeakRSSInGB(void);
 
 double System_getCpuUsage(double cputime, double realtime);
 
+double get_random_number(double start, double end);
 
 char *extractFileExtension(char *filePath);
 
@@ -174,6 +175,8 @@ char *String_joinIntArray(int *array, int length, char delimiter);
 char *String_joinStringArray(const char **array, int elementMaxSize, int length, char delimiter);
 
 stList *Splitter_parseLinesIntoList(const char *filepath);
+
+stSet *Splitter_parseLinesIntoSet(const char *filepath);
 
 bool stList_existInStringList(stList *stringList, const char *str);
 

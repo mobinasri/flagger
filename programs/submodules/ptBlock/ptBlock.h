@@ -328,6 +328,8 @@ void ptBlock_sort_stHash_by_rfs(stHash *blocks_per_contig);
  */
 stHash *ptBlock_parse_bed(char *bed_path);
 
+stHash *ptBlock_parse_bed_with_filtering_contigs(char *bed_path, stSet *contigs_to_include);
+
 
 /**
  * Compare two ptBlock structures
@@ -688,18 +690,21 @@ typedef struct ArgumentsCovExt {
     pthread_mutex_t *mutexPtr;
     int min_mapq;
     double min_clipping_ratio;
+    double downsample_rate;
 } ArgumentsCovExt;
 
 // parse bam file and create a stHash table of blocks
 // coverage information is saved in a CoverageInfo object
 // available as the "data" attribute of each resulting block
 stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
+                                                   stSet *contigs_to_include,
+                                                   double downsample_rate,
                                                    int threads,
                                                    int min_mapq,
                                                    double min_clipping_ratio);
 
 // make a block table that covers the whole reference sequences
-stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path);
+stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path, stSet *contigs);
 
 int get_annotation_index(stList *annotation_names, char *annotation_name);
 
@@ -709,7 +714,9 @@ stList *parse_annotation_paths_and_save_in_stList(const char *json_path, const c
 
 void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list);
 
-stList *parse_all_annotations_and_save_in_stList(const char *json_path, stHash *annotation_zero_block_table);
+stList *parse_all_annotations_and_save_in_stList(const char *json_path,
+                                                 stHash *annotation_zero_block_table,
+                                                 stSet *contigs_to_include);
 
 
 // parse bam file and create a stHash table of blocks
@@ -717,6 +724,8 @@ stList *parse_all_annotations_and_save_in_stList(const char *json_path, stHash *
 // and it adds the blocks with 0 coverage and also fills the annotation
 // fields based on the bed files whose paths are given in a json file
 stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(char *bam_path,
+                                                                                     char *contigs_path,
+                                                                                     double downsample_rate,
                                                                                      char *json_path,
                                                                                      int threads,
                                                                                      int min_mapq,
