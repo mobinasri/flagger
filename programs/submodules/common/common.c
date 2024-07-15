@@ -44,8 +44,8 @@ double System_getCpuUsage(double cputime, double realtime) {
 }
 
 double get_random_number(double start, double end){
-    srand(time(NULL));
-    return (double) rand() / (double)(RAND_MAX/(end - start)) + start;
+    double x= (double) rand() / (double)(RAND_MAX/(end - start)) + start;
+    return x;
 }
 
 char *extractFileExtension(char *filePath) {

@@ -1751,7 +1751,7 @@ stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path, stSet *contig
     for (int i = 0; i < sam_hdr->n_targets; i++) {
         char *ctg_name = sam_hdr->target_name[i];
         if (contigs != NULL){
-            void *search_out = stSet_search(contigs, (void *)contig_name);
+            void *search_out = stSet_search(contigs, (void *)ctg_name);
             if (search_out == NULL){
                 continue;
             }
@@ -1772,21 +1772,6 @@ stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path, stSet *contig
 }
 
 
-stHash *ptBlock_filter_blocks_per_contig(stHash *blocks_per_contig, stSet *contigs) {
-    stHashIterator *it = stHash_getIterator(blocks_per_contig);
-    stHash *blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, free,
-                                                  (void (*)(void *)) stList_destruct);
-    while ((contig_name = stHash_getNext(it)) != NULL) {
-        void * search_out = stSet_search(contigs, (void *)contig_name);
-        if (search_out == NULL){
-            void *stHash_removeAndFreeKey(blocks_per_contig, void *key);
-        }
-        blocks_1 = stHash_search(blocks_per_contig_1, contig_name);
-        blocks_2 = stHash_search(blocks_per_contig_2, contig_name);
-        is_equal &= ptBlock_is_equal_stList(blocks_1, blocks_2);
-    }
-    return blocks_per_contig;
-}
 
 stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
                                                    stSet *contigs_to_include,
@@ -2111,6 +2096,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
                                                                                      int min_mapq,
                                                                                      double min_clipping_ratio) {
 
+    srand(time(NULL));
     stSet *contigs_to_include = NULL;
     if (contigs_path != NULL){
         contigs_to_include = Splitter_parseLinesIntoSet(contigs_path);
