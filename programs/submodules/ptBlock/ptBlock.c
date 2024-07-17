@@ -2221,19 +2221,21 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable,
 
     // open output file for writing
     void *filePtr;
+    gzFile fp1;
+    FILE *fp2;
     if (isCompressed) {
-        gzFile fp = gzopen(outPath, "w6h");
-        if (fp == Z_NULL) {
+        fp1 = gzopen(outPath, "w6h");
+        if (fp1 == Z_NULL) {
             fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outPath);
             exit(EXIT_FAILURE);
         }
-        filePtr = &fp;
+        filePtr = &fp1;
     } else {
-        FILE *fp = fopen(outPath, "w");
-        if (fp == NULL) {
+        fp2 = fopen(outPath, "w");
+        if (fp2 == NULL) {
             fprintf(stderr, "[%s] Error: Failed to open file %s.\n", get_timestamp(), outPath);
         }
-        filePtr = fp;
+        filePtr = fp2;
     }
 
     fprintf(stderr, "[%s] Started writing to %s.\n", get_timestamp(), outPath);
