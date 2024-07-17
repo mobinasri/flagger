@@ -54,7 +54,7 @@ bool file_exists(char *filename);
 
 bool folder_exists(char *folderpath);
 
-char *read_whole_file(char *file_path, long *length_ptr, char *mode);
+char *read_whole_file(char *file_path, size_t *length_ptr, char *mode);
 
 char *copyString(char *str);
 

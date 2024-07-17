@@ -1851,7 +1851,7 @@ stList *parse_annotation_names_and_save_in_stList(const char *json_path, const c
         return annotation_names;
     }
 
-    int buffer_size = 0;
+    size_t buffer_size = 0;
     char *json_buffer = read_whole_file(json_path, &buffer_size, "r");
     fwrite(json_buffer, 1, buffer_size, stderr);
     cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
@@ -1887,7 +1887,7 @@ stList *parse_annotation_paths_and_save_in_stList(const char *json_path, const c
         return annotation_paths;
     }
 
-    int buffer_size = 0;
+    size_t buffer_size = 0;
     char *json_buffer = read_whole_file(json_path, &buffer_size, "r");
     fwrite(json_buffer, 1, buffer_size, stderr);
     cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);
@@ -1922,7 +1922,7 @@ stList *parse_all_annotations_and_save_in_stList(const char *json_path,
     }
 
     if (json_path != NULL) {
-        int buffer_size = 0;
+        size_t buffer_size = 0;
         char *json_buffer = read_whole_file(json_path, &buffer_size, "r");
         fwrite(json_buffer, 1, buffer_size, stderr);
         cJSON *annotation_json = cJSON_ParseWithLength(json_buffer, buffer_size);

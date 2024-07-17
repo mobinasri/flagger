@@ -91,9 +91,9 @@ void removeSpacesInPlace(char *s) {
     } while (*s++ = *d++);
 }
 
-char *read_whole_file(char *file_path, long *length_ptr, char *mode) {
+char *read_whole_file(char *file_path, size_t *length_ptr, char *mode) {
     char *buffer = 0;
-    long length;
+    size_t length;
     FILE *f = fopen(file_path, mode);
 
     if (f) {
