@@ -58,7 +58,8 @@ def convertXToAlphaMatrix(x):
     return alphaMatrix
 
 def getInputPrefix(inputPath):
-    elems = inputPath.split('.')
+    filename = os.path.basename(inputPath)
+    elems = filename.split('.')
     if elems[-1] == 'gz' and 2 < len(elems):
         return '.'.join(elems[:-2])
     else:
