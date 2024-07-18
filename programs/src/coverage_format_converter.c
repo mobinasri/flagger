@@ -57,13 +57,13 @@ int main(int argc, char *argv[]) {
                         "         -i         input path (can have formats '.cov', '.cov.gz', '.bed' or '.bed.gz')\n");
                 fprintf(stderr, "         -f         fai path\n");
                 fprintf(stderr,
-                        "         -o         output path (can have formats '.cov', '.cov.gz', '.bed', '.bed.gz', or 'bedgraph')\n");
+                        "         -o         output path (can have formats '.cov', '.cov.gz', '.bed', '.bed.gz', '.bedgraph', or '.bin')\n");
                 fprintf(stderr,
-                        "         -w         window length (only be used for generating wig file) [Default = 1000]\n");
+                        "         -w         window length (only be used for generating bedgraph or bin file) [Default = 1000]\n");
                 fprintf(stderr,
-                        "         -t         number of threads for taking window average (only be used for generating wig file) [Default = 4]\n");
+                        "         -t         number of threads for taking window average (only be used for generating bedgraph or bin file) [Default = 4]\n");
                 fprintf(stderr,
-                        "         -n         track name (only be used for generating wig file) [Default = 'coverage_wig']\n");
+                        "         -n         track name (only be used for generating bedgraph file) [Default = 'coverage_bedgraph']\n");
                 return 1;
         }
     }
@@ -76,8 +76,9 @@ int main(int argc, char *argv[]) {
         strcmp(outputExtension, "cov.gz") != 0 &&
         strcmp(outputExtension, "bed") != 0 &&
         strcmp(outputExtension, "bed.gz") != 0 &&
-        strcmp(outputExtension, "bedgraph") != 0) {
-        fprintf(stderr, "[%s] Error: output file should either cov/cov.gz/bed/bed.gz/bedgraph  !\n", get_timestamp());
+        strcmp(outputExtension, "bedgraph") != 0 &&
+        strcmp(outputExtension, "bin") != 0) {
+        fprintf(stderr, "[%s] Error: output file should either cov/cov.gz/bed/bed.gz/bedgraph/bin  !\n", get_timestamp());
         free(inputExtension);
         free(outputExtension);
         exit(EXIT_FAILURE);
@@ -160,20 +161,37 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    fprintf(stderr, "[%s] Parsing header from %s.\n", get_timestamp(), inputPath);
-    CoverageHeader *header = CoverageHeader_construct(inputPath);
+    if (strcmp(outputExtension, "bin") != 0) {
+        fprintf(stderr, "[%s] Parsing header from %s.\n", get_timestamp(), inputPath);
+        CoverageHeader *header = CoverageHeader_construct(inputPath);
 
-    fprintf(stderr, "[%s] Parsing tracks from %s.\n", get_timestamp(), inputPath);
-    stHash *blockTable = ptBlock_parse_coverage_info_blocks(inputPath);
+        fprintf(stderr, "[%s] Parsing tracks from %s.\n", get_timestamp(), inputPath);
+        stHash *blockTable = ptBlock_parse_coverage_info_blocks(inputPath);
 
-    fprintf(stderr, "[%s] Writing %s.\n", get_timestamp(), outputPath);
-    // write header and tracks into output file
-    // all means write all available columns
-    ptBlock_write_blocks_per_contig(blockTable, outputPath, "all", ctgToLen, header);
+        fprintf(stderr, "[%s] Writing %s.\n", get_timestamp(), outputPath);
+        // write header and tracks into output file
+        // all means write all available columns
+        ptBlock_write_blocks_per_contig(blockTable, outputPath, "all", ctgToLen, header);
 
-    // free memory
-    CoverageHeader_destruct(header);
-    stHash_destruct(blockTable);
+        // free memory
+        CoverageHeader_destruct(header);
+        stHash_destruct(blockTable);
+    }
+
+    if (strcmp(outputExtension, "bin") == 0) {
+        int chunkCanonicalLen = 20000000;
+        ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLen, threads, windowLen);
+        if (ChunksCreator_parseChunks(chunksCreator) != 0) {
+            fprintf(stderr, "[%s] Error: creating chunks from cov file failed.\n", get_timestamp());
+            exit(EXIT_FAILURE);
+        }
+        fprintf(stderr, "[%s] Chunks are constructed from cov file.\n", get_timestamp());
+        fprintf(stderr, "[%s] Writing bin file into %s . \n", get_timestamp(), outputPath);
+        ChunksCreator_writeChunksIntoBinaryFile(chunksCreator, outputPath);
+        ChunksCreator_destruct(chunksCreator);
+    }
+
+
     if (ctgToLen != NULL) stHash_destruct(ctgToLen);
     free(outputExtension);
     fprintf(stderr, "[%s] Done!\n", get_timestamp());
