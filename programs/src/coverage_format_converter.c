@@ -26,9 +26,10 @@ int main(int argc, char *argv[]) {
     int windowLen = 1000;
     int nThreads = 4;
     char *trackName = "coverage_wig";
+    int chunkCanonicalLen = 20000000;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "i:o:f:w:t:n:h"))) {
+    while (~(c = getopt(argc, argv, "i:o:f:w:t:n:c:h"))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -44,6 +45,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 't':
                 nThreads = atoi(optarg);
+                break;
+            case 'c':
+                chunkCanonicalLen = atoi(optarg);
                 break;
             case 'n':
                 trackName = optarg;
@@ -64,6 +68,8 @@ int main(int argc, char *argv[]) {
                         "         -t         number of threads for taking window average (only be used for generating bedgraph or bin file) [Default = 4]\n");
                 fprintf(stderr,
                         "         -n         track name (only be used for generating bedgraph file) [Default = 'coverage_bedgraph']\n");
+                fprintf(stderr,
+                        "         -c         chunk length for converting to bin. [Default: 20000000 (20 Mb)]\n");
                 return 1;
         }
     }
@@ -113,8 +119,8 @@ int main(int argc, char *argv[]) {
         memcpy(prefix, outputPath, strlen(outputPath) - 9);
         prefix[strlen(outputPath) - 9] = '\0';
 
-        int chunkCanonicalLen = ptBlock_get_max_contig_length(ctgToLen);
-        ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLen, nThreads,
+        int chunkCanonicalLenBedGraph = ptBlock_get_max_contig_length(ctgToLen);
+        ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLenBedGraph, nThreads,
                                                                       windowLen);
         ChunksCreator_parseChunks(chunksCreator);
         ChunksCreator_sortChunks(chunksCreator);
@@ -179,7 +185,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp(outputExtension, "bin") == 0) {
-        int chunkCanonicalLen = 20000000;
         ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLen, nThreads, windowLen);
         if (ChunksCreator_parseChunks(chunksCreator) != 0) {
             fprintf(stderr, "[%s] Error: creating chunks from cov file failed.\n", get_timestamp());
