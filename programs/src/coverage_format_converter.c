@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
 
     if (strcmp(outputExtension, "bin") == 0) {
         int chunkCanonicalLen = 20000000;
-        ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLen, threads, windowLen);
+        ChunksCreator *chunksCreator = ChunksCreator_constructFromCov(inputPath, faiPath, chunkCanonicalLen, nThreads, windowLen);
         if (ChunksCreator_parseChunks(chunksCreator) != 0) {
             fprintf(stderr, "[%s] Error: creating chunks from cov file failed.\n", get_timestamp());
             exit(EXIT_FAILURE);
