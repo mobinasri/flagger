@@ -155,6 +155,7 @@ def functionToMinimizeInternal(x):
         print(f"[{datetime.datetime.now()}] Point Index (for EGO) = {i} (Iteration {i - n} out of {nIter})", file=sys.stderr)
 
     print(f"[{datetime.datetime.now()}] Initiating {len(paramsStringList)} hmm_flagger jobs for training/testing", file=sys.stderr)
+    sys.stderr.flush()
     runHMMFlaggerForList(paramsStringList, maxJobs)
 
     combinedScoreTrainList = []
