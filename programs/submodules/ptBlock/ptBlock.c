@@ -888,9 +888,9 @@ stHash *ptBlock_parse_bed_with_filtering_contigs(char *bed_path, stSet *contigs_
         }
         token = strtok(line, "\t");
         contig_name = copyString(token);
-        if (contigs_to_include != NULL){
-            void *search_out = stSet_search(contigs_to_include, (void *)contig_name);
-            if (search_out == NULL){
+        if (contigs_to_include != NULL) {
+            void *search_out = stSet_search(contigs_to_include, (void *) contig_name);
+            if (search_out == NULL) {
                 free(contig_name);
                 continue;
             }
@@ -906,7 +906,7 @@ stHash *ptBlock_parse_bed_with_filtering_contigs(char *bed_path, stSet *contigs_
         if (blocks == NULL) {
             blocks = stList_construct3(0, ptBlock_destruct);
             stHash_insert(blocks_per_contig, contig_name, blocks);
-        }else{
+        } else {
             free(contig_name);
         }
         stList_append(blocks, block);
@@ -1319,10 +1319,15 @@ stHash *ptBlock_merge_blocks_per_contig_by_sq_v2(stHash *blocks_per_contig) {
 
 typedef struct MergingBlocksArgs {
     stHash *unmerged_blocks_per_contig;
+
     int (*get_start)(ptBlock *);
+
     int (*get_end)(ptBlock *);
+
     void (*set_start)(ptBlock *, int);
+
     void (*set_end)(ptBlock *, int);
+
     char *contig_name;
     stHash *merged_blocks_per_contig;
     pthread_mutex_t *mutex;
@@ -1331,10 +1336,11 @@ typedef struct MergingBlocksArgs {
 MergingBlocksArgs *MergingBlocksArgs_construct(stHash *unmerged_blocks_per_contig,
                                                int (*get_start)(ptBlock *),
                                                int (*get_end)(ptBlock *),
-					       void (*set_start)(ptBlock *, int),
+                                               void (*set_start)(ptBlock *, int),
                                                void (*set_end)(ptBlock *, int),
                                                char *contig_name,
-                                               stHash *merged_blocks_per_contig) {
+                                               stHash *merged_blocks_per_contig,
+                                               pthread_mutex_t *mutex) {
     MergingBlocksArgs *mergingBlocksArgs = malloc(sizeof(MergingBlocksArgs));
     mergingBlocksArgs->unmerged_blocks_per_contig = unmerged_blocks_per_contig;
     mergingBlocksArgs->get_start = get_start;
@@ -1343,13 +1349,11 @@ MergingBlocksArgs *MergingBlocksArgs_construct(stHash *unmerged_blocks_per_conti
     mergingBlocksArgs->set_end = set_end;
     mergingBlocksArgs->contig_name = contig_name;
     mergingBlocksArgs->merged_blocks_per_contig = merged_blocks_per_contig;
-    mergingBlocksArgs->mutex = malloc(sizeof(pthread_mutex_t));
-    pthread_mutex_init(mergingBlocksArgs->mutex, NULL);
+    mergingBlocksArgs->mutex = mutex;
     return mergingBlocksArgs;
 }
 
 MergingBlocksArgs *MergingBlocksArgs_destruct(MergingBlocksArgs *mergingBlocksArgs) {
-    pthread_mutex_destroy(mergingBlocksArgs->mutex);
     free(mergingBlocksArgs);
 }
 
@@ -1379,7 +1383,8 @@ void ptBlock_merge_blocks_per_contig_v2_one_thread(void *argWork_) {
 
 stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_contig,
                                                          int (*get_start)(ptBlock *), int (*get_end)(ptBlock *),
-                                                         void (*set_start)(ptBlock *, int), void (*set_end)(ptBlock *, int),
+                                                         void (*set_start)(ptBlock *, int),
+                                                         void (*set_end)(ptBlock *, int),
                                                          int threads) {
     char *contig_name;
     stList *blocks;
@@ -1392,14 +1397,17 @@ stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_cont
 
     stHashIterator *it = stHash_getIterator(blocks_per_contig);
     stList *argsList = stList_construct3(0, MergingBlocksArgs_destruct);
+    pthread_mutex_t *mutex = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(mutex, NULL);
     while ((contig_name = stHash_getNext(it)) != NULL) {
         MergingBlocksArgs *mergingBlocksArgs = MergingBlocksArgs_construct(blocks_per_contig,
                                                                            get_start,
                                                                            get_end,
-									   set_start,
+                                                                           set_start,
                                                                            set_end,
                                                                            contig_name,
-                                                                           merged_blocks_per_contig);
+                                                                           merged_blocks_per_contig,
+                                                                           mutex);
         work_arg_t *argWork = malloc(sizeof(work_arg_t));
         argWork->data = (void *) mergingBlocksArgs;
         // submit a job
@@ -1415,6 +1423,7 @@ stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_cont
     // free mem
     stList_destruct(argsList);
     stHash_destructIterator(it);
+    pthread_mutex_destroy(mutex);
 
     return merged_blocks_per_contig;
 }
@@ -1423,26 +1432,26 @@ stHash *ptBlock_merge_blocks_per_contig_v2_multithreaded(stHash *blocks_per_cont
 
 stHash *ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(stHash *blocks_per_contig, int threads) {
     return ptBlock_merge_blocks_per_contig_v2_multithreaded(blocks_per_contig, ptBlock_get_rfs,
-                                              ptBlock_get_rfe,
-                                              ptBlock_set_rfs,
-                                              ptBlock_set_rfe,
-                                              threads);
+                                                            ptBlock_get_rfe,
+                                                            ptBlock_set_rfs,
+                                                            ptBlock_set_rfe,
+                                                            threads);
 }
 
 stHash *ptBlock_merge_blocks_per_contig_by_rd_f_v2_multithreaded(stHash *blocks_per_contig, int threads) {
     return ptBlock_merge_blocks_per_contig_v2_multithreaded(blocks_per_contig, ptBlock_get_rds_f,
-                                              ptBlock_get_rde_f,
-                                              ptBlock_set_rds_f,
-                                              ptBlock_set_rde_f,
-                                              threads);
+                                                            ptBlock_get_rde_f,
+                                                            ptBlock_set_rds_f,
+                                                            ptBlock_set_rde_f,
+                                                            threads);
 }
 
 stHash *ptBlock_merge_blocks_per_contig_by_sq_v2_multithreaded(stHash *blocks_per_contig, int threads) {
     return ptBlock_merge_blocks_per_contig_v2_multithreaded(blocks_per_contig, ptBlock_get_sqs,
-                                              ptBlock_get_sqe,
-                                              ptBlock_set_sqs,
-                                              ptBlock_set_sqe,
-                                              threads);
+                                                            ptBlock_get_sqe,
+                                                            ptBlock_set_sqs,
+                                                            ptBlock_set_sqe,
+                                                            threads);
 }
 
 int64_t ptBlock_get_total_number(stHash *blocks_per_contig) {
@@ -1713,7 +1722,8 @@ void _update_coverage_blocks_with_alignments(void *arg_) {
                 if (b->core.flag & BAM_FUNMAP) continue; // skip unmapped
                 if ((b->core.flag & BAM_FSECONDARY) > 0) continue; // skip secondary alignments
                 if (b->core.pos < block->rfs) continue; // make sure the alignment starts after block->rfs
-                if (downsample_rate < get_random_number(0.0, 1.0)) continue; // skip alignments randomly with the given rate
+                if (downsample_rate < get_random_number(0.0, 1.0))
+                    continue; // skip alignments randomly with the given rate
                 ptAlignment *alignment = ptAlignment_construct(b, sam_hdr);
                 // lock the mutex, add the coverage block and unlock the mutex
                 pthread_mutex_lock(mutexPtr);
@@ -1750,9 +1760,9 @@ stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path, stSet *contig
     int64_t total_len = 0;
     for (int i = 0; i < sam_hdr->n_targets; i++) {
         char *ctg_name = sam_hdr->target_name[i];
-        if (contigs != NULL){
-            void *search_out = stSet_search(contigs, (void *)ctg_name);
-            if (search_out == NULL){
+        if (contigs != NULL) {
+            void *search_out = stSet_search(contigs, (void *) ctg_name);
+            if (search_out == NULL) {
                 continue;
             }
         }
@@ -1770,7 +1780,6 @@ stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path, stSet *contig
     sam_close(fp);
     return blocks_per_contig;
 }
-
 
 
 stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
@@ -1823,7 +1832,8 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
     //sort
     ptBlock_sort_stHash_by_rfs(coverage_blocks_per_contig);
     //merge
-    stHash *coverage_blocks_per_contig_merged = ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(coverage_blocks_per_contig, threads);
+    stHash *coverage_blocks_per_contig_merged = ptBlock_merge_blocks_per_contig_by_rf_v2_multithreaded(
+            coverage_blocks_per_contig, threads);
     fprintf(stderr, "[%s] Merging coverage blocks is done.\n", get_timestamp());
 
     // free unmerged blocks
@@ -2098,7 +2108,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
 
     srand(time(NULL));
     stSet *contigs_to_include = NULL;
-    if (contigs_path != NULL){
+    if (contigs_path != NULL) {
         contigs_to_include = Splitter_parseLinesIntoSet(contigs_path);
     }
 
