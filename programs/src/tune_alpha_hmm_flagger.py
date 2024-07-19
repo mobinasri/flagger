@@ -127,6 +127,7 @@ def functionToMinimizeInternal(x):
 
     internalOutputDirTrainList = []
     paramsStringList = []
+    logPathList = []
     for inputPath in inputPathTrainList:
         prefix = getInputPrefix(inputPath)
         internalOutputDir = f"{outputDir}/optimization_point_{pointIndex}/{prefix}"
@@ -134,6 +135,7 @@ def functionToMinimizeInternal(x):
         internalOutputDirTrainList.append(internalOutputDir)
         paramsString = getParametersString(alphaTsvPath, inputPath, internalOutputDir, modelType, otherParamsString)
         paramsStringList.append(paramsString)
+        logPathList.append(os.path.join(internalOutputDir, "log.txt"))
 
     internalOutputDirTestList = []
     for inputPath in inputPathTestList:
@@ -143,6 +145,8 @@ def functionToMinimizeInternal(x):
         internalOutputDirTestList.append(internalOutputDir)
         paramsString = getParametersString(alphaTsvPath, inputPath, internalOutputDir, modelType, otherParamsString)
         paramsStringList.append(paramsString)
+        logPathList.append(os.path.join(internalOutputDir, "log.txt"))
+
 
     i = functionToMinimizeInternal.pointIndex
     n = functionToMinimizeInternal.numberOfStartPoints
@@ -156,7 +160,7 @@ def functionToMinimizeInternal(x):
 
     print(f"[{datetime.datetime.now()}] Initiating {len(paramsStringList)} hmm_flagger jobs for training/testing", file=sys.stderr)
     sys.stderr.flush()
-    runHMMFlaggerForList(paramsStringList, maxJobs)
+    runHMMFlaggerForList(paramsStringList, logPathList, maxJobs)
 
     combinedScoreTrainList = []
     score1TrainList = []
@@ -210,10 +214,10 @@ def functionToMinimizeInternal(x):
     return -1 * finalScoreTrain
 
 
-def runHMMFlaggerForList(paramsStringList, maxJobs):
+def runHMMFlaggerForList(paramsStringList, logPathList, maxJobs):
     success = 0
     with ThreadPoolExecutor(max_workers=maxJobs) as executor:
-        futures = [executor.submit(runHMMFlagger, paramsString) for paramsString in paramsStringList]
+        futures = [executor.submit(runHMMFlagger, paramsString, logPath) for paramsString, logPath in zip(paramsStringList, logPathList)]
         for future in as_completed(futures):
             # retrieve the result
             result = future.result()
@@ -223,15 +227,15 @@ def runHMMFlaggerForList(paramsStringList, maxJobs):
     #print(f"[{datetime.datetime.now()}] Successfully ran {len(paramsStringList)} jobs for hmm_flagger", file=sys.stderr)
     sys.stderr.flush()
 
-def runHMMFlagger(paramsString):
+def runHMMFlagger(paramsString, logPath):
     """
     :param paramsString: hmm_flagger parameters
     """
 
     cmdString = f"hmm_flagger {paramsString}"
-    x = subprocess.run(shlex.split(cmdString), capture_output=True)
-
-    return x.returncode
+    with open(logPath, "w") as logFile:
+        x = subprocess.run(shlex.split(cmdString), stderr=subprocess.STDOUT, stdout=logFile, text=True)
+        return x.returncode
 
 
 
