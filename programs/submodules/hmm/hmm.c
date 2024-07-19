@@ -162,7 +162,7 @@ void HMM_printTransitionMatrixInTsvFormat(HMM *model, FILE *fout) {
         for (int preState = 0; preState < model->numberOfStates + 1; preState++) {
             for (int state = 0; state < model->numberOfStates + 1; state++) {
                 sprintf(table[numberOfRows + preState][2 + state],
-                        "%.2e", transition->matrix->data[preState][state]);
+                        "%.5e", transition->matrix->data[preState][state]);
             }
         }
         numberOfRows += model->numberOfStates + 1; // +1 for "Start" state

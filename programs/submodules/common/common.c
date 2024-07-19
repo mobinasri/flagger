@@ -558,12 +558,12 @@ char *String_copy(const char *src) {
 }
 
 char *String_joinDoubleArray(double *array, int length, char delimiter) {
-    char *str = malloc(length * 10 * sizeof(char));
+    char *str = malloc(length * 15 * sizeof(char));
     str[0] = '\0';
     for (int i = 0; i < length - 1; i++) {
-        sprintf(str + strlen(str), "%.2e%c", array[i], delimiter);
+        sprintf(str + strlen(str), "%.5e%c", array[i], delimiter);
     }
-    sprintf(str + strlen(str), "%.2e", array[length - 1]);
+    sprintf(str + strlen(str), "%.5e", array[length - 1]);
     str[strlen(str)] = '\0';
     return str;
 }
