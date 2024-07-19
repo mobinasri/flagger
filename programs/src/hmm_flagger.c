@@ -722,7 +722,7 @@ int main(int argc, char *argv[]) {
         numberOfCollapsedComps = getBestNumberOfCollapsedComps(chunksCreator);
         // make sure the number of components is not too large or too small
         numberOfCollapsedComps = numberOfCollapsedComps < 2 ? 2 : numberOfCollapsedComps;
-        numberOfCollapsedComps = numberOfCollapsedComps > 20 ? 20 : numberOfCollapsedComps;
+        numberOfCollapsedComps = numberOfCollapsedComps > 10 ? 10 : numberOfCollapsedComps;
         fprintf(stderr,
                 "[%s] The number of collapsed components (n=%d) is determined and adjusted automatically by taking the maximum observed coverage. \n",
                 get_timestamp(),
