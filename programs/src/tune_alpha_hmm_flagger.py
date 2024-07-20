@@ -22,10 +22,10 @@ def getRandomX(lowerBound, upperBound):
     x = (upperBound - lowerBound) * np.random.random_sample(dim) + lowerBound
     return x
 
-def getStartPoints(lowerBound, upperBound, numberOfPoints, candidateAlpha):
+def getStartPoints(lowerBound, upperBound, numberOfPoints, candidateAlphaMatrix):
     xList = []
-    if candidateAlpha is not None:
-        xList.append(candidateAlpha)
+    if candidateAlphaMatrix is not None:
+        xList.append(convertAlphaMatrixToX(candidateAlphaMatrix))
     else:
         xList.append(getRandomX(lowerBound, upperBound))
 
