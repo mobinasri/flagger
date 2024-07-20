@@ -24,7 +24,7 @@ def getRandomX(lowerBound, upperBound):
 
 def getStartPoints(lowerBound, upperBound, numberOfPoints, candidateAlpha):
     xList = []
-    if candidateAlpha != None:
+    if candidateAlpha is not None:
         xList.append(candidateAlpha)
     else:
         xList.append(getRandomX(lowerBound, upperBound))
