@@ -22,8 +22,16 @@ def getRandomX(lowerBound, upperBound):
     x = (upperBound - lowerBound) * np.random.random_sample(dim) + lowerBound
     return x
 
-def getStartPoints(lowerBound, upperBound, numberOfPoints):
-    x = np.array([getRandomX(lowerBound, upperBound) for i in range(numberOfPoints)])
+def getStartPoints(lowerBound, upperBound, numberOfPoints, candidateAlpha):
+    xList = []
+    if candidateAlpha != None:
+        xList.append(candidateAlpha)
+    else:
+        xList.append(getRandomX(lowerBound, upperBound))
+
+    for i in range(numberOfPoints - 1):
+        xList.append(getRandomX(lowerBound, upperBound))
+    x = np.array(xList)
     return x
 
 def getXLimits(lowerBound, upperBound):
@@ -268,6 +276,8 @@ def main():
                         help='Maximum number of hmm_flagger jobs that can be run at the same time. It is useful to adjust this number based on total number of cores available and the number of threads that each hmm_flagger job will take.')
     parser.add_argument('--egoCriterion', type=str, default="EI",
                         help='Criterion for EGO. It can be one of EI, SBO or LCB. https://smt.readthedocs.io/en/latest/_src_docs/applications/ego.html#implementation-notes (Default = EI)')
+    parser.add_argument('--candidateAlphaTsv', type=str, default="",
+                        help='(optional) a candidate alpha matrix. It will be used as a start point for EGO.')
 
     args = parser.parse_args()
     lowerBound = args.lowerBound
@@ -298,8 +308,13 @@ def main():
             if 0 < len(lines):
                 functionToMinimizeInternal.paramsDict["otherParamsString"] = lines[0]
 
+    if args.candidateAlphaTsv.strip() != "":
+        candidateAlpha = np.loadtxt(args.candidateAlphaTsv.strip())
+    else:
+        candidateAlpha = None
 
-    startX = getStartPoints(lowerBound, upperBound, numberOfStartPoints)
+
+    startX = getStartPoints(lowerBound, upperBound, numberOfStartPoints, candidateAlpha)
 
     xLimits = getXLimits(lowerBound, upperBound)
 
