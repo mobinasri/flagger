@@ -169,7 +169,9 @@ int main(int argc, char *argv[]) {
                         "         -b, --baselineAnnotation\n"
                         "                           [coverage bias detection] name of the baseline annotation. If no\n"
                         "                           baseline name is provided it will consider all blocks with no \n"
-                        "                           given annotation as baseline.\n");
+                        "                           given annotation as baseline. It is highly recommended to use "
+                        "                           '--baselineAnnotation whole_genome' and point to a whole_genome bed"
+                        "                           file in the annotation json even when --runBiasDetection is disabled.\n");
                 fprintf(stderr,
                         "         -d, --covDiffThreshold\n"
                         "                           Threshold for reporting an annotation as biased or not  \n"
@@ -278,7 +280,7 @@ int main(int argc, char *argv[]) {
                 get_timestamp());
 
         BiasDetector *biasDetector = BiasDetector_construct(annotationNames,
-                                                            annotationZeroName,
+                                                            baselineAnnotationName,
                                                             1,
                                                             1,
                                                             covDiffNormalizedThreshold);
@@ -288,8 +290,8 @@ int main(int argc, char *argv[]) {
         coveragePerRegion = Int_construct1DArray(1);
         numberOfRegions = 1;
 
-        // index 0 is for 'no_annotation'
-        coveragePerRegion[0] = biasDetector->mostFrequentCoveragePerAnnotation[0];
+        // baselineAnnotation should be whole_genome here
+        coveragePerRegion[0] = biasDetector->mostFrequentCoveragePerAnnotation[biasDetector->baselineAnnotationIndex];
         fprintf(stderr,
                 "[%s] Whole genome median coverage = %d\n",
                 get_timestamp(),
