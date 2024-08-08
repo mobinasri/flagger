@@ -63,6 +63,7 @@ RUN cd /home/programs && make
 ENV PATH="$PATH:/home/programs/bin"
 
 ENV CALC_MEAN_SD_PY=/home/programs/src/calc_mean_sd.py
+ENV CALC_MODE_SD_PY=/home/programs/src/calc_mode_sd.py
 ENV FIT_MODEL_PY=/home/programs/src/fit_model.py
 ENV PROJECT_BLOCKS_PY=/home/programs/src/project_blocks.py
 ENV PROJECT_BLOCKS_MULTI_THREADED_PY=/home/programs/src/project_blocks_multi_thread.py
