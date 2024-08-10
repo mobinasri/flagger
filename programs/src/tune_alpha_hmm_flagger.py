@@ -120,7 +120,7 @@ def functionToMinimizeInternal(x):
     functionToMinimizeInternal.pointIndex += 1
     outputDir = functionToMinimizeInternal.paramsDict['outputDir']
     inputPathTrainList = functionToMinimizeInternal.paramsDict['inputPathTrainList']
-    inputPathTestList = functionToMinimizeInternal.paramsDict['inputPathTestList']
+    inputPathValidationList = functionToMinimizeInternal.paramsDict['inputPathValidationList']
     modelType = functionToMinimizeInternal.paramsDict['modelType']
     otherParamsString = functionToMinimizeInternal.paramsDict['otherParamsString']
     maxJobs = functionToMinimizeInternal.paramsDict['maxJobs']
@@ -145,12 +145,12 @@ def functionToMinimizeInternal(x):
         paramsStringList.append(paramsString)
         logPathList.append(os.path.join(internalOutputDir, "log.txt"))
 
-    internalOutputDirTestList = []
-    for inputPath in inputPathTestList:
+    internalOutputDirValidationList = []
+    for inputPath in inputPathValidationList:
         prefix = getInputPrefix(inputPath)
         internalOutputDir = f"{outputDir}/optimization_point_{pointIndex}/{prefix}"
         os.makedirs(internalOutputDir, exist_ok=True)
-        internalOutputDirTestList.append(internalOutputDir)
+        internalOutputDirValidationList.append(internalOutputDir)
         paramsString = getParametersString(alphaTsvPath, inputPath, internalOutputDir, modelType, otherParamsString)
         paramsStringList.append(paramsString)
         logPathList.append(os.path.join(internalOutputDir, "log.txt"))
@@ -166,7 +166,7 @@ def functionToMinimizeInternal(x):
     else:
         print(f"[{datetime.datetime.now()}] Point Index (for EGO) = {i} (Iteration {i - n} out of {nIter})", file=sys.stderr)
 
-    print(f"[{datetime.datetime.now()}] Initiating {len(paramsStringList)} hmm_flagger jobs for training/testing", file=sys.stderr)
+    print(f"[{datetime.datetime.now()}] Initiating {len(paramsStringList)} hmm_flagger jobs for training/validating", file=sys.stderr)
     sys.stderr.flush()
     runHMMFlaggerForList(paramsStringList, logPathList, maxJobs)
 
@@ -185,38 +185,38 @@ def functionToMinimizeInternal(x):
         print(f"[{datetime.datetime.now()}] [train input index = {inputIndex}] OverlapBased = {score1:.3f}, BaseLevel = {score2:.3f}, Contiguity = {score3:.3f}, Combined = {combined:.3f}", file=sys.stderr)
         combinedScoreTrainList.append(combined)
 
-    combinedScoreTestList = []
-    score1TestList = []
-    score2TestList = []
-    score3TestList = []
-    for inputIndex, internalOutputDir in enumerate(internalOutputDirTestList):
+    combinedScoreValidationList = []
+    score1ValidationList = []
+    score2ValidationList = []
+    score3ValidationList = []
+    for inputIndex, internalOutputDir in enumerate(internalOutputDirValidationList):
         score1 = getOverlapBasedScore(internalOutputDir, annotationLabel, sizeLabel)
         score2 = getBaseLevelScore(internalOutputDir, annotationLabel, sizeLabel)
         score3 = getContiguityScore(internalOutputDir, annotationLabel, sizeLabel)
-        score1TestList.append(score1)
-        score2TestList.append(score2)
-        score3TestList.append(score3)
+        score1ValidationList.append(score1)
+        score2ValidationList.append(score2)
+        score3ValidationList.append(score3)
         combined = (score1 + score2 + score3) / 3.0
-        print(f"[{datetime.datetime.now()}] [test input index = {inputIndex}] OverlapBased = {score1:.3f}, BaseLevel = {score2:.3f}, Contiguity = {score3:.3f}, Combined = {combined:.3f}", file=sys.stderr)
-        combinedScoreTestList.append(combined)
+        print(f"[{datetime.datetime.now()}] [validation input index = {inputIndex}] OverlapBased = {score1:.3f}, BaseLevel = {score2:.3f}, Contiguity = {score3:.3f}, Combined = {combined:.3f}", file=sys.stderr)
+        combinedScoreValidationList.append(combined)
 
     finalScoreTrain = sum(combinedScoreTrainList) / len(combinedScoreTrainList)
-    if 0 < len(combinedScoreTestList):
-        finalScoreTest = sum(combinedScoreTestList) / len(combinedScoreTestList)
+    if 0 < len(combinedScoreValidationList):
+        finalScoreValidation = sum(combinedScoreValidationList) / len(combinedScoreValidationList)
     else:
-        finalScoreTest = 0.0
+        finalScoreValidation = 0.0
 
     print(f"[{datetime.datetime.now()}] Alpha = ", file=sys.stderr)
     np.savetxt(sys.stderr, alphaMatrix, delimiter='\t', fmt="%.3f")
     print(f"Final Score Train = {finalScoreTrain:.3f}", file=sys.stderr)
-    if 0 < len(combinedScoreTestList):
-        print(f"Final Score Test = {finalScoreTest:.3f}", file=sys.stderr)
+    if 0 < len(combinedScoreValidationList):
+        print(f"Final Score Validation = {finalScoreValidation:.3f}", file=sys.stderr)
     sys.stderr.flush()
 
     functionToMinimizeInternal.allScoresTrain.append(["start" if isStartPoint else "iteration", finalScoreTrain, score1TrainList, score2TrainList, score3TrainList, combinedScoreTrainList])
 
-    if 0 < len(combinedScoreTestList):
-        functionToMinimizeInternal.allScoresTest.append(["start" if isStartPoint else "iteration", finalScoreTest, score1TestList, score2TestList, score3TestList, combinedScoreTestList])
+    if 0 < len(combinedScoreValidationList):
+        functionToMinimizeInternal.allScoresValidation.append(["start" if isStartPoint else "iteration", finalScoreValidation, score1ValidationList, score2ValidationList, score3ValidationList, combinedScoreValidationList])
 
     # times -1 since EGO algorithm minimizes the objective function
     return -1 * finalScoreTrain
@@ -252,8 +252,8 @@ def main():
         description='This program takes a list of coverage/bin files and tune alpha matrix for hmm_flagger using Efficient Global Optimization (EGO). More info about EGO https://smt.readthedocs.io/en/latest/_src_docs/applications/ego.html')
     parser.add_argument('--inputFilesTrain', type=str,
                         help='Comma separated list of coverage/bin files that will be used for tuning/training alpha matrix')
-    parser.add_argument('--inputFilesTest', type=str,
-                        help='(Optional) Comma separated list of coverage/bin files that will be used for testing each computed alpha matrix. These files should be independent from the training set (--inputFilesTrain) for measuring underfitting/overfitting. (They can be other chromosomes)')
+    parser.add_argument('--inputFilesValidation', type=str,
+                        help='(Optional) Comma separated list of coverage/bin files that will be used for validating each computed alpha matrix. These files should be independent from the training set (--inputFilesTrain) for measuring underfitting/overfitting. (They can be other chromosomes)')
     parser.add_argument('--outputDir', type=str, default = "tune_alpha",
                         help='Output directory')
     parser.add_argument('--otherParamsText', type=str, default="",
@@ -288,14 +288,14 @@ def main():
 
     functionToMinimizeInternal.pointIndex = 0
     functionToMinimizeInternal.allScoresTrain = []
-    functionToMinimizeInternal.allScoresTest = []
+    functionToMinimizeInternal.allScoresValidation = []
     functionToMinimizeInternal.numberOfStartPoints = numberOfStartPoints
     functionToMinimizeInternal.numberOfIterations = numberOfIterations
     functionToMinimizeInternal.paramsDict = {}
     functionToMinimizeInternal.paramsDict["inputPathTrainList"] = args.inputFilesTrain.strip().split(',')
-    functionToMinimizeInternal.paramsDict["inputPathTestList"] = args.inputFilesTest.strip().split(',')
+    functionToMinimizeInternal.paramsDict["inputPathValidationList"] = args.inputFilesValidation.strip().split(',')
     trainSize = len(functionToMinimizeInternal.paramsDict["inputPathTrainList"])
-    testSize = len(functionToMinimizeInternal.paramsDict["inputPathTestList"])
+    validationSize = len(functionToMinimizeInternal.paramsDict["inputPathValidationList"])
     functionToMinimizeInternal.paramsDict["outputDir"] = args.outputDir
     functionToMinimizeInternal.paramsDict["modelType"] = args.modelType
     functionToMinimizeInternal.paramsDict["maxJobs"] = args.maxJobs
@@ -333,12 +333,20 @@ def main():
     )
 
     x_opt, y_opt, _, x_data, y_data = ego.optimize(fun=functionToMinimize)
-    y_opt = -1 * y_opt
+    #optimumAlphaMatrix = convertXToAlphaMatrix(x_opt)
 
-    optimumAlphaMatrix = convertXToAlphaMatrix(x_opt) 
+    if validationSize <= 0:
+        trainFinalScores = np.array([elem[1] for elem in functionToMinimizeInternal.allScoresTrain])
+        optimumIndex = np.argmax(trainFinalScores)
+    else: # if we have validation data use validation scores to find optimum alpha
+        validationFinalScores = np.array([elem[1] for elem in functionToMinimizeInternal.allScoresValidation])
+        optimumIndex = np.argmax(validationFinalScores)
+
+    optimumAlphaMatrix = np.loadtxt(f"{args.outputDir}/optimization_point_{optimumIndex + 1}/alpha_mat_point_{optimumIndex + 1}.tsv")
+
     print(f"[{datetime.datetime.now()}] Optimum in Alpha =",file=sys.stderr)
     np.savetxt(sys.stderr, optimumAlphaMatrix, delimiter='\t', fmt="%.3f")
-    print(f"with f(x)={y_opt}", file=sys.stderr)
+    #print(f"[{datetime.datetime.now()}] with train score={y_opt}", file=sys.stderr)
 
     os.makedirs(args.outputDir, exist_ok=True)
     alphaTsvPath = os.path.join(args.outputDir, "alpha_optimum.tsv")
@@ -346,7 +354,6 @@ def main():
     print(f"[{datetime.datetime.now()}] Saving optimum alpha matrix in {alphaTsvPath}", file=sys.stderr)
     saveAlphaMatrixInTSV(optimumAlphaMatrix, alphaTsvPath)
 
-    optimumIndices = []
     scoresTrainTsvPath = os.path.join(args.outputDir, "scores_train.tsv")
     print(f"[{datetime.datetime.now()}] Saving scores table for train files in {scoresTrainTsvPath}", file=sys.stderr)
     with open(scoresTrainTsvPath, "w") as f:
@@ -357,12 +364,7 @@ def main():
         f.write("\n")
 
         for i, scores in enumerate(functionToMinimizeInternal.allScoresTrain):
-            div = abs(y_opt[0] - scores[1]) / (y_opt[0])
-            if div < 1e-4:
-                isOptimum = "YES"
-                optimumIndices.append(i)
-            else:
-                isOptimum = "NO"
+            isOptimum = "YES" if i == optimumIndex else "NO"
 
             f.write(f"{i + 1}\t{scores[0]}\t{scores[1]:.3f}\t{isOptimum}")
             for overlapBasedScore, baseLevelScore, auNScore, combinedScore in zip(scores[2], scores[3], scores[4], scores[5]):
@@ -370,18 +372,18 @@ def main():
             f.write("\n")
 
 
-    if 0 < testSize:
-        scoresTestTsvPath = os.path.join(args.outputDir, "scores_test.tsv")
-        print(f"[{datetime.datetime.now()}] Saving scores table for test files in {scoresTestTsvPath}", file=sys.stderr)
-        with open(scoresTestTsvPath, "w") as f:
+    if 0 < validationSize:
+        scoresValidationTsvPath = os.path.join(args.outputDir, "scores_validation.tsv")
+        print(f"[{datetime.datetime.now()}] Saving scores table for validation files in {scoresValidationTsvPath}", file=sys.stderr)
+        with open(scoresValidationTsvPath, "w") as f:
             # write header line
             f.write("Point_Index\tPoint_Type\tFinal_Score\tIs_Optimum_By_Train")
-            for inputIndex in range(1, testSize + 1):
+            for inputIndex in range(1, validationSize + 1):
                 f.write(f"\tOverlap_Based_{inputIndex}\tBase_Level_{inputIndex}\tAuN_Based_{inputIndex}\tCombined_{inputIndex}")
             f.write("\n")
 
-            for i, scores in enumerate(functionToMinimizeInternal.allScoresTest):
-                isOptimum = "YES" if i in optimumIndices else "NO"
+            for i, scores in enumerate(functionToMinimizeInternal.allScoresValidation):
+                isOptimum = "YES" if i == optimumIndex else "NO"
 
                 f.write(f"{i + 1}\t{scores[0]}\t{scores[1]:.3f}\t{isOptimum}")
                 for overlapBasedScore, baseLevelScore, auNScore, combinedScore in zip(scores[2], scores[3], scores[4], scores[5]):
