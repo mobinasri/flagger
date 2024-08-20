@@ -752,17 +752,15 @@ void ChunksCreator_writeChunksIntoBedGraph(ChunksCreator *chunksCreator,
     }
     // since chunkCanonicalLen is set to maximum contig size
     // then each contig is parsed in a single chunk
+    fprintf(fp, "track type=bedGraph name=\"%s\" visibility=full color=%s\n", trackName, color);
     for (int chunkIndex = 0; chunkIndex < stList_length(chunksCreator->chunks); chunkIndex++) {
         Chunk *chunk = stList_get(chunksCreator->chunks, chunkIndex);
-        fprintf(fp, "track type=bedGraph name=\"%s\" visibility=full color=%s\n", trackName, color);
         for (int i = 0; i < chunk->coverageInfoSeqLen; i++) {
             CoverageInfo *coverageInfo = chunk->coverageInfoSeq[i];
             int start = chunk->s + i * chunk->windowLen;
             int end = min(chunk->s + (i + 1) * chunk->windowLen, chunk->e + 1);
             fprintf(fp, "%s %d %d %d\n", chunk->ctg, start, end, getCoverageInfoAttribute(coverageInfo));
         }
-        fprintf(fp, "\n");
-
     }
     fclose(fp);
 }
