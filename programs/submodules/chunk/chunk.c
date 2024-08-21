@@ -917,7 +917,7 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
         bool labelChanged = preLabel != -1 && predictionLabel != preLabel;
         bool contigChanged = preCtg[0] != '\0' && strcmp(preCtg, ctg) != 0;
         if(labelChanged || contigChanged){
-            fprintf(fout, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\n",
+            fprintf(fout, "%s\t%d\t%d\t%s\t0\t.\t%d\t%d\t%s\n",
                     preCtg,
                     bedTrackStart,
                     preEnd + 1,
@@ -934,7 +934,7 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
         strcpy(preCtg, ctg);
     }
     if (preLabel != -1) {
-        fprintf(fout, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\n",
+        fprintf(fout, "%s\t%d\t%d\t%s\t0\t.\t%d\t%d\t%s\n",
                 preCtg,
                 bedTrackStart,
                 preEnd + 1,
