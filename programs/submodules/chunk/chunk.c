@@ -864,8 +864,39 @@ ptBlock *ChunkIterator_getNextPtBlock(ChunkIterator *chunkIterator, char *ctg_na
     return chunkIterator->block;
 }
 
+stList *mergeBlocksWithSameLabels(stList *blocksForOneContig){
+    stList *convertedBlocks = stList_construct3(0, ptBlock_destruct);
+    int preLabel = -1;
+    int preStart = 0;
+    int preEnd = 0;
+    for(int i=0; i < stList_length(blocksForOneContig); i++){
+        ptBlock *block = stList_get(blocksForOneContig, i);
+        int start = block->rfs;
+        int end = block->rfe;
+        int* labelPtr = (int*) block->data;
+        int label = labelPtr[0];
+        if ((preLabel != -1) && (label != preLabel)) {
+            ptBlock *block =  ptBlock_construct_with_count(preStart, preEnd,
+                                                           -1, -1,
+                                                           -1, -1,
+                                                           preLabel);
+            stList_append(convertedBlocks, block);
+            preStart = start;
+        }
+        preEnd = end;
+        preLabel = label;
+    }
+    if(0 < stList_length(blocksForOneContig)) {
+        ptBlock *block = ptBlock_construct_with_count(preStart, preEnd,
+                                                      -1, -1,
+                                                      -1, -1,
+                                                      preLabel);
+        stList_append(convertedBlocks, block);
+    }
+    return convertedBlocks;
+}
 
-void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, char *outputPath, char *trackName) {
+void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, char *outputPath, char *trackName, int* minLenPerState) {
 
     // open file for writing bed
     FILE *fout = fopen(outputPath, "w");
@@ -879,6 +910,7 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
     ChunkIterator *iterator = ChunkIterator_construct(chunksCreator);
 
     ptBlock *block = NULL;
+    int hapLabel = 2;
     int bedTrackStart = 0;
     int preEnd = 0;
     int preLabel = -1;
@@ -886,6 +918,8 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
     char preCtg[200];
     preCtg[0] = '\0';
 
+    stList *blocksForOneContig = stList_construct3(0, ptBlock_destruct);
+    ptBlock *block;
     while ((block = ChunkIterator_getNextPtBlock(iterator, ctg)) != NULL) {
 
         // get coverage info for this block
@@ -917,32 +951,71 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
         bool labelChanged = preLabel != -1 && predictionLabel != preLabel;
         bool contigChanged = preCtg[0] != '\0' && strcmp(preCtg, ctg) != 0;
         if(labelChanged || contigChanged){
-            fprintf(fout, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\n",
-                    preCtg,
-                    bedTrackStart,
-                    preEnd + 1,
-                    LABEL_NAMES[preLabel],
-                    bedTrackStart,
-                    preEnd + 1,
-                    LABEL_COLORS[preLabel]);
+            // here we use count data to save the prediction label
+            int blockLen = preEnd + 1 - bedTrackStart;
+            if (blockLen < minLenPerState[preLabel]){
+                block = ptBlock_construct_with_count(bedTrackStart, preEnd,
+                                             -1, -1,
+                                             -1, -1,
+                                             hapLabel);
+            } else {
+                block = ptBlock_construct_with_count(bedTrackStart, preEnd,
+                                             -1, -1,
+                                             -1, -1,
+                                             preLabel);
+            }
+            stList_append(blocksForOneContig, block);
             // update start
             bedTrackStart = start;
+        }
+        if (contigChanged) {
+            stList *mergedBlocksForOneContig = mergeBlocksWithSameLabels(blocksForOneContig);
+            for (int i = 0; i < stList_length(mergedBlocksForOneContig); i++) {
+                ptBlock *blockToWrite = stList_get(mergedBlocksForOneContig, i);
+                int startToWrite = blockToWrite->rfs;
+                int endToWrite  = blockToWrite->rfe;
+                int *labelPtr = (int *) blockToWrite->data;
+                int labelToWrite  = labelPtr[0];
+                fprintf(fout, "%s\t%d\t%d\t%s\t0\t.\t%d\t%d\t%s\n",
+                        preCtg,
+                        startToWrite ,
+                        endToWrite  + 1,
+                        LABEL_NAMES[labelToWrite],
+                        startToWrite ,
+                        endToWrite  + 1,
+                        LABEL_COLORS[labelToWrite]);
+            }
+            stList_destruct(blocksForOneContig);
+            stList_destruct(mergedBlocksForOneContig);
+            blocksForOneContig = stList_construct3(0, ptBlock_destruct);
         }
 
         preEnd = end;
         preLabel = predictionLabel;
         strcpy(preCtg, ctg);
     }
+    // write blocks for the last contig
     if (preLabel != -1) {
-        fprintf(fout, "%s\t%d\t%d\t%s\t0\t+\t%d\t%d\t%s\n",
-                preCtg,
-                bedTrackStart,
-                preEnd + 1,
-                LABEL_NAMES[preLabel],
-                bedTrackStart,
-                preEnd + 1,
-                LABEL_COLORS[preLabel]);
+        stList *mergedBlocksForOneContig = mergeBlocksWithSameLabels(blocksForOneContig);
+        for (int i = 0; i < stList_length(mergedBlocksForOneContig); i++) {
+            ptBlock *blockToWrite = stList_get(mergedBlocksForOneContig, i);
+            int startToWrite = blockToWrite->rfs;
+            int endToWrite  = blockToWrite->rfe;
+            int *labelPtr = (int *) blockToWrite->data;
+            int labelToWrite  = labelPtr[0];
+            fprintf(fout, "%s\t%d\t%d\t%s\t0\t.\t%d\t%d\t%s\n",
+                    preCtg,
+                    startToWrite ,
+                    endToWrite  + 1,
+                    LABEL_NAMES[labelToWrite],
+                    startToWrite ,
+                    endToWrite  + 1,
+                    LABEL_COLORS[labelToWrite]);
+        }
+        stList_destruct(mergedBlocksForOneContig);
     }
+
+    stList_destruct(blocksForOneContig);
 
     // close file
     fclose(fout);

@@ -393,7 +393,8 @@ MatrixDouble *getAlphaMatrix(char *alphaTsvPath) {
 
     bool skipFirstLine = false;
     // -1 because of ignoring MSJ
-    MatrixDouble *alpha = MatrixDouble_parseFromFile(alphaTsvPath, NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1, skipFirstLine);
+    MatrixDouble *alpha = MatrixDouble_parseFromFile(alphaTsvPath, NUMBER_OF_STATES - 1, NUMBER_OF_STATES - 1,
+                                                     skipFirstLine);
     // check all alpha values are between 0 and 1
     for (int i = 0; i < alpha->dim1; i++) {
         for (int j = 0; j < alpha->dim2; j++) {
@@ -433,6 +434,7 @@ static struct option long_options[] =
                 {"trackName",                          required_argument, NULL, 'N'},
                 {"dumpBin",                            no_argument,       NULL, 'B'},
                 {"accelerate",                         no_argument,       NULL, 's'},
+                {"minimumLengths",                     required_argument, NULL, 'M'},
                 {NULL,                                 0,                 NULL, 0}
         };
 
@@ -461,9 +463,14 @@ int main(int argc, char *argv[]) {
     int threads = 4;
     bool dumpBin = false;
     bool acceleration = false;
+    int *minLenPerState = malloc(4 * sizeof(int));
+    minLenPerState[0] = 0;
+    minLenPerState[1] = 0;
+    minLenPerState[2] = 0;
+    minLenPerState[3] = 0;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:BN:s", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:BN:M:s", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -528,6 +535,20 @@ int main(int argc, char *argv[]) {
                 break;
             case 's':
                 acceleration = true;
+                break;
+            case 'M':
+                int arraySize = 0;
+                int *minLenPerStateTemp = Splitter_getIntArray(optarg, ',', &arraySize);
+                if (arraySize != 3) {
+                    fprintf(stderr,
+                            "[%s] Error: --minimumLengths should contain only 3 tab-delimited positive integers.\n",
+                            get_timestamp());
+                    exit(EXIT_FAILURE);
+                }
+                minLenPerState[0] = minLenPerStateTemp[0];
+                minLenPerState[1] = minLenPerStateTemp[1];
+                minLenPerState[3] = minLenPerStateTemp[2];
+                free(minLenPerStateTemp);
                 break;
             default:
                 if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
@@ -643,6 +664,12 @@ int main(int argc, char *argv[]) {
                         "                           acceleration mode but it will have a boosted update for \n"
                         "                           parameters. The whole run should converge faster \n"
                         "                           [default: disabled]\n");
+                fprintf(stderr,
+                        "         --minimumLengths, -M\n"
+                        "                           Comma-delimited list of minimum lengths for converting \n"
+                        "                           non-Hap short blocks into Hap blocks. Given numbers should be \n"
+                        "                           related to states Err, Dup and Col respectively. \n"
+                        "                           [default: '0,0,0']\n");
                 return 1;
         }
     }
@@ -766,7 +793,7 @@ int main(int argc, char *argv[]) {
 
     char outputBEDPath[2000];
     sprintf(outputBEDPath, "%s/final_flagger_prediction.bed", outputDir);
-    ChunksCreator_writePredictionIntoFinalBED(chunksCreator, outputBEDPath, trackName);
+    ChunksCreator_writePredictionIntoFinalBED(chunksCreator, outputBEDPath, trackName, minLenPerState);
 
     ChunksCreator_destruct(chunksCreator);
     HMM_destruct(model);
