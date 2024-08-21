@@ -468,6 +468,8 @@ int main(int argc, char *argv[]) {
     minLenPerState[1] = 0;
     minLenPerState[2] = 0;
     minLenPerState[3] = 0;
+    int arraySize = 0;
+    int *minLenPerStateTemp;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
     while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:BN:M:s", long_options, NULL))) {
@@ -537,8 +539,7 @@ int main(int argc, char *argv[]) {
                 acceleration = true;
                 break;
             case 'M':
-                int arraySize = 0;
-                int *minLenPerStateTemp = Splitter_getIntArray(optarg, ',', &arraySize);
+                minLenPerStateTemp = Splitter_getIntArray(optarg, ',', &arraySize);
                 if (arraySize != 3) {
                     fprintf(stderr,
                             "[%s] Error: --minimumLengths should contain only 3 tab-delimited positive integers.\n",
