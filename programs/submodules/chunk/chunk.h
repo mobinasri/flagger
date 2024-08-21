@@ -110,7 +110,7 @@ void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char 
 
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath);
 
-void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, char *outputPath, char *trackName);
+void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, char *outputPath, char *trackName, int* minLenPerState);
 
 int ChunksCreator_getTotalNumberOfChunks(ChunksCreator *chunksCreator);
 
