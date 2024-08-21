@@ -919,7 +919,6 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
     preCtg[0] = '\0';
 
     stList *blocksForOneContig = stList_construct3(0, ptBlock_destruct);
-    ptBlock *block;
     while ((block = ChunkIterator_getNextPtBlock(iterator, ctg)) != NULL) {
 
         // get coverage info for this block
