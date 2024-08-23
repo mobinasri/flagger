@@ -54,13 +54,16 @@ RUN cd /home/apps && \
 RUN apt-get update
 RUN apt-get install -y libc6-dbg gdb
 RUN pip install smt #https://smt.readthedocs.io/en/latest/_src_docs/applications/ego.html
+RUN cd /home/apps && \
+    wget https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedGraphToBigWig && \
+    chmod 777 bedGraphToBigWig
 
 COPY ./programs /home/programs
 # Add cigar_it to the submodules dir
 COPY ./ext/secphase/programs/submodules/cigar_it /home/programs/submodules/cigar_it
 COPY ./scripts  /home/scripts
 RUN cd /home/programs && make
-ENV PATH="$PATH:/home/programs/bin"
+ENV PATH="$PATH:/home/programs/bin:/home/apps"
 
 ENV CALC_MEAN_SD_PY=/home/programs/src/calc_mean_sd.py
 ENV CALC_MODE_SD_PY=/home/programs/src/calc_mode_sd.py

@@ -18,7 +18,7 @@ task view {
         Int memSize=8
         Int threadCount=8
         Int diskSize=2 * ceil(size(bamFile, "GB")) + 64
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
         String zones="us-west2-a"
     }

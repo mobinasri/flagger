@@ -1,11 +1,7 @@
-FROM tpesout/hpp_base:latest
+FROM mobinasri/bio_base:v0.3.0
 MAINTAINER Julian Lucas, juklucas@ucsc.edu
 
-ENV PATH="/root/bin/python_3.6.0/bin/:${PATH}"
-ENV PATH="/root/bin/samtools_1.9/:${PATH}"
-
-RUN apt-get update && \
-    apt-get install -y python-matplotlib
+RUN apt-get update
 
 ### FAI READ STATS
 WORKDIR /opt

@@ -1,0 +1,10 @@
+name: readsbam4dc
+channels:
+  - conda-forge 
+  - bioconda 
+  - defaults
+
+dependencies:
+  - samtools=1.17
+  - lima=2.7.1
+  - s5cmd=2.1.0

@@ -26,7 +26,8 @@ task gzip {
         set -o xtrace
         
         FILENAME=$(basename "~{fileInput}")
-        pigz -p~{threadCount} ~{fileInput} > ${FILENAME}.gz
+        ln ~{fileInput} ${FILENAME}
+        pigz -p~{threadCount} -c ${FILENAME} > ${FILENAME}.gz
     >>> 
     runtime {
         docker: dockerImage

@@ -1,0 +1,5 @@
+input,type,value
+runExtractReads.referenceFasta,scalar,/private/groups/patenlab/masri/hprc/polishing/HG002/assemblies/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+runExtractReads.inputFiles,array,$input.read
+runExtractReads.extractReads.sortByName,scalar,$input.sort_by_name
+runExtractReads.dockerImage,scalar,mobinasri/bio_base:dev-v0.1

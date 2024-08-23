@@ -17,7 +17,7 @@ workflow FilterShortReads {
                 referenceFasta=referenceFasta,
                 memSizeGB=4,
                 threadCount=4,
-                diskSizeGB=512,
+                diskSizeGB=ceil(3 * size(readFile, "GB")) + 64,
                 dockerImage="tpesout/hpp_base:latest"
         }
         call filterShortReads{
@@ -29,22 +29,21 @@ workflow FilterShortReads {
     }
 
     output {
-        Array[File] longReadFastqs = filterShortReads.longReadFastq 
+        Array[File] longReadFastqGzArray = filterShortReads.longReadFastqGz 
     }
 }
 
 
-# This task does not work properly if sequences have methylation tags
 task filterShortReads {
     input{
         File readFastq
         Int minReadLength
         # runtime configurations
         Int memSizeGB=8
-        Int threadCount=4
+        Int threadCount=8
         Int diskSizeGB=512
         Int preemptible=1
-        String dockerImage="tpesout/hpp_base:latest"
+        String dockerImage="mobinasri/bio_base:latest"
     }
     command <<<
         set -o pipefail
@@ -52,13 +51,23 @@ task filterShortReads {
         set -u
         set -o xtrace
 
-        mkdir data
-        cd data
+
         FILENAME=$(basename -- "~{readFastq}")
-        PREFIX="${FILENAME%.*}"
+
+        EXTENSION=${FILENAME##*.}
+        if [[ ${EXTENSION} == "gz" ]]
+        then
+            CAT_COMMAND="zcat"
+            PREFIX="${FILENAME%.*.gz}"
+        else
+            CAT_COMMAND="cat"
+            PREFIX="${FILENAME%.*}"
+        fi
+
+        minLenKb=$(echo ~{minReadLength} | awk '{printf "%.0f",$1/1e3}')
         # filter reads shorter than minReadLength
-        awk 'NR%4==1{a=$0} NR%4==2{b=$0} NR%4==3{c=$0} NR%4==0&&length(b)>~{minReadLength}{print a"\n"b"\n"c"\n"$0;}' ~{readFastq} > ${PREFIX}.long.fastq
-        OUTPUTSIZE=`du -s -BG *.long.fastq | sed 's/G.*//'`
+        ${CAT_COMMAND} ~{readFastq} | awk 'NR%4==1{a=$0} NR%4==2{b=$0} NR%4==3{c=$0} NR%4==0&&length(b)>~{minReadLength}{print a"\n"b"\n"c"\n"$0;}' | pigz -p~{threadCount} - > ${PREFIX}.gt_${minLenKb}kb.fastq.gz
+        OUTPUTSIZE=`du -s -BG *.fastq.gz | sed 's/G.*//'`
         echo $OUTPUTSIZE > outputsize
     >>>
 
@@ -71,8 +80,8 @@ task filterShortReads {
     }
 
     output {
-        File longReadFastq = glob("data/*.long.fastq")[0]
-        Int fileSizeGB = read_int("data/outputsize")
+        File longReadFastqGz = glob("*.fastq.gz")[0]
+        Int fileSizeGB = read_int("outputsize")
     }
 }
 

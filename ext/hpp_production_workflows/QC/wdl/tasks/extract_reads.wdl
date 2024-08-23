@@ -4,7 +4,7 @@ workflow runExtractReads {
     input {
         Array[File] inputFiles
         File? referenceFasta
-        Int threadCount=1
+        Int threadCount=8
         String dockerImage
     }
 
@@ -27,12 +27,13 @@ task extractReads {
     input {
         File readFile
         File? referenceFasta
+        Boolean sortByName = false
         String excludeString="" # exclude lines with this string from fastq
         String fastqOptions = ""
-        Int memSizeGB = 4
+        Int memSizeGB = 16
         Int threadCount = 8
         Int diskSizeGB = 128
-        String dockerImage = "mobinasri/bio_base:dev-v0.1"
+        String dockerImage = "mobinasri/bio_base:v0.4.0"
     }
 
 
@@ -47,28 +48,37 @@ task extractReads {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-        # load samtools
-        #export PATH=$PATH:/root/bin/samtools_1.9/
 
         FILENAME=$(basename -- "~{readFile}")
         PREFIX="${FILENAME%.*}"
         SUFFIX="${FILENAME##*.}"
 
         mkdir output
+        SORT_BY_NAME=~{true="yes" false="no" sortByName}
 
         if [[ "$SUFFIX" == "bam" ]] ; then
-            samtools fastq ~{fastqOptions} -@~{threadCount} ~{readFile} > output/${PREFIX}.fq
+            if [[ ${SORT_BY_NAME} == "yes" ]]; then
+                samtools sort -@~{threadCount} -n ~{readFile} | \
+                         samtools fastq ~{fastqOptions} -@~{threadCount} - > output/${PREFIX}.fq
+            else
+                samtools fastq ~{fastqOptions} -@~{threadCount} ~{readFile} > output/${PREFIX}.fq      
+            fi
         elif [[ "$SUFFIX" == "cram" ]] ; then
             if [[ ! -f "~{referenceFasta}" ]] ; then
                 echo "Could not extract $FILENAME, reference file not supplied"
                 exit 1
             fi
             ln -s ~{referenceFasta}
-            samtools fastq ~{fastqOptions} -@~{threadCount} --reference `basename ~{referenceFasta}` ~{readFile} > output/${PREFIX}.fq
+            if [[ ${SORT_BY_NAME} == "yes" ]]; then
+                samtools sort -@~{threadCount} -n --reference `basename ~{referenceFasta}` -O bam ~{readFile} | \
+                         samtools fastq ~{fastqOptions} -@~{threadCount} - > output/${PREFIX}.fq
+            else
+                samtools fastq ~{fastqOptions} -@~{threadCount} --reference `basename ~{referenceFasta}` ~{readFile} > output/${PREFIX}.fq
+            fi
         elif [[ "$SUFFIX" == "gz" ]] ; then
             gunzip -k -c ~{readFile} > output/${PREFIX}
         elif [[ "$SUFFIX" == "fastq" ]] || [[ "$SUFFIX" == "fq" ]] ; then
-            cp ~{readFile} output/${PREFIX}.fq
+            ln -s ~{readFile} output/${PREFIX}.fq
         elif [[ "$SUFFIX" != "fastq" ]] && [[ "$SUFFIX" != "fq" ]] && [[ "$SUFFIX" != "fasta" ]] && [[ "$SUFFIX" != "fa" ]] ; then
             echo "Unsupported file type: ${SUFFIX}"
             exit 1

@@ -1,0 +1,323 @@
+[Thu Feb 15 05:00:54 PM PST 2024] The retrieved sample id is HG002_fastq_gz
+[Thu Feb 15 05:00:54 PM PST 2024] Start downloading external data ...
+[Thu Feb 15 05:00:54 PM PST 2024] Start downloading https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/006d0ef0-56ea-4f42-bed3-ae0b09672e0f--HG002_FILT_FASTQS/m54238_180901_011437.Q20.filt.fastq.gz ...
+[Thu Feb 15 05:01:37 PM PST 2024] Downloaded https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/006d0ef0-56ea-4f42-bed3-ae0b09672e0f--HG002_FILT_FASTQS/m54238_180901_011437.Q20.filt.fastq.gz
+[Thu Feb 15 05:01:37 PM PST 2024] Start running Toil job ...
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:01:38-0800] [MainThread] [W] [toil.utils.toilClean] Job store does not appear to exist. Deleting anyway.
+[2024-02-15T17:01:38-0800] [MainThread] [I] [toil.utils.toilClean] Successfully deleted the job store: /data/tmp/masri/HG002_fastq_gz_extract_reads/jobstore
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:01:40-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///data/tmp/masri/HG002_fastq_gz_extract_reads/m54238_180901_011437.Q20.filt.fastq.gz
+[2024-02-15T17:01:40-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///private/groups/patenlab/masri/hprc/polishing/HG002/assemblies/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+[2024-02-15T17:01:40-0800] [MainThread] [I] [toil.job] Saving graph of 1 jobs, 1 non-service, 1 new
+[2024-02-15T17:01:40-0800] [MainThread] [I] [toil.job] Processing job 'WDLRootJob' kind-WDLRootJob/instance-wafxr4tz v0
+[2024-02-15T17:01:40-0800] [MainThread] [I] [toil] Running Toil version 5.12.0a1-f0f3133896b1004769e52ca8141dd8177ed62fc9 on host phoenix-12.prism.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:01:41-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:01:41-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/bc74/worker_log.txt
+[2024-02-15T17:01:42-0800] [MainThread] [I] [toil.leader] 0 jobs are running, 0 jobs are issued and waiting to run
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:01:43-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:01:43-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/45d1/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:01:44-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:01:44-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/9b80/worker_log.txt
+[2024-02-15T17:01:45-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-ubmqoapl v1 with job batch system ID: 4 and disk: 2.0 Gi, memory: 2.0 Gi, cores: 1, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:01:46-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:01:46-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/6267/worker_log.txt
+[2024-02-15T17:01:46-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v1 with job batch system ID: 5 and disk: 119.2 Gi, memory: 14.9 Gi, cores: 8.0, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:01:47-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/worker_log.txt
+[2024-02-15T17:03:12-0800] [Thread-1 (daddy)] [E] [toil.batchSystems.singleMachine] Got exit code 1 (indicating failure) from job _toil_worker WDLTaskJob file:/data/tmp/masri/HG002_fastq_gz_extract_reads/jobstore kind-WDLTaskJob/instance-evhl8x4j.
+[2024-02-15T17:03:12-0800] [MainThread] [W] [toil.leader] Job failed with exit value 1: 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v1
+Exit reason: None
+[2024-02-15T17:03:12-0800] [MainThread] [W] [toil.leader] The job seems to have left a log file, indicating failure: 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v2
+[2024-02-15T17:03:12-0800] [MainThread] [W] [toil.leader] Log from job "kind-WDLTaskJob/instance-evhl8x4j" follows:
+=========>
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.worker] ---TOIL WORKER OUTPUT LOG---
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil] Running Toil version 5.12.0a1-f0f3133896b1004769e52ca8141dd8177ed62fc9 on host phoenix-12.prism.
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.worker] Working on job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v1
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.worker] Loaded body Job('WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v1) from description 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v1
+	[2024-02-15T17:01:47-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Running task extractReads (['extractReads']) called as runExtractReads.extractReads
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Defaulting excludeString to ""
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Defaulting fastqOptions to ""
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Defaulting memSizeGB to 16
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Defaulting diskSizeGB to 128
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [MiniWDLContainers] no configuration file found
+	[2024-02-15T17:01:47-0800] [MainThread] [N] [MiniWDLContainers] Singularity runtime initialized (BETA) :: singularity_version: "singularity-ce version 3.10.3"
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [MiniWDLContainers] detected host resources :: cpu: 256, mem_bytes: 2151641022464
+	[2024-02-15T17:01:55-0800] [MainThread] [I] [MiniWDLContainers] begin singularity pull :: command: "singularity pull /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif docker://mobinasri/bio_base:dev-v0.1"
+	[2024-02-15T17:03:10-0800] [MainThread] [N] [MiniWDLContainers] singularity pull :: image: "/private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif", seconds_waited: 0, seconds_pulling: 75
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [toil.wdl.wdltoil] Executing command in <WDL.runtime.backend.singularity.SingularityContainer object at 0x7f16ee6befe0>: 
+	        # Set the exit code of a pipeline to that of the rightmost command
+	        # to exit with a non-zero status, or zero if all commands of the pipeline exit
+	        set -o pipefail
+	        # cause a bash script to exit immediately when a command fails
+	        set -e
+	        # cause the bash shell to treat unset variables as an error and exit immediately
+	        set -u
+	        # echo each line of the script to stdout so we can see what is happening
+	        # to turn off echo do 'set +o xtrace'
+	        set -o xtrace
+	
+	        FILENAME=$(basename -- "/mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz")
+	        PREFIX="${FILENAME%.*}"
+	        SUFFIX="${FILENAME##*.}"
+	
+	        mkdir output
+	        SORT_BY_NAME=no
+	
+	        if [[ "$SUFFIX" == "bam" ]] ; then
+	            if [[ ${SORT_BY_NAME} == "yes" ]]; then
+	                samtools sort -@8 -n /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz | samtools fastq  -@8 - > output/${PREFIX}.fq
+	            else
+	                samtools fastq  -@8 /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz > output/${PREFIX}.fq      
+	            fi
+	        elif [[ "$SUFFIX" == "cram" ]] ; then
+	            if [[ ! -f "/mnt/miniwdl_task_container/work/_miniwdl_inputs/0/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna" ]] ; then
+	                echo "Could not extract $FILENAME, reference file not supplied"
+	                exit 1
+	            fi
+	            ln -s /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+	            if [[ ${SORT_BY_NAME} == "yes" ]]; then
+	                samtools sort -@8 -n --reference `basename /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna` -O bam /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz | samtools fastq  -@8 - > output/${PREFIX}.fq
+	            elif
+	                samtools fastq  -@8 --reference `basename /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna` /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz > output/${PREFIX}.fq
+	            fi
+	        elif [[ "$SUFFIX" == "gz" ]] ; then
+	            gunzip -k -c /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz > output/${PREFIX}
+	        elif [[ "$SUFFIX" == "fastq" ]] || [[ "$SUFFIX" == "fq" ]] ; then
+	            cp /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz output/${PREFIX}.fq
+	        elif [[ "$SUFFIX" != "fastq" ]] && [[ "$SUFFIX" != "fq" ]] && [[ "$SUFFIX" != "fasta" ]] && [[ "$SUFFIX" != "fa" ]] ; then
+	            echo "Unsupported file type: ${SUFFIX}"
+	            exit 1
+	        fi
+	
+	
+	        mkdir output_final
+	        OUTPUT_NAME=$(ls output)
+	
+	        if [ "" != "" ]; then
+	            cat output/${OUTPUT_NAME} | grep -v "" > output_final/${OUTPUT_NAME}
+	        else
+	            ln output/${OUTPUT_NAME} output_final/${OUTPUT_NAME}
+	        fi
+	        
+	
+	        OUTPUTSIZE=`du -s -BG output_final/ | sed 's/G.*//'`
+	        if [[ "0" == $OUTPUTSIZE ]] ; then
+	            OUTPUTSIZE=`du -s -BG /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz | sed 's/G.*//'`
+	        fi
+	        echo $OUTPUTSIZE >outputsize
+	    
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [MiniWDLContainers] provisioned :: seconds_waited: 0, cpu: 8, mem_bytes: 16000000000
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [MiniWDLContainers] Singularity SIF found in image cache directory :: sif: "/private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif"
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [MiniWDLContainers] singularity image already pulled :: image: "/private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif"
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [MiniWDLContainers] singularity invocation :: args: "singularity exec --pwd /mnt/miniwdl_task_container/work --containall --no-mount hostfs --fakeroot /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif", binds: 8, tmpdir: "/data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/_singularity_tmpdir_ycckriij"
+	[2024-02-15T17:03:10-0800] [MainThread] [W] [toil.wdl.wdltoil] No subuids are assigned to masri; cannot fake root.
+	[2024-02-15T17:03:10-0800] [MainThread] [N] [MiniWDLContainers] singularity run :: pid: 1777068, log: "/data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/singularity.log.txt"
+	[2024-02-15T17:03:11-0800] [MainThread] [I] [toil.wdl.wdltoil] Standard error at /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/stderr.txt: ++ basename -- /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz
+	+ FILENAME=m54238_180901_011437.Q20.filt.fastq.gz
+	+ PREFIX=m54238_180901_011437.Q20.filt.fastq
+	+ SUFFIX=gz
+	+ mkdir output
+	+ SORT_BY_NAME=no
+	../command: line 36: syntax error near unexpected token `fi'
+	
+	[2024-02-15T17:03:11-0800] [MainThread] [I] [toil.wdl.wdltoil] Standard output at /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/stdout.txt: 
+	[2024-02-15T17:03:11-0800] [MainThread] [W] [toil.fileStores.abstractFileStore] Failed job accessed files:
+	[2024-02-15T17:03:11-0800] [MainThread] [W] [toil.fileStores.abstractFileStore] Downloaded file 'files/no-job/file-5f69ad0a25c34151a96f2a50efde8f3e/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna' to path '/data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/tmpm2022myp/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna'
+	[2024-02-15T17:03:11-0800] [MainThread] [W] [toil.fileStores.abstractFileStore] Downloaded file 'files/no-job/file-a30864118a7d4df59b7fe1961ac6c970/m54238_180901_011437.Q20.filt.fastq.gz' to path '/data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/tmp4oboybq3/m54238_180901_011437.Q20.filt.fastq.gz'
+	Traceback (most recent call last):
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/worker.py", line 403, in workerScript
+	    job._runner(jobGraph=None, jobStore=jobStore, fileStore=fileStore, defer=defer)
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/job.py", line 2774, in _runner
+	    returnValues = self._run(jobGraph=None, fileStore=fileStore)
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/job.py", line 2691, in _run
+	    return self.run(fileStore)
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/wdl/wdltoil.py", line 1246, in run
+	    task_container.run(miniwdl_logger, command_string)
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/WDL/runtime/task_container.py", line 326, in run
+	    raise CommandFailed(
+	WDL.runtime.error.CommandFailed: task command failed with exit status 2
+	[2024-02-15T17:03:11-0800] [MainThread] [E] [toil.worker] Exiting the worker because of a failed job on host phoenix-12.prism
+<=========
+[2024-02-15T17:03:12-0800] [MainThread] [W] [toil.job] Due to failure we are reducing the remaining try count of job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v2 with ID kind-WDLTaskJob/instance-evhl8x4j to 0
+[2024-02-15T17:03:12-0800] [MainThread] [W] [toil.leader] Job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v3 is completely failed
+[2024-02-15T17:03:24-0800] [MainThread] [I] [toil.leader] Finished toil run with 5 failed jobs.
+[2024-02-15T17:03:24-0800] [MainThread] [I] [toil.leader] Failed jobs at end of the run: 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v3 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-ubmqoapl v2 'WDLWorkflowJob' kind-WDLRootJob/instance-wafxr4tz v4 'WDLWorkflowNodeJob' call-extractReads kind-WDLWorkflowNodeJob/instance-k9bv269y v2 'WDLScatterJob' scatter-L11C5-file kind-WDLWorkflowNodeJob/instance-xfw4n71x v4
+[2024-02-15T17:03:24-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:03:24-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+Traceback (most recent call last):
+  File "/private/home/masri/.local/bin/toil-wdl-runner", line 8, in <module>
+    sys.exit(main())
+  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/wdl/wdltoil.py", line 2039, in main
+    output_bindings = toil.start(root_job)
+  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/common.py", line 1064, in start
+    return self._runMainLoop(rootJobDescription)
+  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/common.py", line 1544, in _runMainLoop
+    jobCache=self._jobCache).run()
+  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/leader.py", line 289, in run
+    raise FailedJobsException(self.jobStore, failed_jobs, exit_code=self.recommended_fail_exit_code)
+toil.exceptions.FailedJobsException: The job store '/data/tmp/masri/HG002_fastq_gz_extract_reads/jobstore' contains 5 failed jobs: 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v3, 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-ubmqoapl v2, 'WDLWorkflowJob' kind-WDLRootJob/instance-wafxr4tz v4, 'WDLWorkflowNodeJob' call-extractReads kind-WDLWorkflowNodeJob/instance-k9bv269y v2, 'WDLScatterJob' scatter-L11C5-file kind-WDLWorkflowNodeJob/instance-xfw4n71x v4
+Log from job "'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v3" follows:
+=========>
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.worker] ---TOIL WORKER OUTPUT LOG---
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil] Running Toil version 5.12.0a1-f0f3133896b1004769e52ca8141dd8177ed62fc9 on host phoenix-12.prism.
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.worker] Working on job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v1
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.worker] Loaded body Job('WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v1) from description 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-evhl8x4j v1
+	[2024-02-15T17:01:47-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Running task extractReads (['extractReads']) called as runExtractReads.extractReads
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Defaulting excludeString to ""
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Defaulting fastqOptions to ""
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Defaulting memSizeGB to 16
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [toil.wdl.wdltoil] Defaulting diskSizeGB to 128
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [MiniWDLContainers] no configuration file found
+	[2024-02-15T17:01:47-0800] [MainThread] [N] [MiniWDLContainers] Singularity runtime initialized (BETA) :: singularity_version: "singularity-ce version 3.10.3"
+	[2024-02-15T17:01:47-0800] [MainThread] [I] [MiniWDLContainers] detected host resources :: cpu: 256, mem_bytes: 2151641022464
+	[2024-02-15T17:01:55-0800] [MainThread] [I] [MiniWDLContainers] begin singularity pull :: command: "singularity pull /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif docker://mobinasri/bio_base:dev-v0.1"
+	[2024-02-15T17:03:10-0800] [MainThread] [N] [MiniWDLContainers] singularity pull :: image: "/private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif", seconds_waited: 0, seconds_pulling: 75
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [toil.wdl.wdltoil] Executing command in <WDL.runtime.backend.singularity.SingularityContainer object at 0x7f16ee6befe0>: 
+	        # Set the exit code of a pipeline to that of the rightmost command
+	        # to exit with a non-zero status, or zero if all commands of the pipeline exit
+	        set -o pipefail
+	        # cause a bash script to exit immediately when a command fails
+	        set -e
+	        # cause the bash shell to treat unset variables as an error and exit immediately
+	        set -u
+	        # echo each line of the script to stdout so we can see what is happening
+	        # to turn off echo do 'set +o xtrace'
+	        set -o xtrace
+	
+	        FILENAME=$(basename -- "/mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz")
+	        PREFIX="${FILENAME%.*}"
+	        SUFFIX="${FILENAME##*.}"
+	
+	        mkdir output
+	        SORT_BY_NAME=no
+	
+	        if [[ "$SUFFIX" == "bam" ]] ; then
+	            if [[ ${SORT_BY_NAME} == "yes" ]]; then
+	                samtools sort -@8 -n /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz | samtools fastq  -@8 - > output/${PREFIX}.fq
+	            else
+	                samtools fastq  -@8 /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz > output/${PREFIX}.fq      
+	            fi
+	        elif [[ "$SUFFIX" == "cram" ]] ; then
+	            if [[ ! -f "/mnt/miniwdl_task_container/work/_miniwdl_inputs/0/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna" ]] ; then
+	                echo "Could not extract $FILENAME, reference file not supplied"
+	                exit 1
+	            fi
+	            ln -s /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+	            if [[ ${SORT_BY_NAME} == "yes" ]]; then
+	                samtools sort -@8 -n --reference `basename /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna` -O bam /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz | samtools fastq  -@8 - > output/${PREFIX}.fq
+	            elif
+	                samtools fastq  -@8 --reference `basename /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna` /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz > output/${PREFIX}.fq
+	            fi
+	        elif [[ "$SUFFIX" == "gz" ]] ; then
+	            gunzip -k -c /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz > output/${PREFIX}
+	        elif [[ "$SUFFIX" == "fastq" ]] || [[ "$SUFFIX" == "fq" ]] ; then
+	            cp /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz output/${PREFIX}.fq
+	        elif [[ "$SUFFIX" != "fastq" ]] && [[ "$SUFFIX" != "fq" ]] && [[ "$SUFFIX" != "fasta" ]] && [[ "$SUFFIX" != "fa" ]] ; then
+	            echo "Unsupported file type: ${SUFFIX}"
+	            exit 1
+	        fi
+	
+	
+	        mkdir output_final
+	        OUTPUT_NAME=$(ls output)
+	
+	        if [ "" != "" ]; then
+	            cat output/${OUTPUT_NAME} | grep -v "" > output_final/${OUTPUT_NAME}
+	        else
+	            ln output/${OUTPUT_NAME} output_final/${OUTPUT_NAME}
+	        fi
+	        
+	
+	        OUTPUTSIZE=`du -s -BG output_final/ | sed 's/G.*//'`
+	        if [[ "0" == $OUTPUTSIZE ]] ; then
+	            OUTPUTSIZE=`du -s -BG /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz | sed 's/G.*//'`
+	        fi
+	        echo $OUTPUTSIZE >outputsize
+	    
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [MiniWDLContainers] provisioned :: seconds_waited: 0, cpu: 8, mem_bytes: 16000000000
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [MiniWDLContainers] Singularity SIF found in image cache directory :: sif: "/private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif"
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [MiniWDLContainers] singularity image already pulled :: image: "/private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif"
+	[2024-02-15T17:03:10-0800] [MainThread] [I] [MiniWDLContainers] singularity invocation :: args: "singularity exec --pwd /mnt/miniwdl_task_container/work --containall --no-mount hostfs --fakeroot /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/outputs/cache/.cache/miniwdl/docker___mobinasri_bio_base_dev-v0.1.sif", binds: 8, tmpdir: "/data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/_singularity_tmpdir_ycckriij"
+	[2024-02-15T17:03:10-0800] [MainThread] [W] [toil.wdl.wdltoil] No subuids are assigned to masri; cannot fake root.
+	[2024-02-15T17:03:10-0800] [MainThread] [N] [MiniWDLContainers] singularity run :: pid: 1777068, log: "/data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/singularity.log.txt"
+	[2024-02-15T17:03:11-0800] [MainThread] [I] [toil.wdl.wdltoil] Standard error at /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/stderr.txt: ++ basename -- /mnt/miniwdl_task_container/work/_miniwdl_inputs/0/m54238_180901_011437.Q20.filt.fastq.gz
+	+ FILENAME=m54238_180901_011437.Q20.filt.fastq.gz
+	+ PREFIX=m54238_180901_011437.Q20.filt.fastq
+	+ SUFFIX=gz
+	+ mkdir output
+	+ SORT_BY_NAME=no
+	../command: line 36: syntax error near unexpected token `fi'
+	
+	[2024-02-15T17:03:11-0800] [MainThread] [I] [toil.wdl.wdltoil] Standard output at /data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/stdout.txt: 
+	[2024-02-15T17:03:11-0800] [MainThread] [W] [toil.fileStores.abstractFileStore] Failed job accessed files:
+	[2024-02-15T17:03:11-0800] [MainThread] [W] [toil.fileStores.abstractFileStore] Downloaded file 'files/no-job/file-5f69ad0a25c34151a96f2a50efde8f3e/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna' to path '/data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/tmpm2022myp/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna'
+	[2024-02-15T17:03:11-0800] [MainThread] [W] [toil.fileStores.abstractFileStore] Downloaded file 'files/no-job/file-a30864118a7d4df59b7fe1961ac6c970/m54238_180901_011437.Q20.filt.fastq.gz' to path '/data/tmp/ed7e4ea900ed5bfc98304c4e7e6671a6/e945/999c/tmp4oboybq3/m54238_180901_011437.Q20.filt.fastq.gz'
+	Traceback (most recent call last):
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/worker.py", line 403, in workerScript
+	    job._runner(jobGraph=None, jobStore=jobStore, fileStore=fileStore, defer=defer)
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/job.py", line 2774, in _runner
+	    returnValues = self._run(jobGraph=None, fileStore=fileStore)
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/job.py", line 2691, in _run
+	    return self.run(fileStore)
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/toil/wdl/wdltoil.py", line 1246, in run
+	    task_container.run(miniwdl_logger, command_string)
+	  File "/private/home/masri/.local/lib/python3.10/site-packages/WDL/runtime/task_container.py", line 326, in run
+	    raise CommandFailed(
+	WDL.runtime.error.CommandFailed: task command failed with exit status 2
+	[2024-02-15T17:03:11-0800] [MainThread] [E] [toil.worker] Exiting the worker because of a failed job on host phoenix-12.prism
+<=========
+[Thu Feb 15 05:03:24 PM PST 2024] Toil job is finished.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+Batch System: single_machine
+Default Cores: 1  Default Memory: 2097152K
+Max Cores: 8
+Total Clock: 395.88  Total Runtime: 103.21
+Worker
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        4 |     0.06    0.07    0.07    0.08    0.28 |     0.06    0.07    0.06    0.07    0.26 |     0.01    0.01    0.01    0.01    0.03 |  173824K 174328K 174126K 174520K 696504K
+Job
+ Worker Jobs  |     min    med    ave    max
+              |       6      6      6      6
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        6 |     0.01    0.01    0.01    0.01    0.05 |     0.01    0.01    0.01    0.01    0.05 |    -0.00   -0.00   -0.00    0.00   -0.00 |  173272K 173832K 173846K 174520K1043080K
+ runExtractReads.extractReads
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  174520K 174520K 174520K 174520K 174520K
+ WDLRootJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |     0.00    0.00    0.00    0.00    0.00 |  173304K 173304K 173304K 173304K 173304K
+ WDLWorkflowJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  173832K 173832K 173832K 173832K 173832K
+ call-extractReads
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  173824K 173824K 173824K 173824K 173824K
+ scatter-L11C5-file
+    Total Cores: 2.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        2 |     0.01    0.01    0.01    0.01    0.02 |     0.01    0.01    0.01    0.01    0.02 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  173272K 174328K 173800K 174328K 347600K
+
+[Thu Feb 15 05:03:25 PM PST 2024] Your Toil job succeeded! :)
+[Thu Feb 15 05:03:25 PM PST 2024] Start copying output files to the current directory and updating output json file...
+[Thu Feb 15 05:03:25 PM PST 2024] Output json file is located here: /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/HG002_fastq_gz/HG002_fastq_gz_extract_reads_outputs.json
+[Thu Feb 15 05:03:25 PM PST 2024] Cleaning up /data/tmp/masri/HG002_fastq_gz_extract_reads
+[Thu Feb 15 05:03:25 PM PST 2024] Finished!

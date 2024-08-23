@@ -1,0 +1,106 @@
+[Thu Feb 15 05:10:18 PM PST 2024] The retrieved sample id is HG002_bam
+[Thu Feb 15 05:10:18 PM PST 2024] Start downloading external data ...
+[Thu Feb 15 05:10:18 PM PST 2024] Start running Toil job ...
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:10:20-0800] [MainThread] [I] [toil.utils.toilClean] Successfully deleted the job store: /data/tmp/masri/HG002_bam_extract_reads/jobstore
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:10:22-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///data/tmp/masri/HG002_bam_extract_reads/m64076_201013_225902.ccs.bam
+[2024-02-15T17:10:22-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///private/groups/patenlab/masri/hprc/polishing/HG002/assemblies/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+[2024-02-15T17:10:22-0800] [MainThread] [I] [toil.job] Saving graph of 1 jobs, 1 non-service, 1 new
+[2024-02-15T17:10:22-0800] [MainThread] [I] [toil.job] Processing job 'WDLRootJob' kind-WDLRootJob/instance-rp6v2sa6 v0
+[2024-02-15T17:10:22-0800] [MainThread] [I] [toil] Running Toil version 5.12.0a1-f0f3133896b1004769e52ca8141dd8177ed62fc9 on host phoenix-14.prism.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:10:23-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/a1d2/worker_log.txt
+[2024-02-15T17:10:24-0800] [MainThread] [I] [toil.leader] 0 jobs are running, 0 jobs are issued and waiting to run
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:10:25-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/f679/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:10:27-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/13b2/worker_log.txt
+[2024-02-15T17:10:27-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-s28ix3_n v1 with job batch system ID: 4 and disk: 2.0 Gi, memory: 2.0 Gi, cores: 1, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:10:29-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/0fdc/worker_log.txt
+[2024-02-15T17:10:29-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-9rjx_7gz v1 with job batch system ID: 5 and disk: 119.2 Gi, memory: 14.9 Gi, cores: 8.0, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:10:30-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/b550/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:16:06-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/c0a5/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:16:08-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/a998/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:16:14-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/5de2/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:16:15-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/b73e/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:16:21-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/38c6/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:16:25-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/7bcc244a1bcc599a959fba06f3154010/7855/worker_log.txt
+[2024-02-15T17:16:29-0800] [MainThread] [I] [toil.leader] Finished toil run successfully.
+[Thu Feb 15 05:18:37 PM PST 2024] Toil job is finished.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+Batch System: single_machine
+Default Cores: 1  Default Memory: 2097152K
+Max Cores: 8
+Total Clock: 603.57  Total Runtime: 366.98
+Worker
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+       11 |     0.07    0.09   30.29  332.36  333.22 |     0.06    0.08   52.98  581.96  582.74 |  -249.60    0.01  -22.68    0.01 -249.53 |  173528K 174344K 174426K 175992K1918696K
+Job
+ Worker Jobs  |     min    med    ave    max
+              |      14     14     14     14
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+       14 |     0.01    0.01   23.74  332.30  332.41 |     0.01    0.01   41.57  581.90  582.00 |  -249.60   -0.00  -17.83    0.00 -249.59 |  173408K 174376K 174350K 175992K2440904K
+ WDLArrayBindingsJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  174632K 174632K 174632K 174632K 174632K
+ WDLRootJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  173408K 173408K 173408K 173408K 173408K
+ WDLOutputsJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |     0.00    0.00    0.00    0.00    0.00 |  175992K 175992K 175992K 175992K 175992K
+ WDLCombineBindingsJob
+    Total Cores: 3.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        3 |     0.01    0.01    0.01    0.01    0.03 |     0.01    0.01    0.01    0.01    0.02 |    -0.00   -0.00    0.00    0.00    0.00 |  174216K 174408K 174477K 174808K 523432K
+ WDLNamespaceBindingsJob
+    Total Cores: 2.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        2 |     0.01    0.01    0.01    0.01    0.02 |     0.01    0.01    0.01    0.01    0.01 |    -0.00    0.00    0.00    0.00    0.00 |  173528K 174344K 173936K 174344K 347872K
+ WDLWorkflowJob
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  173936K 173936K 173936K 173936K 173936K
+ call-extractReads
+    Total Cores: 1.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        1 |     0.01    0.01    0.01    0.01    0.01 |     0.01    0.01    0.01    0.01    0.01 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  174296K 174296K 174296K 174296K 174296K
+ scatter-L11C5-file
+    Total Cores: 2.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        2 |     0.01    0.01    0.01    0.01    0.02 |     0.01    0.01    0.01    0.01    0.02 |    -0.00   -0.00   -0.00   -0.00   -0.00 |  174392K 174392K 174392K 174392K 348784K
+ runExtractReads.extractReads
+    Total Cores: 9.0
+    Count |                                    Time* |                                    Clock |                                     Wait |                                   Memory 
+        n |      min    med*     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total |      min     med     ave     max   total 
+        2 |     0.01  332.30  166.15  332.30  332.31 |     0.01  581.90  290.95  581.90  581.91 |  -249.60   -0.00 -124.80   -0.00 -249.60 |  174176K 174376K 174276K 174376K 348552K
+
+[Thu Feb 15 05:18:39 PM PST 2024] Your Toil job succeeded! :)
+[Thu Feb 15 05:18:39 PM PST 2024] Start copying output files to the current directory and updating output json file...
+[Thu Feb 15 05:18:39 PM PST 2024] Start copying /data/tmp/masri/HG002_bam_extract_reads/extract_reads_outputs/m64076_201013_225902.ccs.fq to /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/HG002_bam/extract_reads_outputs/
+[Thu Feb 15 05:20:41 PM PST 2024] Copied /data/tmp/masri/HG002_bam_extract_reads/extract_reads_outputs/m64076_201013_225902.ccs.fq
+[Thu Feb 15 05:20:41 PM PST 2024] Output json file is located here: /private/groups/patenlab/masri/apps/forked/hpp_production_workflows/QC/wdl/tasks/extract_reads_test/extract_reads_output_jsons/HG002_bam/HG002_bam_extract_reads_outputs.json
+[Thu Feb 15 05:20:41 PM PST 2024] Cleaning up /data/tmp/masri/HG002_bam_extract_reads
+[Thu Feb 15 05:20:41 PM PST 2024] Finished!

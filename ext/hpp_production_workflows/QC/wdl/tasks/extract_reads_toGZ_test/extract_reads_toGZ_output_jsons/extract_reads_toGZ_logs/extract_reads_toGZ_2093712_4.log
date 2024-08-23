@@ -1,0 +1,44 @@
+[Thu Feb 15 08:24:24 PM PST 2024] The retrieved sample id is HG002_cram_sort_by_name
+[Thu Feb 15 08:24:24 PM PST 2024] Start downloading external data ...
+[Thu Feb 15 08:24:24 PM PST 2024] Start downloading https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00480/raw_data/Illumina/child/HG00480.final.cram ...
+[Thu Feb 15 09:03:48 PM PST 2024] Downloaded https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00480/raw_data/Illumina/child/HG00480.final.cram
+[Thu Feb 15 09:03:48 PM PST 2024] Start running Toil job ...
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:03:52-0800] [MainThread] [W] [toil.utils.toilClean] Job store does not appear to exist. Deleting anyway.
+[2024-02-15T21:03:52-0800] [MainThread] [I] [toil.utils.toilClean] Successfully deleted the job store: /data/tmp/masri/HG002_cram_sort_by_name_extract_reads_toGZ/jobstore
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:03:56-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///data/tmp/masri/HG002_cram_sort_by_name_extract_reads_toGZ/HG00480.final.cram
+[2024-02-15T21:03:56-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///private/groups/patenlab/masri/hprc/polishing/HG002/assemblies/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+[2024-02-15T21:03:56-0800] [MainThread] [I] [toil.job] Saving graph of 1 jobs, 1 non-service, 1 new
+[2024-02-15T21:03:56-0800] [MainThread] [I] [toil.job] Processing job 'WDLRootJob' kind-WDLRootJob/instance-ts2ws7uq v0
+[2024-02-15T21:03:56-0800] [MainThread] [I] [toil] Running Toil version 5.12.0a1-f0f3133896b1004769e52ca8141dd8177ed62fc9 on host phoenix-21.prism.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:03:58-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:03:58-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/f162e87e0405501098324c64e0e1024e/9b89/worker_log.txt
+[2024-02-15T21:03:59-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:04:00-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:04:00-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/f162e87e0405501098324c64e0e1024e/8f4c/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:04:03-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:04:03-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/f162e87e0405501098324c64e0e1024e/9f90/worker_log.txt
+[2024-02-15T21:04:03-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReadstoGZ.extractReadstoGZ kind-WDLTaskJob/instance-14z5l92t v1 with job batch system ID: 4 and disk: 2.0 Gi, memory: 2.0 Gi, cores: 1, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:04:05-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:04:05-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/f162e87e0405501098324c64e0e1024e/25b2/worker_log.txt
+[2024-02-15T21:04:05-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReadstoGZ.extractReadstoGZ kind-WDLTaskJob/instance-pgjsd5rg v1 with job batch system ID: 5 and disk: 119.2 Gi, memory: 3.7 Gi, cores: 1, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T21:04:07-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T21:04:07-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/f162e87e0405501098324c64e0e1024e/9671/worker_log.txt
+[2024-02-15T22:03:59-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-15T23:03:59-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T00:04:00-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T01:04:01-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T02:04:02-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T03:04:03-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T04:04:05-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T05:04:06-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T06:04:07-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T07:04:09-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+[2024-02-16T08:04:10-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+slurmstepd-phoenix-21: error: *** JOB 2093712 ON phoenix-21 CANCELLED AT 2024-02-16T08:24:34 DUE TO TIME LIMIT ***

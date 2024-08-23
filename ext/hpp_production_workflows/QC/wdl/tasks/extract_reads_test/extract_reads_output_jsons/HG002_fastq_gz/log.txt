@@ -1,0 +1,45 @@
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:11:19-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///data/tmp/masri/HG002_fastq_gz_extract_reads/m54238_180901_011437.Q20.filt.fastq.gz
+[2024-02-15T17:11:19-0800] [MainThread] [I] [toil.wdl.wdltoil] Imported file:///private/groups/patenlab/masri/hprc/polishing/HG002/assemblies/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+[2024-02-15T17:11:19-0800] [MainThread] [I] [toil.job] Saving graph of 1 jobs, 1 non-service, 1 new
+[2024-02-15T17:11:19-0800] [MainThread] [I] [toil.job] Processing job 'WDLRootJob' kind-WDLRootJob/instance-wsld1fj3 v0
+[2024-02-15T17:11:19-0800] [MainThread] [I] [toil] Running Toil version 5.12.0a1-f0f3133896b1004769e52ca8141dd8177ed62fc9 on host phoenix-13.prism.
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:11:21-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:11:21-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/4371/worker_log.txt
+[2024-02-15T17:11:21-0800] [MainThread] [I] [toil.leader] 1 jobs are running, 0 jobs are issued and waiting to run
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:11:23-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:11:23-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/64da/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:11:25-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:11:25-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/16cd/worker_log.txt
+[2024-02-15T17:11:25-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-119d60g5 v1 with job batch system ID: 4 and disk: 2.0 Gi, memory: 2.0 Gi, cores: 1, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:11:27-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:11:27-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/3ffb/worker_log.txt
+[2024-02-15T17:11:27-0800] [MainThread] [I] [toil.leader] Issued job 'WDLTaskJob' runExtractReads.extractReads kind-WDLTaskJob/instance-kza4bh9m v1 with job batch system ID: 5 and disk: 119.2 Gi, memory: 14.9 Gi, cores: 8.0, accelerators: [], preemptible: False
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:11:29-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:11:29-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/9814/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:12:22-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:12:22-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/df93/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:12:24-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:12:24-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/861e/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:12:30-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:12:30-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/c53f/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:12:32-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:12:32-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/b56c/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:12:38-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:12:38-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/ce93/worker_log.txt
+You are using cwltool version 3.1.20220224085855, which might not be compatible with version 3.1.20230601100705 used by Toil. You should consider running 'pip install cwltool==3.1.20230601100705' to match Toil's cwltool version.
+[2024-02-15T17:12:41-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:12:41-0800] [MainThread] [I] [toil.worker] Redirecting logging to /data/tmp/5bbf697d86595c11af5d973e6d0fbc05/0d7c/worker_log.txt
+[2024-02-15T17:12:46-0800] [MainThread] [I] [toil.leader] Finished toil run successfully.
+[2024-02-15T17:12:46-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!
+[2024-02-15T17:12:46-0800] [MainThread] [W] [toil.common] XDG_RUNTIME_DIR is set to nonexistent directory /run/user/30078; your environment may be out of spec!

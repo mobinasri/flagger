@@ -27,7 +27,7 @@ task tarGz {
         set -o xtrace
         
         mkdir ~{tarGzName}
-        cp ~{sep=" " files} ~{tarGzName}
+        ln ~{sep=" " files} ~{tarGzName}
         tar -cf ~{tarGzName}.tar ~{tarGzName}
         gzip ~{tarGzName}.tar
     >>> 

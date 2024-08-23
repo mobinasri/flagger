@@ -13,6 +13,8 @@ task phasedGFAs2Fasta {
     input{
         File paternalGfa
         File maternalGfa
+        String patSuffix = "pat"
+        String matSuffix = "mat"
         String childID
         # runtime configurations
         Int memSizeGB=32
@@ -34,8 +36,8 @@ task phasedGFAs2Fasta {
         set -o xtrace
 
         # Convert contig GFA to FASTA with https://github.com/lh3/gfatools (this can be done with awk, too). Run in parallel:
-        gfatools gfa2fa ~{paternalGfa} | pigz -p~{threadCount} > ~{childID}.pat.fa.gz &
-        gfatools gfa2fa ~{maternalGfa} | pigz -p~{threadCount} > ~{childID}.mat.fa.gz &
+        gfatools gfa2fa ~{paternalGfa} | pigz -p~{threadCount} > ~{childID}.~{patSuffix}.fa.gz &
+        gfatools gfa2fa ~{maternalGfa} | pigz -p~{threadCount} > ~{childID}.~{matSuffix}.fa.gz &
         wait
     >>>
 
@@ -48,8 +50,8 @@ task phasedGFAs2Fasta {
     }
 
     output {
-        File outputPaternalFastaGz = "~{childID}.pat.fa.gz"
-        File outputMaternalFastaGz = "~{childID}.mat.fa.gz"
+        File outputPaternalFastaGz = "~{childID}.~{patSuffix}.fa.gz"
+        File outputMaternalFastaGz = "~{childID}.~{matSuffix}.fa.gz"
     }
 }
 

@@ -1,0 +1,8 @@
+name: hprc_verkko
+channels:
+  - conda-forge 
+  - bioconda 
+  - defaults
+
+dependencies:
+  - verkko=1.3

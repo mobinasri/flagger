@@ -16,8 +16,9 @@ task bam2paf{
         Int memSize=16
         Int threadCount=4
         Int diskSize=256
-        String dockerImage="mobinasri/long_read_aligner:v0.1"
+        String dockerImage="mobinasri/long_read_aligner:v0.4.0"
         Int preemptible=2
+        String zones = "us-west2-a"
     }
     command <<<
         # Set the exit code of a pipeline to that of the rightmost command
@@ -46,6 +47,7 @@ task bam2paf{
         cpu: threadCount
         disks: "local-disk " + diskSize + " SSD"
         preemptible : preemptible
+        zones : zones
     }
     output{
         File pafFile = glob("*.paf")[0]

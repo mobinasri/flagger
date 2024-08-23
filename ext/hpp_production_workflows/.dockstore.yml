@@ -93,12 +93,42 @@ workflows:
    -  name: TrioHifiasmAssemblyYakInputCutadapt
       subclass: WDL
       primaryDescriptorPath: /assembly/wdl/workflows/trio_hifiasm_assembly_yak_input_cutadapt.wdl
+   -  name: TrioHifiasmAssemblyYakInputCutadaptMultiStep
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/workflows/trio_hifiasm_assembly_yak_input_cutadapt_multistep.wdl
+   -  name: TrioHifiasmAssemblyStep3
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/hifiasm_cutadapt_trio_step3.wdl
+   -  name: HiCHifiasmAssemblyStep2
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/hifiasm_cutadapt_hic_step2.wdl
+   -  name: HiCHifiasmAssemblyStep3
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/hifiasm_cutadapt_hic_step3.wdl
    -  name: TrioVerkkoAssembly
       subclass: WDL
       primaryDescriptorPath: /assembly/wdl/workflows/trio_verkko_assembly.wdl
    -  name: TrioVerkkoAssemblyScatter
       subclass: WDL
       primaryDescriptorPath: /assembly/wdl/workflows/trio_verkko_assembly_scatter.wdl
+   -  name: VerkkoAssemblyScatter
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/workflows/verkko_assembly_scatter.wdl
+   -  name: VerkkoCreateUnphasedGFA
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/verkko_create_unphased_gfa.wdl
+   -  name: VerkkoConsensusFromGFAse
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/verkko_consensus_from_gfase.wdl
+   -  name: VerkkoHiCPhasing
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/verkko_hic.wdl
+   -  name: VerkkoExtractPhasedAsms
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/verkko_extract_run_folder.wdl
+   -  name: VerkkoRephaseRukki
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/verkko_rerun_rukki.wdl
    -  name: YakNoStats
       subclass: WDL
       primaryDescriptorPath: /assembly/wdl/tasks/yak_no_stats.wdl
@@ -144,4 +174,36 @@ workflows:
    -  name: FilterShortReads
       subclass: WDL
       primaryDescriptorPath: /assembly/wdl/tasks/filter_short_reads.wdl
-
+   -  name: chopperFilter
+      subclass: WDL
+      primaryDescriptorPath: /data_processing/wdl/chopper.wdl
+   -  name: LiftOff
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/tasks/liftoff.wdl
+   -  name: ShortQC
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/short_qc.wdl
+   -  name: asmComparisonQC
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/comparison_qc.wdl
+   -  name: asmComparisonQCdiploid
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/comparison_qc_diploid.wdl
+   -  name: ssdsTerraUpload
+      subclass: WDL
+      primaryDescriptorPath: /data_processing/wdl/ssds_terra_upload.wdl
+   -  name: s5cmd_download
+      subclass: WDL
+      primaryDescriptorPath: /data_processing/wdl/s5cmd_download.wdl      
+   -  name: AssemblyCleanUp
+      subclass: WDL
+      primaryDescriptorPath: /assembly/wdl/tasks/assembly_clean_up.wdl
+   -  name: ShortDiploidQC
+      subclass: WDL
+      primaryDescriptorPath: /QC/wdl/workflows/short_diploid_qc.wdl 
+   -  name: Readsbam4DC
+      subclass: WDL
+      primaryDescriptorPath: /data_processing/wdl/readsbam4dc.wdl
+   -  name: ontSummaryStats
+      subclass: WDL
+      primaryDescriptorPath: /data_processing/wdl/calc_ont_summary_stats.wdl

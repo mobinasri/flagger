@@ -8,12 +8,12 @@ workflow runProduceFai{
 }
 task produceFai {
     input {
-        File assemblyGz
+        File fasta
         # runtime configurations
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/bio_base:v0.1"
+        String dockerImage="mobinasri/bio_base:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -27,11 +27,16 @@ task produceFai {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
-        
-        FILENAME=$(basename ~{assemblyGz})
-        PREFIX=${FILENAME%.gz}
-        gunzip -c ~{assemblyGz} > ${PREFIX}
-        samtools faidx ${PREFIX}
+
+        FA_PREFIX=$(echo $(basename ~{fasta}) | sed -e 's/\.fa$//' -e 's/\.fa.gz$//' -e 's/\.fasta$//' -e 's/\.fasta.gz$//')
+
+        if [[ "~{fasta}" == *.gz ]]; then
+            gunzip -c ~{fasta} > ${FA_PREFIX}.fa
+        else
+            cp ~{fasta} ${FA_PREFIX}.fa
+        fi
+        samtools faidx ${FA_PREFIX}.fa
+
     >>> 
     runtime {
         docker: dockerImage

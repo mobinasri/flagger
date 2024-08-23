@@ -84,7 +84,7 @@ task filterHiFiAdapter {
         cd data
         FILENAME=$(basename -- "~{readFastq}")
         PREFIX="${FILENAME%.*}"
-        ln -s ~{readFastq} ${PREFIX}.fastq
+        ln ~{readFastq} ${PREFIX}.fastq
         wc -l ${PREFIX}.fastq | awk '{print $1/4}' > ${PREFIX}.countReads
         bash ${HIFI_ADAPTER_FILTER_BASH} -t ~{threadCount}
         OUTPUTSIZE=`du -s -BG *.filt.fastq | sed 's/G.*//'`
@@ -110,8 +110,7 @@ task filterHiFiAdapter {
 
 task cutadapt {
     input{
-        File readFastq
-        Int removeLastLines # added since deepconsensus fastq files had some redundant lines (3 lines)
+        File readFastqGz
         # runtime configurations
         Int memSizeGB=32
         Int threadCount=16
@@ -133,13 +132,12 @@ task cutadapt {
 
         mkdir data
         cd data
-        FILENAME=$(basename -- "~{readFastq}")
+        FILENAME=$(basename -- "~{readFastqGz}")
         PREFIX="${FILENAME%.*}"
-        head -n -~{removeLastLines} ~{readFastq} > ${PREFIX}.fastq
         cutadapt -b "AAAAAAAAAAAAAAAAAATTAACGGAGGAGGAGGA;min_overlap=35" \
          -b "ATCTCTCTCTTTTCCTCCTCCTCCGTTGTTGTTGTTGAGAGAGAT;min_overlap=45" \
-         --discard-trimmed -o ${PREFIX}.filt.fastq ${PREFIX}.fastq -j ~{threadCount} --revcomp -e 0.05
-        OUTPUTSIZE=`du -s -BG *.filt.fastq | sed 's/G.*//'`
+         --discard-trimmed -o ${PREFIX}.filt.fastq.gz ~{readFastqGz} -j ~{threadCount} --revcomp -e 0.05
+        OUTPUTSIZE=`du -s -BG *.filt.fastq.gz | sed 's/G.*//'`
         echo $OUTPUTSIZE > outputsize
     >>>
 
@@ -152,7 +150,7 @@ task cutadapt {
     }
 
     output {
-        File filteredReadFastq = glob("data/*.filt.fastq")[0]
+        File filteredReadFastqGz = glob("data/*.filt.fastq.gz")[0]
         Int fileSizeGB = read_int("data/outputsize")
     }
 }
