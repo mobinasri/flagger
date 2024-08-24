@@ -1,4 +1,4 @@
-FROM mobinasri/bio_base:v0.3.0
+FROM mobinasri/bio_base:v0.4.0
 MAINTAINER Mobin Asri, masri@ucsc.edu
 
 RUN pip3 install scipy pandas matplotlib
@@ -18,16 +18,14 @@ ENV PATH="/home/apps/Winnowmap-2.03/bin:${PATH}"
 ## minimap2
 RUN cd /home/apps && \
     #git clone -b 2.23 https://github.com/lh3/minimap2 && \
-    wget https://github.com/lh3/minimap2/archive/refs/tags/v2.26.zip && \
-    unzip v2.26.zip && \
-    rm v2.26.zip && \
-    cd minimap2-2.26 && \
+    wget https://github.com/lh3/minimap2/archive/refs/tags/v2.27.zip && \
+    unzip v2.27.zip && \
+    rm v2.27.zip && \
+    cd minimap2-2.27 && \
     #cd minimap2 && \
     make
-ENV PATH="/home/apps/minimap2-2.26:${PATH}"
-#ENV PAFTOOLS_PATH="/home/apps/minimap2-2.21/misc/paftools.js"
-#ENV PATH="/home/apps/minimap2:${PATH}"
-ENV PAFTOOLS_PATH="/home/apps/minimap2-2.26/misc/paftools.js"
+ENV PATH="/home/apps/minimap2-2.27:${PATH}"
+ENV PAFTOOLS_PATH="/home/apps/minimap2-2.27/misc/paftools.js"
 
 ## k8
 RUN cd /home/apps && \
