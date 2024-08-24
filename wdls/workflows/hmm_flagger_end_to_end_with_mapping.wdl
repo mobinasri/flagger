@@ -6,7 +6,7 @@ import "long_read_aligner_scattered.wdl" as aligner_t
 
 
 
-workflow FlaggerEndToEndWithMapping{
+workflow HMMFlaggerEndToEndWithMapping{
     meta {
         author: "Mobin Asri"
         email: "masri@ucsc.edu"
