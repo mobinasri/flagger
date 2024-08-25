@@ -82,7 +82,7 @@ task hmmFlagger{
         
         mkdir -p output
         cp ${OUTPUT_DIR}/*.bed output/${PREFIX}.hmm_flagger_prediction.bed
-        cp ${OUTPUT_DIR}/prediction_summary_final.tsv output/
+        cp ${OUTPUT_DIR}/prediction_summary_final.tsv output/${PREFIX}.prediction_summary_final.tsv
         cp ${OUTPUT_DIR}/loglikelihood.tsv output/
 
         tar -cf  ${OUTPUT_DIR}.tar ${OUTPUT_DIR}
@@ -97,7 +97,7 @@ task hmmFlagger{
     }
     output{
         File predictionBed = glob("output/*.bed")[0]
-        File predictionSummaryTsv = glob("output/prediction_summary_final.tsv")[0]
+        File predictionSummaryTsv = glob("output/*.prediction_summary_final.tsv")[0]
         File loglikelihoodTsv = glob("output/loglikelihood.tsv")[0]
         File outputTarGz = glob("*.tar.gz")[0]
     }
