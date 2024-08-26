@@ -995,6 +995,21 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
     }
     // write blocks for the last contig
     if (preLabel != -1) {
+        // add the last block!
+        int blockLen = preEnd + 1 - bedTrackStart;
+        if (blockLen < minLenPerState[preLabel]){
+            block = ptBlock_construct_with_count(bedTrackStart, preEnd,
+                                                 -1, -1,
+                                                 -1, -1,
+                                                 hapLabel);
+        } else {
+            block = ptBlock_construct_with_count(bedTrackStart, preEnd,
+                                                 -1, -1,
+                                                 -1, -1,
+                                                 preLabel);
+        }
+        stList_append(blocksForOneContig, block);
+        // write blocks
         stList *mergedBlocksForOneContig = mergeBlocksWithSameLabels(blocksForOneContig);
         for (int i = 0; i < stList_length(mergedBlocksForOneContig); i++) {
             ptBlock *blockToWrite = stList_get(mergedBlocksForOneContig, i);
