@@ -15,8 +15,8 @@ workflow runTuneAlpha{
 
 task tuneAlpha{
     input{
-        Array[File] trainCoverageArray
-        Array[File] validationCoverageArray
+        Array[File] trainBinArray
+        Array[File] validationBinArray
         File? binArrayTsv
         Int numberOfEgoStartPoints = 10
         Int numberOfEgoIterations = 50
@@ -35,8 +35,8 @@ task tuneAlpha{
         # runtime configurations
         Int memSize=64
         Int threadCount=64
-        Int diskSize=ceil(size(trainCoverageArray, "GB"))  + ceil(size(validationCoverageArray, "GB")) + 64
-        String dockerImage="mobinasri/flagger:v1.0.0_alpha"
+        Int diskSize=ceil(size(trainBinArray, "GB"))  + ceil(size(validationBinArray, "GB")) + 64
+        String dockerImage="mobinasri/flagger:v1.0_alpha"
         Int preemptible=2
     }
     command <<<
@@ -47,35 +47,40 @@ task tuneAlpha{
 
 
         mkdir -p train_bin_files
-        for TRAIN_COV_FILE in ~{sep=" " trainCoverageArray}
+        mkdir -p validation_bin_files
+
+        for TRAIN_BIN_FILE in ~{sep=" " trainBinArray}
         do
-            PREFIX=$(echo $(basename ${TRAIN_COV_FILE%.gz}) | sed -e 's/\.cov$//' -e 's/\.bed$//')
-            # convert cov to bin for train files
-            coverage_format_converter \
-                -i ${TRAIN_COV_FILE} \
-                -o train_bin_files/${PREFIX}.w_~{windowLen}.bin \
-                -t ~{threadsPerFlaggerRun} \
-                -c ~{chunkLen} \
-                -w ~{windowLen}
+            FILENAME=$(basename ${TRAIN_BIN_FILE})
+            ln -s ${TRAIN_BIN_FILE} train_bin_files/${FILENAME}
         done
 
-        mkdir -p validation_bin_files
-        for VALIDATION_COV_FILE in ~{sep=" " validationCoverageArray}
+        for VALIDATION_BIN_FILE in ~{sep=" " validationBinArray}
         do
-            PREFIX=$(echo $(basename ${VALIDATION_COV_FILE%.gz}) | sed -e 's/\.cov$//' -e 's/\.bed$//')
-            # convert cov to bin for validation files
-            coverage_format_converter \
-                -i ${VALIDATION_COV_FILE} \
-                -o validation_bin_files/${PREFIX}.w_~{windowLen}.bin \
-                -t ~{threadsPerFlaggerRun} \
-                -c ~{chunkLen} \
-                -w ~{windowLen}
+            FILENAME=$(basename ${VALIDATION_BIN_FILE})
+            ln -s ${VALIDATION_BIN_FILE} validation_bin_files/${FILENAME}
         done
 
         function join_by { local IFS="$1"; shift; echo "$*"; }
 
-        TRAIN_BIN_FILES=$(join_by , $(find train_bin_files/ | grep ".bin$"))
-        VALIDATION_BIN_FILES=$(join_by , $(find  validation_bin_files/ | grep ".bin$"))
+        TRAIN_BIN_FILES=$(find train_bin_files/ | grep ".bin$" | sort)
+        VALIDATION_BIN_FILES=$(find  validation_bin_files/ | grep ".bin$" | sort)
+
+        TRAIN_BIN_FILES_STR=$(join_by , ${TRAIN_BIN_FILES})
+        VALIDATION_BIN_FILES_STR=$(join_by , ${VALIDATION_BIN_FILES})
+
+        touch train_files.txt
+        touch validation_files.txt
+
+        for TRAIN_BIN_FILE in ${TRAIN_BIN_FILES[@]}
+        do
+            echo $(basename ${TRAIN_BIN_FILE%%.bin}) >> train_files.txt
+        done
+
+        for VALIDATION_BIN_FILE in ${VALIDATION_BIN_FILES[@]}
+        do
+            echo $(basename ${VALIDATION_BIN_FILE%%.bin}) >> validation_files.txt
+        done
 
         OUTPUT_DIR="tune_alpha_~{modelType}_w_~{windowLen}_n_~{numberOfEgoIterations}"
         mkdir -p ${OUTPUT_DIR}
@@ -104,11 +109,11 @@ task tuneAlpha{
         if [ -n "~{sizeLabel}" ]
         then
             ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --sizeLabel ~{sizeLabel}"
-        fi 
+        fi
 
         python3 /home/programs/src/tune_alpha_hmm_flagger.py \
-            --inputFilesTrain ${TRAIN_BIN_FILES} \
-            --inputFilesValidation ${VALIDATION_BIN_FILES} \
+            --inputFilesTrain ${TRAIN_BIN_FILES_STR} \
+            --inputFilesValidation ${VALIDATION_BIN_FILES_STR} \
             --outputDir ${OUTPUT_DIR} \
             --otherParamsText ${OUTPUT_DIR}/other_params.txt \
             --numberOfStartPoints ~{numberOfEgoStartPoints} \
@@ -141,6 +146,8 @@ task tuneAlpha{
         Float validationOptimalScore = read_float("output/validation_optimum_score.txt")
         File trainScoresTsv = glob("output/scores_train_*.tsv")[0]
         File validationScoresTsv = glob("output/scores_validation_*.tsv")[0]
+        File trainFilesListText = glob("train_files.txt")[0]
+        File validationFilesListText = glob("validation_files.txt")[0]
     }
 }
 

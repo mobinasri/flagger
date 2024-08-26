@@ -14,10 +14,10 @@ HMMFlaggerEndToEndWithMapping.enableAddingMDTag,scalar,$input.enable_adding_md_t
 HMMFlaggerEndToEndWithMapping.splitNumber,scalar,$input.split_number
 HMMFlaggerEndToEndWithMapping.enableSplittingReadsEqually,scalar,$input.enable_splitting_reads_equally
 HMMFlaggerEndToEndWithMapping.flaggerMinimumBlockLenArray,array,$input.flagger_minimum_block_len_array
-HMMFlaggerEndToEndWithMapping.windowLen,scalar,$input.window_len
-HMMFlaggerEndToEndWithMapping.alphaTsv,scalar,$input.alpha_tsv
-HMMFlaggerEndToEndWithMapping.modelType,scalar,$input.model_type
-HMMFlaggerEndToEndWithMapping.binSizeArrayTsv,scalar,$input.bin_size_array_tsv
+HMMFlaggerEndToEndWithMapping.windowLen,scalar,8000
+HMMFlaggerEndToEndWithMapping.alphaTsv,scalar,https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/hmm_flagger_files/alpha_optimum_trunc_exp_gaussian_w_8000_n_50.tsv
+HMMFlaggerEndToEndWithMapping.modelType,scalar,trunc_exp_gaussian
+HMMFlaggerEndToEndWithMapping.binSizeArrayTsv,scalar,https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/hmm_flagger_files/bin_size_array.tsv
 HMMFlaggerEndToEndWithMapping.sexBedToBeProjected,scalar,$input.sex_bed_to_be_projected
 HMMFlaggerEndToEndWithMapping.cntrBedToBeProjected,scalar,$input.cntr_bed_to_be_projected
 HMMFlaggerEndToEndWithMapping.SDBedToBeProjected,scalar,$input.sd_bed_to_be_projected

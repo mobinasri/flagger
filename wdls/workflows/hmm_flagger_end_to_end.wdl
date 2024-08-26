@@ -254,6 +254,7 @@ workflow HMMFlaggerEndToEnd{
             difficultBed_2 = SDBedInAsmCoor,
             difficultString_2 = "SD",
             sexBed = sexBedInAsmCoor,
+            dockerImage = flaggerDockerImage
     }
 
     # convert bam to cov and add annotation indices to the cov file
@@ -341,7 +342,8 @@ workflow HMMFlaggerEndToEnd{
     call make_summary_table_t.makeSummaryTable {
         input:
            coverage = augmentCoverageByLabels.augmentedCoverageGz,
-           dockerImage = flaggerDockerImage,
+           binArrayTsv = binArrayTsv,
+           dockerImage = flaggerDockerImage
     }
 
     # make bigwig files from cov files
@@ -367,13 +369,22 @@ workflow HMMFlaggerEndToEnd{
             dockerImage = flaggerDockerImage
     }
 
+    if (defined(truthBedForMisassemblies)){
+        File benchmarkingSummaryTsvOutput = makeSummaryTable.benchmarkingSummaryTsv
+        File contiguitySummaryTsvOutput = makeSummaryTable.contiguitySummaryTsv
+    }
+
+
     output {
         File coverageGz = augmentCoverageByLabels.augmentedCoverageGz
         File biasTableTsv = bam2cov.biasTableTsv
 
+        File? benchmarkingSummaryTsv = benchmarkingSummaryTsvOutput
+        File? contiguitySummaryTsv = contiguitySummaryTsvOutput
+        File fullStatsTsv = makeSummaryTable.fullStatsTsv
+
         File finalBed = getFinalBed.finalBed
         File predictionBed = hmmFlagger.predictionBed
-        File predictionSummaryTsv = hmmFlagger.predictionSummaryTsv
         File loglikelihoodTsv = hmmFlagger.loglikelihoodTsv
         File miscFilesTarGz = hmmFlagger.outputTarGz
 
@@ -475,7 +486,7 @@ task collectAnnotations{
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v1.0.0_alpha"
+        String dockerImage="mobinasri/flagger:v1.0_alpha"
         Int preemptible=2
     }
     command <<<

@@ -3,6 +3,7 @@ version 1.0
 import "../tasks/other/tune_alpha.wdl" as tune_alpha_t
 import "../tasks/coverage/make_summary_table.wdl" as make_summary_table_t
 import "../tasks/coverage/bam_coverage.wdl" as cov_t
+import "../tasks/coverage/cov2bin.wdl" as cov2bin_t
 import "../tasks/other/misc.wdl" as misc_t
 import "../tasks/hmm_flagger/hmm_flagger.wdl" as hmm_flagger_t
 import "../tasks/alignment/produce_fai.wdl" as fai_t
@@ -178,7 +179,22 @@ workflow runTuneHyperparameterAlpha{
                 suffix="truth_added",
                 dockerImage = flaggerDockerImage
         }
+
+        call cov2bin_t.cov2bin as cov2binForTrain{
+            input:
+                coverage = augmentCovByTruthForTrain.augmentedCoverageGz,
+                windowLen = windowLen,
+                chunkLen = chunkLen,
+                fai = produceFai.fai
+        }
         
+        call cov2bin_t.cov2bin as cov2binForValidation{
+            input:
+                coverage = augmentCovByTruthForValidation.augmentedCoverageGz,
+                windowLen = windowLen,
+                chunkLen = chunkLen,
+                fai = produceFai.fai
+        }
     }
 
     Int numberOfCoverageFiles = length(augmentCovByTruthForTrain.augmentedCoverageGz)
@@ -189,9 +205,8 @@ workflow runTuneHyperparameterAlpha{
     # find optimal alpha matrix
     call tune_alpha_t.tuneAlpha {
         input:
-            trainCoverageArray = augmentCovByTruthForTrain.augmentedCoverageGz, 
-            validationCoverageArray = augmentCovByTruthForValidation.augmentedCoverageGz,
-            binArrayTsv = binArrayTsv,
+            trainBinArray = cov2binForTrain.bin, 
+            validationBinArray = cov2binForValidation.bin,
             numberOfEgoStartPoints = numberOfEgoStartPoints,
             numberOfEgoIterations = numberOfEgoIterations,
             chunkLen = chunkLen,
@@ -258,6 +273,7 @@ workflow runTuneHyperparameterAlpha{
             call make_summary_table_t.makeSummaryTable as summaryForTrain{
                 input:
                    coverage = augmentCovByPredictionForTrain.augmentedCoverageGz,
+                   binArrayTsv = binArrayTsv,
                    dockerImage = flaggerDockerImage
             }
         }
@@ -311,6 +327,7 @@ workflow runTuneHyperparameterAlpha{
             call make_summary_table_t.makeSummaryTable as summaryForValidation{
                 input:
                    coverage = augmentCovByPredictionForValidation.augmentedCoverageGz,
+                   binArrayTsv = binArrayTsv,
                    dockerImage = flaggerDockerImage
             }
         }
@@ -327,6 +344,8 @@ workflow runTuneHyperparameterAlpha{
         Float validationOptimalScore = tuneAlpha.validationOptimalScore
         File trainScoresTsv = tuneAlpha.trainScoresTsv
         File validationScoresTsv = tuneAlpha.validationScoresTsv
+        File trainFilesListText = tuneAlpha.trainFilesListText
+        File validationFilesListText = tuneAlpha.validationFilesListText
         
         # HMM-Flagger results for training data after optimizing alpha
         # They will be present only if runFlaggerPostOptTrain is true
