@@ -28,7 +28,7 @@ pip install toil[all]
 
 ## Steps for executing workflows on Slurm with Toil
 
-### Running long_read_aligner_scattered.wdl on test datasets
+### Running `long_read_aligner_scattered.wdl` on test datasets
 
 #### 1. Cloning Flagger repository
     
@@ -48,7 +48,7 @@ WORKING_DIR=${PWD}
 ```
 
 #### 2. Downloading datasets
-For long_read_aligner_scattered.wdl there is one set of test files (test_1). Its related data table (data_table_test_1_template.csv) 
+For `long_read_aligner_scattered.wdl` there is one set of test files (test_1). Its related data table (`data_table_test_1_template.csv`) 
 constitutes of 7 different rows. Each row represents a distinct combination of input parameters. For instance, they may include variations in the format of reads (e.g., bam or fastq.gz) or the specification of different mappers (e.g., minimap2 or winnowmap) .
 
 ```
@@ -215,7 +215,7 @@ After each job is finished the related output json will be located in:
 ${WORKING_DIR}/run_test_1_toil_slurm/${SAMPLE_ID}/${SAMPLE_ID}_${WDL_NAME}
 ```
 
-### Running hmm_flagger_end_to_end.wdl on test datasets
+### Running `hmm_flagger_end_to_end.wdl` on test datasets
 
 #### 1. Cloning Flagger repository
 ```
@@ -228,13 +228,13 @@ Set some environment variables
 cd flagger
 FLAGGER_DIR=${PWD}
 
-# Go to the related directory for testing long_read_aligner_scattered 
+# Go to the related directory for testing hmm_flagger_end_to_end
 cd test_wdls/toil_on_slurm/test_hmm_flagger_end_to_end
 WORKING_DIR=${PWD}
 ```
 
 #### 2. Downloading datasets
-For hmm_flagger_end_to_end.wdl there are two sets of test files: test_1 and test_2. Each test dataset is represented in its corresponding data table csv file: data_table_1_template.csv for test_1 and data_table_test_2_template.csv for test_2. Each table has only one row. In test_1, the files are associated with ONT Ultra Long reads aligned to chr15 of the HG002-T2T-v1.0.1 assembly. In test_2, the files are related to PacBio HiFi reads aligned to chr15 contigs for HG002 sample assembled by hifiasm (trio v0.19.5).
+For `hmm_flagger_end_to_end.wdl` there are two sets of test files: test_1 and test_2. Each test dataset is represented in its corresponding data table csv file: `data_table_1_template.csv` for test_1 and `data_table_test_2_template.csv` for test_2. Each table has only one row. In test_1, the files are associated with ONT Ultra Long reads aligned to chr15 of the HG002-T2T-v1.0.1 assembly. In test_2, the files are related to PacBio HiFi reads aligned to chr15 contigs for HG002 sample assembled by hifiasm (trio v0.19.5).
 
 #### Test_1
 ```
@@ -325,14 +325,14 @@ Set some environment variables
 cd flagger
 FLAGGER_DIR=${PWD}
 
-# Go to the related directory for testing flagger_end_to_end_with_mapping
+# Go to the related directory for testing hmm_flagger_end_to_end_with_mapping
 cd test_wdls/toil_on_slurm/test_hmm_flagger_end_to_end_with_mapping
 WORKING_DIR=${PWD}
 ```
 
 #### 2. Downloading datasets
 
-flagger_end_to_end_with_mapping.wdl has the same set of test files as flagger_end_to_end.wdl: test_1 and test_2. The only difference with the tests for flagger_end_to_end.wdl is that in the csv files for flagger_end_to_end_with_mapping.wdl we pass the bam file as `readFiles` to go through the mapping workflow first (using long_read_aligner_scattered.wdl) and then HMM-Flagger workflow (using hmm_flagger_end_to_end.wdl).
+`hmm_flagger_end_to_end_with_mapping.wdl` has the same set of test files as `hmm_flagger_end_to_end.wdl`: test_1 and test_2. The only difference with the tests for `hmm_flagger_end_to_end.wdl` is that in the csv files for `hmm_flagger_end_to_end_with_mapping.wdl` we pass the bam file as `readFiles` to go through the mapping workflow first (using `long_read_aligner_scattered.wdl`) and then HMM-Flagger workflow (using `hmm_flagger_end_to_end.wdl`).
 
 #### Steps 3 and 4
 
