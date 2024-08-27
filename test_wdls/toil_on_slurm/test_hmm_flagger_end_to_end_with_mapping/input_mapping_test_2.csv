@@ -40,6 +40,6 @@ HMMFlaggerEndToEndWithMapping.maxHighMapqRatio,scalar,0.25
 HMMFlaggerEndToEndWithMapping.chunkLen,scalar,20000000
 HMMFlaggerEndToEndWithMapping.flaggerMemSize,scalar,32
 HMMFlaggerEndToEndWithMapping.flaggerThreadCount,scalar,32
-HMMFlaggerEndToEndWithMapping.flaggerDockerImage,scalar,mobinasri/flagger:v1.0_alpha
+HMMFlaggerEndToEndWithMapping.flaggerDockerImage,scalar,mobinasri/flagger:v1.0_alpha--b46dc45ed6f917d419cd7eba0ec57bc026ac9760
 HMMFlaggerEndToEndWithMapping.enableOutputtingBigWig,scalar,true
 HMMFlaggerEndToEndWithMapping.enableOutputtingBam,scalar,false
