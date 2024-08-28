@@ -176,7 +176,7 @@ workflow longReadAlignmentScattered {
                 phasingLogText = secphase.outLog,
                 bam = select_first([calmd.outputBamFile, mergeBams.mergedBam]),
                 options = correctBamOptions,
-                suffix = "secphase_${secphaseVersion}",
+                suffix = if enableRunningSecphase then "secphase_${secphaseVersion}" else "corrected",
                 flagRemoveMultiplePrimary = false,
                 flagRemoveSupplementary = false,
                 memSize=8,

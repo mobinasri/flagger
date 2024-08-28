@@ -569,14 +569,14 @@ task collectAnnotations{
                            -b whole_genome.gt_~{minContigLenName}.bed > autosome_Non_~{difficultString_1}_and_Non_~{difficultString_2}.gt_~{minContigLenName}.bed
         fi
 
-        touch bias_annotation_names.txt
+        touch biased_annotation_names.txt
 
         if [ ~{length(biasAnnotationsBedArray)} -gt "0" ]
         then
             for BED_FILE in ~{sep=" " biasAnnotationsBedArray}
             do
                 bedtools intersect -a ${BED_FILE} -b whole_genome.bed > $(basename ${BED_FILE})
-                echo $(basename ${BED_FILE%%.bed}) > biased_annotation_names.txt
+                echo $(basename ${BED_FILE%%.bed}) >> biased_annotation_names.txt
             done
         fi
 
@@ -599,7 +599,7 @@ task collectAnnotations{
     }
     output{
         Array[File] annotationBedArray = glob("*.bed")
-        Array[String] biasAnnotationNameArray = read_lines("bias_annotation_names.txt")
+        Array[String] biasAnnotationNameArray = read_lines("biased_annotation_names.txt")
     }
 }
 
