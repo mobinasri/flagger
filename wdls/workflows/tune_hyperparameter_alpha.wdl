@@ -337,6 +337,10 @@ workflow runTuneHyperparameterAlpha{
     output {
 
         # Output files realted to optimizing alpha matrix
+        Array[File] truthAugmentedCovForValidationArray = augmentCovByTruthForValidation.augmentedCoverageGz
+        Array[File] truthAugmentedCovForTrainArray = augmentCovByTruthForTrain.augmentedCoverageGz
+        Array[File] validationContigListText = getContigList.validationContigListText
+        Array[File] trainContigListText = getContigList.trainContigListText
 
         File optimalAlphaTsv = tuneAlpha.optimalAlphaTsv
         File optimizationOutputDataTarGz = tuneAlpha.optimizationOutputDataTarGz

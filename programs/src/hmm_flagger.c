@@ -455,11 +455,11 @@ int main(int argc, char *argv[]) {
     char *outputDir = NULL;
     bool writeParameterStatsPerIteration = false;
     bool writeBenchmarkingStatsPerIteration = false;
-    ModelType modelType = MODEL_GAUSSIAN;
+    ModelType modelType = MODEL_TRUNC_EXP_GAUSSIAN;
     double overlapRatioThreshold = 0.4;
     double initialRandomDeviation = 0.0;
     int chunkCanonicalLen = 20000000; //20Mb
-    int windowLen = 100;
+    int windowLen = 4000;
     int threads = 4;
     bool dumpBin = false;
     bool acceleration = false;
@@ -566,7 +566,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         --modelType, -m\n"
                         "                           Model type can be either 'gaussian', 'negative_binomial', or \n"
-                        "                           'trunc_exp_gaussian' [Default = 'gaussian']\n");
+                        "                           'trunc_exp_gaussian' [Default = 'trunc_exp_gaussian']\n");
                 fprintf(stderr,
                         "         --trackName, -N\n"
                         "                           The track name that will appear in the final BED.[Default = 'final_flagger']\n");
@@ -582,7 +582,7 @@ int main(int argc, char *argv[]) {
                         "                           Window length. Coverage information will be averaged along each window \n"
                         "                           (non-overlapping) and the average value of each window will be regarded \n"
                         "                           as one observation for the EM algorithm. Having larger windows will lead \n"
-                        "                           to lower resolution but faster runtime. (default = 100)\n");
+                        "                           to lower resolution but faster runtime. (default = 4000)\n");
                 fprintf(stderr,
                         "         --labelNames, -l\n"
                         "                           (Optional) (For naming rows in the final benchmarking tsv file) A \n"
