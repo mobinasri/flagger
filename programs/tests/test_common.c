@@ -25,7 +25,7 @@ bool test_String_joinDoubleArray() {
     x[1] = 0.1;
     x[2] = 2.33;
     char *str = String_joinDoubleArray(x, 3, ',');
-    bool correct = strcmp(str, "1.00e-03,1.00e-01,2.33e+00") == 0;
+    bool correct = strcmp(str, "1.00000e-03,1.00000e-01,2.33000e+00") == 0;
     free(str);
     return correct;
 }
