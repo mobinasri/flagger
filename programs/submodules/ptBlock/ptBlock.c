@@ -2086,7 +2086,7 @@ void add_coverage_info_to_all_annotation_block_tables(stList *block_table_list) 
         // Each annotation has an associated flag represented by a bit-vector
         // the size of the bit-vector is 64, so it can be saved in an int64_t variable
         // for example for i=0 -> flag = 0 and for i=6 -> flag= 32
-        int32_t annotation_flag = CoverageInfo_getAnnotationFlag(annotationIndex);
+        uint64_t annotation_flag = CoverageInfo_getAnnotationFlag(annotationIndex);
         CoverageInfo *cov_info = CoverageInfo_construct(annotation_flag, 0, 0, 0);
         // The cov_info object created above will be copied and added as "data" to all blocks
         // for the current annotation. This process is happening in place
