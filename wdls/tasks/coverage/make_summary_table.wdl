@@ -14,6 +14,7 @@ task makeSummaryTable{
     input{
         File coverage
         String labelNames="Err,Dup,Hap,Col"
+        File? binArrayTsv
         # runtime configurations
         Int memSize=32
         Int threadCount=8
@@ -30,6 +31,12 @@ task makeSummaryTable{
         COV_FILE_PATH="~{coverage}"
         PREFIX=$(echo $(basename ${COV_FILE_PATH%.gz}) | sed -e 's/\.cov$//' -e 's/\.bed$//')
 
+        ADDITIONAL_ARGS=""
+        if [ -n "~{binArrayTsv}" ]; then
+            ADDITIONAL_ARGS="--binArrayFile ~{binArrayTsv}"
+        fi
+
+
         mkdir output
         OUTPUT="output/${PREFIX}.stats.tsv"
 
@@ -45,7 +52,7 @@ task makeSummaryTable{
             --input ${COV_FILE_PATH} \
             --output ${OUTPUT} \
             --labelNames ~{labelNames} \
-            -@ ~{threadCount}
+            -@ ~{threadCount} ${ADDITIONAL_ARGS}
 
     >>>
     runtime {
