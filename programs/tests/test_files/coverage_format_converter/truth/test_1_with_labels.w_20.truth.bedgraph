@@ -5,7 +5,4 @@ ctg1 40 60 10
 ctg1 60 80 15
 ctg1 80 100 16
 ctg1 100 110 16
-
-track type=bedGraph name="coverage_wig_total" visibility=full color=51,51,255
 ctg2 0 10 7
-
