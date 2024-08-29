@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>    // bool type
+
 
 #ifndef DATA_TYPES_H
 #define DATA_TYPES_H
@@ -138,7 +140,7 @@ void MatrixDouble_destructArray1D(MatrixDouble** matArray, int len);
 
 void MatrixDouble_destructArray2D(MatrixDouble*** matArray, int len1, int len2);
 
-MatrixDouble* MatrixDouble_parseFromFile(char* filePath, int dim1, int dim2);
+MatrixDouble* MatrixDouble_parseFromFile(char* filePath, int dim1, int dim2, bool skipFirstLine);
 
 
 #endif

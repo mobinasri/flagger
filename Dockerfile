@@ -43,13 +43,30 @@ RUN apt-get install -y tabix
 ENV LANG="C.UTF-8" 
 RUN pip3 install cython && pip3 install whatshap
 
+RUN cd /home/apps && \
+     git clone https://sourceware.org/git/valgrind.git && \
+     cd valgrind && \
+     ./autogen.sh  && \
+     ./configure && \
+     make && \
+     make install
+
+RUN apt-get update
+RUN apt-get install -y libc6-dbg gdb
+RUN pip install smt #https://smt.readthedocs.io/en/latest/_src_docs/applications/ego.html
+RUN cd /home/apps && \
+    wget https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedGraphToBigWig && \
+    chmod 777 bedGraphToBigWig
+
 COPY ./programs /home/programs
 # Add cigar_it to the submodules dir
 COPY ./ext/secphase/programs/submodules/cigar_it /home/programs/submodules/cigar_it
 COPY ./scripts  /home/scripts
 RUN cd /home/programs && make
-ENV PATH="$PATH:/home/programs/bin"
+ENV PATH="$PATH:/home/programs/bin:/home/apps"
 
+
+ENV CALC_MEAN_SD_PY=/home/programs/src/calc_mean_sd.py
 ENV CALC_MODE_SD_PY=/home/programs/src/calc_mode_sd.py
 ENV FIT_MODEL_PY=/home/programs/src/fit_model.py
 ENV PROJECT_BLOCKS_PY=/home/programs/src/project_blocks.py
@@ -57,6 +74,7 @@ ENV PROJECT_BLOCKS_MULTI_THREADED_PY=/home/programs/src/project_blocks_multi_thr
 ENV FIT_GMM_PY=/home/programs/src/fit_gmm.py
 ENV PDF_GENERATOR_PY=/home/programs/src/pdf_generator.py
 ENV SPLIT_BED_CONTIG_WISE_PY=/home/programs/src/split_bed_contig_wise.py
+
 
 ## UCSC convention is to work in /data
 RUN mkdir -p /data

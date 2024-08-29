@@ -1,0 +1,39 @@
+#annotation:len:7
+#annotation:name:0:no_annotation
+#annotation:name:1:annot_1
+#annotation:name:2:annot_2
+#annotation:name:3:annot_3
+#annotation:name:4:annot_4
+#annotation:name:5:annot_5
+#annotation:name:6:annot_6
+#region:len:3
+#region:coverage:0:1
+#region:coverage:1:2
+#region:coverage:2:2
+#truth:false
+#prediction:false
+contig_1	0	4	0	0	0	0	0
+contig_1	4	7	0	0	0	5	0
+contig_1	7	10	0	0	0	0	0
+contig_1	10	13	1	1	0	1	0
+contig_1	13	14	2	2	0	1	0
+contig_1	14	15	3	2	0	1	0
+contig_1	15	16	3	2	0	1,2	0
+contig_1	16	17	2	1	0	1,2	0
+contig_1	17	18	2	1	0	2	0
+contig_1	18	20	1	0	0	2	0
+contig_1	20	22	0	0	0	2	0
+contig_1	22	50	0	0	0	0	0
+contig_1	50	53	1	1	0	3	0
+contig_1	53	54	2	1	0	3	0
+contig_1	54	57	2	1	0	6	2
+contig_1	57	59	1	1	0	3	0
+contig_1	59	60	0	0	0	3	0
+contig_1	60	100	0	0	0	0	0
+contig_2	0	10	0	0	0	0	0
+contig_2	10	12	1	1	1	0	0
+contig_2	12	13	1	1	1	4	1
+contig_2	13	16	2	2	2	4	1
+contig_2	16	17	2	2	2	0	0
+contig_2	17	21	1	1	1	0	0
+contig_2	21	100	0	0	0	0	0

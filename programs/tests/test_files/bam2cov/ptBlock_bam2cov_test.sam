@@ -1,0 +1,10 @@
+@HD	VN:1.0	SO:coordinate
+@SQ	SN:contig_1	LN:100
+@SQ	SN:contig_2	LN:100
+read_1	0	contig_1	11	60	1=10I1X2D2=	*	0	0	AAAAAAAAAAAAAA	IIIIIIIIIIIIII	cs:Z::1+aaaaaaaaaa*ta-tt:2
+read_2	0	contig_1	14	60	5=	*	0	0	AAAAA	IIIII	cs:Z::5
+read_3	0	contig_1	15	5	1=3D2X	*	0	0	AAA	III	cs:Z::1-ttt*ta*ta
+read_4	0	contig_1	51	50	2=4D1X1D1=	*	0	0	AAAA	IIII	cs:Z::2-tttt*ta-t:1
+read_5	0	contig_1	54	10	4=	*	0	0	AAAA	IIII	cs:Z::4
+read_6	0	contig_2	11	50	7=10S	*	0	0	AAAAAAAAAAAAAAAAA	IIIIIIIIIIIIIIIII	cs:Z::7
+read_7	0	contig_2	14	50	8=10S	*	0	0	AAAAAAAAAAAAAAAAAA	IIIIIIIIIIIIIIIIII	cs:Z::8

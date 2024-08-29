@@ -1,14 +1,16 @@
 version 1.0 
 
-
-task getCanonicalBasesBed {
-    input {
-        File assemblyFasta
+task getIndexLabeledBed{
+    input{
+        File bed
+        String suffix=""
+        File? canonicalBasesDiploidBed
+        Boolean addHapCoordinates = false
         # runtime configurations
         Int memSize=4
         Int threadCount=2
-        Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.4.0--98d66028a969211773077f005511f3d78afdc21c"
+        Int diskSize=8
+        String dockerImage="mobinasri/flagger:v1.0.0_alpha"
         Int preemptible=2
     }
     command <<<
@@ -17,21 +19,70 @@ task getCanonicalBasesBed {
         set -u
         set -o xtrace
 
-        FILENAME=$(basename ~{assemblyFasta})
+        BED_FILE="~{bed}"
+        PREFIX=$(basename ${BED_FILE%%.bed})
 
-        EXTENSION=${FILENAME##*.}
+        touch additional_hap.bed
 
-        if [[ ${EXTENSION} == "gz" ]];then
-            PREFIX=${FILENAME%%.fa*(sta).gz}
-            gunzip -c ~{assemblyFasta} > ${PREFIX}.fa
-        else
-            PREFIX=${FILENAME%%.fa*(sta)}
-            ln -s ~{assemblyFasta} ${PREFIX}.fa 
+        if [[ -n "~{canonicalBasesDiploidBed}" && -n "${true="ADD_HAP" false="" addHapCoordinates}" ]]; then
+            bedtools subtract -a ~{canonicalBasesDiploidBed} -b ~{bed} | \
+                awk '{print $1"\t"$2"\t"$3"\tHap\t0\t.\t"$2"\t"$3"\t0,138,0"}' | \
+                bedtools sort -i - > additional_hap.bed
         fi
-        
+
+
+        mkdir output
+        if [ -n "~{suffix}" ]
+        then
+            OUTPUT="output/${PREFIX}.~{suffix}.index_labeled.bed"
+        else
+            OUTPUT="output/${PREFIX}.index_labeled.bed"
+        fi
+
+        cat ~{bed} additional_hap.bed | \
+            cut -f1-4 | \
+            sed -e 's|Col_Err|3|g' -e 's|Col_Del|3|g' | sed -e 's|Err|0|g' -e 's|Hap|2|g' -e 's|Dup|1|g' -e 's|Col|3|g' | \
+            bedtools sort -i - > ${OUTPUT}
+
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+    }
+    output{
+        File labeledBed = glob("output/*.bed")[0]
+    }
+}
+
+task getCanonicalBasesBed {
+    input {
+        File assemblyFasta
+        # runtime configurations
+        Int memSize=4
+        Int threadCount=2
+        Int diskSize=32
+        String dockerImage="mobinasri/flagger:v1.0.0_alpha"
+        Int preemptible=2
+    }
+    command <<<
+        set -o pipefail
+        set -e
+        set -u
+        set -o xtrace
+
+        FA_PREFIX=$(echo $(basename ~{assemblyFasta}) | sed -e 's/\.fa$//' -e 's/\.fa.gz$//' -e 's/\.fasta$//' -e 's/\.fasta.gz$//')
+
+        if [[ "~{assemblyFasta}" == *.gz ]]; then
+            gunzip -c ~{assemblyFasta} > ${FA_PREFIX}.fa
+        else
+            cp ~{assemblyFasta} ${FA_PREFIX}.fa
+        fi
 
         # ignore Ns
-        python3 /home/scripts/get_contig_coords.py --inputFasta ${PREFIX}.fa | bedtools sort -i - > ${PREFIX}.canonical_only.bed
+        python3 /home/scripts/get_contig_coords.py --inputFasta ${FA_PREFIX}.fa | bedtools sort -i - > ${FA_PREFIX}.canonical_only.bed
 
     >>>
     runtime {
