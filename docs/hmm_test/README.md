@@ -101,7 +101,7 @@ Here we use `emission_gaussian.tsv` and `transition.tsv` to generate a coverage 
 cd programs/tests/test_files/simulate_coverage/
 
 docker run --rm -v$PWD:/data \
-    mobinasri/hmm_flagger_dev:v1.0.0--143aab948f3c3fdbd5c23bbdb23dd8357d6c1378 \
+    mobinasri/flagger:v1.0.0 \
     python3 /home/programs/src/simulate_coverage_data.py \
     --pathToEmission emission_gaussian.tsv \
     --pathToTransition transition.tsv \
@@ -120,7 +120,7 @@ cd programs/tests/test_files/simulate_coverage/
 mkdir -p hmm_flagger_runs/gaussian_100k
 
 docker run --rm -it -u$(id -u):$(id -g) -v$PWD:/data \
-    mobinasri/hmm_flagger_dev:v1.0.0--143aab948f3c3fdbd5c23bbdb23dd8357d6c1378 \
+    mobinasri/flagger:v1.0.0 \
     hmm_flagger_new \
     --input test_gaussian_100k.cov \
     --outputDir hmm_flagger_runs/gaussian_100k \
