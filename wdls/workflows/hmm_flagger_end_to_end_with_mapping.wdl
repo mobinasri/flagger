@@ -83,7 +83,7 @@ workflow HMMFlaggerEndToEndWithMapping{
 
         String aligner="winnowmap"
         Int kmerSize = 15
-        String alignerOptions="--eqx -Y -L -y"
+        String alignerOptions="--eqx --cs -Y -L -y"
         String readExtractionOptions="-TMM,ML,Mm,Ml"
         File? referenceFastaForReadExtraction
         Boolean enableAddingMDTag=true
