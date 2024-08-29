@@ -21,7 +21,7 @@ task biasDetector {
         Int memSize=64
         Int threadCount=16
         Int diskSize=floor(size(inputBam, "GB")) + 64
-        String dockerImage="mobinasri/flagger:v0.3.4_bias_detector"
+        String dockerImage="mobinasri/flagger:v0.4.0"
         Int preemptible=2
     }
     command <<<
@@ -41,8 +41,8 @@ task biasDetector {
         samtools faidx asm.fa
         cat asm.fa.fai | awk '{print $1"\t"0"\t"$2}' | bedtools sort -i - > asm.bed
 
-        # make a bed file to be used a the baseline bed file
-        cat ~{sep=" " bedArray} | bedtools sort -i - | bedtools merge -i - > all_given_beds.bed
+        # make a bed file to be used as the baseline bed file
+        cat ~{sep=" " bedArray} | cut -f1-3 | bedtools sort -i - | bedtools merge -i - > all_given_beds.bed
         bedtools subtract -a asm.bed -b all_given_beds.bed > baseline.bed
        
         # make a json file pointing to all bed files
@@ -56,11 +56,14 @@ task biasDetector {
         
         ln -s ~{inputBam} alignment.bam
         ln -s ~{inputBai} alignment.bam.bai
-        bias_detector -i alignment.bam -j bed_files.json -b "baseline" -t~{threadCount} > bias_table.tsv
+        bias_detector -i alignment.bam -j bed_files.json -b "baseline" -t~{threadCount} -m 10000 > bias_table.tsv
 
         cat bias_table.tsv
         mkdir -p output
-        
+       
+        touch output/factors.txt
+        touch output/bed_files.txt
+        touch output/names.txt 
         tail -n +2 bias_table.tsv | while read line; do \
             BIAS_STATUS=$(echo "${line}" | awk '{print $2}')
             if [ ${BIAS_STATUS} == "biased" ]; then

@@ -15,8 +15,8 @@ stHash* getSnpTable(char* vcfPath){
     size_t len = 0;
     ssize_t read;
     char* token;
-    char contigName[50];
-    char contigNamePrev[50];
+    char contigName[200];
+    char contigNamePrev[200];
     contigNamePrev[0] = '\0';
     int loc;
     stList* snpList;
@@ -36,7 +36,7 @@ stHash* getSnpTable(char* vcfPath){
 		strcpy(contigNamePrev, contigName);
 		snpList = stList_construct3(0, (void (*)(void *)) stIntTuple_destruct);
 		printf("%s\n", contigName);
-		char* tmp = malloc(50);
+		char* tmp = malloc(200);
 		strcpy(tmp, contigName);
 		stHash_insert(snpTable, tmp, snpList);
 	}
@@ -73,7 +73,7 @@ void filterReads(stHash* snpTable, char* inputPath, char* outputPath, char* filt
 	char* readName;
 	int tid;
 	char* contigName;
-	char contigNamePrev[50];
+	char contigNamePrev[200];
 	contigNamePrev[0] = '\0';
 	stList* snpList = NULL;
 	int startSnpIndex=0; int snpIndex=0;

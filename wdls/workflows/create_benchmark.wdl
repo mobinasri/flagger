@@ -58,7 +58,7 @@ task createBenchmark {
         Int memSize=32
         Int threadCount=16
         Int diskSize=32
-        String dockerImage="mobinasri/long_read_aligner:v0.1"
+        String dockerImage="mobinasri/long_read_aligner:v0.4.0"
         Int preemptible=2
     }
     command <<<

@@ -4,7 +4,7 @@ MAINTAINER Mobin Asri, masri@ucsc.edu
 RUN mkdir -p /home/apps
 RUN pip3 install scipy pandas matplotlib
 RUN apt-get update
-RUN apt-get install -y build-essential python3-dev autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev wget unzip
+RUN apt-get install -y build-essential python3-dev autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev wget unzip vim
 
 
 #install Java
@@ -64,6 +64,7 @@ COPY ./ext/secphase/programs/submodules/cigar_it /home/programs/submodules/cigar
 COPY ./scripts  /home/scripts
 RUN cd /home/programs && make
 ENV PATH="$PATH:/home/programs/bin:/home/apps"
+
 
 ENV CALC_MEAN_SD_PY=/home/programs/src/calc_mean_sd.py
 ENV CALC_MODE_SD_PY=/home/programs/src/calc_mode_sd.py

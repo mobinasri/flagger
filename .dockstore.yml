@@ -15,9 +15,6 @@ workflows:
    -  name: LongReadAlignerScattered
       subclass: WDL
       primaryDescriptorPath: /wdls/workflows/long_read_aligner_scattered.wdl
-   -  name: LongReadAlignerSecphase
-      subclass: WDL
-      primaryDescriptorPath: /wdls/workflows/long_read_aligner_secphase.wdl
    -  name: LongReadAlignerScatteredPaf
       subclass: WDL
       primaryDescriptorPath: /wdls/tasks/alignment/long_read_aligner_scattered_paf.wdl

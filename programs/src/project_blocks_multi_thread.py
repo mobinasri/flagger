@@ -62,6 +62,9 @@ def main():
                 trackLine = line.strip()
                 continue
             attrbs = line.strip().split()
+            # skip incomplete tracks
+            if len(attrbs) < 3:
+                continue
             contigName = attrbs[0]
             # start is 0-based in bed format, it gets converted to 1-based here
             start = int(attrbs[1]) + 1
