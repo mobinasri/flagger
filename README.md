@@ -1,11 +1,13 @@
 ## Evaluating dual/diploid assemblies with HMM-Flagger
 
-### ***Note: HMM-Flagger is an HMM-based version of Flagger, offering improved functionality and performance. It replaces the previous version, Flagger v0.4.0, and is recommended for all users from now on.***
+### ***Note: HMM-Flagger is an HMM-based version of Flagger, offering faster execution and higher prediction accuracy. It replaces the previous version, Flagger v0.4.0, and is recommended for all users from now on.***
 ### Overview
 
 HMM-Flagger is a read-mapping-based tool that can detect different types of mis-assemblies in a dual or diploid genome assembly. HMM-Flagger recieves the read alignments to a genome assembly, uses Hidden Markov Model to detect anomalies in the read coverage along the assembly and finally partitions the assembly into four classes; erroneous, falsely duplicated, haploid (structurally correct) and collapsed.
 
 ## Quick Start In Three Steps (Needs a BAM and FASTA file)
+Performing these three steps took less than 15 minutes in our internal tests for a PacBio HiFi bam file with 40x coverage. The speed of step 2 is highly dependent on the speed and bandwidth of the storage disk.
+
 ### 1. Create a whole-genome BED file
 
 ```
@@ -34,7 +36,7 @@ echo "}" >> annotations_path.json
 
 
 # Convert bam to cov.gz with bam2cov program
-docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.0.0-prerelease \
+docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.0.0 \
   bam2cov --bam ${WORKING_DIR}/${BAM_FILE} \
                   --output ${WORKING_DIR}/coverage_file.cov.gz \
                   --annotationJson ${WORKING_DIR}/annotations_path.json \
@@ -46,7 +48,7 @@ docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.0.0-pre
 
 ```
 mkdir -p ${WORKING_DIR}/hmm_flagger_outputs
-docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.0.0-prerelease \
+docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.0.0 \
         hmm_flagger \
             --input ${WORKING_DIR}/coverage_file.cov.gz \
             --outputDir ${WORKING_DIR}/hmm_flagger_outputs  \
@@ -78,7 +80,7 @@ Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (
 
 
 | Parameter | Description | Type | Default | 
-| --- | --- | --- | ------------ |
+| ---       | ---         | ---  | ---     |
 |sampleName| Sample name; for example 'HG002'| String | **No Default (Mandatory)** |
 |suffixForFlagger| Suffix string that contains information about this analysis; for example 'hifi_winnowmap_flagger_for_hprc'| String | **No Default (Mandatory)** |
 |suffixForMapping| Suffix string that contains information about this alignment. It will be appended to the name of the final alignment file. For example 'hifi_winnowmap_v2.03_hprc_y2'| String | **No Default (Mandatory)** |
@@ -103,10 +105,14 @@ Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (
 |annotationsBedArrayToBeProjected| (Optional) list of annotations to be used for augmenting coverage files and stratifying final HMM-Flagger results. These annotations are not in the coordinates of the assembly and they need to be projected from the given projection reference to the assembly coordinates. | Array[File] | No Default (Optional) |
 |biasAnnotationsBedArray| (Optional) A list of bed files similar to annotationsBedArray but these annotations potentially have read coverage biases like HSat2. (in the assembly coordinates)| Array[File] | No Default (Optional) |
 |biasAnnotationsBedArrayToBeProjected | (Optional) A list of bed files similar to annotationsBedArrayToBeProjected but these annotations potentially have read coverage biases like HSat2. (in the reference coordinates) | Array[File] | No Default (Optional) |
-|sexBed| Optional bed file containing regions assigned to X/Y chromosomes. (can be either in ref or asm coordinates)| File | No Default (Optional) |
-|SDBed| Optional Bed file containing Segmental Duplications. (can be either in ref or asm coordinates)| File | No Default (Optional) |
-|cntrBed| Optional Bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks.| File | No Default (Optional) |
-|cntrCtBed| Optional Bed file containing centromere transition 'ct' blocks.| File | No Default (Optional) |
+|sexBed | A bed file containing regions assigned to X/Y chromosomes. (in asm coordinates) | File | No Default (Optional) |
+|sexBedToBeProjected | A bed file containing regions assigned to X/Y chromosomes. (in ref coordinates) | File | No Default (Optional) |
+|SDBed | A bed file containing Segmental Duplications. (in asm coordinates) | File | No Default (Optional) |
+|SDBedToBeProjected | A bed file containing Segmental Duplications. (in ref coordinates) | File | No Default (Optional) |
+|cntrBed | A bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks. (in asm coordinates) | File | No Default (Optional) |
+|cntrBedToBeProjected |  A bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks. (in ref coordinates) | File | No Default (Optional) |
+|cntrCtBed | A bed file containing centromere transition 'ct' blocks. (in asm coordinates) | File | No Default (Optional) |
+|cntrCtBedToBeProjected | A bed file containing centromere transition 'ct' blocks. (in ref coordinates) | File | No Default (Optional) | 
 |projectionReferenceFasta| If any of the parameters ending with 'ToBeProjected' is not empty a reference fasta should be passed for performing projections | File | No Default (Optional) |
 |enableRunningSecphase | If true it will run secphase in the marker mode using the wdl parameters starting with 'secphase' otherwise skip it. | Boolean | false |
 |secphaseDockerImage| Docker image for running Secphase | String | mobinasri/secphase:v0.4.3 |
@@ -142,22 +148,20 @@ Using these bed files are optional and the related parameters can be left undefi
 
 |Parameter| Value|
 |:--------|:-----|
-|enableProjectingBedsFromRef2Asm|true|
-|projectionReferenceFastaGz| https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz|
-|potentialBiasesBedArray| ['https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_bsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hsat1A.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hsat1B.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hsat2.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hsat3.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hor.bed'] |
-|censat_bed|https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_no_ct.bed|
-|sd_bed|https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.all.bed|
-|sex_bed|https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sex/chm13v2.0_sex.bed|
-|additional_bed_array| ['https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_no_ct.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_only_ct.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_bsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_gsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hor.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hsat1A.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hsat1B.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hsat2.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hsat3.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_mon.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.g99.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.g98_le99.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.g90_le98.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.le90.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.all.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/repeat_masker/chm13v2.0_RM_4.1.2p1_le6_STR.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/repeat_masker/chm13v2.0_RM_4.1.2p1_ge7_VNTR.bed'] |
-|additional_name_array|['sat_no_ct','only_ct','bsat','gsat','hor','hsat1A','hsat1B','hsat2','hsat3','mon','sd_g99','sd_g98_le99','sd_g90_le98','sd_le90','sd_all','STR','VNTR']|
+|projectionReferenceFasta| https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz|
+|biasAnnotationsBedArrayToBeProjected| ['https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_bsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hsat1A.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hsat1B.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hsat2.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hsat3.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/potential_biases/chm13v2.0_hor.bed'] |
+|cntrBedToBeProjected|https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_no_ct.bed|
+|SDBedToBeProjected|https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.all.bed|
+|sexBedToBeProjected|https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sex/chm13v2.0_sex.bed|
+|annotationsBedArrayToBeProjected| ['https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_no_ct.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_only_ct.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_bsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_gsat.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hor.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hsat1A.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hsat1B.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hsat2.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_hsat3.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/censat/chm13v2.0_mon.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.g99.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.g98_le99.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.g90_le98.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.le90.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/sd/chm13v2.0_SD.all.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/repeat_masker/chm13v2.0_RM_4.1.2p1_le6_STR.bed','https://raw.githubusercontent.com/mobinasri/flagger/v0.4.0/misc/stratifications/repeat_masker/chm13v2.0_RM_4.1.2p1_ge7_VNTR.bed'] |
 
 All files with git and s3 urls are publicly accessible so if you are running the WDL on Terra/AnVIL platforms you can use the same urls. They are also available in the directories `misc/annotations` and `misc/biased_regions` of this repository for those who want to run locally. 
 
 ### Other major workflows
 
-[flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl) is running two major workflows; [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/long_read_aligner_scattered.wdl) and [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/flagger_end_to_end.wdl). The first one runs read mapping and the second one runs the end-to-end flagger pipeline (including annotation projection, bias detection, secphase and flagger). 
+[hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl) is running two major workflows; [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/long_read_aligner_scattered.wdl) and [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end.wdl). The first one runs read mapping and the second one runs the end-to-end flagger pipeline (including annotation projection, bias detection, secphase and flagger). 
 
-Users can run each of them separately. For example if there is a read alignment file available beforehand users can run only [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/flagger_end_to_end.wdl). The parameters for each of these workflows is a subset of the parameters listed above for [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl) therefore this table can still be used as a reference for either long_read_aligner_scattered.wdl or flagger_end_to_end.wdl.
+Users can run each of them separately. For example if there is a read alignment file available beforehand users can run only [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end.wdl). The parameters for each of these workflows is a subset of the parameters listed above for [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl) therefore this table can still be used as a reference for either long_read_aligner_scattered.wdl or hmm_flagger_end_to_end.wdl.
 
 
 ### Running WDLs locally using Cromwell
@@ -167,10 +171,10 @@ Below are the main commands for running flagger_end_to_end_with_mapping.wdl loca
 wget https://github.com/broadinstitute/cromwell/releases/download/85/cromwell-85.jar
 wget https://github.com/broadinstitute/cromwell/releases/download/85/womtool-85.jar
 
-# Get version 0.4.0 of Flagger
-wget https://github.com/mobinasri/flagger/archive/refs/tags/v0.4.0.zip
+# Get version 1.0.0 of HMM-Flagger
+wget https://github.com/mobinasri/flagger/archive/refs/tags/v1.0.0.zip
 
-unzip v0.4.0.zip
+unzip v1.0.0.zip
 
 
 # make a directory for saving outputs and json files
@@ -179,16 +183,16 @@ mkdir workdir
 cd workdir
 
 
-java -jar ../womtool-85.jar inputs ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl > inputs.json
+java -jar ../womtool-85.jar inputs ../flagger-1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl > inputs.json
 
 ```
 
-After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suffixForFlagger`, `suffixForMapping`, `hap1AssemblyFasta`, `hap2AssemblyFasta`, `readfiles`, `preset` and removing unspecified parameters (they will be set to default values), users can run the command below:
+After modifying `inputs.json`, setting mandatory parameters: `sampleName`, `suffixForFlagger`, `suffixForMapping`, `hap1AssemblyFasta`, `hap2AssemblyFasta`, `readFiles`, `presetForMapping` and removing unspecified parameters (they will be set to default values), users can run the command below:
 
 
 ```
 ## run flagger workflow
-java -jar ../cromwell-85.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
+java -jar ../cromwell-85.jar run ../flagger-1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl -i inputs.json -m outputs.json
 ```
 
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
