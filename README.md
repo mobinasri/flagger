@@ -199,9 +199,9 @@ The paths to output files will be saved in `outputs.json`. The instructions for 
 
 ### Running WDLs on Slurm using Toil
 Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
-- [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-long_read_aligner_scatteredwdl-on-test-datasets)
-- [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-flagger_end_to_endwdl-on-test-datasets)
-- [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-flagger_end_to_end_with_mappingwdl-on-test-datasets)
+- [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/tree/main/test_wdls/toil_on_slurm#running-long_read_aligner_scatteredwdl-on-test-datasets)
+- [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/main/test_wdls/toil_on_slurm#running-hmm_flagger_end_to_endwdl-on-test-datasets)
+- [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/main/test_wdls/toil_on_slurm#running-hmm_flagger_end_to_end_with_mappingwdl-on-test-datasets)
 
 
 ### Dockstore links
