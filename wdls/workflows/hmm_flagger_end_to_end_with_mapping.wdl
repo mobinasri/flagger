@@ -32,7 +32,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         alignerThreadCount : "The number of threads for mapping in each alignment task [Default = 16]"
         alignerMemSize : "The size of the memory in Gb for mapping in each alignment task [Default = 48]"
         alignerDockerImage : "The mapping docker image [Default = 'mobinasri/long_read_aligner:v0.4.0']"
-
+        correctBamOptions : "Options for the correct_bam program that can filters short/highly divergent alignments [ Default = '--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1' ]"
         downSamplingRateForFlagger: "Rate of downsampling (Default: 1.0 which means no down-sampling)"
         sexBed: "(Optional) bed file containing regions assigned to X/Y chromosomes. (in asm coordinates)"
         sexBedToBeProjected: "(Optional) bed file containing regions assigned to X/Y chromosomes. (in ref coordinates)"
@@ -47,7 +47,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         biasAnnotationsBedArray: "(Optional) list similar to annotationsBedArray but these annotations potentially have read coverage biases like HSat2. (in the assembly coordinates)"
         biasAnnotationsBedArrayToBeProjected: "(Optional) list similar to annotationsBedArrayToBeProjected but these annotations potentially have read coverage biases like HSat2. (in the reference coordinates)"
         projectionReferenceFasta: "(Optional) If any of the parameters ending with 'ToBeProjected' is not empty a reference fasta should be passed for performing the necessary projections (Default: '')"
-        enableRunningSecphase : "If True it will run secphase in the marker mode using the parameters starting with 'secphase' otherwise skip it. (Default: false)"
+        enableRunningSecphase : "If true it will run secphase in the marker mode using the parameters starting with 'secphase' otherwise skip it. (Default: false)"
         secphaseDockerImage: "Docker image for running Secphase (Default: mobinasri/secphase:v0.4.3)"
         secphaseOptions: "String containing secphase options (can be either --hifi or --ont). (Default --hifi)"
         secphaseVersion: "Secphase version. (Default: v0.4.3)"
@@ -67,8 +67,8 @@ workflow HMMFlaggerEndToEndWithMapping{
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 8)"
         flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.0.0)"
-        enableOutputtingBigWig: "If True it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: true)"
-        enableOutputtingBam: "If True it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: false)" 
+        enableOutputtingBigWig: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: true)"
+        enableOutputtingBam: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: false)" 
         truthBedForMisassemblies : "(Optional) A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) (Default: None)"
     }
 
