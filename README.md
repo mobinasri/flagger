@@ -66,11 +66,11 @@ PREDICTION	base_level	percentage	annotation	whole_genome	ALL_SIZES	ALL_LABELS	1.
 ```
 
 ### Note about coverage-biased regions
-It has been observed that peri/centromeric satellite regions are prone to have coverage biases (in PacBio HiFi and ONT data). Users can add satellite repeat arrays as separate annotations to the input json for the `bam2cov` program (with enabling `--runBiasDetection`). `bam2cov` will detect if there is coverage biases in any annotation provided in the json file and add the neccessary information to the created coverage file to help HMM-Flagger predict the labels more accurately. It is recommended to provide each satellite in a separate bed file for example putting HSat1A and Hsat2 in separate files.
+It has been observed that peri/centromeric satellite regions are prone to have coverage biases (in PacBio HiFi and ONT data). Users can add satellite repeat arrays as separate annotations to the input json for the `bam2cov` program (with enabling `--runBiasDetection`). `bam2cov` will detect if there exist coverage biases in any annotation provided in the json file and add the neccessary information to the coverage file. It will help HMM-Flagger to predict the labels more accurately. It is recommended to provide each satellite in a separate bed file for example putting HSat1A and Hsat2 in separate files.
 
 ## Running pipeline with WDL
 
-If user has a set of unalinged reads it is easier to run the pipeline (read mapping + HMM-Flagger) using the WDLs described below. Using WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. 
+If user has a set of unalinged reads it is easier to run the pipeline (read mapping + HMM-Flagger) using the WDLs described below. Using WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. Even if de-novo annotations are not available it is possible to pass annotations in the coordinates of a reference (for example T2T-CHM13) to the workflow. Given the reference fasta file it can project annotation coordinates from reference to assembly and augment coverage files with the projected annotations. 
 
 A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
 
