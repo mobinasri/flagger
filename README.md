@@ -2,10 +2,10 @@
 
 ### ***Note: HMM-Flagger is an HMM-based version of Flagger, offering improved functionality and performance. It replaces the previous version, Flagger v0.4.0, and is recommended for all users from now on.***
 ### Overview
-<<<<<<< HEAD
-Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is a tool named **HMM-Flagger**. HMM-Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
 
-## Quick Start (Need a BAM and FASTA file)
+HMM-Flagger is a read-mapping-based tool that can detect different types of mis-assemblies in a dual or diploid genome assembly. HMM-Flagger recieves the read alignments to a genome assembly, uses Hidden Markov Model to detect anomalies in the read coverage along the assembly and finally partitions the assembly into four classes; erroneous, falsely duplicated, haploid (structurally correct) and collapsed.
+
+## Quick Start In Three Steps (Needs a BAM and FASTA file)
 ### 1. Create a whole-genome BED file
 
 ```
@@ -63,9 +63,12 @@ cat hmm_flagger_outputs/prediction_summary_final.tsv | grep base_level | grep wh
 PREDICTION	base_level	percentage	annotation	whole_genome	ALL_SIZES	ALL_LABELS	1.24	1.37	95.99	1.40	0.00
 ```
 
+### Note about coverage-biased regions
+It has been observed that peri/centromeric satellite regions are prone to have coverage biases (in PacBio HiFi and ONT data). Users can add satellite repeat arrays as separate annotations to the input json for the `bam2cov` program (with enabling `--runBiasDetection`). `bam2cov` will detect if there is coverage biases in any annotation provided in the json file and add the neccessary information to the created coverage file to help HMM-Flagger predict the labels more accurately. It is recommended to provide each satellite in a separate bed file for example putting HSat1A and Hsat2 in separate files.
+
 ## Running pipeline with WDL
 
-If user has a set of unalinged reads it is easier to run the pipeline using the WDLs described below. Using the prepared WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. 
+If users have a set of unalinged reads it is easier to run the pipeline (read mapping + HMM-Flagger) using the WDLs described below. Using WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. 
 
 A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
 
@@ -184,8 +187,8 @@ The paths to output files will be saved in `outputs.json`. The instructions for 
 ### Running WDLs on Slurm using Toil
 Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
 - [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-long_read_aligner_scatteredwdl-on-test-datasets)
-- [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-flagger_end_to_endwdl-on-test-datasets)
-- [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-flagger_end_to_end_with_mappingwdl-on-test-datasets)
+- [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-flagger_end_to_endwdl-on-test-datasets)
+- [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-flagger_end_to_end_with_mappingwdl-on-test-datasets)
 
 
 ### Dockstore links
@@ -206,22 +209,6 @@ All WDLs are uploaded to Dockstore for easier import into platforms like Terra o
 |Col |**Collapsed** |Purple| Two or more highly similar haplotypes are collapsed into this block |
 
 Each of these components has their own color when they are shown in the IGV or the UCSC Genome Browser.
-
-
-### Running Flagger on HPRC assemblies
-
-The haplotype-resolved assemblies of the HPRC-Y1 samples and their corresponding data sets are available in
-
-https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=working/HPRC/
-
-For more details read this github page:
-
-https://github.com/human-pangenomics/HPP_Year1_Assemblies
-
-We have used the Genbank version of the HPRC-Y1 assemblies.
-
-The v0.1 results are available in 
-https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=submissions/e9ad8022-1b30-11ec-ab04-0a13c5208311--COVERAGE_ANALYSIS_Y1_GENBANK/FLAGGER/
 
 ## Publications
 Liao, Wen-Wei, Mobin Asri, Jana Ebler, Daniel Doerr, Marina Haukness, Glenn Hickey, Shuangjia Lu et al. "[A draft human pangenome reference.](https://www.nature.com/articles/s41586-023-05896-x)" Nature 617, no. 7960 (2023): 312-324.
