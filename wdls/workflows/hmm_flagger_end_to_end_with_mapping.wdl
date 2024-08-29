@@ -65,7 +65,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         modelType : "Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = 'trunc_exp_gaussian')"
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
-        flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 8)"
+        flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
         flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.0.0)"
         enableOutputtingBigWig: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: true)"
         enableOutputtingBam: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: false)" 
@@ -111,7 +111,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         String modelType = "trunc_exp_gaussian"
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
-        Int flaggerThreadCount=8
+        Int flaggerThreadCount=16
         String flaggerDockerImage="mobinasri/flagger:v1.0.0"
 
         File? sexBed
