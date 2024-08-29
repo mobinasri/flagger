@@ -25,6 +25,7 @@ workflow HMMFlaggerEndToEnd{
         hap2AssemblyFasta: "(Required) Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype."
         readAlignmentBam: "(Required) Path to sorted read alignment bam."
         readAlignmentBai: "(Required) Path to bam index for read alignment"
+        alphaTsv : "(Required) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1."
         maxReadDivergence: "Alignments with gap-compressed ratio higher than this will be filtered in the pre-process step. (Default: 0.1)"
         minReadLength: "Minimum read size (Default: 5000)"
         minAlignmentLength: "Minimum alignment size (Default: 5000)"
@@ -57,7 +58,6 @@ workflow HMMFlaggerEndToEnd{
         convergenceTolerance : "Convergence tolerance. The EM iteration will stop once the difference between all model parameter values in two consecutive iterations is less than this value. (Default = 0.001)"
         maxHighMapqRatio : "Maximum ratio of high mapq coverage for duplicated component (Default = 0.25)"
         flaggerMoreOptions : "(Optional) More options for HMM-Flagger provided in a single string (Default = '')"
-        alphaTsv : "(Optional) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. (Default = all alpha factors set to 0)"
         modelType : "Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = 'gaussian')"
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
@@ -72,7 +72,8 @@ workflow HMMFlaggerEndToEnd{
         File hap1AssemblyFasta
         File hap2AssemblyFasta
         File readAlignmentBam
-        File readAlignmentBai
+	File readAlignmentBai
+	File alphaTsv
         Float maxReadDivergence = 0.1
         Int minReadLength = 5000
         Int minAlignmentLength = 5000
@@ -83,13 +84,12 @@ workflow HMMFlaggerEndToEnd{
         Int chunkLen = 20000000
         Int windowLen = 4000
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.0"
+        String trackName = "hmm_flagger_v1.0.0"
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
         String? flaggerMoreOptions
-        File? alphaTsv
-        String modelType = "gaussian"
+        String modelType = "trunc_exp_gaussian"
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=8
