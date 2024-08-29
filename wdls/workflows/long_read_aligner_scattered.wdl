@@ -49,7 +49,7 @@ workflow longReadAlignmentScattered {
         String aligner="winnowmap"
         String preset
         Int kmerSize = 15
-        String alignerOptions="--eqx -Y -L -y"
+        String alignerOptions="--eqx --cs -Y -L -y"
         String readExtractionOptions="-TMM,ML,Mm,Ml"
         String sampleName
         String suffix
