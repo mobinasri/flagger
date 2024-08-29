@@ -16,7 +16,7 @@ Mean and variance of the falsely duplicated component is half of the haploid com
 The Erroneous component is modeled by a NB distribution whose parameters are independent from all the other components.
 
 ### Docker
-The script is available in the docker image `mobinasri/flagger:v0.2`. It is recommended to use this image for running the program.
+The script is available in the docker image `mobinasri/flagger:v0.4.0`. It is recommended to use this image for running the program.
 
 
 ## Run program on real data
@@ -45,7 +45,7 @@ We can fit the model with this command:
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.2 \
+ mobinasri/flagger:v0.4.0 \
  python3 /home/programs/src/fit_nbmm.py \
  --include-dup-comp \
  --counts ${INPUT_DIR}/coverage.counts \
@@ -95,7 +95,7 @@ We can run the program in the simulation mode by an example command like below:
 docker run \
  -v ${INPUT_DIR}:${INPUT_DIR} \
  -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.2 \
+ mobinasri/flagger:v0.4.0 \
  python3 /home/programs/src/fit_nbmm.py \
  --include-dup-comp \
  --simulate \
