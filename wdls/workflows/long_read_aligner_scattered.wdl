@@ -39,7 +39,7 @@ workflow longReadAlignmentScattered {
         secphaseOptions: "--hifi for hifi reads and --ont for ont reads [Default = '--hifi'] "
         secphaseDockerImage: "The secphase docker image. [Default = 'mobinasri/secphase:v0.4.3']"
         secphaseVersion: "Secphase version [Default = 'v0.4.3']"
-        correctBamOptions: "Options for the correct_bam program that applies the secphase output. [Default = '--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1']"
+        correctBamOptions: "(Optional) Options for the correct_bam program that applies the secphase output. [Default = '--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1']"
         preemptible: "Number of retries to use preemptible nodes on Terra/GCP. [Default = 2]"
         zones: "Name of the zone for taking nodes on Terra/GCP. (Default = us-west2-a)"
     }
@@ -67,7 +67,7 @@ workflow longReadAlignmentScattered {
         String secphaseOptions="--hifi"
         String secphaseDockerImage="mobinasri/secphase:v0.4.3"
         String secphaseVersion="v0.4.3"
-        String correctBamOptions="--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1"
+        String? correctBamOptions="--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1"
 
         Int preemptible=2
         String zones="us-west2-a"
@@ -167,14 +167,16 @@ workflow longReadAlignmentScattered {
                 secphaseDockerImage = secphaseDockerImage,
                 version = secphaseVersion
         }
+     }
 
+     if (enableRunningSecphase || defined(correctBamOptions)){
         # Running correctBam to swap primary/secondary tag for detected alignments
         call correct_bam_t.correctBam {
             input:
                 phasingLogText = secphase.outLog,
                 bam = select_first([calmd.outputBamFile, mergeBams.mergedBam]),
                 options = correctBamOptions,
-                suffix = "secphase_${secphaseVersion}",
+                suffix = if enableRunningSecphase then "secphase_${secphaseVersion}" else "corrected",
                 flagRemoveMultiplePrimary = false,
                 flagRemoveSupplementary = false,
                 memSize=8,
@@ -187,7 +189,7 @@ workflow longReadAlignmentScattered {
 
     # Tasks for running secphase and adding MD tags make index files by default
     # if none of them is enabled then make an index using this task
-    if ((enableAddingMDTag == false) && (enableRunningSecphase == false)) {
+    if ((enableAddingMDTag == false) && (enableRunningSecphase == false) && (defined(correctBamOptions) == false)) {
         call longReadAligner_t.indexBam{
             input:
                 bam = mergeBams.mergedBam

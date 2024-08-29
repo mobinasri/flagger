@@ -14,6 +14,7 @@ workflow asm2asmAlignment {
         Boolean splitAssembly = false # split contigs before alignment
         Int splitSize = 20000000 # maximum size (in bases) of split contigs
         String zones = "us-west2-a"
+        Int preemptible = 2
     }
     ##if (splitAssembly){
     ##    call runSplitAssembly{
@@ -35,7 +36,8 @@ workflow asm2asmAlignment {
             kmerSize = 19,
             dockerImage="mobinasri/long_read_aligner:v0.4.0",
             diskSize = 64,
-            zones = zones
+            zones = zones,
+            preemptible = preemptible
     }
     call aligner_t.indexBam{
         input:

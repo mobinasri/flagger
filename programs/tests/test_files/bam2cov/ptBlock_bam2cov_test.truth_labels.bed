@@ -1,0 +1,5 @@
+contig_1	0	10	0
+contig_1	10	20	1
+contig_1	20	30	0
+contig_1	30	100	3
+contig_2	0	100	2

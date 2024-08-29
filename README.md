@@ -1,52 +1,77 @@
-## Evaluating dual/diploid assemblies with Flagger
+## Evaluating dual/diploid assemblies with HMM-Flagger
 
+### ***Note: HMM-Flagger is an HMM-based version of Flagger, offering improved functionality and performance. It replaces the previous version, Flagger v0.4.0, and is recommended for all users from now on.***
 ### Overview
-Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). The core component of this pipeline is [**Flagger**](https://github.com/mobinasri/flagger/tree/main/docs/flagger). Flagger recieves the read alignments to a draft diploid assembly, detects anomalies in read coverage along the assembly and partitions the assembly into 4 main components; erroneous, (falsely) duplicated, haploid (correctly assembled) and collapsed.
+<<<<<<< HEAD
+Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is a tool named **HMM-Flagger**. HMM-Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
+
+## Quick Start (Need a BAM and FASTA file)
+### 1. Create a whole-genome BED file
+
+```
+# Go to the working directory
+# Put fasta, bam and bam index files in this directory
+cd ${WORKING_DIR} 
 
 
-
-This evaluation has 3 steps:
-- Align long reads to the diploid assembly
-- Phase and relocalize the reads with secondary alignments using [secphase](https://github.com/mobinasri/secphase) (Optional)
-- Run Flagger
-
-#### 1. Align long reads
-The ONT and HiFi reads can be aligned to a dual/diploid assembly (~ 6Gbases long in human) with a long read aligner like winnowmap and minimap2.
-Here are the commands for producing the alignments (taken from the [winnowmap docs](https://github.com/marbl/Winnowmap)):
-```` 
-  # making the k-mer table with meryl
-  meryl count k=15 output merylDB asm.fa
-  meryl print greater-than distinct=0.9998 merylDB > repetitive_k15.txt
-  
-  # alignment with winnowmap
-  winnowmap -W repetitive_k15.txt -ax [map-ont | map-pb] -Y -L --eqx --cs -I8g <(cat pat_asm.fa mat_asm.fa) reads.fq.gz | \
-    samtools view -hb | samtools sort -@8 > read_alignment.bam
-````
-Any other appropriate long read aligner can be employed in this step.
-
-#### 2. Relocalize wrongly phased reads (Optional)
-In this step we use Secphase to phase and relocalize the reads with multiple alignments. To be more precise all the secondary and primary
-alignments of the same read are scored based on marker consistency and 
-the alignment with the highest score is selected as the primary alignment. The output of this section is 
-a corrected version of the input bam file, in which the primary and secondary alignments are swapped 
-whenever neccessary. Secphase can work properly only if the secondary alignments are available with their full sequence and base quality array.
-
-More information about Secphase is available [here](https://github.com/mobinasri/secphase)
-
-#### 3. Run Flagger
-The produced alignment file (in step 1) can be used as the input to Flagger. Flagger outputs a bed file with 5 labels; 
-erroneous (Err), duplicated (Dup), haploid (Hap), collapsed (Col) and unkown (Unk). Any component other than "haploid" is pointing to unreliable blocks in assembly and unkown label is for the bases that couldn't be assigned confidently to the other components (for example when assigned blocks are extremely short). These components are explained in detail [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger#2-coverage-distribution-and-fitting-the-mixture-model). 
+# Create fasta index assuming that file is not gz-compressed
+samtools faidx ${FASTA_FILE}
 
 
-More information about Flagger is available [here](https://github.com/mobinasri/flagger/tree/main/docs/flagger)
+# Create a bed file covering whole genome
+cat ${FASTA_FILE}.fai | \
+    awk '{print $1"\t0\t"$2}' > whole_genome.bed
+```
 
-### Running pipeline with WDL
 
-It is easier to run the pipeline using the WDLs described below. A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
+### 2. Convert BAM to COV
 
-It is recommended to run the whole pipeline using [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v0.4.0/wdls/workflows/flagger_end_to_end_with_mapping.wdl).
+```
+# Put path to the whole-genome bed file in a json file
+echo "{" > annotations_path.json
+echo \"whole_genome\" : \"${PWD}/whole_genome.bed\" >> annotations_path.json
+echo "}" >> annotations_path.json
 
-Here is a list of input parameters for flagger_end_to_end_with_mapping.wdl (The parameters marked as **"(Mandatory)"** are mandatory to be defined in the input json):
+
+# Convert bam to cov.gz with bam2cov program
+docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.0.0-prerelease \
+  bam2cov --bam ${WORKING_DIR}/${BAM_FILE} \
+                  --output ${WORKING_DIR}/coverage_file.cov.gz \
+                  --annotationJson ${WORKING_DIR}/annotations_path.json \
+                  --threads 16 \
+                  --baselineAnnotation whole_genome
+```
+
+### 3. Run HMM-Flagger
+
+```
+mkdir -p ${WORKING_DIR}/hmm_flagger_outputs
+docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.0.0-prerelease \
+        hmm_flagger \
+            --input ${WORKING_DIR}/coverage_file.cov.gz \
+            --outputDir ${WORKING_DIR}/hmm_flagger_outputs  \
+            --alphaTsv /home/programs/config/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv \
+            --labelNames Err,Dup,Hap,Col \
+            --threads 16
+```
+
+The bed file contating HMM-Flagger predictions will be located in `hmm_flagger_outputs/final_flagger_prediction.bed`. A summary tsv file (counts will be based on windows rather than bases) will be located in `hmm_flagger_outputs/prediction_summary_final.tsv`
+
+For example this table shows that `95.99%` of the assembly is flagged as correctly assembled:
+```
+cat hmm_flagger_outputs/prediction_summary_final.tsv | grep base_level | grep whole_genome | grep percentage
+PREDICTION	base_level	percentage	annotation	whole_genome	ALL_SIZES	ALL_LABELS	1.24	1.37	95.99	1.40	0.00
+```
+
+## Running pipeline with WDL
+
+If user has a set of unalinged reads it is easier to run the pipeline using the WDLs described below. Using the prepared WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. 
+
+A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
+
+It is recommended to run the whole pipeline using [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl).
+
+Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (The parameters marked as **"(Mandatory)"** are mandatory to be defined in the input json):
 
 
 | Parameter | Description | Type | Default | 
@@ -98,10 +123,10 @@ Here is a list of input parameters for flagger_end_to_end_with_mapping.wdl (The 
 
 A set of annotations files in the coordinates of chm13v2.0 are prepared beforehand and they can be used as inputs to the workflow. These bed files are useful when there is no denovo annotation for the assemblies and we like to project annotations from chm13v2.0 to the assembly coordinates for two main purposes:
 
-1. Detecting regions with coverage biases: Satellite repeat arrays might have coverage biases so before running Flagger the pipeline will detect potentially baised regions. Flagger will then fit a separate Gaussian model to each detected annotation.
+1. Detecting regions with coverage biases: Satellite repeat arrays might have coverage biases so before running HMM-Flagger it is best to pass those annotations to bam2cov program (with `--runBiasDetection` enabled). bam2cov will inspect those regions and put this information inside the created coverage file if any coverage-biased region was detected.
 2. Stratifying final results with the projected annotations.
 
-Using these bed files are optional and the related parameters can be left undefined (being absent from the input json). In this case the workflow should still work properly. However users should be aware that in this case potential coverage biases in HSat arrays may mislead the pipeline. The final summary tsv files will contain zero values for any stratification whose bed file was left undefined.
+Using these bed files are optional and the related parameters can be left undefined (being absent from the input json). In this case the workflow should still work properly. However users should be aware that in this case potential coverage biases in HSat arrays may mislead HMM-Flagger.
 
 |Parameter| Value|
 |:--------|:-----|
@@ -157,22 +182,19 @@ java -jar ../cromwell-85.jar run ../flagger-0.4.0/wdls/workflows/flagger_end_to_
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
 
 ### Running WDLs on Slurm using Toil
-Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
-- [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-long_read_aligner_scatteredwdl-on-test-datasets)
-- [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-flagger_end_to_endwdl-on-test-datasets)
-- [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/v0.4.0/test_wdls/toil_on_slurm#running-flagger_end_to_end_with_mappingwdl-on-test-datasets)
+Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
+- [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-long_read_aligner_scatteredwdl-on-test-datasets)
+- [flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-flagger_end_to_endwdl-on-test-datasets)
+- [flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm#running-flagger_end_to_end_with_mappingwdl-on-test-datasets)
 
 
 ### Dockstore links
 
 All WDLs are uploaded to Dockstore for easier import into platforms like Terra or AnVIL.
 
-- [Dockstore link for long_read_aligner_scattered.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:v0.4.0?tab=info)
-- [Dockstore link for flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEnd:v0.4.0?tab=info)
-- [Dockstore link for flagger_end_to_end_with_mapping.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/FlaggerEndToEndWithMapping:v0.4.0?tab=info)
-
-
-
+- [Dockstore link for long_read_aligner_scattered.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:v1.0.0?tab=info)
+- [Dockstore link for hmm_flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/HMMFlaggerEndToEnd:v1.0.0?tab=info)
+- [Dockstore link for hmm_flagger_end_to_end_with_mapping.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/HMMFlaggerEndToEndWithMapping:v1.0.0?tab=info)
 
 ### Components
 
@@ -182,7 +204,6 @@ All WDLs are uploaded to Dockstore for easier import into platforms like Terra o
 |Dup  |**Duplicated** |Orange| This block is potentially a false duplication of another block. It should mainly include low-MAPQ alignments with half of the expected coverage. Probably one of the copies has to be polished or removed to fix this issue|
 |Hap  | **Haploid** |Green| This block is correctly assembled and has the expected read coverage |
 |Col |**Collapsed** |Purple| Two or more highly similar haplotypes are collapsed into this block |
-|Unk |**Unknown** |Gray| These blocks could not be assigned confidently (usually on the edges of other components)|
 
 Each of these components has their own color when they are shown in the IGV or the UCSC Genome Browser.
 

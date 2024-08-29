@@ -361,19 +361,20 @@ MatrixDouble* MatrixDouble_construct0(int dim1, int dim2){
 	mat->dim2 = dim2;
         mat->data = (double**) malloc(dim1 * sizeof(double*));
         for(int i = 0; i < dim1; i++){
-                mat->data[i] = (double*) malloc(dim2 * sizeof(double*));
+                mat->data[i] = (double*) malloc(dim2 * sizeof(double));
                 memset(mat->data[i], 0, dim2 * sizeof(double));
         }
         return mat;
 }
 
 MatrixDouble* MatrixDouble_construct1(int dim1, int dim2, double** data){
+	if(data == NULL) return NULL;
         MatrixDouble* mat = (MatrixDouble*) malloc(sizeof(MatrixDouble));
 	mat->dim1 = dim1;
 	mat->dim2 = dim2;
         mat->data = (double**) malloc(dim1 * sizeof(double*));
         for(int i = 0; i < dim1; i++){
-                mat->data[i] = (double*) malloc(dim2 * sizeof(double*));
+                mat->data[i] = (double*) malloc(dim2 * sizeof(double));
                 memcpy(mat->data[i], data[i], dim2 * sizeof(double));
         }
         return mat;
@@ -486,17 +487,22 @@ void MatrixDouble_destruct(MatrixDouble* mat){
 }
 
 
-MatrixDouble* MatrixDouble_parseFromFile(char* filePath, int dim1, int dim2){
+MatrixDouble* MatrixDouble_parseFromFile(char* filePath, int dim1, int dim2, bool skipFirstLine){
 	MatrixDouble* mat = MatrixDouble_construct0(dim1, dim2);
 	FILE* f = fopen(filePath, "r");
 	size_t len = 0;
-    char* line = NULL;
-    char* token;
-    ssize_t read;
+	char* line = NULL;
+	char* token;
+    	ssize_t read;
 	int i = 0;
 	int j = 0;
 	Splitter* splitter;
+	bool skipped = false;
 	while ((read = getline(&line, &len, f)) != -1){
+		if (skipFirstLine && !skipped){
+			skipped = true;
+			continue;
+		}
 		line[strlen(line)-1] = '\0';
 		splitter = Splitter_construct(line, '\t');
 		j = 0;

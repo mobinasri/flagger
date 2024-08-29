@@ -1,0 +1,41 @@
+#annotation:len:7
+#annotation:name:0:no_annotation
+#annotation:name:1:annot_1
+#annotation:name:2:annot_2
+#annotation:name:3:annot_3
+#annotation:name:4:annot_4
+#annotation:name:5:annot_5
+#annotation:name:6:annot_6
+#region:len:3
+#region:coverage:0:1
+#region:coverage:1:2
+#region:coverage:2:2
+#truth:false
+#prediction:false
+>contig_1 100
+1	4	0	0	0	0	0
+5	7	0	0	0	5	0
+8	10	0	0	0	0	0
+11	13	1	1	0	1	0
+14	14	2	2	0	1	0
+15	15	3	2	0	1	0
+16	16	3	2	0	1,2	0
+17	17	2	1	0	1,2	0
+18	18	2	1	0	2	0
+19	20	1	0	0	2	0
+21	22	0	0	0	2	0
+23	50	0	0	0	0	0
+51	53	1	1	0	3	0
+54	54	2	1	0	3	0
+55	57	2	1	0	6	2
+58	59	1	1	0	3	0
+60	60	0	0	0	3	0
+61	100	0	0	0	0	0
+>contig_2 100
+1	10	0	0	0	0	0
+11	12	1	1	1	0	0
+13	13	1	1	1	4	1
+14	16	2	2	2	4	1
+17	17	2	2	2	0	0
+18	21	1	1	1	0	0
+22	100	0	0	0	0	0

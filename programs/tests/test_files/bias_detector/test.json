@@ -1,0 +1,8 @@
+{
+	"annot_1" : "tests/test_files/bias_detector/test_1.bed",
+	"annot_2" : "tests/test_files/bias_detector/test_2.bed",
+	"annot_3" : "tests/test_files/bias_detector/test_3.bed",
+	"annot_4" : "tests/test_files/bias_detector/test_4.bed",
+	"annot_5" : "tests/test_files/bias_detector/test_5.bed",
+	"annot_6" : "tests/test_files/bias_detector/test_6.bed"
+}

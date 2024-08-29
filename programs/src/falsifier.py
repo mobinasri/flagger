@@ -60,7 +60,8 @@ def induceMultipleMisAssembliesOfTheSameType(relationChains, annotation, misAsse
         while iter < 10:
             if 0 < iter:
                 print(f"[{datetime.datetime.now()}] Retrying inducing the failed mis-assembly ({iter+1}/10 retries)")
-            newCtg, orderIndex, start, end = relationChains.getRandomMisAssemblyInterval(annotation, misAssemblySize)
+            forCollapse = misAssemblyType == "Col"
+            newCtg, orderIndex, start, end = relationChains.getRandomMisAssemblyInterval(annotation, misAssemblySize, forCollapse)
             if newCtg == None:
                 print(f"[{datetime.datetime.now()}] No more blocks remaining for sampling (Skipping {misAssemblyCount-i}/{misAssemblyCount}) : annotation = {annotation}, misAssemblyType = {misAssemblyType}, misAssemblySize = {misAssemblySize}")
                 return i
@@ -206,20 +207,27 @@ def checkFeasiblity(relationChains, misAssemblySizeTable):
     """
 
     print(f"[{datetime.datetime.now()}] Feasibility logs:")
-    print(f"#annotation\tmisassembly_block_size_kb,\tlower_bound_count\trequested_total_count\tstatus")
+    print(f"#annotation\tmisassembly_block_size_kb,\tlower_bound_count\trequested_count_total\tlower_bound_count_collapse\trequested_count_collapse\tstatus")
     annotations = misAssemblySizeTable.columns[1:]
     flag = True
     for annotation in annotations:
         for row in misAssemblySizeTable.index:
             misAssemblyLengthKb = int(misAssemblySizeTable.at[row, "length_kb"])
             requestedCount = sum(misAssemblySizeTable.at[row, annotation])
-            lowerBoundOnCount = relationChains.getLowerBoundOnNumberOfMisassemblies(annotation, misAssemblyLengthKb * 1e3)
-            if requestedCount <= lowerBoundOnCount:
+            lowerBoundOnCount = relationChains.getLowerBoundOnNumberOfMisassemblies(annotation, misAssemblyLengthKb * 1e3, onlyWithHomology=False)
+            # last number is hard-coded for collapse
+            requestedCountOnlyCollapse = misAssemblySizeTable.at[row, annotation][-1]
+            lowerBoundOnCountOnlyCollapse = relationChains.getLowerBoundOnNumberOfMisassemblies(annotation, misAssemblyLengthKb * 1e3, onlyWithHomology=True)
+
+            if requestedCount <= lowerBoundOnCount and requestedCountOnlyCollapse <= lowerBoundOnCountOnlyCollapse:
                 status = "PASSED"
-            else:
-                status = "NOT_PASSED"
+            elif lowerBoundOnCount < requestedCount:
+                status = "NOT_PASSED_BY_TOTAL_COUNT"
                 flag = False
-            print(f"{annotation}\t{misAssemblyLengthKb}\t{lowerBoundOnCount}\t{requestedCount}\t{status}")
+            elif lowerBoundOnCountOnlyCollapse < requestedCountOnlyCollapse:
+                status = "NOT_PASSED_BY_ONLY_COLLAPSE"
+                flag = False
+            print(f"{annotation}\t{misAssemblyLengthKb}\t{lowerBoundOnCount}\t{requestedCount}\t{lowerBoundOnCountOnlyCollapse}\t{requestedCountOnlyCollapse}\t{status}")
     return flag
 
 
@@ -431,10 +439,15 @@ def main():
                 f.write(f"{annotation}\t{misAssemblyType}\t{misAssemblySizeKb}\t{totalAnnotationLengthKb}\t{misAssemblyRate * 100:0.3f}\n")
                 totalMisAssembledBasesKb += misAssemblySizeKb
             misAssemblyRateTotal = totalMisAssembledBasesKb / totalAnnotationLengthKb
-            f.write(f"{annotation}\t{misAssemblyType}\t{totalMisAssembledBasesKb}\t{totalAnnotationLengthKb}\t{misAssemblyRateTotal * 100:0.3f}\n")
+            f.write(f"{annotation}\tALL\t{totalMisAssembledBasesKb}\t{totalAnnotationLengthKb}\t{misAssemblyRateTotal * 100:0.3f}\n")
 
 
     os.makedirs(outputDir, exist_ok = True)
+
+    chainsInfoPath = os.path.join(outputDir,"falsified_asm.chains_info.tsv")
+    relationChains.writeNewContigCoordinates(chainsInfoPath)
+    print(f"[{datetime.datetime.now()}] Chains information are written to {chainsInfoPath}")
+
     print(f"[{datetime.datetime.now()}] Writing Fasta file for the falsified assembly")
     diploidFastaPath = os.path.join(outputDir,"falsified_asm.dip.fa")
     hap1FastaPath = os.path.join(outputDir,"falsified_asm.hap1.fa")
