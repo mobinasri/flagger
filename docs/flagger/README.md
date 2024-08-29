@@ -10,24 +10,63 @@ The pipeline has 3 core steps:
 - Fit a mixture model to the coverage distributions
 - Extract the blocks assigned to the model's 4 main components: erroneous, duplicated, haploid, and collapsed.
 
+### Using WDLs instead of running steps one by one
+
+**It is highly recommended to use [WDLs described in the main page](https://github.com/mobinasri/flagger/tree/dev-0.3.0?tab=readme-ov-file#running-pipeline-with-wdl) and not running the steps explained here one by one.** This page is written for users who are interested in understanding the steps being performed along the workflow.
+
 ### Docker
-All programs used in this analysis are available in the docker image `mobinasri/flagger:v0.3.2`. It is recommended to use this image for running the programs.
+All programs used in this analysis are available in the docker image `mobinasri/flagger:v0.4.0`. It is recommended to use this image for running the programs.
 
 ## The Pipeline
 
 ### 1. Calculating Depth of Coverage
-Given the read alignments in the BAM format it is possible to calculate the the depth of coverage for each base by `samtools depth`. The output of `samtools depth -aa` is like below. (`-aa` option allows outputing the bases with zero coverage)
-````
-contig_1  1 0
-contig_1  2 1
-contig_1  3 1
-contig_1  4 1
-contig_1  5 2
-contig_1  6 2
-````
-In the order in which they appear, the columns are showing the contig name, the base coordinate and the coverage. 
-Each base has a separate line even if consecutive bases are having the same coverage. 
-In order to make this output more compact it can be converted to the format below
+Given the read alignments in the BAM format it is possible to calculate the the depth of coverage for each base using the program `bam2cov`.
+```
+# create fasta index for the input diploid assembly
+samtools faidx ${FA_PREFIX}.fa
+
+# create a bed file for whole genome
+cat ${FA_PREFIX}.fa.fai | awk '{print $1"\t0\t"$2}' | bedtools sort -i - > asm_wg.bed
+
+# make a json file pointing to the asm_wg.bed
+echo "{" > bed_file.json
+echo \"asm_wg\" : \"asm_wg.bed\" >> bed_file.json
+echo "}" >> bed_file.json
+
+COV_PREFIX=${BAM_PREFIX}.only_total
+# convert bam to cov
+# -f only_total is for printing the total coverage only
+
+docker run \
+    -v ${INPUT_DIR}:${INPUT_DIR} \
+    -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
+    mobinasri/flagger:v0.4.0 \
+    bam2cov \
+        -i ${INPUT_DIR}/read_alignment.bam \
+        -O "c" \
+        -o ${OUTPUT_DIR}/read_alignment.cov \
+        -j ${INPUT_DIR}/bed_file.json \
+        -t 8 \
+        -f only_total
+
+```
+
+help message for bam2cov:
+```
+Usage: bam2cov  -i <BAM_FILE> -j <JSON_FILE> -t <THREADS> -O <'b'|'bz'|'c'|'cz'> -o <OUT_BED_OR_COV_FILE> 
+Options:
+         -i         input bam file (should be indexed)
+         -j         JSON file for the annotation bed files. At least one BED file should be in this json and it can be a BED file covering the whole genome/assembly [maximum 32 files can be given and the keys can be any number between 1-32 for example {"1":"/path/to/1.bed", "2":"/path/to/2.bed"}]
+         -m         minimum mapq for the measuring the coverage of the alignments with high mapq [Default = 20]
+         -r         minimum clipping ratio for the measuring the coverage of the highly clipped alignments [Default = 0.1]
+         -f         if this parameter is enabled and -O is "cz" or "c" then the output will be formatted based on the value of this parameter. options: ["all", "only_total", "only_high_mapq"][Default = "all"]
+         -t         number of threads [default: 4]
+         -O         output type ["b" for bed, "bz" for gzipped bed, "c" for cov, "cz" for gzipped cov]
+         -o         output path 
+
+```
+
+The output format is like below:
 ````
 >contig_1 6
 1 1 0
@@ -35,23 +74,7 @@ In order to make this output more compact it can be converted to the format belo
 5 6 2
 ````
 In which each contig's name appears only once before the first block of that contig and the consecutive bases with the same coverage take only one line.
-The number that comes after the name of the contig is the contig size. The coverage files with such a format have the suffix `.cov`.
-Here are the main commands for producing the coverage files:
-````
-## Find base-level coverages
-samtools depth -aa -Q 0 ${INPUT_DIR}/read_alignment.bam > ${INPUT_DIR}/read_alignment.depth
-
-## Convert depth to cov
-docker run \
- -v ${INPUT_DIR}:${INPUT_DIR} \
- -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.2 \
- depth2cov \
- -d ${INPUT_DIR}/read_alignment.depth \
- -f ${INPUT_DIR}/asm.fa.fai \
- -o ${OUTPUT_DIR}/read_alignment.cov
-````
-`depth2cov` is a program that converts the output of `samtools depth` to `.cov` format. Its source code is available [here](https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docker/coverage/scripts/depth2cov.c).
+The number that comes after the name of the contig is the contig size. The other lines contain start (1-based closed), end (1-based closed) and coverage value. The files with such a format have the suffix `.cov`.
 
 Since the reads aligned to the homozygous regions are expected to have low mapping qualities we don't filter reads based on their mapping qualities.
 In the figure below you can see the histograms of mapping qualities and the distributions of alignment indentities for HG00438 as an example. The diploid assembly and HiFi data set used here are from HPRC-Year1 repositories ([assembly repo](https://github.com/human-pangenomics/HPP_Year1_Assemblies) and [read set repo](https://github.com/human-pangenomics/HPP_Year1_Data_Freeze_v1.0)).  Three sets of alignments are shown here; the alignments to the diploid assembly and to each haploid assembly (maternal and paternal) separately. The alignments to the haploid assemblies are shown here just for comparison and are not used for the current analysis.
@@ -63,15 +86,15 @@ In this example about 20% of the diploid alignments are having MAPQs lower than 
 ### 2. Coverage Distribution and Fitting The Mixture Model
 
 
-The frequencies of coverages can be calculated w/ `cov2counts`. Its source code is available in [cov2counts.c](https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docker/coverage/scripts/cov2counts.c)
+The frequencies of coverages can be calculated with `cov2counts`. Its source code is available in [cov2counts.c](https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docker/coverage/scripts/cov2counts.c)
 ````
 docker run \
- -v ${INPUT_DIR}:${INPUT_DIR} \
- -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.2 \
- cov2counts \
- -i ${INPUT_DIR}/read_alignment.cov \
- -o ${OUTPUT_DIR}/read_alignment.counts
+    -v ${INPUT_DIR}:${INPUT_DIR} \
+    -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
+    mobinasri/flagger:v0.4.0 \
+    cov2counts \
+        -i ${INPUT_DIR}/read_alignment.cov \
+        -o ${OUTPUT_DIR}/read_alignment.counts
 ````
 The output file with `.counts` suffix is a 2-column tab-delimited file; the first column shows coverages and the second column shows the frequencies of
 those coverages. Using `.counts` files we can produce distribution plots easily. For example below we are showing the coverage distribution for HG00438 diploid assembly.
@@ -84,25 +107,25 @@ consists of 4 main components and each component represents a specific type of r
 The 4 components:
 
 1. **Erroneous component**, which is modeled by a poisson distribution. To avoid overfitting, this mode only uses the coverages below 10 so its mean is limited to be between 0 and 10. It represents the regions with very low read support.
-2. **(Falsely) Duplicated component**, which is modeled by a gaussian distribution which mean is constrained to be half of the haploid component's mean. It should mainly represents the falsely duplicated regions. It is worth noting that according to the recent 
+2. **(Falsely) Duplicated component**, which is modeled by a Gaussian distribution whose mean is constrained to be half of the haploid component's mean. It should mainly represents the falsely duplicated regions. It is worth noting that according to the recent 
 [T2T paper, The complete sequence of a human genome,](https://www.biorxiv.org/content/10.1101/2021.05.26.445798v1.abstract) there exist
  some satellite arrays (especially HSAT1) where the ONT and HiFi coverage drops systematically due to bias in sample preparation and sequencing.
  As a result this mode should contain a mix of duplicated and coverage-biased blocks. To avoid overestimating this component a correction step is added to the pipeline.
-3. **Haploid component**, which is modeled by a gaussian distribution. It represents blocks with the coverages that we expect for the blocks of an error-free assembly.
-4. **Collpased component**, which is actually a set of components each of which follows a gaussian distribution and their means are constrained to be
-multiples of the haploid component's mean. Similar to the duplicated component there are some regions where HiFi coverage increases systematically. This issue is addressed in one of the correction steps.
+3. **Haploid component**, which is modeled by a Gaussian distribution. It represents blocks with the coverages that we expect for an error-free assembly.
+4. **Collpased component**, which is actually a set of components each of which follows a Gaussian distribution and their means are constrained to be
+integer multiples (starting from 2) of the haploid component's mean. Similar to the duplicated component there are some regions where HiFi coverage increases systematically. This issue is addressed in one of the correction steps.
 
 Here is the command that fits the model:
 ````
 ## Run fit_model_extra.py to fit the model
 docker run \
- -v ${INPUT_DIR}:${INPUT_DIR} \
- -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.2 \
- python3 /home/programs/src/fit_gmm.py \
- --counts ${INPUT_DIR}/read_alignment.counts \
- --cov ${EXPECTED_COVERAGE} \
- --output ${OUTPUT_DIR}/read_alignment.table \
+    -v ${INPUT_DIR}:${INPUT_DIR} \
+    -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
+    mobinasri/flagger:v0.4.0 \
+    python3 /home/programs/src/fit_gmm.py \
+        --counts ${INPUT_DIR}/read_alignment.counts \
+        --cov ${EXPECTED_COVERAGE} \
+        --output ${OUTPUT_DIR}/read_alignment.table \
 ````
 
 Its output is a file with `.table` suffix. It contains a TAB-delimited table with the 7 fields described below:
@@ -182,7 +205,7 @@ their solutions are also provided. The output of each correction step is used as
 As it was mentioned in the 2nd step of the pipeline, there are some HSats in the genome where the HiFi or ONT coverage is systematically increased or decreased.
 Such platform-specific biases mislead the pipeline. For example the HiFi coverage of Hsat2 in chr1 is about 1.5 times larger than the average sequencing coverage and it is very probable to wrongly flag this region as collapsed.
 
-In the figure below the read bars are showing the coverage of the HiFi alignments to the chm13v1.0.
+In the figure below the pink bars are showing the coverage of the HiFi alignments to the chm13v1.0 reference.
 
    <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/chm13v1.1_hifi_hsat2_chr1.png" width="700" height="150">
 To incorporate such coverage biases and correct the results in the corresponding regions, the steps below are neccessary:
@@ -201,16 +224,16 @@ k8 paftools.js sam2paf <(samtools view -h -F4 -F256 ) ${ASM2REF}.bam > ${ASM2REF
 ## Given the paf file extract the HSat regions in the assembly 
 ## and save them in ${HSAT_PROJECTION}.bed
 docker run \
- -v ${INPUT_DIR}:${INPUT_DIR} \
- -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.2 \
- python3 /home/programs/src/project_blocks_multi_thread.py 
- --threads 8
- --mode 'ref2asm' \
- --paf ${INPUT_DIR}/${ASM2REF}.paf \
- --blocks ${HSAT}.bed \
- --outputProjectable ${OUTPUT_DIR}/${PROJECTABLE}.bed \
- --outputProjection ${OUTPUT_DIR}/${HSAT_PROJECTION}.bed
+    -v ${INPUT_DIR}:${INPUT_DIR} \
+    -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
+    mobinasri/flagger:v0.3.2 \
+    python3 /home/programs/src/project_blocks_multi_thread.py \
+        --threads 8 \
+        --mode 'ref2asm' \
+        --paf ${INPUT_DIR}/${ASM2REF}.paf \
+        --blocks ${HSAT}.bed \
+        --outputProjectable ${OUTPUT_DIR}/${PROJECTABLE}.bed \
+        --outputProjection ${OUTPUT_DIR}/${HSAT_PROJECTION}.bed
 
 ## Sort and merge ${PROJECTION}.bed  
 bedtools sort -i  ${OUTPUT_DIR}/${HSAT_PROJECTION}.bed | bedtools merge -i - > ${OUTPUT_DIR}/${HSAT_PROJECTION}.merged.bed
@@ -232,17 +255,18 @@ The process should be repeated for each HSat of interest that can be prone to co
  - HSat2 -> `--coverage  1.25 * ${AVG_COVERAGE}`
  - HSat3 -> `--coverage  1.25 * ${AVG_COVERAGE}`
 
-Please note that there may exist no bias for a specific sample and fitting a separate model means adding more parameters in the big picture not assuming the HSat coverage to be always greater (or less) than the whole-genome coverage. The factors provided above are just the initial values to navigate the EM algorithm if there exist a bias. The EM algorithm should be able to find the correct parameter values regardless of having a bias or not.
-The HSat corrected bed files contain `hsat_corrected` in the their file names. (Among the outputs of flagger.wdl)
+Please note that there may exist no bias for a specific sample and fitting a separate model means adding more parameters in the big picture without assuming the HSat coverage is always greater (or less) than the whole-genome coverage. The factors provided above are just the initial values to navigate the EM algorithm if there exist a bias. The EM algorithm should be able to find the correct parameter values regardless of having a bias or not.
+The HSat corrected bed files contain `hsat_corrected` in the their file names. (available among the final outputs of flagger_end_to_end.wdl)
 
 ### 2. Window-Specific Models
 
-In step 3 a single model is fit for the whole diploid assembly. In step 4 that model is used to partition the assembly into 4 main components. It is noticed that the model components may change for different regions and it may affect the accuracy of the partitioning process. In order to make the coverage thresholds more sensitive to the local patterns the diploid assembly is split into windows of length (5-10Mb). For each window a separate model  should be fit. To do so first we split the whole-genome coverage file produced in step 3 into multiple coverage files one for each window.
+In step 3 a single model is fit for the whole diploid assembly. In step 4 that model is used to partition the assembly into 4 main components. It is noticed that the model components may change for different regions and it may affect the accuracy of the partitioning process. In order to make the coverage thresholds more sensitive to the local patterns, the diploid assembly is split into windows of length 5Mb to 10Mb. For each window a separate model should be fit. To do so first we split the whole-genome coverage file produced in step 3 into multiple coverage files one for each window.
 ```
 
 ## First we make a cov file excluding the regions that have may have coverage biases (Read the following correction step)
 cat asm.fa.fai | awk '{print $1"\t0\t"$2}' | sort -k1,1V -k2,2n > asm.bed
-## exclude.bed contains all regions that have may have coverage biases
+## exclude.bed contains all regions that have may have coverage biases and
+## have been incorporated in the previous step
 bedtools subtract -a asm.bed -b exclude.bed > asm.no_bias.bed
 
 ## Make a tab-delimited file including the contig names and their effective length (not excluded)
@@ -256,14 +280,14 @@ cat read_alignment.cov | \
 
 ## Split cov into multiple covs (each covering 5-10 Mb)
 docker run \
- -v ${INPUT_DIR}:${INPUT_DIR} \
- -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
- mobinasri/flagger:v0.3.2 \
- split_cov_by_window \
- -c ${INPUT_DIR}/read_alignment.no_bias.cov \
- -f ${INPUT_DIR}/ctg_lens.txt \
- -s 5000000 \
- -p ${OUTPUT_DIR}/${OUTPUT_PREFIX}
+    -v ${INPUT_DIR}:${INPUT_DIR} \
+    -v ${OUTPUT_DIR}:${OUTPUT_DIR} \
+    mobinasri/flagger:v0.3.2 \
+    split_cov_by_window \
+        -c ${INPUT_DIR}/read_alignment.no_bias.cov \
+        -f ${INPUT_DIR}/ctg_lens.txt \
+        -s 5000000 \
+        -p ${OUTPUT_DIR}/${OUTPUT_PREFIX}
 ```
 `split_cov_by_window` program will produce a list of coverage files like below.
 ```
@@ -288,7 +312,7 @@ After fitting the model the duplicated components can reveal such false duplicat
 
 One important observation is that for short contigs we don't have a smooth coverage distribution and it is not possible to fit the mixture model. To address this issue we have done the window-specific coverage analysis only for the contigs longer than 5Mb and for the shorter contigs we use the results of the whole-genome analysis described previously. For HSat regions we use the result of the previous correction step.
 
-The combined bed files contain `combined` in their file names. (Among the outputs of flagger.wdl)
+The combined bed files contain `combined` in their file names. (available among the final outputs of flagger_end_to_end.wdl)
 
 ### 3. Correcting The Bed Files Pointing To The False Duplications
 In some cases the duplicated component is mixed up with the haploid one. It usually happens when the coverage in the haploid component drops systematically and the contig has long stretches of false duplication. 
@@ -298,6 +322,7 @@ fix this issue.
 
    <img src="https://github.com/human-pangenomics/hpp_production_workflows/blob/asset/coverage/docs/coverage/images/dup_correction.png" width="700" height="325">
 
+To create a cov file that contains only the coverages of high mapq alignments (>20) step 1 should be repeated but while running `bam2cov` the flag `-f only_high_mapq` should be used instead of `-f only_total`. Then the commands below will incorporate mapq information.
 ````
 ## Get blocks with more than 5 high quality alignments
 cat high_mapq.cov | \
@@ -309,9 +334,9 @@ bedtools subtract -a ${PREFIX}.combined.duplicated.bed -b high_mapq.bed > ${PREF
 bedtools intersect -a ${PREFIX}.combined.duplicated.bed -b high_mapq.bed > dup_to_hap.bed
 cat dup_to_hap.bed ${PREFIX}.combined.haploid.bed | bedtools sort -i - | bedtools merge -i - > ${PREFIX}.dup_corrected.haploid.bed
 ````
-The duplication corrected bed files contain `dup_corrected` in the file name. (Among the outputs of flagger.wdl)
+The duplication corrected bed files contain `dup_corrected` in the file name. (available among the final outputs of flagger_end_to_end.wdl)
 
-In the final bed files there is a noticeable number of very short blocks (a few bases or a few tens of bases long). They are very prone to be falsely categorized into one of the components. To increase the specificity we have merged the blocks closer than 100 and then removed the ones shorter than 1Kb. The filtered bed files contain `filtered` in the file name. (Among the outputs of flagger.wdl)
+In the final bed files there is a noticeable number of very short blocks (a few bases or a few tens of bases long). They are very prone to be falsely categorized into one of the components. To increase the specificity we have merged the blocks closer than 100 and then removed the ones shorter than 1Kb. The filtered bed files contain `filtered` in the file name. (available among the final outputs of flagger_end_to_end.wdl)
 
 ### Notes
 1. Some regions are falsely flagged as collapsed. The reason is that the equivalent region in the other haplotype is not assembled correctly so the reads from two haplotypes are aligned to only one of them. This flagging can be useful since it points to a region whose counterpart in the other haplotype is not assembled correctly or not assembled at all. 

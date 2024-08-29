@@ -1798,7 +1798,6 @@ class HomologyRelationChains:
                 for block in relation.block.annotationBlockLists[annotation].blocks:
                     if minBlockSize < (block[1] - block[0]):
                         totalCount += 1
-
         return totalCount
 
     def getTotalCountOfLongerBlocksForAllAnnotations(self, annotations, minBlockSizes, onlyRefInHomology=False):
@@ -1914,7 +1913,6 @@ class HomologyRelationChains:
                     origStrand = block.origStrand
                     orderIndex = block.orderIndex
                     outputFile.write(f"{newCtg}\t{orderIndex}\t{origCtg}\t{origStart}\t{origEnd}\t{origStrand}\n")
-
 
 
     def writeNewContigsToFasta(self, origCtgSequences, diploidFastaPath, hap1FastaPath, hap2FastaPath, singleBaseErrorRate):

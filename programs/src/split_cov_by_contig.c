@@ -59,9 +59,9 @@ void findBlocks(char* covPath, char* prefix){
     if (fp == NULL)
         exit(EXIT_FAILURE);
 
-    char* contig = malloc(50);
+    char* contig = malloc(200);
     int contigLength = 0;
-    char* preContig = malloc(50);
+    char* preContig = malloc(200);
     int blockStart=0;
     int start=0, end=0, cov=0;
 

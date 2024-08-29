@@ -177,6 +177,7 @@ class BlockList:
         """
         Takes a list of intervals like below
             [(s1, e1), (s2, e2), ... ,(sN, eN)]
+        Everything is 1-based
         It will copy the list and save the copy in the "blocks" attribute
         A 3rd entry is also added for each tuple, which is initialized to zero
         the purpose of the 3rd entry is mainly for merging and intersecting
@@ -217,6 +218,18 @@ class BlockList:
 
     def sort(self):
         self.blocks.sort()
+
+    def hasOverlapWithInterval(start, end, ratio=0.9):
+        for block in self.blocks:
+            overlap_start = max(start, block[0])
+            overlap_end = min(end, block[1])
+            if overlap_start > overlap_end:
+                continue
+            overlap_len = overlap_end - overlap_start + 1
+            track_len = block[1] - block[0] + 1
+            if ratio < (overlap_len / track_len):
+                return True
+        return False
 
     def intersect(self, otherBlockList, inplace):
         """
@@ -607,6 +620,8 @@ class BlockList:
         # parse tracks and save them in the dictionary
         with open(bedPath, "r") as f:
             for line in f:
+                if line.startswith("track name") or line.startswith("#"):
+                    continue
                 cols = line.strip().split()
                 if len(cols) > 3 and saveFourthColumnAsNumeric == True:
                     c = float(cols[3])
@@ -821,6 +836,61 @@ class Alignment:
                                f'{self.numberOfMatches}', f'{self.alignmentLength}', f'{self.mappingQuality}',
                                status, f'cg:Z:{makeCigarString(self.cigarList)}\n']))
 
+
+    def getRefCoveredBlockList(self, maxIndelSize=1e9):
+        x = self.chromStart
+        preX = x
+        intervals = []
+        for op, opSize in self.cigarList:
+            # save the previous interval with small deletions
+            if (op == 'D' or op == 'I') and opSize > maxIndelSize and preX < x:
+                intervals.append((preX, x))
+            # once we have a long deletion update preX
+            # so that it skips the long deletion
+            # for each interval the maximum size of 
+            # deletion would be maxDelSize
+            if op == 'D' and opSize > maxIndelSize:
+                preX = x + opSize
+            if op == 'I' and opSize > maxIndelSize:
+                preX = x
+
+            if op == 'X' or op == '=' or op == 'D':
+                x += opSize
+
+        if preX < x:
+            intervals.append((preX, x))
+        return BlockList(intervals)
+
+    def getPerfectMatchRateByRef(self):
+        rStart = self.chromStart
+        rEnd = self.chromEnd
+
+        matchCount = 0
+        for op, opSize in self.cigarList:
+            if op == '=':
+                matchCount += opSize
+        return matchCount / (rEnd - rStart + 1)
+    
+    @staticmethod
+    def parseAlignmentsIntoContigPairTable(pafPath):
+        alignments = defaultdict(list)
+        with open(pafPath) as f:
+            for line in f:
+                alignment = Alignment(line)
+                contigPair = (alignment.chromName, alignment.contigName)
+                alignments[contigPair].append(alignment)
+        return alignments
+
+    @staticmethod
+    def parseAlignmentsIntoList(pafPath):
+        alignments = []
+        with open(pafPath) as f:
+            for line in f:
+                alignment = Alignment(line)
+                alignments.append(alignment)
+        return alignments
+
+
 def reverseInterval(interval, contigLength):
     """
         Returns the reversed coordinates of the given interval 
@@ -879,6 +949,9 @@ class Projection:
                projectionStartPos, projectionEndPos,
                projectableStartPos, projectableEndPos,
                info, diff, projectionCigar):
+        if (projectionEndPos - projectionStartPos + 1) == 0:
+            print("projectable:", projectableStartPos, projectableEndPos)
+            print("projection:", projectionStartPos, projectionEndPos)
         r = None if diff == None else diff/ (projectionEndPos - projectionStartPos + 1) * 100
         self.projectionBlocks.append((projectionStartPos, projectionEndPos, info, r)) # there is no valid projection for this block
         if self.orientation == '+':
@@ -1416,6 +1489,7 @@ def runProjection(alignment, mode, blocks, includeEndingIndel, includePostIndel)
     chromName = alignment.chromName
     contigName = alignment.contigName
     orientation = alignment.orientation
+    print("###", chromName, contigName)
     if alignment.isPrimary == False:
         return [chromName, contigName, orientation, [], [], []]
     # rBlocks contains the projections and

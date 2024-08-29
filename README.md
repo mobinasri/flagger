@@ -2,6 +2,7 @@
 
 ### ***Note: HMM-Flagger is an HMM-based version of Flagger, offering improved functionality and performance. It replaces the previous version, Flagger v0.4.0, and is recommended for all users from now on.***
 ### Overview
+<<<<<<< HEAD
 Here is a description of a read-based pipeline that can detect different types of mis-assemblies in a draft dual/diploid assembly. (*What is a dual assembly? Read [this page](https://lh3.github.io/2021/10/10/introducing-dual-assembly)*). One core component of this pipeline is a tool named **HMM-Flagger**. HMM-Flagger recieves the read alignments to a draft diploid assembly, detects the anomalies in the read coverage along the assembly and partition the assembly into 4 main components; erroneous, (falsely) duplicated, haploid and collapsed.
 
 ## Quick Start (Need a BAM and FASTA file)
@@ -194,9 +195,6 @@ All WDLs are uploaded to Dockstore for easier import into platforms like Terra o
 - [Dockstore link for long_read_aligner_scattered.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:v1.0.0?tab=info)
 - [Dockstore link for hmm_flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/HMMFlaggerEndToEnd:v1.0.0?tab=info)
 - [Dockstore link for hmm_flagger_end_to_end_with_mapping.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/HMMFlaggerEndToEndWithMapping:v1.0.0?tab=info)
-
-
-
 
 ### Components
 

@@ -57,7 +57,6 @@ task getIndexLabeledBed{
     }
 }
 
-
 task getCanonicalBasesBed {
     input {
         File assemblyFasta
@@ -73,7 +72,6 @@ task getCanonicalBasesBed {
         set -e
         set -u
         set -o xtrace
-
 
         FA_PREFIX=$(echo $(basename ~{assemblyFasta}) | sed -e 's/\.fa$//' -e 's/\.fa.gz$//' -e 's/\.fasta$//' -e 's/\.fasta.gz$//')
 

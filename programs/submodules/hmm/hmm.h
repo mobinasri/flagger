@@ -70,44 +70,6 @@ typedef struct EM {
     double loglikelihood;
 } EM;
 
-/*
-typedef struct Chunk {
-    // 2 * chunkLen is the maximum size for a chunk
-    // the last chunk of a contig is most of the times
-    // longer than chunkLen and shorter than 2 * chunkLen
-    CoverageInfo **coverageInfoSeq; // [2 * chunkLen] the emitted sequence
-    uint8_t *regionClassSeq; // [2 * chunkLen] the sequence of class of regions
-    char ctg[200]; // the name of the contig this chunk is located
-    int ctgLen; // the length of the contig
-    int s; // start location of the chunk on the contig 0-based
-    int e; // end location of the chunk on the contig 0-based
-    int seqLen; // the length of the sequence that has been added to this chunk so far
-    int chunkLen; // size of actual bases
-    int maxSeqSize; // maximum size of array int(chunkLen * 2 / windowLen) + 1
-    int windowLen;
-    int windowItr;
-    CoverageInfo *coverageInfoWindowSum;
-    uint8_t *windowClassSeq;
-    uint64_t fileOffset; // the number of offset bytes to reach the first block of this chunk
-} Chunk;
-
-
-typedef struct Batch {
-    // Constant attributes
-    int nThreads;
-    int chunkLen;
-    int windowLen;
-    // Attributes that may change
-    char covPath[200];
-    Chunk **threadChunks; // There are at most nThreads chunks in the batch
-    stList *templateChunks; // The list of all chunks (no seq) in the cov file
-    int templateChunkIdx;
-    int nThreadChunks; // The number of chunks added to this batch so far
-    pthread_mutex_t *mutex;
-} Batch;
-
-stList* Chunk_readAllChunksFromBin(char* covPath, int chunkLen, int windowLen, int nEmit);
-*/
 
 EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model);
 

@@ -11,7 +11,7 @@
 #include "common.h"
 
 typedef struct {
-    char contig_name[50];
+    char contig_name[200];
     int32_t start;
     uint8_t mapq;
 } Location;
@@ -37,8 +37,8 @@ stHash *get_phased_read_table(char *phased_reads_path) {
     size_t len;
     char *line = NULL;
     char *read_name;
-    char contig_name_new[50];
-    char contig_name_old[50];
+    char contig_name_new[200];
+    char contig_name_old[200];
     int start_new;
     int start_old;
     char *token;

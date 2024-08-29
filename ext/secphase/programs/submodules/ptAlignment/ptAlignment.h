@@ -25,7 +25,7 @@
  */
 typedef struct {
     bam1_t* record;
-    char contig[50];
+    char contig[200];
     double score;
     stList* conf_blocks;
     stList* flank_blocks;

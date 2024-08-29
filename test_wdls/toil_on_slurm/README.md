@@ -311,12 +311,11 @@ Description of the files in test_2:
 
 For running either of Test_1 or Test_2 users can use the steps explained in [step3](https://github.com/mobinasri/flagger/edit/v0.4.0/test_wdls/toil_on_slurm/README.md#3-creating-input-json-files) and [step4](https://github.com/mobinasri/flagger/edit/v0.4.0/test_wdls/toil_on_slurm/README.md#4-executing-workflow-using-a-toil-based-bash-script) with some small modifications (e.g. changing test_1 to test_2 if test_2 is being invoked and setting `--array=1-1%1` while running sbatch command since for each test there would be only one input json).
 
-
 ### Running flagger_end_to_end_with_mapping.wdl on test datasets
 
 #### 1. Cloning Flagger repository
 ```
-git clone -b v1.0_alpha https://github.com/mobinasri/flagger
+git clone -b v1.0.0 https://github.com/mobinasri/flagger
 ```
 
 Set some environment variables
@@ -337,7 +336,4 @@ WORKING_DIR=${PWD}
 #### Steps 3 and 4
 
 For running either of Test_1 or Test_2 users can use the steps explained in [step3](https://github.com/mobinasri/flagger/edit/v0.4.0/test_wdls/toil_on_slurm/README.md#3-creating-input-json-files) and [step4](https://github.com/mobinasri/flagger/edit/v0.4.0/test_wdls/toil_on_slurm/README.md#4-executing-workflow-using-a-toil-based-bash-script) with some small modifications (e.g. changing test_1 to test_2 if test_2 is being invoked and setting `--array=1-1%1` while running sbatch command since for each test there would be only one input json). 
-
-
-
 
