@@ -68,7 +68,7 @@ It has been observed that peri/centromeric satellite regions are prone to have c
 
 ## Running pipeline with WDL
 
-If users have a set of unalinged reads it is easier to run the pipeline (read mapping + HMM-Flagger) using the WDLs described below. Using WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. 
+If user has a set of unalinged reads it is easier to run the pipeline (read mapping + HMM-Flagger) using the WDLs described below. Using WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. 
 
 A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
 
@@ -84,8 +84,8 @@ Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (
 |suffixForMapping| Suffix string that contains information about this alignment. It will be appended to the name of the final alignment file. For example 'hifi_winnowmap_v2.03_hprc_y2'| String | **No Default (Mandatory)** |
 |hap1AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 1st haplotype.| File | **No Default (Mandatory)** |
 |hap2AssemblyFasta| Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype.| File | **No Default (Mandatory)** |
-|readfiles| An array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed.| Array[File] | **No Default (Mandatory)** |
-|preset| Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap| String | **No Default (Mandatory)** |
+|readFiles| An array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed.| Array[File] | **No Default (Mandatory)** |
+|presetForMapping| Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap| String | **No Default (Mandatory)** |
 |aligner| Name of the aligner. It can be either minimap2, winnowmap or veritymap.| String | winnowmap |
 |kmerSize| The kmer size for using minimap2 or winnowmap. With winnowmap kmer size should be 15 and with minimap2 kmer size should be 17 and 19 for using the presets map-ont and map-hifi/map-pb respectively.| Int | 15 |
 |alignerOptions| Aligner options. It can be something like '--eqx --cs -Y -L -y' for minimap2/winnowmap. Note that if assembly is diploid and aligner is either minimap2 or winnowmap '-I8g' is necessary. If the reads contain modification tags and these tags are supposed to be present in the final alignment file, alignerOptions should contain '-y' and the aligner should be either minimap2 or winnowmap. If running secphase is enabled it is recommended to add '-p0.5' to alignerOptions; it will keep more secondary alignments so secphase will have more candidates per read. For veritymap '--careful' can be used but not recommended for whole-genome assembly since it increases the runtime dramatically.| String | --eqx -Y -L -y |
@@ -99,28 +99,37 @@ Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (
 |alignerMemSize | The size of the memory in Gb for mapping in each alignment task | Int | 48 |
 |alignerDockerImage | The mapping docker image | String | mobinasri/long_read_aligner:v0.4.0 | 
 |correctBamOptions| Options for the correct_bam program that can filters short/highly divergent alignments  | String | --primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1 | 
-|preemptible| Number of retries to use preemptible nodes on Terra/GCP. | Int | 2 |
-|zones| Name of the zone for taking nodes on Terra/GCP. | String | us-west2-a| 
-|maxReadDivergenceForFlagger| Alignments with gap-compressed ratio higher than this will be filtered in the pre-process step of flagger. | Float | 0.1 |
-|potentialBiasesBedArray| Array of bed files each of which contains regions with potential coverage bias for example one bed file can contain HSat2 regions in haplotype 1. | Array[File] | No Default (Optional) |
+|annotationsBedArray| (Optional) A list of annotations to be used for augmenting coverage files and stratifying final HMM-Flagger results. These annotations should be in the coordinates of the assembly under evaluation. | Array[File] | No Default (Optional) |
+|annotationsBedArrayToBeProjected| (Optional) list of annotations to be used for augmenting coverage files and stratifying final HMM-Flagger results. These annotations are not in the coordinates of the assembly and they need to be projected from the given projection reference to the assembly coordinates. | Array[File] | No Default (Optional) |
+|biasAnnotationsBedArray| (Optional) A list of bed files similar to annotationsBedArray but these annotations potentially have read coverage biases like HSat2. (in the assembly coordinates)| Array[File] | No Default (Optional) |
+|biasAnnotationsBedArrayToBeProjected | (Optional) A list of bed files similar to annotationsBedArrayToBeProjected but these annotations potentially have read coverage biases like HSat2. (in the reference coordinates) | Array[File] | No Default (Optional) |
 |sexBed| Optional bed file containing regions assigned to X/Y chromosomes. (can be either in ref or asm coordinates)| File | No Default (Optional) |
 |SDBed| Optional Bed file containing Segmental Duplications. (can be either in ref or asm coordinates)| File | No Default (Optional) |
 |cntrBed| Optional Bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks.| File | No Default (Optional) |
-|cntrCtBed| Optional Bed file containing centromere transition 'ct' blocks.| File | No Default (Optional) | 
-|additionalStratificationBedArray| Array of additional stratification bed files for final stats tsv file. | Array[File] | No Default (Optional) |
-|additionalStratificationNameArray| Array of names for the stratifications provided in the argument additionalStratificationBedArray. |  Array[File] | No Default (Optional) |
-|enableProjectingBedsFromRef2Asm| If True it means that the given bed files are in ref coors (e.g. chm13v2) and they have to be projected to asm coors. | Boolean | false |
-|projectionReferenceFasta| The given bed files are in the coordinates of this reference. A reference should be passed if enableProjectingBedsFromRef2Asm is true. | File | No Default (Optional) |
+|cntrCtBed| Optional Bed file containing centromere transition 'ct' blocks.| File | No Default (Optional) |
+|projectionReferenceFasta| If any of the parameters ending with 'ToBeProjected' is not empty a reference fasta should be passed for performing projections | File | No Default (Optional) |
 |enableRunningSecphase | If true it will run secphase in the marker mode using the wdl parameters starting with 'secphase' otherwise skip it. | Boolean | false |
 |secphaseDockerImage| Docker image for running Secphase | String | mobinasri/secphase:v0.4.3 |
 |secphaseOptions| String containing secphase options (can be either --hifi or --ont). | String | --hifi |
 |secphaseVersion| Secphase version.| String | v0.4.3
-|enableOutputtingWig| If true it will make wig files from cov files and output them. wig files can be easily imported into IGV sessions | Boolean | true |
-|enableOutputtingBam| If true it will output read alignment bam file and its related index | Boolean | false |
-|windowSize| The size of the window flagger uses for finding coverage distrubutions (Default = 5Mb)| Int | 5000000 | 
-|sortPdfPagesByHaplotype| Sort the coverage distributions plotted in the output pdf by haplotype | Boolean | false |
-|hap1ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype1. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap1 |
-|hap2ContigPattern| The pattern that will be used for finding the names of the contigs belonging to haplotype2. It will be skipped if sortPdfPagesByHaplotype is false. | String | hap2 |
+|includeContigListText| Create coverage file and run HMM-Flagger only on these contigs (listed in a text file with one contig name per line) | File |  All contigs |
+|binSizeArrayTsv | A tsv file (tab-delimited) that contains bin arrays for stratifying results by event size. Bin intervals can have overlap. It should contain three columns. 1st column is the closed start of the bin and the 2nd column is the open end. The 3rd column has a name for each bin | File | all sizes in a single bin named ALL_SIZES |
+|chunkLen| The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together | Int | 20000000 |
+|windowLen| The length of windows for running HMM-Flagger. The coverage values will be averaged over the bases in each window and then the average value will be considered as an emission. | Int | 4000 |
+|labelNames| The names of the labels/states for reporting in the final summary tsv files | String | 'Err,Dup,Hap,Col' |
+|trackName| The track name in the final BED file | hmm_flagger_v1.0.0 | 
+|numberOfIterationsForFlagger| Number of EM iterations for estimating HMM parameters | Int | 100 |
+|convergenceToleranceForFlagger| Convergence tolerance. The EM iteration will stop once the difference between all model parameter values in two consecutive iterations is less than this value. | Flaot| 0.001|
+|maxHighMapqRatio | Maximum ratio of high mapq coverage for duplicated component | Float | 0.25 |
+|flaggerMoreOptions | More options for HMM-Flagger provided in a single string | String | No Default (Optional) |
+|alphaTsv| The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. | File | all alpha factors set to 0 |
+|modelType | Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' | String | 'trunc_exp_gaussian'|
+|flaggerMinimumBlockLenArray | Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. | Array[Int] | [0,0,0]|      |flaggerMemSize | Memory size in GB for running HMM-Flagger | Int | 32 |
+|flaggerThreadCount | Number of threads for running HMM-Flagger | Int | 8 |
+|flaggerDockerImage | Docker image for HMM-Flagger | String | mobinasri/flagger:v1.0.0 | 
+|enableOutputtingBigWig| If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions | Boolean | true |
+|enableOutputtingBam| If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions | Boolean | false |
+|truthBedForMisassemblies| A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) | Boolean | No Default (Optional) |
 
 ### Using CHM13 annotation files (Optional)
 
