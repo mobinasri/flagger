@@ -13,14 +13,15 @@ workflow HMMFlaggerEndToEndWithMapping{
         description: "Mapping reads and running Flagger for evaluating a diploid assembly using long read alignments.More information at https://github.com/mobinasri/flagger"
     }
     parameter_meta {
-        sampleName: "Sample name for example 'HG002'"
-        suffixForFlagger: "Suffix string that contains information about this analysis for example 'hifi_winnowmap_flagger_for_hprc'"
-        suffixForMapping: "Suffix string that contains information about this alignment. It will be appended to the name of the final alignment. For example 'hifi_winnowmap_v2.03_hprc_y2'"
-        hap1AssemblyFasta: "Path to uncompressed or gzip-compressed fasta file of the 1st haplotype."
-        hap2AssemblyFasta: "Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype."
-        readFiles: "Array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed."
+        sampleName: "(Required) Sample name for example 'HG002'"
+        suffixForFlagger: "(Required) Suffix string that contains information about this analysis for example 'hifi_winnowmap_flagger_for_hprc'"
+        suffixForMapping: "(Required) Suffix string that contains information about this alignment. It will be appended to the name of the final alignment. For example 'hifi_winnowmap_v2.03_hprc_y2'"
+        hap1AssemblyFasta: "(Required) Path to uncompressed or gzip-compressed fasta file of the 1st haplotype."
+        hap2AssemblyFasta: "(Required) Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype."
+        readFiles: "(Required) Array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed."
         aligner: "Name of the aligner. It can be either minimap2, winnowmap or veritymap. (Default = winnowmap)"
-        presetForMapping: "Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap"
+        presetForMapping: "(Required) Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap"
+        alphaTsv : "(Required) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. (Default = all alpha factors set to 0)"
         kmerSize: "The kmer size for using minimap2 or winnowmap. With winnowmap kmer size should be 15 and with minimap2 kmer size should be 17 and 19 for using the presets map-ont and map-hifi/map-pb respectively."
         alignerOptions: "Aligner options. It can be something like '--eqx --cs -Y -L -y' for minimap2/winnowmap. Note that if assembly is diploid and aligner is either minimap2 or winnowmap '-I8g' is necessary. If the reads contain modification tags and these tags are supposed to be present in the final alignment file, alignerOptions should contain '-y' and the aligner should be either minimap2 or winnowmap. If running secphase is enabled it is recommended to add '-p0.5' to alignerOptions; it will keep more secondary alignments so secphase will have more candidates per read. For veritymap '--careful' can be used but not recommended for whole-genome assembly since it increases the runtime dramatically."
         readExtractionOptions: "The options to be used while converting bam to fastq with samtools fastq. If the reads contain epigentic modification tags it is necessary to use '-TMm,Ml,MM,ML'"
@@ -61,7 +62,6 @@ workflow HMMFlaggerEndToEndWithMapping{
         convergenceToleranceForFlagger : "Convergence tolerance. The EM iteration will stop once the difference between all model parameter values in two consecutive iterations is less than this value. (Default = 0.001)"
         maxHighMapqRatio : "Maximum ratio of high mapq coverage for duplicated component (Default = 0.25)"
         flaggerMoreOptions : "(Optional) More options for HMM-Flagger provided in a single string (Default = '')"
-        alphaTsv : "(Optional) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. (Default = all alpha factors set to 0)"
         modelType : "Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = 'gaussian')"
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
@@ -80,6 +80,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         File hap2AssemblyFasta
         Array[File] readFiles
         String presetForMapping
+        File alphaTsv
 
         String aligner="winnowmap"
         Int kmerSize = 15
@@ -102,13 +103,12 @@ workflow HMMFlaggerEndToEndWithMapping{
         Int chunkLen = 20000000
         Int windowLen = 4000
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.0"
+        String trackName = "hmm_flagger_v1.0.0"
         Int numberOfIterationsForFlagger = 100
         Float convergenceToleranceForFlagger = 0.001
         Float maxHighMapqRatio=0.25
         String? flaggerMoreOptions
-        File? alphaTsv
-        String modelType = "gaussian"
+        String modelType = "trunc_exp_gaussian"
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=8
