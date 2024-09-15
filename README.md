@@ -78,6 +78,7 @@ It is recommended to run the whole pipeline using [hmm_flagger_end_to_end_with_m
 
 Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (The parameters marked as **"(Mandatory)"** are mandatory to be defined in the input json):
 
+### Note that the current version of HMM-Flagger-v1.0.0 is tuned only for PacBio HiFi. The parameter `alphaTsv` is mandatory. Use [`alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv`]( https://raw.githubusercontent.com/mobinasri/flagger/main/programs/config/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv) for HiFi reads. TSV files for other parameters will be added later.
 
 | Parameter | Description | Type | Default | 
 | ---       | ---         | ---  | ---     |
