@@ -540,9 +540,8 @@ void ChunksCreator_parseOneChunk(void *chunksCreator_) {
     TrackReader_destruct(trackReader);
 }
 
-
+/*
 void ChunksCreator_parseContigChunksFromMemory(void *chunksCreator) {
-    ChunksCreator *chunksCreator = (ChunksCreator *) chunksCreator_;
     // Construct a trackReader for iteration
     bool zeroBasedCoors = true;
     TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, zeroBasedCoors);
@@ -573,7 +572,7 @@ void ChunksCreator_parseContigChunksFromMemory(void *chunksCreator) {
         }
     }
     TrackReader_destruct(trackReader);
-}
+}*/
 
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath) {
     stList *chunks = chunksCreator->chunks;

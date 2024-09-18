@@ -530,7 +530,7 @@ TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, 
     trackReader->attrbs = NULL;
     trackReader->attrbsLen = 0;
     trackReader->zeroBasedCoors = zeroBasedCoors;
-    trackReader->contigList = ptBlock_get_sorted_contig_list(blockTable);
+    trackReader->contigList = ptBlock_get_sorted_contig_list(coverageBlockTable);
     trackReader->coverageBlockTable = coverageBlockTable;
     trackReader->nextContigIndexToRead = 0;
     trackReader->nextBlockIndexToRead = 0;
