@@ -1497,9 +1497,10 @@ int64_t ptBlock_get_total_length_by_sq(stHash *blocks_per_contig) {
 void ptBlock_add_alignment_as_CoverageInfo(stHash *blocks_per_contig,
                                            ptAlignment *alignment,
                                            int min_mapq,
-                                           double min_clipping_ratio) {
+                                           double min_clipping_ratio,
+                                           bool start_only_mode) {
     ptBlock *block = ptBlock_construct(alignment->rfs,
-                                       alignment->rfe,
+                                       start_only_mode ? alignment->rfs : alignment->rfe,
                                        -1, -1,
                                        -1, -1);
     CoverageInfo *cov_info_data = CoverageInfo_construct_from_alignment(alignment, min_mapq, min_clipping_ratio);
@@ -1687,11 +1688,15 @@ void _update_coverage_blocks_with_alignments(void *arg_) {
     ArgumentsCovExt *argsCovExt = arg->data;
     stHash *coverage_blocks_per_contig = argsCovExt->coverage_blocks_per_contig;
     stHash *ref_blocks_per_contig_to_parse = argsCovExt->ref_blocks_per_contig_to_parse;
+    int64_t *total_read_count = argsCovExt->total_read_count;
+    int64_t *sum_read_length = argsCovExt->sum_read_length;
     char *bam_path = argsCovExt->bam_path;
     pthread_mutex_t *mutexPtr = argsCovExt->mutexPtr;
     int min_mapq = argsCovExt->min_mapq;
     double min_clipping_ratio = argsCovExt->min_clipping_ratio;
     double downsample_rate = argsCovExt->downsample_rate;
+    int min_alignment_length = argsCovExt->min_alignment_length;
+    bool start_only_mode = argsCovExt->start_only_mode;
 
     //open bam file
     samFile *fp = sam_open(bam_path, "r");
@@ -1725,13 +1730,22 @@ void _update_coverage_blocks_with_alignments(void *arg_) {
                 if (downsample_rate < get_random_number(0.0, 1.0))
                     continue; // skip alignments randomly with the given rate
                 ptAlignment *alignment = ptAlignment_construct(b, sam_hdr);
+                int alignment_length =  alignment->rfe - alignment->rfs + 1;
+                // skip if the alignment is too short
+                if (alignment_length < min_alignment_length){
+                    ptAlignment_destruct(alignment);
+                    continue;
+                }
                 // lock the mutex, add the coverage block and unlock the mutex
                 pthread_mutex_lock(mutexPtr);
                 bool init_count_data = true;
                 ptBlock_add_alignment_as_CoverageInfo(coverage_blocks_per_contig,
                                                       alignment,
                                                       min_mapq,
-                                                      min_clipping_ratio);
+                                                      min_clipping_ratio,
+                                                      start_only_mode);
+                *sum_read_length += alignment_length;
+                *total_read_count += 1;
                 count_parsed_reads += 1;
                 // log after parsing every 100k reads
                 if (count_parsed_reads % 100000 == 0) {
@@ -1787,11 +1801,20 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
                                                    double downsample_rate,
                                                    int threads,
                                                    int min_mapq,
-                                                   double min_clipping_ratio) {
+                                                   double min_clipping_ratio,
+                                                   int min_alignment_length,
+                                                   bool start_only_mode,
+                                                   int *average_alignment_length_ptr) {
     stHash *whole_genome_blocks_per_contig = ptBlock_get_whole_genome_blocks_per_contig(bam_path, contigs_to_include);
     stList *block_batches = ptBlock_split_into_batches(whole_genome_blocks_per_contig, threads);
     stHash *coverage_blocks_per_contig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                            (void (*)(void *)) stList_destruct);
+
+    int64_t *total_read_count = (int64_t *) malloc(sizeof(int64_t));
+    total_read_count[0] = 0;
+    int64_t *sum_read_length = (int64_t *) malloc(sizeof(int64_t));
+    sum_read_length[0] = 0;
+
     // create a thread pool
     tpool_t *tm = tpool_create(threads);
     pthread_mutex_t *mutexPtr = malloc(sizeof(pthread_mutex_t));
@@ -1802,12 +1825,16 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
         // is going to be run in each thread
         ArgumentsCovExt *argsCovExt = malloc(sizeof(ArgumentsCovExt));
         argsCovExt->coverage_blocks_per_contig = coverage_blocks_per_contig;
+        argsCovExt->total_read_count = total_read_count;
+        argsCovExt->sum_read_length = sum_read_length;
+        argsCovExt->min_alignment_length = min_alignment_length;
         argsCovExt->ref_blocks_per_contig_to_parse = batch;
         argsCovExt->bam_path = bam_path;
         argsCovExt->mutexPtr = mutexPtr;
         argsCovExt->min_mapq = min_mapq;
         argsCovExt->min_clipping_ratio = min_clipping_ratio;
         argsCovExt->downsample_rate = downsample_rate;
+        argsCovExt->start_only_mode = start_only_mode;
         work_arg_t *arg = malloc(sizeof(work_arg_t));
         arg->data = (void *) argsCovExt;
         // Add a new job to the thread pool
@@ -1825,6 +1852,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
     pthread_mutex_destroy(mutexPtr);
 
 
+    *average_alignment_length_ptr = sum_read_length / total_read_count;
     stHash_destruct(whole_genome_blocks_per_contig);
     stList_destruct(block_batches);
 
@@ -2104,7 +2132,10 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
                                                                                      char *json_path,
                                                                                      int threads,
                                                                                      int min_mapq,
-                                                                                     double min_clipping_ratio) {
+                                                                                     double min_clipping_ratio,
+                                                                                     int min_alignment_length,
+                                                                                     bool start_only_mode,
+                                                                                     int *average_alignment_length_ptr) {
 
     srand(time(NULL));
     stSet *contigs_to_include = NULL;
@@ -2120,7 +2151,10 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
                                                                               downsample_rate,
                                                                               threads,
                                                                               min_mapq,
-                                                                              min_clipping_ratio);
+                                                                              min_clipping_ratio,
+                                                                              min_alignment_length,
+                                                                              start_only_mode,
+                                                                              average_alignment_length_ptr);
     // print len/number stats for the coverage block table
     fprintf(stderr, "[%s] Created block table with coverage data : tot_len=%ld, number=%ld\n", get_timestamp(),
             ptBlock_get_total_length_by_rf(coverage_block_table),

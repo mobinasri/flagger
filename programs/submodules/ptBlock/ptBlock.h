@@ -625,7 +625,8 @@ void ptBlock_add_alignment(stHash *blocks_per_contig,
 void ptBlock_add_alignment_as_CoverageInfo(stHash *blocks_per_contig,
                                            ptAlignment *alignment,
                                            int min_mapq,
-                                           double min_clipping_ratio);
+                                           double min_clipping_ratio,
+                                           bool start_only_mode);
 
 /**
  * Receives a table of blocks and adds the given data to all blocks. Note that the given data
@@ -691,6 +692,10 @@ typedef struct ArgumentsCovExt {
     int min_mapq;
     double min_clipping_ratio;
     double downsample_rate;
+    int64_t *total_read_count;
+    int64_t *sum_read_length;
+    int min_alignment_length;
+    bool start_only_mode;
 } ArgumentsCovExt;
 
 // parse bam file and create a stHash table of blocks
@@ -701,7 +706,10 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
                                                    double downsample_rate,
                                                    int threads,
                                                    int min_mapq,
-                                                   double min_clipping_ratio);
+                                                   double min_clipping_ratio,
+                                                   int min_alignment_length,
+                                                   bool start_only_mode,
+                                                   int *average_alignment_length_ptr);
 
 // make a block table that covers the whole reference sequences
 stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path, stSet *contigs);
@@ -729,7 +737,10 @@ stHash *ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annota
                                                                                      char *json_path,
                                                                                      int threads,
                                                                                      int min_mapq,
-                                                                                     double min_clipping_ratio);
+                                                                                     double min_clipping_ratio,
+                                                                                     int min_alignment_length,
+                                                                                     bool start_only_mode,
+                                                                                     int *average_alignment_length_ptr);
 
 void ptBlock_set_region_indices_by_mapping(stHash *blocks_per_contig,
                                            int *annotation_to_region_map,

@@ -11,10 +11,16 @@ bool test_BiasDetector_getAnnotationToRegionMap(char *bamPath, char *jsonPath) {
     int minMapq = 10;
     int minClip = 0.1;
     double downsampleRate = 1.0;
+    int minAlignmentLength = 0;
+    bool startOnlyMode = false;
+    int averageAlignmentLength = 0;
     stHash *blockTable = ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(bamPath, NULL,
                                                                                                       downsampleRate, jsonPath,
                                                                                                       threads, minMapq,
-                                                                                                      minClip);
+                                                                                                      minClip,
+                                                                                                      minAlignmentLength,
+                                                                                                      startOnlyMode,
+                                                                                                      &averageAlignmentLength);
 
     const char *annotationZeroName = "no_annotation";
     stList *annotationNames = parse_annotation_names_and_save_in_stList(jsonPath, annotationZeroName);

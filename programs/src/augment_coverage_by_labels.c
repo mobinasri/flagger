@@ -175,7 +175,9 @@ int main(int argc, char *argv[]) {
                                                                      header->numberOfRegions,
                                                                      numberOfLabels,
                                                                      isTruthAvailable,
-                                                                     isPredictionAvailable);
+                                                                     isPredictionAvailable,
+                                                                     header->startOnlyMode,
+                                                                     header->averageAlignmentLength);
 
     fprintf(stderr, "[%s] Writing %s.\n", get_timestamp(), outputPath);
     // write header and tracks into output file

@@ -40,6 +40,7 @@ Chunk *Chunk_construct(int chunkCanonicalLen) {
     chunk->windowRegionArray = NULL;
     chunk->windowTruthArray = NULL;
     chunk->fileOffset = 0;
+    chunk->startOnlyMode = false;
     return chunk;
 }
 
@@ -63,18 +64,26 @@ Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int
     chunk->windowTruthArray = (int *) malloc(windowLen * sizeof(int));
     chunk->windowPredictionArray = (int *) malloc(windowLen * sizeof(int));
     chunk->fileOffset = 0;
+    chunk->startOnlyMode = true;
     return chunk;
 }
 
-stList *Chunk_constructListWithAllocatedSeq(stList *templateChunks, int windowLen) {
+stList *Chunk_constructListWithAllocatedSeq(stList *templateChunks, int windowLen, bool startOnlyMode) {
     stList *chunks = stList_construct3(0, (void (*)(void *)) Chunk_destruct);
     for (int c = 0; c < stList_length(templateChunks); c++) {
         Chunk *templateChunk = stList_get(templateChunks, c);
         int maxSeqSize = (templateChunk->e - templateChunk->s + 1) / windowLen + 1;
         Chunk *chunk = Chunk_constructWithAllocatedSeq(templateChunk->chunkCanonicalLen, windowLen, maxSeqSize);
+        if (startOnlyMode){
+            Chunk_enableStartOnlyMode(chunk);
+        }
         stList_append(chunks, chunk);
     }
     return chunks;
+}
+
+void Chunk_enableStartOnlyMode(Chunk *chunk){
+    chunk->startOnlyMode = true;
 }
 
 int Chunk_getMaximumCoverageValue(Chunk *chunk) {
@@ -181,9 +190,12 @@ ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalL
     chunksCreator->chunkCanonicalLen = chunkCanonicalLen;
     fprintf(stderr, "[%s] Creating empty chunks.\n", get_timestamp());
     // create empty chunks
-    chunksCreator->chunks = Chunk_constructListWithAllocatedSeq(chunksCreator->templateChunks, windowLen);
+    chunksCreator->chunks = Chunk_constructListWithAllocatedSeq(chunksCreator->templateChunks,
+                                                                windowLen,
+                                                                chunksCreator->header->startOnlyMode);
     chunksCreator->windowLen = windowLen;
     chunksCreator->mutex = malloc(sizeof(pthread_mutex_t));
+    chunksCreator->startOnlyMode = chunksCreator->header->startOnlyMode;
     pthread_mutex_init(chunksCreator->mutex, NULL);
     free(extension);
     return chunksCreator;
@@ -376,17 +388,25 @@ int Chunk_getWindowRegion(Chunk *chunk) {
 
 int Chunk_addWindow(Chunk *chunk) {
     if (chunk->windowItr == -1) return 1;
-    double coverage_avg = (double) chunk->windowSumCoverage / (chunk->windowItr + 1);
-    double coverage_high_mapq_avg = (double) chunk->windowSumCoverageHighMapq / (chunk->windowItr + 1);
-    double coverage_high_clip_avg = (double) chunk->windowSumCoverageHighClip / (chunk->windowItr + 1);
-
+    double coverage_window = 0.0;
+    double coverage_high_mapq_window = 0.0;
+    double coverage_high_clip_window = 0.0;
+    if (chunk->startOnlyMode){
+        coverage_window = (double) chunk->windowSumCoverage;
+        coverage_high_mapq_window = (double) chunk->windowSumCoverageHighMapq;
+        coverage_high_clip_window = (double) chunk->windowSumCoverageHighClip;
+    }else {
+        coverage_window = (double) chunk->windowSumCoverage / (chunk->windowItr + 1);
+        coverage_high_mapq_window = (double) chunk->windowSumCoverageHighMapq / (chunk->windowItr + 1);
+        coverage_high_clip_window = (double) chunk->windowSumCoverageHighClip / (chunk->windowItr + 1);
+    }
     // set coverage values
     chunk->coverageInfoSeq[chunk->coverageInfoSeqLen]->coverage =
-            MAX_COVERAGE < round(coverage_avg) ? MAX_COVERAGE : round(coverage_avg);
+            MAX_COVERAGE < round(coverage_window) ? MAX_COVERAGE : round(coverage_window);
     chunk->coverageInfoSeq[chunk->coverageInfoSeqLen]->coverage_high_mapq =
-            MAX_COVERAGE < round(coverage_high_mapq_avg) ? MAX_COVERAGE : round(coverage_high_mapq_avg);
+            MAX_COVERAGE < round(coverage_high_mapq_window) ? MAX_COVERAGE : round(coverage_high_mapq_window);
     chunk->coverageInfoSeq[chunk->coverageInfoSeqLen]->coverage_high_clip =
-            MAX_COVERAGE < round(coverage_high_clip_avg) ? MAX_COVERAGE : round(coverage_high_clip_avg);
+            MAX_COVERAGE < round(coverage_high_clip_window) ? MAX_COVERAGE : round(coverage_high_clip_window);
 
     // set annotation bits
     chunk->coverageInfoSeq[chunk->coverageInfoSeqLen]->annotation_flag = chunk->windowAnnotationFlag;
@@ -521,6 +541,40 @@ void ChunksCreator_parseOneChunk(void *chunksCreator_) {
 }
 
 
+void ChunksCreator_parseContigChunksFromMemory(void *chunksCreator) {
+    ChunksCreator *chunksCreator = (ChunksCreator *) chunksCreator_;
+    // Construct a trackReader for iteration
+    bool zeroBasedCoors = true;
+    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, zeroBasedCoors);
+    strcpy(trackReader->ctg, templateChunk->ctg);
+    trackReader->ctgLen = templateChunk->ctgLen;
+    // Open cov file and jump to the first trackReader of the chunk
+    TrackReader_setFilePosition(trackReader, templateChunk->fileOffset);
+    // Get the chunk that has to be filled with the emitted sequence
+    // and set start and end coordinates and also the contig name from the given template chunk
+    Chunk *chunk = stList_get(chunksCreator->chunks, chunksCreator->nextChunkIndexToRead);
+    chunk->coverageInfoSeqLen = 0;
+    chunk->windowItr = -1;
+    chunk->s = templateChunk->s;
+    chunk->e = templateChunk->e;
+    strcpy(chunk->ctg, templateChunk->ctg);
+    chunk->ctgLen = templateChunk->ctgLen;
+    // iterate over the tracks in the cov file
+    while (0 < TrackReader_next(trackReader)) {
+        // if the trackReader overlaps the chunk
+        if (chunk->s <= trackReader->e && trackReader->s <= chunk->e) {
+            assert(0 < Chunk_addTrack(chunk, trackReader));
+        }
+        if (chunk->e <= trackReader->e) { // chunk is read completely
+            if (chunk->windowItr != -1) { // handle a partially iterated window
+                Chunk_addWindow(chunk);
+            }
+            break;
+        }
+    }
+    TrackReader_destruct(trackReader);
+}
+
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath) {
     stList *chunks = chunksCreator->chunks;
     int chunkCanonicalLen = chunksCreator->chunkCanonicalLen;
@@ -547,6 +601,8 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
     int numberOfLabels = header->numberOfLabels;
     bool isTruthAvailable = header->isTruthAvailable;
     bool isPredictionAvailable = header->isPredictionAvailable;
+    bool startOnlyMode = header->startOnlyMode;
+    int averageAlignmentLength = header->averageAlignmentLength;
 
     // write number of annotations
     fwrite(&numberOfAnnotations, sizeof(int32_t), 1, fp);
@@ -569,6 +625,10 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
     fwrite(&isTruthAvailable, sizeof(bool), 1, fp);
     // write truth availability
     fwrite(&isPredictionAvailable, sizeof(bool), 1, fp);
+    // write the status of start-only mode
+    fwrite(&startOnlyMode, sizeof(bool), 1, fp);
+    // write average alignment length
+    fwrite(&averageAlignmentLength, sizeof(int32_t), 1, fp);
     // write chunk length attributes
     fwrite(&chunkCanonicalLen, sizeof(int32_t), 1, fp);
     fwrite(&windowLen, sizeof(int32_t), 1, fp);
@@ -669,6 +729,10 @@ void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char 
     fread(&header->isTruthAvailable, sizeof(bool), 1, fp);
     // read prediction availability one bit
     fread(&header->isPredictionAvailable, sizeof(bool), 1, fp);
+    // write the status of start-only mode
+    fread(&header->startOnlyMode, sizeof(bool), 1, fp);
+    // write average alignment length
+    fread(&header->averageAlignmentLength, sizeof(int32_t), 1, fp);
     // update region names
     CoverageHeader_updateRegionNames(header);
 
