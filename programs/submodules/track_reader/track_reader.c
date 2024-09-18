@@ -556,6 +556,11 @@ TrackReader *TrackReader_construct(char *filePath, char *faiPath, bool zeroBased
     trackReader->attrbs = NULL;
     trackReader->attrbsLen = 0;
     trackReader->zeroBasedCoors = zeroBasedCoors;
+    trackReader->coverageBlockTable = NULL;
+    trackReader->nextContigIndexToRead = -1;
+    trackReader->nextBlockIndexToRead = -1;
+    trackReader->contigList = NULL;
+    trackReader->coverageBlockListBeingIterated = NULL;
     return trackReader;
 }
 
@@ -669,9 +674,9 @@ int TrackReader_readNextFromMemory(TrackReader *trackReader){
         int len = 0;
         int *annotation_indices = CoverageInfo_getAnnotationIndices(coverageInfo, &len);
         char *annotation_entry_str = String_joinIntArray(annotation_indices, len, ',');
-        sprintf(trackReader->attrbs[0], "%.0f", coverageInfo->coverage);
-        sprintf(trackReader->attrbs[1], "%.0f", coverageInfo->coverage_high_mapq);
-        sprintf(trackReader->attrbs[2], "%.0f", coverageInfo->coverage_high_clip);
+        sprintf(trackReader->attrbs[0], "%d", coverageInfo->coverage);
+        sprintf(trackReader->attrbs[1], "%d", coverageInfo->coverage_high_mapq);
+        sprintf(trackReader->attrbs[2], "%d", coverageInfo->coverage_high_clip);
         sprintf(trackReader->attrbs[3], "%s", annotation_entry_str); // annotation string
         sprintf(trackReader->attrbs[4], "%d", CoverageInfo_getRegionIndex(coverageInfo)); // region index
         free(annotation_entry_str);
