@@ -37,6 +37,7 @@ static struct option long_options[] =
                 {"bam",                     required_argument, NULL, 'i'},
                 {"annotationJson",          required_argument, NULL, 'j'},
                 {"mapqThreshold",           required_argument, NULL, 'm'},
+                {"minAlignmentLength",      required_argument, NULL, 'M'},
                 {"clipRatioThreshold",      required_argument, NULL, 'c'},
                 {"threads",                 required_argument, NULL, 't'},
                 {"restrictBiasAnnotations", required_argument, NULL, 'r'},
@@ -49,12 +50,14 @@ static struct option long_options[] =
                 {"runBiasDetection",        no_argument,       NULL, 'u'},
                 {"includeContigs",          required_argument, NULL, 'I'},
                 {"downsampleRate",          required_argument, NULL, 'D'},
+                {"startOnlyMode",          no_argument, NULL, 's'},
                 {NULL,                      0,                 NULL, 0}
         };
 
 
 int main(int argc, char *argv[]) {
     int c;
+    int minAlignmentLength = 5000;
     int mapqThreshold = 20;
     double clipRatioThreshold = 0.1;
     double downsampleRate = 1.0;
@@ -70,10 +73,11 @@ int main(int argc, char *argv[]) {
     int minBiasCoverage = 4;
     int minBiasLength = 100e3;
     bool runBiasDetection = false;
+    bool startOnlyMode = false;
     char *format = copyString("all");
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
 
-    while (~(c = getopt_long(argc, argv, "i:t:j:m:r:f:o:g:c:b:d:g:a:I:D:uh", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:t:j:m:M:r:f:o:g:c:b:d:g:a:I:D:us:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 bamPath = optarg;
@@ -89,6 +93,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'm':
                 mapqThreshold = atoi(optarg);
+                break;
+            case 'M':
+                minAlignmentLength = atoi(optarg);
                 break;
             case 'c':
                 clipRatioThreshold = atof(optarg);
@@ -118,6 +125,9 @@ int main(int argc, char *argv[]) {
             case 'I':
                 includeContigsPath = optarg;
                 break;
+            case 's':
+                startOnlyMode = true;
+                break;
             case 'D':
                 downsampleRate = atof(optarg);
                 if (downsampleRate > 1.0 || downsampleRate <= 0.0){
@@ -144,6 +154,9 @@ int main(int argc, char *argv[]) {
                         "         -m, --mapqThreshold\n"
                         "                           Minimum mapq for the measuring the coverage of the alignments\n"
                         "                           with high mapq [Default = 20]\n");
+                fprintf(stderr,
+                        "         -M, --minAlignmentLength\n"
+                        "                           Minimum alignment length [Default = 5000]\n");
                 fprintf(stderr,
                         "         -c, --clipRatioThreshold\n"
                         "                           Minimum clipping ratio for the measuring the coverage of the\n"
@@ -198,11 +211,16 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         -D, --downsampleRate\n"
                         "                           Downsampling rate [Default : 1.0 means keeping everything]\n");
+                fprintf(stderr,
+                        "         -s, --startOnlyMode\n"
+                        "                           Keep only the start point of each alignment instead of the whole \n"
+                        "                           covered block [Default : disabled]\n");
                 return 1;
         }
     }
     double realtimeStart = System_getRealTimePoint();
 
+    int averageAlignmentLength = 0;
     //merge and create the final block table
     stHash *blockTable = ptBlock_multi_threaded_coverage_extraction_with_zero_coverage_and_annotation(bamPath,
                                                                                                       includeContigsPath,
@@ -210,7 +228,10 @@ int main(int argc, char *argv[]) {
                                                                                                       jsonPath,
                                                                                                       threads,
                                                                                                       mapqThreshold,
-                                                                                                      clipRatioThreshold);
+                                                                                                      clipRatioThreshold,
+                                                                                                      minAlignmentLength,
+                                                                                                      startOnlyMode,
+                                                                                                      &averageAlignmentLength);
 
 
     // make a list of all annotation names
@@ -252,9 +273,23 @@ int main(int argc, char *argv[]) {
                 stList_append(annotationNamesToCheck, copyString(annotationName));
             }
         }
-        BiasDetector *biasDetector = BiasDetector_construct(annotationNames, baselineAnnotationName, minBiasCoverage,
-                                                            minBiasLength, covDiffNormalizedThreshold);
-        BiasDetector_setStatisticsPerAnnotation(biasDetector, blockTable);
+        BiasDetector *biasDetector;
+        if(startOnlyMode){
+            biasDetector = BiasDetector_constructForStartOnlyMode(annotationNames,
+                                                                  baselineAnnotationName,
+                                                                  averageAlignmentLength,
+                                                                  minBiasLength,
+                                                                  covDiffNormalizedThreshold);
+        }
+        else {
+            biasDetector = BiasDetector_construct(annotationNames,
+                                                baselineAnnotationName,
+                                                minBiasCoverage,
+                                                minBiasLength,
+                                                covDiffNormalizedThreshold);
+        }
+        BiasDetector_setStatisticsPerAnnotation(biasDetector,
+                                                blockTable);
 
         // make a file name for saving bias detection table
         char *prefix = copyString(outPath);
@@ -315,7 +350,9 @@ int main(int argc, char *argv[]) {
                                                                   numberOfRegions,
                                                                   numberOfLabels,
                                                                   isTruthAvailable,
-                                                                  isPredictionAvailable);
+                                                                  isPredictionAvailable,
+                                                                  startOnlyMode,
+                                                                  averageAlignmentLength);
     // write header and tracks into output file
     ptBlock_write_blocks_per_contig(blockTable, outPath, format, ctgToLen, header);
 

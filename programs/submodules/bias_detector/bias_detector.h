@@ -59,7 +59,13 @@ typedef struct {
     // result variables contating the mapping from annotations to region indices
     int *annotationToRegionMap;
     int *coveragePerRegion; // region 0 is reserved for baseline annotation
-    int numberOfRegions; // region 0 is not biased but other regions are 
+    int numberOfRegions; // region 0 is not biased but other regions are
+    // for start_only mode
+    bool startOnlyMode;
+    int *numberOfOccurrencesPerAnnotation;
+    double *occurrenceRatePerAnnotation;
+    double *occurrenceRatePerRegion; // region 0 is reserved for baseline annotation
+    int averageAlignmentLength;
 } BiasDetector;
 
 
@@ -76,5 +82,12 @@ void BiasDetector_setTotalCountPerAnnotation(BiasDetector *biasDetector);
 void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
                                            stList *annotationNamesToCheck,
                                            const char *tsvPathToWriteTable);
+
+BiasDetector *BiasDetector_constructForStartOnlyMode(stList *annotationNames,
+                                                     const char *baselineAnnotationName,
+                                                     int averageAlignmentLength,
+                                                     int minAnnotationLength,
+                                                     double minCovDiffNormalized);
+void BiasDetector_setOccurrenceRatePerAnnotation(BiasDetector *biasDetector, stHash *blockTable);
 
 #endif //BIAS_DETECTOR_H
