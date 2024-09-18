@@ -1852,7 +1852,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
     pthread_mutex_destroy(mutexPtr);
 
 
-    *average_alignment_length_ptr = sum_read_length / total_read_count;
+    *average_alignment_length_ptr = *sum_read_length / *total_read_count;
     stHash_destruct(whole_genome_blocks_per_contig);
     stList_destruct(block_batches);
 

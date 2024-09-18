@@ -153,7 +153,7 @@ void BiasDetector_setOccurrenceRatePerAnnotation(BiasDetector *biasDetector, stH
     for(int annotationIndex=0; annotationIndex < biasDetector->numberOfAnnotations; annotationIndex++){
         double num = biasDetector->numberOfOccurrencesPerAnnotation[annotationIndex];
         double denom = biasDetector->totalCountPerAnnotation[annotationIndex];
-        biasDetector->occurrenceRatePerAnnotation = num / (denom + 0.01); // + 0.01 for zero denominator
+        biasDetector->occurrenceRatePerAnnotation[annotationIndex] = num / (denom + 0.01); // + 0.01 for zero denominator
     }
 }
 

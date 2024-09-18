@@ -104,7 +104,7 @@ void TrackReader_setFilePosition(TrackReader *trackReader, int64_t filePosition)
 
 TrackReader *TrackReader_construct(char *filePath, char *faiPath, bool zeroBasedCoors);
 
-TrackReader *TrackReader_constructFromTableInMemory(stHash *blockTable, bool zeroBasedCoors);
+TrackReader *TrackReader_constructFromTableInMemory(stHash *blockTable, char *faiPath, bool zeroBasedCoors);
 
 void TrackReader_destruct(TrackReader *trackReader);
 
