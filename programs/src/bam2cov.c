@@ -234,6 +234,10 @@ int main(int argc, char *argv[]) {
                                                                                                       &averageAlignmentLength);
 
 
+    // get the table from contig name to contig length
+    // it is only used once the output type is either .cov or .cov.gz
+    stHash *ctgToLen = ptBlock_get_contig_length_stHash_from_bam(bamPath);
+
     // make a list of all annotation names
     // index 0 is reserved for blocks with no annotation
     const char *annotationZeroName = "no_annotation";
@@ -273,21 +277,15 @@ int main(int argc, char *argv[]) {
                 stList_append(annotationNamesToCheck, copyString(annotationName));
             }
         }
-        BiasDetector *biasDetector;
-        if(startOnlyMode){
-            biasDetector = BiasDetector_constructForStartOnlyMode(annotationNames,
-                                                                  baselineAnnotationName,
-                                                                  averageAlignmentLength,
-                                                                  minBiasLength,
-                                                                  covDiffNormalizedThreshold);
-        }
-        else {
-            biasDetector = BiasDetector_construct(annotationNames,
-                                                baselineAnnotationName,
-                                                minBiasCoverage,
-                                                minBiasLength,
-                                                covDiffNormalizedThreshold);
-        }
+        BiasDetector *biasDetector = BiasDetector_construct(annotationNames,
+                                                 baselineAnnotationName,
+                                                 minBiasCoverage,
+                                                 minBiasLength,
+                                                 covDiffNormalizedThreshold,
+                                                 averageAlignmentLength,
+                                                 startOnlyMode,
+                                                 ctgToLen);
+
         BiasDetector_setStatisticsPerAnnotation(biasDetector,
                                                 blockTable);
 
@@ -318,7 +316,10 @@ int main(int argc, char *argv[]) {
                                                             baselineAnnotationName,
                                                             1,
                                                             1,
-                                                            covDiffNormalizedThreshold);
+                                                            covDiffNormalizedThreshold,
+                                                            averageAlignmentLength,
+                                                            startOnlyMode,
+                                                            ctgToLen);
         BiasDetector_setStatisticsPerAnnotation(biasDetector, blockTable);
 
         annotationToRegionMap = Int_construct1DArray(stList_length(annotationNames));
@@ -336,10 +337,6 @@ int main(int argc, char *argv[]) {
 
     // set region indices based on the mapping generated above
     ptBlock_set_region_indices_by_mapping(blockTable, annotationToRegionMap, stList_length(annotationNames));
-
-    // get the table from contig name to contig length
-    // it is only used once the output type is either .cov or .cov.gz
-    stHash *ctgToLen = ptBlock_get_contig_length_stHash_from_bam(bamPath);
 
     // create a list of header lines
     int numberOfLabels = 0;

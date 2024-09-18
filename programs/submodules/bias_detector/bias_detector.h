@@ -62,32 +62,37 @@ typedef struct {
     int numberOfRegions; // region 0 is not biased but other regions are
     // for start_only mode
     bool startOnlyMode;
-    int *numberOfOccurrencesPerAnnotation;
-    double *occurrenceRatePerAnnotation;
-    double *occurrenceRatePerRegion; // region 0 is reserved for baseline annotation
     int averageAlignmentLength;
+    stHash *contigLengthTable;
+    stList *chunks;
 } BiasDetector;
 
 
 BiasDetector *BiasDetector_construct(stList *annotationNames,
-                                     const char* baselineAnnotationName,
+                                     const char *baselineAnnotationName,
                                      int minCoverage,
                                      int minTotalCount,
-                                     double minCovDiffNormalized);
-void BiasDetector_destruct(BiasDetector *biasDetector);
-void BiasDetector_setStatisticsPerAnnotation(BiasDetector *biasDetector, stHash *blockTable);
-void BiasDetector_setMostFrequentCoveragePerAnnotation(BiasDetector *biasDetector);
-void BiasDetector_setMaxCountPerAnnotation(BiasDetector *biasDetector);
-void BiasDetector_setTotalCountPerAnnotation(BiasDetector *biasDetector);
-void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
-                                           stList *annotationNamesToCheck,
-                                           const char *tsvPathToWriteTable);
+                                     double minCovDiffNormalized,
+                                     int averageAlignmentLength,
+                                     bool startOnlyMode,
+                                     stHash *contigLengthTable);
 
-BiasDetector *BiasDetector_constructForStartOnlyMode(stList *annotationNames,
-                                                     const char *baselineAnnotationName,
-                                                     int averageAlignmentLength,
-                                                     int minAnnotationLength,
-                                                     double minCovDiffNormalized);
-void BiasDetector_setOccurrenceRatePerAnnotation(BiasDetector *biasDetector, stHash *blockTable);
+void BiasDetector_destruct(BiasDetector *biasDetector);
+
+void BiasDetector_setStatisticsPerAnnotation(BiasDetector *biasDetector, stHash *blockTable);
+
+void BiasDetector_setMostFrequentCoveragePerAnnotation(BiasDetector *biasDetector);
+
+void BiasDetector_setMaxCountPerAnnotation(BiasDetector *biasDetector);
+
+void BiasDetector_setTotalCountPerAnnotation(BiasDetector *biasDetector);
+
+void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
+                                   stList *annotationNamesToCheck,
+                                   const char *tsvPathToWriteTable);
+
+void BiasDetector_setCountDataPerAnnotationForStartOnlyMode(BiasDetector *biasDetector, stHash *blockTable);
+
+void BiasDetector_setCountDataPerAnnotation(BiasDetector *biasDetector, stHash *blockTable);
 
 #endif //BIAS_DETECTOR_H

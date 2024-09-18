@@ -515,14 +515,14 @@ int TrackReader_readLine(TrackReader *trackReader, char **linePtr, int maxSize) 
     }
 }
 
-TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, char *faiPath, bool zeroBasedCoors) {
+TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, stHash *contigLengthTable, bool zeroBasedCoors) {
     TrackReader *trackReader = malloc(sizeof(TrackReader));
     trackReader->trackFileFormat = TRACK_MEMORY_COV;
     trackReader->fileReaderPtr = NULL;
-    if (faiPath != NULL) {
-        trackReader->contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    if (contigLengthTable != NULL) {
+        trackReader->contigLengthTable = contigLengthTable;
     } else {
-        fprintf(stderr, "Error: fai path cannot be empty!");
+        fprintf(stderr, "Error: (TRACK_READER) contig length table cannot be NULL for reading from memory!");
         exit(EXIT_FAILURE);
     }
     trackReader->s = -1;

@@ -540,39 +540,46 @@ void ChunksCreator_parseOneChunk(void *chunksCreator_) {
     TrackReader_destruct(trackReader);
 }
 
-/*
-void ChunksCreator_parseContigChunksFromMemory(void *chunksCreator) {
+
+stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable, stHash *contigLengthTable, int windowLen) {
     // Construct a trackReader for iteration
     bool zeroBasedCoors = true;
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, zeroBasedCoors);
-    strcpy(trackReader->ctg, templateChunk->ctg);
-    trackReader->ctgLen = templateChunk->ctgLen;
-    // Open cov file and jump to the first trackReader of the chunk
-    TrackReader_setFilePosition(trackReader, templateChunk->fileOffset);
-    // Get the chunk that has to be filled with the emitted sequence
-    // and set start and end coordinates and also the contig name from the given template chunk
-    Chunk *chunk = stList_get(chunksCreator->chunks, chunksCreator->nextChunkIndexToRead);
-    chunk->coverageInfoSeqLen = 0;
-    chunk->windowItr = -1;
-    chunk->s = templateChunk->s;
-    chunk->e = templateChunk->e;
-    strcpy(chunk->ctg, templateChunk->ctg);
-    chunk->ctgLen = templateChunk->ctgLen;
+    TrackReader *trackReader = TrackReader_constructFromTableInMemory(coverageBlockTable,
+                                                                      contigLengthTable,
+                                                                      zeroBasedCoors);
+    stList *chunks = stList_construct3(0, Chunk_destruct);
+    Chunk *chunk = NULL;
+    char prevCtg[200];
+    prevCtg[0] = '\0';
     // iterate over the tracks in the cov file
     while (0 < TrackReader_next(trackReader)) {
-        // if the trackReader overlaps the chunk
-        if (chunk->s <= trackReader->e && trackReader->s <= chunk->e) {
-            assert(0 < Chunk_addTrack(chunk, trackReader));
+        // for the first chunk or when contig has changed
+        if (chunk == NULL || strcmp(trackReader->ctg, prevCtg) != 0){
+            int chunkCanonicalLen = trackReader->ctgLen;
+            int maxSeqSize = trackReader->ctgLen / windowLen + 1;
+            // make a new chunk with allocated sequence
+            chunk = Chunk_constructWithAllocatedSeq(chunkCanonicalLen, windowLen, maxSeqSize);
+            chunk->coverageInfoSeqLen = 0;
+            chunk->windowItr = -1;
+            // the chunk covers the whole contig
+            chunk->s = 0; // 0-based
+            chunk->e = trackReader->ctgLen - 1; //0-based
+            strcpy(chunk->ctg, trackReader->ctg);
+            chunk->ctgLen = trackReader->ctgLen;
+            stList_append(chunks, chunk);
+            // update previous contig
+            strcpy(prevCtg, trackReader->ctg);
         }
+        assert(0 < Chunk_addTrack(chunk, trackReader));
         if (chunk->e <= trackReader->e) { // chunk is read completely
             if (chunk->windowItr != -1) { // handle a partially iterated window
                 Chunk_addWindow(chunk);
             }
-            break;
         }
     }
     TrackReader_destruct(trackReader);
-}*/
+    return chunks;
+}
 
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath) {
     stList *chunks = chunksCreator->chunks;
