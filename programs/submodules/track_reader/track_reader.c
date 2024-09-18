@@ -56,6 +56,8 @@ CoverageHeader *CoverageHeader_construct(char *filePath) {
     header->numberOfLabels = 0;
     header->isTruthAvailable = false;
     header->isPredictionAvailable = false;
+    header->startOnlyMode = false;
+    header->averageAlignmentLength = 0;
 
     if (filePath != NULL) {
         TrackReader *trackReader = TrackReader_construct(filePath, NULL, false);
@@ -67,6 +69,8 @@ CoverageHeader *CoverageHeader_construct(char *filePath) {
         CoverageHeader_updateTruthAvailability(header);
         CoverageHeader_updatePredictionAvailability(header);
         CoverageHeader_updateNumberOfLabels(header);
+        CoverageHeader_updateStartOnlyMode(header); // first update mode then average length
+        CoverageHeader_updateAverageAlignmentLength(header);
 
         TrackReader_destruct(trackReader);
     } else {
@@ -108,7 +112,9 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
                                                      int numberOfRegions,
                                                      int numberOfLabels,
                                                      bool isTruthAvailable,
-                                                     bool isPredictionAvailable) {
+                                                     bool isPredictionAvailable,
+                                                     bool startOnlyMode,
+                                                     int averageAlignmentLength) {
 
     CoverageHeader *header = CoverageHeader_construct(NULL);
 
@@ -119,6 +125,8 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
     header->numberOfLabels = numberOfLabels;
     header->isTruthAvailable = isTruthAvailable;
     header->isPredictionAvailable = isPredictionAvailable;
+    header->averageAlignmentLength = averageAlignmentLength;
+    header->startOnlyMode = startOnlyMode;
     CoverageHeader_updateRegionNames(header);
 
     // add header line for annotation length
@@ -165,12 +173,28 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
         stList_append(header->headerLines, copyString(line));
     }
 
-    // are truth labels available
+    // are prediction labels available
     if (isPredictionAvailable) {
         sprintf(line, "#prediction:true");
         stList_append(header->headerLines, copyString(line));
     } else {
         sprintf(line, "#prediction:false");
+        stList_append(header->headerLines, copyString(line));
+    }
+
+    // add number of labels for truth/prediction
+    if (0 < averageAlignmentLength) {
+        // add header line for number of labels
+        sprintf(line, "#avg_alignment_len:%d", averageAlignmentLength);
+        stList_append(header->headerLines, copyString(line));
+    }
+
+    // start-only mode
+    if (startOnlyMode) {
+        sprintf(line, "#start-only:true");
+        stList_append(header->headerLines, copyString(line));
+    } else {
+        sprintf(line, "#start-only:false");
         stList_append(header->headerLines, copyString(line));
     }
 
@@ -256,6 +280,36 @@ void CoverageHeader_updateAnnotationNames(CoverageHeader *header) {
                 get_timestamp(), numberOfParsedNames, header->numberOfAnnotations);
     }
 }
+
+void CoverageHeader_updateAverageAlignmentLength(CoverageHeader *header) {
+    header->averageAlignmentLength = 0;
+    stList *headerLines = header->headerLines;
+    char *token;
+    bool lineFound = false;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#avg_alignment_len:", headerLine, strlen("#avg_alignment_len:")) == 0) {
+            Splitter *splitter = Splitter_construct(headerLine, ':');
+            token = Splitter_getToken(splitter); //#avg_alignment_len:
+            token = Splitter_getToken(splitter); //number
+            header->averageAlignmentLength = atoi(token);
+            Splitter_destruct(splitter);
+            lineFound = true;
+            break;
+        }
+    }
+    if (lineFound == false && header->startOnlyMode) {
+        fprintf(stderr, "[%s] Error: No '#avg_alignment_len:' found in the header (required for start-only mode)!\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+    if (header->averageAlignmentLength <= 0 && lineFound && header->startOnlyMode) {
+        fprintf(stderr, "[%s] Error: The value of '#avg_alignment_len:' in the header should be > 0 (required for start-only mode).\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+}
+
 
 void CoverageHeader_updateNumberOfRegions(CoverageHeader *header) {
     header->numberOfRegions = 0;
@@ -346,6 +400,25 @@ void CoverageHeader_updateNumberOfLabels(CoverageHeader *header) {
         exit(EXIT_FAILURE);
     }
 }
+
+void CoverageHeader_updateStartOnlyMode(CoverageHeader *header) {
+    // set it to false in case no label line existed in header
+    header->startOnlyMode = false;
+    stList *headerLines = header->headerLines;
+    for (int i = 0; i < stList_length(headerLines); i++) {
+        char *headerLine = stList_get(headerLines, i);
+        if (strncmp("#start-only:true", headerLine, strlen("#start-only:true")) == 0) {
+            header->startOnlyMode = true;
+            break;
+        }
+    }
+    if (header->startOnlyMode == true) {
+        fprintf(stderr,
+                "[%s] Start-only mode is activated.\n",
+                get_timestamp());
+    }
+}
+
 
 void CoverageHeader_updateTruthAvailability(CoverageHeader *header) {
     // set it to false in case no label line existed in header
@@ -442,6 +515,31 @@ int TrackReader_readLine(TrackReader *trackReader, char **linePtr, int maxSize) 
     }
 }
 
+TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, char *faiPath, bool zeroBasedCoors) {
+    TrackReader *trackReader = malloc(sizeof(TrackReader));
+    trackReader->trackFileFormat = TRACK_MEMORY_COV;
+    trackReader->fileReaderPtr = NULL;
+    if (faiPath != NULL) {
+        trackReader->contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    } else {
+        fprintf(stderr, "Error: fai path cannot be empty!");
+        exit(EXIT_FAILURE);
+    }
+    trackReader->s = -1;
+    trackReader->e = -1;
+    trackReader->attrbs = NULL;
+    trackReader->attrbsLen = 0;
+    trackReader->zeroBasedCoors = zeroBasedCoors;
+    trackReader->contigList = ptBlock_get_sorted_contig_list(blockTable);
+    trackReader->coverageBlockTable = coverageBlockTable;
+    trackReader->nextContigIndexToRead = 0;
+    trackReader->nextBlockIndexToRead = 0;
+    strcpy(trackReader->ctg, (char *)stList_get(trackReader->contigList, trackReader->nextContigIndexToRead));
+    trackReader->coverageBlockListBeingIterated = (stList *) stHash_search(trackReader->coverageBlockTable, trackReader->ctg);
+    int *ctgLenPtr = stHash_search(trackReader->contigLengthTable, trackReader->ctg);
+    trackReader->ctgLen = *ctgLenPtr;
+    return trackReader;
+}
 
 TrackReader *TrackReader_construct(char *filePath, char *faiPath, bool zeroBasedCoors) {
     TrackReader *trackReader = malloc(sizeof(TrackReader));
@@ -487,7 +585,6 @@ void TrackReader_setFilePosition(TrackReader *trackReader, int64_t filePosition)
     }
 }
 
-
 void TrackReader_destruct(TrackReader *trackReader) {
     // free trackReader attrbs
     for (int i = 0; i < trackReader->attrbsLen; i++) {
@@ -508,6 +605,9 @@ void TrackReader_destruct(TrackReader *trackReader) {
     if (trackReader->contigLengthTable != NULL) {
         stHash_destruct(trackReader->contigLengthTable);
     }
+    if (trackReader->contigList != NULL){
+        stList_destruct(trackReader->contigList);
+    }
     free(trackReader);
 }
 
@@ -519,9 +619,65 @@ int TrackReader_next(TrackReader *trackReader) {
     } else if (trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED ||
                trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED_GZ) {
         return TrackReader_readNextTrackBed(trackReader);
-    } else {
-        fprintf(stderr, "ERROR: FORMAT should be either BED, COV, COV_GZ or BED_GZ!\n");
+    } else if (trackReader->trackFileFormat == TRACK_MEMORY_COV){
+        return TrackReader_readNextFromMemory(trackReader);
+    }
+    else {
+        fprintf(stderr, "ERROR: FORMAT should be either BED, COV, COV_GZ or BED_GZ or reading from memory!\n");
         exit(EXIT_FAILURE);
+    }
+}
+
+int TrackReader_readNextFromMemory(TrackReader *trackReader){
+    if( (trackReader->coverageBlockListBeingIterated != NULL) &&
+        (stList_length(trackReader->coverageBlockListBeingIterated) <= trackReader->nextBlockIndexToRead)){
+        // go to next contig
+        trackReader->nextContigIndexToRead += 1;
+        trackReader->nextBlockIndexToRead = 0;
+        if (trackReader->nextContigIndexToRead < stList_length(trackReader->contigList)) {
+            // update contig name
+            strcpy(trackReader->ctg, (char *)stList_get(trackReader->contigList, trackReader->nextContigIndexToRead));
+            // update coverage block list
+            trackReader->coverageBlockListBeingIterated = (stList *) stHash_search(trackReader->coverageBlockTable, trackReader->ctg);
+            // update contig length
+            int *ctgLenPtr = stHash_search(trackReader->contigLengthTable, trackReader->ctg);
+            trackReader->ctgLen = *ctgLenPtr;
+        }else{ // no more contig is left
+            trackReader->coverageBlockListBeingIterated = NULL;
+            trackReader->nextBlockIndexToRead = -1;
+            trackReader->nextContigIndexToRead = -1;
+            trackReader->ctg[0] = '\0';
+            trackReader->s = -1;
+            trackReader->e = -1;
+            trackReader->ctgLen = -1;
+        }
+    }
+    if (trackReader->coverageBlockListBeingIterated == NULL) {
+        return -1;
+    } else {
+        ptBlock *block = stList_get(trackReader->coverageBlockListBeingIterated, trackReader->nextBlockIndexToRead);
+        trackReader->s = trackReader->zeroBasedCoors ? block->rfs : block->rfs + 1;
+        trackReader->e = trackReader->zeroBasedCoors ? block->rfe : block->rfe + 1;
+        CoverageInfo *coverageInfo = (CoverageInfo *) block->data;
+        if (trackReader->attrbs == NULL) {
+            trackReader->attrbs = malloc(5 * sizeof(char *));
+            for (int i = 0; i < 5; i++) {
+                trackReader->attrbs[i] = malloc(200 * sizeof(char));
+            }
+            trackReader->attrbsLen = 5;
+        }
+        int len = 0;
+        int *annotation_indices = CoverageInfo_getAnnotationIndices(coverageInfo, &len);
+        char *annotation_entry_str = String_joinIntArray(annotation_indices, len, ',');
+        sprintf(trackReader->attrbs[0], "%.0f", coverageInfo->coverage);
+        sprintf(trackReader->attrbs[1], "%.0f", coverageInfo->coverage_high_mapq);
+        sprintf(trackReader->attrbs[2], "%.0f", coverageInfo->coverage_high_clip);
+        sprintf(trackReader->attrbs[3], "%s", annotation_entry_str); // annotation string
+        sprintf(trackReader->attrbs[4], "%d", CoverageInfo_getRegionIndex(coverageInfo)); // region index
+        free(annotation_entry_str);
+        free(annotation_indices);
+        trackReader->nextBlockIndexToRead += 1;
+        return 1; // just to be greater than 0
     }
 }
 

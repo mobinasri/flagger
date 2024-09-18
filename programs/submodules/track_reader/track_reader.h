@@ -15,6 +15,7 @@ typedef enum TrackFileFormat {
     TRACK_FILE_FORMAT_COV_GZ,
     TRACK_FILE_FORMAT_BED,
     TRACK_FILE_FORMAT_BED_GZ,
+    TRACK_MEMORY_COV,
     TRACK_FILE_FORMAT_UNDEFINED
 } TrackFileFormat;
 
@@ -29,6 +30,12 @@ typedef struct TrackReader {
     char **attrbs;
     int attrbsLen;
     bool zeroBasedCoors;
+    // attributes for iterating over coverage blocks in memory
+    stList *contigList;
+    stHash *coverageBlockTable; // would be NULL if reading from file
+    stList *coverageBlockListBeingIterated; // would be NULL if reading from file
+    int nextBlockIndexToRead; // would be -1 if reading from file
+    int nextContigIndexToRead;
 } TrackReader;
 
 
@@ -42,6 +49,8 @@ typedef struct CoverageHeader {
     int numberOfLabels;
     bool isTruthAvailable;
     bool isPredictionAvailable;
+    bool startOnlyMode;
+    int averageAlignmentLength;
 } CoverageHeader;
 
 CoverageHeader *CoverageHeader_construct(char *filePath);
@@ -55,7 +64,9 @@ CoverageHeader *CoverageHeader_constructByAttributes(stList *annotationNames,
                                                      int numberOfRegions,
                                                      int numberOfLabels,
                                                      bool isTruthAvailable,
-                                                     bool isPredictionAvailable);
+                                                     bool isPredictionAvailable,
+                                                     bool startOnlyMode,
+                                                     int averageAlignmentLength);
 
 void CoverageHeader_destruct(CoverageHeader *header);
 
@@ -75,6 +86,9 @@ void CoverageHeader_updateTruthAvailability(CoverageHeader *header);
 
 void CoverageHeader_updatePredictionAvailability(CoverageHeader *header);
 
+void CoverageHeader_updateAverageAlignmentLength(CoverageHeader *header);
+
+void CoverageHeader_updateStartOnlyMode(CoverageHeader *header);
 
 void *TrackReader_openFile(char *filePath, TrackFileFormat format);
 
@@ -89,6 +103,8 @@ int64_t TrackReader_getFilePosition(TrackReader *trackReader);
 void TrackReader_setFilePosition(TrackReader *trackReader, int64_t filePosition);
 
 TrackReader *TrackReader_construct(char *filePath, char *faiPath, bool zeroBasedCoors);
+
+TrackReader *TrackReader_constructFromTableInMemory(stHash *blockTable, bool zeroBasedCoors);
 
 void TrackReader_destruct(TrackReader *trackReader);
 
