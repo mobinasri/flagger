@@ -65,6 +65,7 @@ run_tests:
 		--runBiasDetection \
 		--minBiasCoverage 1 \
 		--minBiasLength 1 \
+		--minAlignmentLength 0 \
 		--baselineAnnotation annot_1;\
 		cmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov \
 		    tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov; \
@@ -81,6 +82,7 @@ run_tests:
 		--runBiasDetection \
 		--minBiasCoverage 1 \
 		--minBiasLength 1 \
+		--minAlignmentLength 0 \
 		--baselineAnnotation annot_1; \
 		zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz \
 		     tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov.gz; \
@@ -97,6 +99,7 @@ run_tests:
 		--runBiasDetection \
 		--minBiasCoverage 1 \
 		--minBiasLength 1 \
+		--minAlignmentLength 0 \
 		--baselineAnnotation annot_1; \
 		zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed \
 		     tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.bed; \
