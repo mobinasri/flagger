@@ -30,6 +30,7 @@ typedef struct Chunk {
     int *windowTruthArray;
     int *windowPredictionArray;
     uint64_t fileOffset; // the number of offset bytes to reach the first trackReader of this chunk
+    bool startOnlyMode;
 } Chunk;
 
 typedef struct ChunksCreator {
@@ -44,6 +45,8 @@ typedef struct ChunksCreator {
     stList *chunks;
     stList *templateChunks; // The list of all chunks (no seq) in the cov file
     int nextChunkIndexToRead;
+    bool startOnlyMode;
+    stHash *coverageBlockTable;
     pthread_mutex_t *mutex;
 } ChunksCreator;
 
@@ -54,11 +57,13 @@ Chunk *Chunk_construct(int chunkCanonicalLen);
 
 Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int maxSeqSize);
 
+void Chunk_enableStartOnlyMode(Chunk *chunk);
+
 int Chunk_getMaximumCoverageValue(Chunk *chunk);
 
 void Chunk_destruct(Chunk *chunk);
 
-stList *Chunk_constructListWithAllocatedSeq(stList *templateChunks, int windowLen);
+stList *Chunk_constructListWithAllocatedSeq(stList *templateChunks, int windowLen, bool startOnlyMode);
 
 int32_t Chunk_getWindowRegion(Chunk *chunk);
 
