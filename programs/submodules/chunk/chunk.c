@@ -64,7 +64,7 @@ Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int
     chunk->windowTruthArray = (int *) malloc(windowLen * sizeof(int));
     chunk->windowPredictionArray = (int *) malloc(windowLen * sizeof(int));
     chunk->fileOffset = 0;
-    chunk->startOnlyMode = true;
+    chunk->startOnlyMode = false;
     return chunk;
 }
 
