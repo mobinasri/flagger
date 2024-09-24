@@ -188,12 +188,7 @@ void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
 
     int baselineIndex = biasDetector->baselineAnnotationIndex;
     int baselineCoverage = 0;
-    if (biasDetector->startOnlyMode) {
-        baselineCoverage = biasDetector->occurrenceRatePerAnnotation[baselineIndex] * biasDetector->averageAlignmentLength;
-    }
-    else{
-        baselineCoverage = biasDetector->mostFrequentCoveragePerAnnotation[baselineIndex];
-    }
+    baselineCoverage = biasDetector->mostFrequentCoveragePerAnnotation[baselineIndex];
     if (baselineCoverage < 1) {
         fprintf(stderr, "[%s] Error: baseline coverage is too low (< 1) %d!\n", get_timestamp(), baselineCoverage);
         exit(EXIT_FAILURE);
@@ -223,13 +218,8 @@ void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
 
     if (tsvFile != NULL) {
         fprintf(stderr, "[%s] Writing coverage bias table into this file %s \n", get_timestamp(), tsvPathToWriteTable);
-        if (biasDetector->startOnlyMode) {
-            fprintf(tsvFile,
-                    "annotation\tstatus\taverage_cov\ttotal_length\tcov_diff_normalized\tregion_index\n");
-        }else{
-            fprintf(tsvFile,
-                    "annotation\tstatus\tmost_freq_cov\tmax_count\ttotal_length\tcov_diff_normalized\tregion_index\n");
-        }
+        fprintf(tsvFile,
+                "annotation\tstatus\tmost_freq_cov\tmax_count\ttotal_length\tcov_diff_normalized\tregion_index\n");
     }
 
     int regionIndex = 1; // starts from 1 since 0 is reserved for regions with no bias
