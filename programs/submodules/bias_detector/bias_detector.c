@@ -112,7 +112,7 @@ void BiasDetector_setCountDataPerAnnotationForStartOnlyMode(BiasDetector *biasDe
         Chunk *chunk = stList_get(chunks, chunkIndex);
         int chunkLen = chunk->e - chunk->s + 1;
         int lastWindowActualSize = chunkLen - windowLen * (chunk->coverageInfoSeqLen - 1);
-        for (int windowIndex=0; windowIndex < chunk->coverageInfoSeqLen; windowIndex){
+        for (int windowIndex=0; windowIndex < chunk->coverageInfoSeqLen; windowIndex++){
             CoverageInfo *covInfo = chunk->coverageInfoSeq[windowIndex];
             for (int annotationIndex = 0; annotationIndex < biasDetector->numberOfAnnotations; annotationIndex++) {
                 if (CoverageInfo_overlapAnnotationIndex(covInfo,
