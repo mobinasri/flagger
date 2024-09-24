@@ -541,15 +541,11 @@ TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, 
     return trackReader;
 }
 
-TrackReader *TrackReader_construct(char *filePath, char *faiPath, bool zeroBasedCoors) {
+TrackReader *TrackReader_construct(char *filePath, stHash *contigLengthTable, bool zeroBasedCoors) {
     TrackReader *trackReader = malloc(sizeof(TrackReader));
     trackReader->trackFileFormat = TrackReader_getTrackFileFormat(filePath);
     trackReader->fileReaderPtr = TrackReader_openFile(filePath, trackReader->trackFileFormat);
-    if (faiPath != NULL) {
-        trackReader->contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
-    } else {
-        trackReader->contigLengthTable = NULL;
-    }
+    trackReader->contigLengthTable = contigLengthTable;
     trackReader->ctgLen = -1;
     trackReader->s = -1;
     trackReader->e = -1;
@@ -607,9 +603,10 @@ void TrackReader_destruct(TrackReader *trackReader) {
         gzclose(gzReaderPtr[0]);
         free(trackReader->fileReaderPtr);
     }
+    /*
     if (trackReader->contigLengthTable != NULL) {
         stHash_destruct(trackReader->contigLengthTable);
-    }
+    }*/
     if (trackReader->contigList != NULL){
         stList_destruct(trackReader->contigList);
     }

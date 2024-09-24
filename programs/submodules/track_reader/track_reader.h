@@ -102,7 +102,7 @@ int64_t TrackReader_getFilePosition(TrackReader *trackReader);
 
 void TrackReader_setFilePosition(TrackReader *trackReader, int64_t filePosition);
 
-TrackReader *TrackReader_construct(char *filePath, char *faiPath, bool zeroBasedCoors);
+TrackReader *TrackReader_construct(char *filePath, stHash *contigLengthTable, bool zeroBasedCoors);
 
 TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, stHash *contigLengthTable, bool zeroBasedCoors);
 

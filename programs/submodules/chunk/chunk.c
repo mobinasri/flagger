@@ -239,7 +239,8 @@ void ChunksCreator_subsetChunksToContigs(ChunksCreator *chunksCreator, stList* c
 // it will create a stList of Chunks with no coverage data
 stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCanonicalLen) {
     bool zeroBasedCoors = true;
-    TrackReader *trackReader = TrackReader_construct(filePath, faiPath, zeroBasedCoors);
+    stHash *contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    TrackReader *trackReader = TrackReader_construct(filePath, contigLengthTable, zeroBasedCoors);
     if (trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED ||
         trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED_GZ) {
         if (trackReader->contigLengthTable == NULL) {
@@ -286,6 +287,7 @@ stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCan
         preFileOffset = TrackReader_getFilePosition(trackReader);
     }
     TrackReader_destruct(trackReader);
+    stHash_destruct(contigLengthTable);
     return chunks; // The code should reach here when there is no more trackReader left in the cov file
 }
 
