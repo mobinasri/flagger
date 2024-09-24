@@ -43,10 +43,6 @@ BiasDetector *BiasDetector_construct(stList *annotationNames,
         fprintf(stderr, "Error:[BIAS_DETECTOR] In the start-only mode contig length table cannot be NULL.\n");
         exit(EXIT_FAILURE);
     }
-    if(startOnlyMode && averageAlignmentLength < 50){
-        fprintf(stderr, "Error:[BIAS_DETECTOR] Average alignment length is too small <50 for the start-only mode.\n");
-        exit(EXIT_FAILURE);
-    }
     biasDetector->numberOfAnnotations = stList_length(annotationNames);
     biasDetector->countDataPerAnnotation = CountData_construct1DArray(MAX_COVERAGE_VALUE,
                                                                       biasDetector->numberOfAnnotations);

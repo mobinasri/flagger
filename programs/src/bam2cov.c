@@ -254,6 +254,13 @@ int main(int argc, char *argv[]) {
                 get_timestamp());
     }
 
+    // might be a redundant check
+    if(startOnlyMode && averageAlignmentLength < minAlignmentLength){
+        fprintf(stderr, "Error:[BIAS_DETECTOR] Average alignment length (%d) is too small <%d for the start-only mode.\n",
+                averageAlignmentLength, minAlignmentLength);
+        exit(EXIT_FAILURE);
+    }
+
 
     // an array for mapping annotation to region index
     int *annotationToRegionMap = NULL;
