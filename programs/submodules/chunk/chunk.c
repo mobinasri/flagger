@@ -287,7 +287,9 @@ stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCan
         preFileOffset = TrackReader_getFilePosition(trackReader);
     }
     TrackReader_destruct(trackReader);
-    stHash_destruct(contigLengthTable);
+    if (contigLengthTable != NULL) {
+        stHash_destruct(contigLengthTable);
+    }
     return chunks; // The code should reach here when there is no more trackReader left in the cov file
 }
 
