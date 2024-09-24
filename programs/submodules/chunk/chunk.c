@@ -239,7 +239,7 @@ void ChunksCreator_subsetChunksToContigs(ChunksCreator *chunksCreator, stList* c
 // it will create a stList of Chunks with no coverage data
 stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCanonicalLen) {
     bool zeroBasedCoors = true;
-    stHash *contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    stHash *contigLengthTable = faiPath != NULL ? ptBlock_get_contig_length_stHash_from_fai(faiPath) : NULL;
     TrackReader *trackReader = TrackReader_construct(filePath, contigLengthTable, zeroBasedCoors);
     if (trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED ||
         trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED_GZ) {
