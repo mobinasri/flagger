@@ -102,7 +102,8 @@ void BiasDetector_setCountDataPerAnnotationForStartOnlyMode(BiasDetector *biasDe
     int windowLen = biasDetector->averageAlignmentLength;
     stList *chunks = Chunk_parseContigChunkListFromMemory(blockTable,
                                                           biasDetector->contigLengthTable,
-                                                          windowLen);
+                                                          windowLen,
+                                                          biasDetector->startOnlyMode);
     // each chunk covers a whole contig
     for (int chunkIndex = 0; chunkIndex < stList_length(chunks); chunkIndex++) {
         Chunk *chunk = stList_get(chunks, chunkIndex);

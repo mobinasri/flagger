@@ -71,7 +71,10 @@ int Chunk_addWindow(Chunk *chunk);
 
 int Chunk_addTrack(Chunk *chunk, TrackReader *trackReader);
 
-stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable, stHash *contigLengthTable, int windowLen);
+stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable,
+                                             stHash *contigLengthTable,
+                                             int windowLen,
+                                             bool startOnlyMode);
 
 ChunksCreator *ChunksCreator_constructEmpty();
 

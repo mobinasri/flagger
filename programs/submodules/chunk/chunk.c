@@ -545,7 +545,10 @@ void ChunksCreator_parseOneChunk(void *chunksCreator_) {
 }
 
 
-stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable, stHash *contigLengthTable, int windowLen) {
+stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable,
+                                             stHash *contigLengthTable,
+                                             int windowLen,
+                                             bool startOnlyMode) {
     // Construct a trackReader for iteration
     bool zeroBasedCoors = true;
     TrackReader *trackReader = TrackReader_constructFromTableInMemory(coverageBlockTable,
@@ -563,6 +566,7 @@ stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable, stHash 
             int maxSeqSize = trackReader->ctgLen / windowLen + 1;
             // make a new chunk with allocated sequence
             chunk = Chunk_constructWithAllocatedSeq(chunkCanonicalLen, windowLen, maxSeqSize);
+            chunk->startOnlyMode = startOnlyMode;
             chunk->coverageInfoSeqLen = 0;
             chunk->windowItr = -1;
             // the chunk covers the whole contig
