@@ -1,6 +1,6 @@
 @HD	VN:1.0	SO:coordinate
 @SQ	SN:contig_1	LN:50
-read_0_1	0	contig_1	1	60	5=	*	0	0	AAAAA	IIIII	cs:Z::5
+read_0_1	0	contig_1	1	60	25=	*	0	0	AAAAAAAAAAAAAAAAAAAAAAAAA	IIIIIIIIIIIIIIIIIIIIIIIII	cs:Z::25
 read_0_2	0	contig_1	2	60	15=	*	0	0	AAAAAAAAAAAAAAA	IIIIIIIIIIIIIII	cs:Z::15
 read_0_3	0	contig_1	3	5	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
 read_0_4	0	contig_1	4	50	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
@@ -28,9 +28,9 @@ read_3_5	0	contig_1	35	10	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
 read_3_6	0	contig_1	36	50	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
 read_3_7	0	contig_1	37	10	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
 read_3_8	0	contig_1	38	50	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
-read_4_1	0	contig_1	41	60	5=	*	0	0	AAAAA	IIIII	cs:Z::5
-read_4_2	0	contig_1	42	60	15=	*	0	0	AAAAAAAAAAAAAAA	IIIIIIIIIIIIIII	cs:Z::15
-read_4_3	0	contig_1	43	5	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
-read_4_4	0	contig_1	44	50	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
-read_4_5	0	contig_1	45	10	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
-read_4_6	0	contig_1	46	50	10=	*	0	0	AAAAAAAAAA	IIIIIIIIII	cs:Z::10
+read_4_1	0	contig_1	41	60	9=	*	0	0	AAAAAAAAA	IIIIIIIII	cs:Z::9
+read_4_2	0	contig_1	42	60	8=	*	0	0	AAAAAAAA	IIIIIIII	cs:Z::8
+read_4_3	0	contig_1	43	5	7=	*	0	0	AAAAAAA	IIIIIII	cs:Z::7
+read_4_4	0	contig_1	44	50	6=	*	0	0	AAAAAA	IIIIII	cs:Z::6
+read_4_5	0	contig_1	45	10	5=	*	0	0	AAAAA	IIIII	cs:Z::5
+read_4_6	0	contig_1	46	50	4=	*	0	0	AAAA	IIII	cs:Z::4
