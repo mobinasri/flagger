@@ -1719,7 +1719,7 @@ void _update_coverage_blocks_with_alignments(void *arg_) {
             fprintf(stderr, "[%s] Started parsing reads in the block: %s\t%d\t%d\n", get_timestamp(), ctg_name,
                     block->rfs, block->rfe + 1);
             // iterate over all alignments overlapping this block
-            hts_itr_t *sam_itr = sam_itr_queryi(sam_idx, tid, block->rfs, block->rfe);
+            hts_itr_t *sam_itr = sam_itr_queryi(sam_idx, tid, block->rfs, block->rfe + 1);
             int bytes_read;
             while (sam_itr != NULL) {
                 bytes_read = sam_itr_next(fp, sam_itr, b);
@@ -1852,7 +1852,7 @@ stHash *ptBlock_multi_threaded_coverage_extraction(char *bam_path,
     pthread_mutex_destroy(mutexPtr);
 
 
-    *average_alignment_length_ptr = *sum_read_length / *total_read_count;
+    *average_alignment_length_ptr = round((double) *sum_read_length / *total_read_count);
     stHash_destruct(whole_genome_blocks_per_contig);
     stList_destruct(block_batches);
 
