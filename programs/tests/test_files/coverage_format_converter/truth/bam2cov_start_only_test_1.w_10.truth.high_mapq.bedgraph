@@ -1,0 +1,6 @@
+track type=bedGraph name="coverage_wig_high_mapq" visibility=full color=0,0,153
+contig_1 0 10 4
+contig_1 10 20 4
+contig_1 20 30 5
+contig_1 30 40 5
+contig_1 40 50 4

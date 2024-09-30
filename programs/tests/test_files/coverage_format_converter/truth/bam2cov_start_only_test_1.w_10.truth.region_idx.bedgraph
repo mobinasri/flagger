@@ -1,0 +1,6 @@
+track type=bedGraph name="coverage_wig_region_idx" visibility=full color=64,64,64
+contig_1 0 10 0
+contig_1 10 20 0
+contig_1 20 30 1
+contig_1 30 40 1
+contig_1 40 50 0

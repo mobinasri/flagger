@@ -1,0 +1,6 @@
+track type=bedGraph name="coverage_wig_total" visibility=full color=51,51,255
+contig_1 0 10 6
+contig_1 10 20 6
+contig_1 20 30 8
+contig_1 30 40 8
+contig_1 40 50 6
