@@ -40,6 +40,8 @@ workflow runTuneHyperparameterAlpha{
         runFlaggerPostOptForValidation: "If this parameter is true after finding the optimal alpha matrix run HMM-Flagger on all validation coverage files with more EM iterations and then make summary tables with the resolution of bases not windows (HMM-Flagger outputs summary tables with the resolution of windows) (Default = true)"
         flaggerPostOptConvergenceTol: "Convergence tolerance for running HMM-Flagger post optimization (Default = 0.001)"
         flaggerPostOptIterations : "Maxmimum number of EM iterations for running HMM-Flagger post optimization (Default = 50)"
+        startOnlyMode : "Use start-only mode for bam2cov. It will take only the start locations of read alignments instead of the whole covered blocks. (Default = false)"
+        minAlignmentLength : "Minimum alignment length for bam2cov (Default=5000)"
     }
     input{
         Array[File] bamArray
@@ -50,6 +52,8 @@ workflow runTuneHyperparameterAlpha{
         Array[Array[File]]? annotationBedArray2D
         Array[Array[String]]? biasAnnotationNameArray2D
         Array[Float] downsampleRateArray=[1.0]
+        Boolean startOnlyMode = false
+        Int minAlignmentLength = 5000
         Boolean runFlaggerPostOptForTrain = false
         Boolean runFlaggerPostOptForValidation = true
         String flaggerDockerImage="mobinasri/flagger:v1.1.0-alpha"
@@ -112,6 +116,8 @@ workflow runTuneHyperparameterAlpha{
                 includeContigListText = getContigList.trainContigListText,
                 runBiasDetection = (length(select_first([biasAnnotationNameArray,[]])) > 0),
                 format = "all",
+                minAlignmentLength = minAlignmentLength,
+                startOnlyMode = startOnlyMode,
                 memSize = 32,
                 threadCount = 16,
                 dockerImage = flaggerDockerImage
@@ -163,6 +169,8 @@ workflow runTuneHyperparameterAlpha{
                 includeContigListText = getContigList.validationContigListText,
                 runBiasDetection = (length(select_first([biasAnnotationNameArray,[]])) > 0),
                 format = "all",
+                minAlignmentLength = minAlignmentLength,
+                startOnlyMode = startOnlyMode,
                 memSize = 32,
                 threadCount = 16,
                 dockerImage = flaggerDockerImage

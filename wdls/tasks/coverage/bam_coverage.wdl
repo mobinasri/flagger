@@ -24,6 +24,8 @@ task bam2cov{
         File? includeContigListText
         Boolean runBiasDetection=false
         String format="all"
+        Int minAlignmentLength=5000
+        Boolean startOnlyMode=false
         # runtime configurations
         Int memSize=32
         Int threadCount=8
@@ -65,6 +67,9 @@ task bam2cov{
 
         # addittional args for --runBiasDetection 
         ADDITIONAL_ARGS=~{true="--runBiasDetection" false="" runBiasDetection}
+
+        # additional args for --startOnlyMode
+        ADDITIONAL_ARGS=~{true="${ADDITIONAL_ARGS} --startOnlyMode" false="${ADDITIONAL_ARGS}" startOnlyMode}
 
         # create a text file containing the list of annotations names for bias detection
         if (( ~{length(biasAnnotationNameArray)} > 0 ));then
@@ -108,7 +113,8 @@ task bam2cov{
                 --threads ~{threadCount} \
                 --format ~{format} \
                 --baselineAnnotation ~{baselineAnnotationName} \
-                --downsampleRate ~{downsampleRate} ${ADDITIONAL_ARGS}
+                --downsampleRate ~{downsampleRate} \
+                --minAlignmentLength ~{minAlignmentLength} ${ADDITIONAL_ARGS}
 
     >>>
     runtime {
