@@ -130,10 +130,13 @@ HMM *createModel(ModelType modelType,
                  CoverageHeader *header,
                  MatrixDouble *alphaMatrix,
                  double maxHighMapqRatio,
+                 int windowLen,
                  double initialDeviation) {
     // calculate initial mean coverages for all region classes
     int numberOfStates = 4; // Err, Dup, Hap, and Col
     int numberOfRegions = header->numberOfRegions;
+    int averageAlignmentLength = header->averageAlignmentLength;
+    bool startOnlyMode = header->startOnlyMode;
 
     // set number of mixture components for each state
     int *numberOfCompsPerState = Int_construct1DArray(numberOfStates);
@@ -147,6 +150,12 @@ HMM *createModel(ModelType modelType,
 
     // select the coverage of the first region as the baseline
     double medianCoverage = header->regionCoverages[0];
+    if (startOnlyMode){
+        // multiply by windowLen / header->averageAlignmentLength
+        // to make sure it is adjusted based on the window size
+        // if the window size is not equal to the average alignment length
+        medianCoverage *= windowLen / header->averageAlignmentLength;
+    }
     // calculate region scales against the baseline (first region)
     double *regionScales = Double_construct1DArray(header->numberOfRegions);
     for (int i = 0; i < header->numberOfRegions; i++) {
@@ -770,6 +779,7 @@ int main(int argc, char *argv[]) {
                              chunksCreator->header,
                              alphaMatrix,
                              maxHighMapqRatio,
+                             windowLen,
                              initialRandomDeviation);
 
     // 4. run EM for estimating parameters
