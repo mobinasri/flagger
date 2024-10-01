@@ -182,8 +182,8 @@ int main(int argc, char *argv[]) {
                         "         -b, --baselineAnnotation\n"
                         "                           [coverage bias detection] name of the baseline annotation. If no\n"
                         "                           baseline name is provided it will consider all blocks with no \n"
-                        "                           given annotation as baseline. It is highly recommended to use "
-                        "                           '--baselineAnnotation whole_genome' and point to a whole_genome bed"
+                        "                           given annotation as baseline. It is highly recommended to use \n"
+                        "                           '--baselineAnnotation whole_genome' and point to a whole_genome bed\n"
                         "                           file in the annotation json even when --runBiasDetection is disabled.\n");
                 fprintf(stderr,
                         "         -d, --covDiffThreshold\n"
