@@ -214,7 +214,10 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         -s, --startOnlyMode\n"
                         "                           Keep only the start point of each alignment instead of the whole \n"
-                        "                           covered block [Default : disabled]\n");
+                        "                           covered block. Note that in this case to find the biased blocks \n"
+                        "                           it will take windows with the same length as the average alignment\n"
+                        "                           length and count the number of alignments starting in each window.\n"
+                        "                           [Default : disabled]\n");
                 return 1;
         }
     }
