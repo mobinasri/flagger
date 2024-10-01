@@ -396,9 +396,11 @@ int Chunk_addWindow(Chunk *chunk) {
     double coverage_high_mapq_window = 0.0;
     double coverage_high_clip_window = 0.0;
     if (chunk->startOnlyMode){
-        coverage_window = (double) chunk->windowSumCoverage;
-        coverage_high_mapq_window = (double) chunk->windowSumCoverageHighMapq;
-        coverage_high_clip_window = (double) chunk->windowSumCoverageHighClip;
+	// multiply by chunk->windowLen / (chunk->windowItr + 1) to make sure
+	// the the counts for shorter windows (the the last windows of contigs) are adjusted 
+        coverage_window = (double) chunk->windowSumCoverage * chunk->windowLen / (chunk->windowItr + 1);
+        coverage_high_mapq_window = (double) chunk->windowSumCoverageHighMapq * chunk->windowLen / (chunk->windowItr + 1);
+        coverage_high_clip_window = (double) chunk->windowSumCoverageHighClip * chunk->windowLen / (chunk->windowItr + 1);
     }else {
         coverage_window = (double) chunk->windowSumCoverage / (chunk->windowItr + 1);
         coverage_high_mapq_window = (double) chunk->windowSumCoverageHighMapq / (chunk->windowItr + 1);
