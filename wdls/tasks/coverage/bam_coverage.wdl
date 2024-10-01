@@ -69,7 +69,7 @@ task bam2cov{
         ADDITIONAL_ARGS=~{true="--runBiasDetection" false="" runBiasDetection}
 
         # additional args for --startOnlyMode
-        ADDITIONAL_ARGS=~{true="${ADDITIONAL_ARGS} --startOnlyMode" false="${ADDITIONAL_ARGS}" startOnlyMode}
+        ADDITIONAL_ARGS=${ADDITIONAL_ARGS}~{true="--startOnlyMode" false="" startOnlyMode}
 
         # create a text file containing the list of annotations names for bias detection
         if (( ~{length(biasAnnotationNameArray)} > 0 ));then
