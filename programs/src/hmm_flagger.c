@@ -154,12 +154,12 @@ HMM *createModel(ModelType modelType,
         // multiply by windowLen / header->averageAlignmentLength
         // to make sure it is adjusted based on the window size
         // if the window size is not equal to the average alignment length
-        medianCoverage *= windowLen / header->averageAlignmentLength;
+        medianCoverage *= (double) windowLen / header->averageAlignmentLength;
     }
     // calculate region scales against the baseline (first region)
     double *regionScales = Double_construct1DArray(header->numberOfRegions);
     for (int i = 0; i < header->numberOfRegions; i++) {
-        regionScales[i] = header->regionCoverages[i] / medianCoverage;
+        regionScales[i] = (double) header->regionCoverages[i] / medianCoverage;
     }
 
     double **means = Double_construct2DArray(numberOfStates, maxNumberOfComps);
@@ -779,7 +779,7 @@ int main(int argc, char *argv[]) {
                              chunksCreator->header,
                              alphaMatrix,
                              maxHighMapqRatio,
-                             windowLen,
+                             chunksCreator->windowLen,
                              initialRandomDeviation);
 
     // 4. run EM for estimating parameters
