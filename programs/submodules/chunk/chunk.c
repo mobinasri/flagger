@@ -547,6 +547,7 @@ void ChunksCreator_parseOneChunk(void *chunksCreator_) {
 }
 
 
+
 stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable,
                                              stHash *contigLengthTable,
                                              int windowLen,
@@ -581,6 +582,7 @@ stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable,
             strcpy(prevCtg, trackReader->ctg);
         }
         assert(0 < Chunk_addTrack(chunk, trackReader));
+
         if (chunk->e <= trackReader->e) { // chunk is read completely
             if (chunk->windowItr != -1) { // handle a partially iterated window
                 Chunk_addWindow(chunk);
