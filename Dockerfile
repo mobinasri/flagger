@@ -8,9 +8,9 @@ RUN apt-get update && apt-get install -y build-essential python3-dev autoconf au
 
 #install Java
 RUN cd /home/apps && \
-    wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz && \
-    tar -xvzf jdk-17_linux-x64_bin.tar.gz
-ENV PATH=$PATH:/home/apps/jdk-17.0.1/bin
+    wget https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz && \
+    tar -xvzf jdk-23_linux-x64_bin.tar.gz
+ENV PATH=$PATH:/home/apps/jdk-23.0.1/bin
 
 #intstall IGV
 RUN cd /home/apps && \
