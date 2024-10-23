@@ -2,7 +2,7 @@
 
 ## Overview
 It is possible to simulate a coverage file with previously defined emission and transition probabilities. For this simulation
-the python script, [simulate_coverage_data.py](https://github.com/mobinasri/flagger/blob/dev-hmm-flagger-v1.0.0/programs/src/simulate_coverage_data.py) can be used.
+the python script, [simulate_coverage_data.py](https://github.com/mobinasri/flagger/blob/dev-hmm-flagger-v1.1.0/programs/src/simulate_coverage_data.py) can be used.
 
 ```
 python3 /home/programs/src/simulate_coverage_data.py -h

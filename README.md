@@ -74,11 +74,11 @@ If user has a set of unalinged reads it is easier to run the pipeline (read mapp
 
 A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
 
-It is recommended to run the whole pipeline using [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl).
+It is recommended to run the whole pipeline using [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl).
 
 Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (The parameters marked as **"(Mandatory)"** are mandatory to be defined in the input json):
 
-### Note that the current version of HMM-Flagger-v1.0.0 is tuned only for PacBio HiFi. The parameter `alphaTsv` is mandatory. Use [`alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv`]( https://raw.githubusercontent.com/mobinasri/flagger/main/programs/config/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv) for HiFi reads. TSV files for other parameters will be added later.
+### Note that the current version of HMM-Flagger-v1.1.0 is tuned only for PacBio HiFi. The parameter `alphaTsv` is mandatory. Use [`alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv`]( https://raw.githubusercontent.com/mobinasri/flagger/main/programs/config/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv) for HiFi reads. TSV files for other parameters will be added later.
 
 | Parameter | Description | Type | Default | 
 | ---       | ---         | ---  | ---     |
@@ -125,7 +125,7 @@ Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (
 |chunkLen| The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together | Int | 20000000 |
 |windowLen| The length of windows for running HMM-Flagger. The coverage values will be averaged over the bases in each window and then the average value will be considered as an emission. | Int | 4000 |
 |labelNames| The names of the labels/states for reporting in the final summary tsv files | String | 'Err,Dup,Hap,Col' |
-|trackName| The track name in the final BED file | hmm_flagger_v1.0.0 | 
+|trackName| The track name in the final BED file | hmm_flagger_v1.1.0 | 
 |numberOfIterationsForFlagger| Number of EM iterations for estimating HMM parameters | Int | 100 |
 |convergenceToleranceForFlagger| Convergence tolerance. The EM iteration will stop once the difference between all model parameter values in two consecutive iterations is less than this value. | Flaot| 0.001|
 |maxHighMapqRatio | Maximum ratio of high mapq coverage for duplicated component | Float | 0.25 |
@@ -160,9 +160,9 @@ All files with git and s3 urls are publicly accessible so if you are running the
 
 ### Other major workflows
 
-[hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl) is running two major workflows; [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/long_read_aligner_scattered.wdl) and [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end.wdl). The first one runs read mapping and the second one runs the end-to-end flagger pipeline (including annotation projection, bias detection, secphase and flagger). 
+[hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl) is running two major workflows; [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/long_read_aligner_scattered.wdl) and [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/hmm_flagger_end_to_end.wdl). The first one runs read mapping and the second one runs the end-to-end flagger pipeline (including annotation projection, bias detection, secphase and flagger). 
 
-Users can run each of them separately. For example if there is a read alignment file available beforehand users can run only [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end.wdl). The parameters for each of these workflows is a subset of the parameters listed above for [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl) therefore this table can still be used as a reference for either long_read_aligner_scattered.wdl or hmm_flagger_end_to_end.wdl.
+Users can run each of them separately. For example if there is a read alignment file available beforehand users can run only [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/hmm_flagger_end_to_end.wdl). The parameters for each of these workflows is a subset of the parameters listed above for [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl) therefore this table can still be used as a reference for either long_read_aligner_scattered.wdl or hmm_flagger_end_to_end.wdl.
 
 
 ### Running WDLs locally using Cromwell
@@ -172,10 +172,10 @@ Below are the main commands for running flagger_end_to_end_with_mapping.wdl loca
 wget https://github.com/broadinstitute/cromwell/releases/download/85/cromwell-85.jar
 wget https://github.com/broadinstitute/cromwell/releases/download/85/womtool-85.jar
 
-# Get version 1.0.0 of HMM-Flagger
-wget https://github.com/mobinasri/flagger/archive/refs/tags/v1.0.0.zip
+# Get version 1.1.0 of HMM-Flagger
+wget https://github.com/mobinasri/flagger/archive/refs/tags/v1.1.0.zip
 
-unzip v1.0.0.zip
+unzip v1.1.0.zip
 
 
 # make a directory for saving outputs and json files
@@ -199,7 +199,7 @@ java -jar ../cromwell-85.jar run ../flagger-1.0.0/wdls/workflows/hmm_flagger_end
 The paths to output files will be saved in `outputs.json`. The instructions for running any other WDL is similar.
 
 ### Running WDLs on Slurm using Toil
-Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v1.0.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
+Instructions for running WDLs on Slurm are provided [here](https://github.com/mobinasri/flagger/tree/v1.1.0/test_wdls/toil_on_slurm) , which includes some test data sets for each of the workflows:
 - [long_read_aligner_scattered.wdl](https://github.com/mobinasri/flagger/tree/main/test_wdls/toil_on_slurm#running-long_read_aligner_scatteredwdl-on-test-datasets)
 - [hmm_flagger_end_to_end.wdl](https://github.com/mobinasri/flagger/tree/main/test_wdls/toil_on_slurm#running-hmm_flagger_end_to_endwdl-on-test-datasets)
 - [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/tree/main/test_wdls/toil_on_slurm#running-hmm_flagger_end_to_end_with_mappingwdl-on-test-datasets)
@@ -209,9 +209,9 @@ Instructions for running WDLs on Slurm are provided [here](https://github.com/mo
 
 All WDLs are uploaded to Dockstore for easier import into platforms like Terra or AnVIL.
 
-- [Dockstore link for long_read_aligner_scattered.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:v1.0.0?tab=info)
-- [Dockstore link for hmm_flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/HMMFlaggerEndToEnd:v1.0.0?tab=info)
-- [Dockstore link for hmm_flagger_end_to_end_with_mapping.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/HMMFlaggerEndToEndWithMapping:v1.0.0?tab=info)
+- [Dockstore link for long_read_aligner_scattered.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/LongReadAlignerScattered:v1.1.0?tab=info)
+- [Dockstore link for hmm_flagger_end_to_end.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/HMMFlaggerEndToEnd:v1.1.0?tab=info)
+- [Dockstore link for hmm_flagger_end_to_end_with_mapping.wdl](https://dockstore.org/workflows/github.com/mobinasri/flagger/HMMFlaggerEndToEndWithMapping:v1.1.0?tab=info)
 
 ### Components
 

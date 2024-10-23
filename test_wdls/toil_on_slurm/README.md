@@ -4,11 +4,11 @@
 
 This directory contains test files and tables for the workflows listed below:
 
-1. **long_read_aligner_scattered.wdl**: This workflow is designed to align long reads to any reference or assembly which can be either diploid or haploid. Currently this workflow supports using minimap2, winnowmap and veritymap (veritymap is experimental and not tested reliably yet). Detailed descriptions of input parameters are included in the related WDL file. ([github link](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/long_read_aligner_scattered.wdl))
+1. **long_read_aligner_scattered.wdl**: This workflow is designed to align long reads to any reference or assembly which can be either diploid or haploid. Currently this workflow supports using minimap2, winnowmap and veritymap (veritymap is experimental and not tested reliably yet). Detailed descriptions of input parameters are included in the related WDL file. ([github link](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/long_read_aligner_scattered.wdl))
 
-2. **hmm_flagger_end_to_end.wdl**: This workflow is designed to run HMM-Flagger for evaluating a diploid assembly. Its primary inputs consist of one fasta file per assembled haplotype and one bam file containing the long read alignments to the diploid assembly. ([github link](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end.wdl))
+2. **hmm_flagger_end_to_end.wdl**: This workflow is designed to run HMM-Flagger for evaluating a diploid assembly. Its primary inputs consist of one fasta file per assembled haplotype and one bam file containing the long read alignments to the diploid assembly. ([github link](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/hmm_flagger_end_to_end.wdl))
 
-2. **hmm_flagger_end_to_end_with_mapping.wdl**: This workflow is designed for running read mapping and then HMM-Flagger. This workflow will run long_read_aligner_scattered.wdl and then hmm_flagger_end_to_end.wdl. Its primary inputs consist of one fasta file per assembled haplotype and a list of read files for mapping. ([github link](https://github.com/mobinasri/flagger/blob/v1.0.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl))
+2. **hmm_flagger_end_to_end_with_mapping.wdl**: This workflow is designed for running read mapping and then HMM-Flagger. This workflow will run long_read_aligner_scattered.wdl and then hmm_flagger_end_to_end.wdl. Its primary inputs consist of one fasta file per assembled haplotype and a list of read files for mapping. ([github link](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl))
 
 These wdls can be found in `wdls/workflows/` including detailed descriptions of their input parameters.
 
@@ -33,7 +33,7 @@ pip install toil[all]
 #### 1. Cloning Flagger repository
     
 ```
-git clone -b v1.0.0 https://github.com/mobinasri/flagger
+git clone -b v1.1.0 https://github.com/mobinasri/flagger
 ```
 
 Set some environment variables
@@ -219,7 +219,7 @@ ${WORKING_DIR}/run_test_1_toil_slurm/${SAMPLE_ID}/${SAMPLE_ID}_${WDL_NAME}
 
 #### 1. Cloning Flagger repository
 ```
-git clone -b v1.0.0 https://github.com/mobinasri/flagger
+git clone -b v1.1.0 https://github.com/mobinasri/flagger
 ```
 
 Set some environment variables
@@ -315,7 +315,7 @@ For running either of Test_1 or Test_2 users can use the steps explained in [ste
 
 #### 1. Cloning Flagger repository
 ```
-git clone -b v1.0.0 https://github.com/mobinasri/flagger
+git clone -b v1.1.0 https://github.com/mobinasri/flagger
 ```
 
 Set some environment variables
