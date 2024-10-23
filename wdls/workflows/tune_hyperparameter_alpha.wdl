@@ -26,7 +26,7 @@ workflow runTuneHyperparameterAlpha{
         annotationBedArray2D: "(Optional) A 2D array of annotation bed files. The length of array should be equal to the number of bam files. Each element is an array of BED files, each containing the coordinates of an annotation e.g. HSat1A or HSat2 (Default: None)"
         biasAnnotationNameArray2D: "(Optional) A 2D array of the names of the annotations potentially having coverage biases. The length of array should be equal to the number of bam files. Each element is an array of names related to the annotations that should be considered in the bias detection step. The given names should match the names of the files in annotationBedArray2D without the suffix '.bed'. The length of each internal array cannot be larger than its equavalent array in annotationBedArray2D. (Default: None)"
         downsampleRateArray: "An array of down-sampling rates (Default: [1.0])"
-        flaggerDockerImage: "Docker image for running HMM-Flagger and related programs (Default: 'mobinasri/flagger:v1.1.0-alpha')"
+        flaggerDockerImage: "Docker image for running HMM-Flagger and related programs (Default: 'mobinasri/flagger:v1.1.0')"
         threadsPerFlaggerRun: "The number of threads for HMM-Flagger (Default: 8)"
         maxFlaggerRunsPerIteration: "The maximum number of HMM-Flagger runs per EGO iteration (Default: 8)"
         windowLen: "The size of the window for HMM-Flagger (Default: 4000)"
@@ -56,7 +56,7 @@ workflow runTuneHyperparameterAlpha{
         Int minAlignmentLength = 5000
         Boolean runFlaggerPostOptForTrain = false
         Boolean runFlaggerPostOptForValidation = true
-        String flaggerDockerImage="mobinasri/flagger:v1.1.0-alpha"
+        String flaggerDockerImage="mobinasri/flagger:v1.1.0"
         String otherFlaggerParamsForTuning="--convergenceTol 1e-2  --iterations 10"
         Float flaggerPostOptConvergenceTol = 0.001
         Int flaggerPostOptIterations = 50
@@ -387,7 +387,7 @@ task getTrainAndValidationContigText{
         Int memSize=4
         Int threadCount=2
         Int diskSize=8
-        String dockerImage="mobinasri/flagger:v1.1.0-alpha"
+        String dockerImage="mobinasri/flagger:v1.1.0"
         Int preemptible=2
     }
     command <<<

@@ -36,7 +36,7 @@ echo "}" >> annotations_path.json
 
 
 # Convert bam to cov.gz with bam2cov program
-docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.1.0-alpha \
+docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.1.0 \
   bam2cov --bam ${WORKING_DIR}/${BAM_FILE} \
                   --output ${WORKING_DIR}/coverage_file.cov.gz \
                   --annotationJson ${WORKING_DIR}/annotations_path.json \
@@ -48,7 +48,7 @@ docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.1.0-alp
 
 ```
 mkdir -p ${WORKING_DIR}/hmm_flagger_outputs
-docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.1.0-alpha \
+docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.1.0 \
         hmm_flagger \
             --input ${WORKING_DIR}/coverage_file.cov.gz \
             --outputDir ${WORKING_DIR}/hmm_flagger_outputs  \
@@ -133,7 +133,7 @@ Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (
 |modelType | Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' | String | 'trunc_exp_gaussian'|
 |flaggerMinimumBlockLenArray | Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. | Array[Int] | [0,0,0]|      |flaggerMemSize | Memory size in GB for running HMM-Flagger | Int | 32 |
 |flaggerThreadCount | Number of threads for running HMM-Flagger | Int | 16 |
-|flaggerDockerImage | Docker image for HMM-Flagger | String | mobinasri/flagger:v1.1.0-alpha | 
+|flaggerDockerImage | Docker image for HMM-Flagger | String | mobinasri/flagger:v1.1.0 | 
 |enableOutputtingBigWig| If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions | Boolean | true |
 |enableOutputtingBam| If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions | Boolean | false |
 |truthBedForMisassemblies| A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) | Boolean | No Default (Optional) |

@@ -21,7 +21,7 @@ task augmentCoverageByLabels{
         Int memSize=32
         Int threadCount=8
         Int diskSize=ceil(size(coverage, "GB"))  + 64
-        String dockerImage="mobinasri/flagger:v1.1.0-alpha"
+        String dockerImage="mobinasri/flagger:v1.1.0"
         Int preemptible=2
     }
     command <<<
