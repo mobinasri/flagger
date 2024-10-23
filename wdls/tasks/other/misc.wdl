@@ -10,7 +10,7 @@ task getIndexLabeledBed{
         Int memSize=4
         Int threadCount=2
         Int diskSize=8
-        String dockerImage="mobinasri/flagger:v1.0.0"
+        String dockerImage="mobinasri/flagger:v1.1.0-alpha"
         Int preemptible=2
     }
     command <<<
@@ -64,7 +64,7 @@ task getCanonicalBasesBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v1.0.0"
+        String dockerImage="mobinasri/flagger:v1.1.0-alpha"
         Int preemptible=2
     }
     command <<<

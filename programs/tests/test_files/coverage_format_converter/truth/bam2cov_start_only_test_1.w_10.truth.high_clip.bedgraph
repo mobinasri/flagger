@@ -1,0 +1,6 @@
+track type=bedGraph name="coverage_wig_high_clip" visibility=full color=204,0,204
+contig_1 0 10 0
+contig_1 10 20 0
+contig_1 20 30 0
+contig_1 30 40 0
+contig_1 40 50 0

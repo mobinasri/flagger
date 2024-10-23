@@ -30,8 +30,14 @@ bool test_BiasDetector_getAnnotationToRegionMap(char *bamPath, char *jsonPath) {
     int minCoverage = 1;
     int minTotalCount = 1;
     double minCovDiffNormalized = 0.2;
-    BiasDetector *biasDetector = BiasDetector_construct(annotationNames, baselineAnnotationName, minCoverage,
-                                                        minTotalCount, minCovDiffNormalized);
+    BiasDetector *biasDetector = BiasDetector_construct(annotationNames, 
+		                                        baselineAnnotationName, 
+							minCoverage,
+                                                        minTotalCount, 
+							minCovDiffNormalized,
+							averageAlignmentLength,
+							startOnlyMode,
+							NULL);
 
     BiasDetector_setStatisticsPerAnnotation(biasDetector, blockTable);
     /*for(int i=0; i < 7; i++){

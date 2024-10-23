@@ -193,9 +193,13 @@ bool testReadingFromMemory(const char *covPath, const char *faiPath) {
     int trackIndexCtg2 = -1;
     bool zeroBasedCoors = false;
     int chunkLen = 10000; // a big number
-    CovFastReader *covFastReader =  CovFastReader_construct(inputPath, chunkLen, threads);
+    int threads = 4;
+    stHash *contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    CovFastReader *covFastReader =  CovFastReader_construct(covPath, chunkLen, threads);
     stHash *blockTable = CovFastReader_getBlockTablePerContig(covFastReader);
-    TrackReader *trackReader = TrackReader_constructFromTableInMemory(blockTable, faiPath, zeroBasedCoors);
+    TrackReader *trackReader = TrackReader_constructFromTableInMemory(blockTable,
+                                                                      contigLengthTable,
+                                                                      zeroBasedCoors);
     while (0 < TrackReader_next(trackReader)) {
         if (strcmp(trackReader->ctg, "ctg1") == 0) {
             trackIndexCtg1 += 1;
@@ -231,6 +235,8 @@ bool testReadingFromMemory(const char *covPath, const char *faiPath) {
         }
     }
     TrackReader_destruct(trackReader);
+    CovFastReader_destruct(covFastReader);
+    stHash_destruct(contigLengthTable);
     return correct;
 }
 

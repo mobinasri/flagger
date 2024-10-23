@@ -26,13 +26,23 @@
 #include "stdlib.h"
 #include "bias_detector.h"
 #include "hmm_utils.h"
+#include "chunk.h"
+
 
 BiasDetector *BiasDetector_construct(stList *annotationNames,
                                      const char *baselineAnnotationName,
                                      int minCoverage,
                                      int minTotalCount,
-                                     double minCovDiffNormalized) {
+                                     double minCovDiffNormalized,
+                                     int averageAlignmentLength,
+                                     bool startOnlyMode,
+                                     stHash *contigLengthTable) {
     BiasDetector *biasDetector = malloc(sizeof(BiasDetector));
+    biasDetector->startOnlyMode = startOnlyMode;
+    if(startOnlyMode && contigLengthTable == NULL){
+        fprintf(stderr, "Error:[BIAS_DETECTOR] In the start-only mode contig length table cannot be NULL.\n");
+        exit(EXIT_FAILURE);
+    }
     biasDetector->numberOfAnnotations = stList_length(annotationNames);
     biasDetector->countDataPerAnnotation = CountData_construct1DArray(MAX_COVERAGE_VALUE,
                                                                       biasDetector->numberOfAnnotations);
@@ -50,6 +60,10 @@ BiasDetector *BiasDetector_construct(stList *annotationNames,
     biasDetector->maxCountPerAnnotation = Int_construct1DArray(biasDetector->numberOfAnnotations);
     biasDetector->totalCountPerAnnotation = Double_construct1DArray(biasDetector->numberOfAnnotations);
     biasDetector->annotationToRegionMap = Int_construct1DArray(biasDetector->numberOfAnnotations);
+
+    // variable for start-only mode
+    biasDetector->averageAlignmentLength = averageAlignmentLength;
+    biasDetector->contigLengthTable = contigLengthTable;
     biasDetector->numberOfRegions = 0;
     biasDetector->coveragePerRegion = NULL; // we don't know the number of regions yet
     biasDetector->statsAreUpdated = false;
@@ -69,12 +83,46 @@ void BiasDetector_destruct(BiasDetector *biasDetector) {
 }
 
 
+
 void BiasDetector_setStatisticsPerAnnotation(BiasDetector *biasDetector, stHash *blockTable) {
-    BiasDetector_setCountDataPerAnnotation(biasDetector, blockTable);
+    if(biasDetector->startOnlyMode){
+        BiasDetector_setCountDataPerAnnotationForStartOnlyMode(biasDetector, blockTable);
+    }
+    else {
+        BiasDetector_setCountDataPerAnnotation(biasDetector, blockTable);
+    }
     BiasDetector_setMostFrequentCoveragePerAnnotation(biasDetector);
     BiasDetector_setMaxCountPerAnnotation(biasDetector);
     BiasDetector_setTotalCountPerAnnotation(biasDetector);
     biasDetector->statsAreUpdated = true;
+}
+
+
+void BiasDetector_setCountDataPerAnnotationForStartOnlyMode(BiasDetector *biasDetector, stHash *blockTable) {
+    int windowLen = biasDetector->averageAlignmentLength;
+    stList *chunks = Chunk_parseContigChunkListFromMemory(blockTable,
+                                                          biasDetector->contigLengthTable,
+                                                          windowLen,
+                                                          biasDetector->startOnlyMode);
+    // each chunk covers a whole contig
+    for (int chunkIndex = 0; chunkIndex < stList_length(chunks); chunkIndex++) {
+        Chunk *chunk = stList_get(chunks, chunkIndex);
+        int chunkLen = chunk->e - chunk->s + 1;
+        int lastWindowActualSize = chunkLen - windowLen * (chunk->coverageInfoSeqLen - 1);
+        for (int windowIndex=0; windowIndex < chunk->coverageInfoSeqLen; windowIndex++){
+            CoverageInfo *covInfo = chunk->coverageInfoSeq[windowIndex];
+            for (int annotationIndex = 0; annotationIndex < biasDetector->numberOfAnnotations; annotationIndex++) {
+                if (CoverageInfo_overlapAnnotationIndex(covInfo,
+                                                        annotationIndex)) { // checking overlap is fast (a few bit-wise operations)
+                    int actualWindowSize = windowIndex < chunk->coverageInfoSeqLen - 1 ? windowLen : lastWindowActualSize;
+                    // adjust value since the last window might be shorter than windowLen
+                    int value = covInfo->coverage * windowLen / actualWindowSize;
+                    CountData_increment(biasDetector->countDataPerAnnotation[annotationIndex], value, (double) actualWindowSize);
+                }
+            }
+        }
+    }
+    stList_destruct(chunks);
 }
 
 void BiasDetector_setCountDataPerAnnotation(BiasDetector *biasDetector, stHash *blockTable) {
@@ -121,7 +169,6 @@ void BiasDetector_setTotalCountPerAnnotation(BiasDetector *biasDetector) {
     }
 }
 
-
 void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
                                    stList *annotationNamesToCheck,
                                    const char *tsvPathToWriteTable) {
@@ -137,7 +184,8 @@ void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
     int *annotationToRegionMap = biasDetector->annotationToRegionMap;
 
     int baselineIndex = biasDetector->baselineAnnotationIndex;
-    int baselineCoverage = biasDetector->mostFrequentCoveragePerAnnotation[baselineIndex];
+    int baselineCoverage = 0;
+    baselineCoverage = biasDetector->mostFrequentCoveragePerAnnotation[baselineIndex];
     if (baselineCoverage < 1) {
         fprintf(stderr, "[%s] Error: baseline coverage is too low (< 1) %d!\n", get_timestamp(), baselineCoverage);
         exit(EXIT_FAILURE);
@@ -168,7 +216,7 @@ void BiasDetector_runBiasDetection(BiasDetector *biasDetector,
     if (tsvFile != NULL) {
         fprintf(stderr, "[%s] Writing coverage bias table into this file %s \n", get_timestamp(), tsvPathToWriteTable);
         fprintf(tsvFile,
-                "annotation\tstatus\tmost_freq_cov\tmax_count\ttotal_count\tcov_diff_normalized\tregion_index\n");
+                "annotation\tstatus\tmost_freq_cov\tmax_count\ttotal_length\tcov_diff_normalized\tregion_index\n");
     }
 
     int regionIndex = 1; // starts from 1 since 0 is reserved for regions with no bias

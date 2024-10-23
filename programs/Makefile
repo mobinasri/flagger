@@ -57,6 +57,24 @@ run_tests:
 	./bin/test_bias_detector; \
 		if [ $$? -eq 0 ]; then printf "API:bias_detector\tOK\n" >> tests_status.txt; \
 		                  else printf "API:bias_detector\tFAILED\n" >> tests_status.txt; fi
+	# convert bam to cov with annotations (start-only mode)
+	./bin/bam2cov \
+		--bam tests/test_files/bam2cov/bam2cov_start_only_test_1.bam \
+		--annotationJson tests/test_files/bam2cov/bam2cov_start_only_test_1.json \
+		--output tests/test_files/bam2cov/bam2cov_start_only_test_1.output.cov \
+		--runBiasDetection \
+		--minBiasCoverage 1 \
+		--minBiasLength 1 \
+		--minAlignmentLength 1 \
+		--baselineAnnotation annot_1 \
+		--startOnlyMode;
+		cmp tests/test_files/bam2cov/bam2cov_start_only_test_1.output.cov \
+                    tests/test_files/bam2cov/bam2cov_start_only_test_1.truth.cov; \
+                return_code=$$?; \
+                if [ $$return_code -eq 0 ]; then printf "PROGRAM:bam2cov:start_only_with_uncompressed_cov_file\tOK\n" >> tests_status.txt; \
+                                            else printf "PROGRAM:bam2cov:start_only_with_uncompressed_cov_file\tFAILED\n" >> tests_status.txt; fi ;\
+                if [ $$return_code -eq 0 ]; then printf "Testing bam2cov with uncompressed cov file in the start-only mode:" && ./bin/print_OK ; \
+                                            else printf "Testing bam2cov with uncompressed cov file in the start-only mode:" && ./bin/print_FAIL ; fi
 	# convert bam to cov with annotations
 	./bin/bam2cov \
 		--bam tests/test_files/bam2cov/ptBlock_bam2cov_test.bam \
@@ -65,6 +83,7 @@ run_tests:
 		--runBiasDetection \
 		--minBiasCoverage 1 \
 		--minBiasLength 1 \
+		--minAlignmentLength 0 \
 		--baselineAnnotation annot_1;\
 		cmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov \
 		    tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov; \
@@ -81,6 +100,7 @@ run_tests:
 		--runBiasDetection \
 		--minBiasCoverage 1 \
 		--minBiasLength 1 \
+		--minAlignmentLength 0 \
 		--baselineAnnotation annot_1; \
 		zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.cov.gz \
 		     tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.cov.gz; \
@@ -97,6 +117,7 @@ run_tests:
 		--runBiasDetection \
 		--minBiasCoverage 1 \
 		--minBiasLength 1 \
+		--minAlignmentLength 0 \
 		--baselineAnnotation annot_1; \
 		zcmp tests/test_files/bam2cov/ptBlock_bam2cov_test.output.bed \
 		     tests/test_files/bam2cov/ptBlock_bam2cov_test.truth.bed; \
@@ -105,6 +126,25 @@ run_tests:
 		                            else printf "PROGRAM:bam2cov:with_uncompressed_bed_file\tFAILED\n" >> tests_status.txt; fi ;\
 		if [ $$return_code -eq 0 ]; then printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_OK ; \
 		                            else printf "Testing bam2cov with uncompressed bed file:" && ./bin/print_FAIL ; fi
+	./bin/coverage_format_converter \
+		-i tests/test_files/bam2cov/bam2cov_start_only_test_1.truth.cov \
+		-f tests/test_files/bam2cov/start_only_test_1.fa.fai  \
+		-o tests/test_files/coverage_format_converter/bam2cov_start_only_test_1.w_10.output.bedgraph \
+		-w 10;
+		cmp tests/test_files/coverage_format_converter/bam2cov_start_only_test_1.w_10.output.bedgraph \
+                    tests/test_files/coverage_format_converter/truth/bam2cov_start_only_test_1.w_10.truth.bedgraph && \
+                cmp tests/test_files/coverage_format_converter/bam2cov_start_only_test_1.w_10.output.high_mapq.bedgraph \
+                    tests/test_files/coverage_format_converter/truth/bam2cov_start_only_test_1.w_10.truth.high_mapq.bedgraph && \
+                cmp tests/test_files/coverage_format_converter/bam2cov_start_only_test_1.w_10.output.high_clip.bedgraph \
+                    tests/test_files/coverage_format_converter/truth/bam2cov_start_only_test_1.w_10.truth.high_clip.bedgraph && \
+                cmp tests/test_files/coverage_format_converter/bam2cov_start_only_test_1.w_10.output.region_idx.bedgraph \
+                    tests/test_files/coverage_format_converter/truth/bam2cov_start_only_test_1.w_10.truth.region_idx.bedgraph;\
+                return_code=$$?; \
+                if [ $$return_code -eq 0 ]; then printf "PROGRAM:coverage_format_converter:for_cov_to_bedgraph_start_only\tOK\n" >> tests_status.txt; \
+                                            else printf "PROGRAM:coverage_format_converter:for_cov_to_bedgraph_start_only\tFAILED\n" >> tests_status.txt; fi ;\
+                if [ $$return_code -eq 0 ]; then printf "Testing coverage_format_converter for cov -> bedgraph (start-only mode):" && ./bin/print_OK ; \
+                                            else printf "Testing coverage_format_converter for cov -> bedgraph (start-only mode):" && ./bin/print_FAIL ; fi
+		
 	# convert cov to bed with both labels
 	./bin/coverage_format_converter \
 		-i tests/test_files/coverage_format_converter/test_1_with_labels.cov \

@@ -36,7 +36,7 @@ task tuneAlpha{
         Int memSize=64
         Int threadCount=64
         Int diskSize=ceil(size(trainBinArray, "GB"))  + ceil(size(validationBinArray, "GB")) + 64
-        String dockerImage = "mobinasri/flagger:v1.0.0"
+        String dockerImage = "mobinasri/flagger:v1.1.0-alpha"
         Int preemptible=2
     }
     command <<<

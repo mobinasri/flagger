@@ -12,6 +12,8 @@
 #region:coverage:2:2
 #truth:false
 #prediction:false
+#avg_alignment_len:6
+#start-only:false
 contig_1	0	4	0	0	0	0	0
 contig_1	4	7	0	0	0	5	0
 contig_1	7	10	0	0	0	0	0

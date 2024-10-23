@@ -24,11 +24,13 @@ task bam2cov{
         File? includeContigListText
         Boolean runBiasDetection=false
         String format="all"
+        Int minAlignmentLength=5000
+        Boolean startOnlyMode=false
         # runtime configurations
         Int memSize=32
         Int threadCount=8
         Int diskSize=ceil(size(bam, "GB"))  + 512
-        String dockerImage="mobinasri/flagger:v1.0.0"
+        String dockerImage="mobinasri/flagger:v1.1.0-alpha"
         Int preemptible=2
     }
     command <<<
@@ -64,7 +66,12 @@ task bam2cov{
         echo "}" >> annotations_path.json
 
         # addittional args for --runBiasDetection 
-        ADDITIONAL_ARGS=~{true="--runBiasDetection" false="" runBiasDetection}
+        ADDITIONAL_ARG_1=~{true="--runBiasDetection" false="" runBiasDetection}
+
+        # additional args for --startOnlyMode
+        ADDITIONAL_ARG_2=~{true="--startOnlyMode" false="" startOnlyMode}
+
+        ADDITIONAL_ARGS="${ADDITIONAL_ARG_1} ${ADDITIONAL_ARG_2}"
 
         # create a text file containing the list of annotations names for bias detection
         if (( ~{length(biasAnnotationNameArray)} > 0 ));then
@@ -108,7 +115,8 @@ task bam2cov{
                 --threads ~{threadCount} \
                 --format ~{format} \
                 --baselineAnnotation ~{baselineAnnotationName} \
-                --downsampleRate ~{downsampleRate} ${ADDITIONAL_ARGS}
+                --downsampleRate ~{downsampleRate} \
+                --minAlignmentLength ~{minAlignmentLength} ${ADDITIONAL_ARGS}
 
     >>>
     runtime {

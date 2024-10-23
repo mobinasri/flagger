@@ -515,14 +515,14 @@ int TrackReader_readLine(TrackReader *trackReader, char **linePtr, int maxSize) 
     }
 }
 
-TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, char *faiPath, bool zeroBasedCoors) {
+TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, stHash *contigLengthTable, bool zeroBasedCoors) {
     TrackReader *trackReader = malloc(sizeof(TrackReader));
     trackReader->trackFileFormat = TRACK_MEMORY_COV;
     trackReader->fileReaderPtr = NULL;
-    if (faiPath != NULL) {
-        trackReader->contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
+    if (contigLengthTable != NULL) {
+        trackReader->contigLengthTable = contigLengthTable;
     } else {
-        fprintf(stderr, "Error: fai path cannot be empty!");
+        fprintf(stderr, "Error: (TRACK_READER) contig length table cannot be NULL for reading from memory!");
         exit(EXIT_FAILURE);
     }
     trackReader->s = -1;
@@ -530,7 +530,7 @@ TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, 
     trackReader->attrbs = NULL;
     trackReader->attrbsLen = 0;
     trackReader->zeroBasedCoors = zeroBasedCoors;
-    trackReader->contigList = ptBlock_get_sorted_contig_list(blockTable);
+    trackReader->contigList = ptBlock_get_sorted_contig_list(coverageBlockTable);
     trackReader->coverageBlockTable = coverageBlockTable;
     trackReader->nextContigIndexToRead = 0;
     trackReader->nextBlockIndexToRead = 0;
@@ -541,21 +541,22 @@ TrackReader *TrackReader_constructFromTableInMemory(stHash *coverageBlockTable, 
     return trackReader;
 }
 
-TrackReader *TrackReader_construct(char *filePath, char *faiPath, bool zeroBasedCoors) {
+TrackReader *TrackReader_construct(char *filePath, stHash *contigLengthTable, bool zeroBasedCoors) {
     TrackReader *trackReader = malloc(sizeof(TrackReader));
     trackReader->trackFileFormat = TrackReader_getTrackFileFormat(filePath);
     trackReader->fileReaderPtr = TrackReader_openFile(filePath, trackReader->trackFileFormat);
-    if (faiPath != NULL) {
-        trackReader->contigLengthTable = ptBlock_get_contig_length_stHash_from_fai(faiPath);
-    } else {
-        trackReader->contigLengthTable = NULL;
-    }
+    trackReader->contigLengthTable = contigLengthTable;
     trackReader->ctgLen = -1;
     trackReader->s = -1;
     trackReader->e = -1;
     trackReader->attrbs = NULL;
     trackReader->attrbsLen = 0;
     trackReader->zeroBasedCoors = zeroBasedCoors;
+    trackReader->coverageBlockTable = NULL;
+    trackReader->nextContigIndexToRead = -1;
+    trackReader->nextBlockIndexToRead = -1;
+    trackReader->contigList = NULL;
+    trackReader->coverageBlockListBeingIterated = NULL;
     return trackReader;
 }
 
@@ -602,9 +603,10 @@ void TrackReader_destruct(TrackReader *trackReader) {
         gzclose(gzReaderPtr[0]);
         free(trackReader->fileReaderPtr);
     }
+    /*
     if (trackReader->contigLengthTable != NULL) {
         stHash_destruct(trackReader->contigLengthTable);
-    }
+    }*/
     if (trackReader->contigList != NULL){
         stList_destruct(trackReader->contigList);
     }
@@ -669,9 +671,9 @@ int TrackReader_readNextFromMemory(TrackReader *trackReader){
         int len = 0;
         int *annotation_indices = CoverageInfo_getAnnotationIndices(coverageInfo, &len);
         char *annotation_entry_str = String_joinIntArray(annotation_indices, len, ',');
-        sprintf(trackReader->attrbs[0], "%.0f", coverageInfo->coverage);
-        sprintf(trackReader->attrbs[1], "%.0f", coverageInfo->coverage_high_mapq);
-        sprintf(trackReader->attrbs[2], "%.0f", coverageInfo->coverage_high_clip);
+        sprintf(trackReader->attrbs[0], "%d", coverageInfo->coverage);
+        sprintf(trackReader->attrbs[1], "%d", coverageInfo->coverage_high_mapq);
+        sprintf(trackReader->attrbs[2], "%d", coverageInfo->coverage_high_clip);
         sprintf(trackReader->attrbs[3], "%s", annotation_entry_str); // annotation string
         sprintf(trackReader->attrbs[4], "%d", CoverageInfo_getRegionIndex(coverageInfo)); // region index
         free(annotation_entry_str);

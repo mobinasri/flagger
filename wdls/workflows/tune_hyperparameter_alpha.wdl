@@ -26,7 +26,7 @@ workflow runTuneHyperparameterAlpha{
         annotationBedArray2D: "(Optional) A 2D array of annotation bed files. The length of array should be equal to the number of bam files. Each element is an array of BED files, each containing the coordinates of an annotation e.g. HSat1A or HSat2 (Default: None)"
         biasAnnotationNameArray2D: "(Optional) A 2D array of the names of the annotations potentially having coverage biases. The length of array should be equal to the number of bam files. Each element is an array of names related to the annotations that should be considered in the bias detection step. The given names should match the names of the files in annotationBedArray2D without the suffix '.bed'. The length of each internal array cannot be larger than its equavalent array in annotationBedArray2D. (Default: None)"
         downsampleRateArray: "An array of down-sampling rates (Default: [1.0])"
-        flaggerDockerImage: "Docker image for running HMM-Flagger and related programs (Default: 'mobinasri/flagger:v1.0.0')"
+        flaggerDockerImage: "Docker image for running HMM-Flagger and related programs (Default: 'mobinasri/flagger:v1.1.0-alpha')"
         threadsPerFlaggerRun: "The number of threads for HMM-Flagger (Default: 8)"
         maxFlaggerRunsPerIteration: "The maximum number of HMM-Flagger runs per EGO iteration (Default: 8)"
         windowLen: "The size of the window for HMM-Flagger (Default: 4000)"
@@ -40,6 +40,8 @@ workflow runTuneHyperparameterAlpha{
         runFlaggerPostOptForValidation: "If this parameter is true after finding the optimal alpha matrix run HMM-Flagger on all validation coverage files with more EM iterations and then make summary tables with the resolution of bases not windows (HMM-Flagger outputs summary tables with the resolution of windows) (Default = true)"
         flaggerPostOptConvergenceTol: "Convergence tolerance for running HMM-Flagger post optimization (Default = 0.001)"
         flaggerPostOptIterations : "Maxmimum number of EM iterations for running HMM-Flagger post optimization (Default = 50)"
+        startOnlyMode : "Use start-only mode for bam2cov. It will take only the start locations of read alignments instead of the whole covered blocks. (Default = false)"
+        minAlignmentLength : "Minimum alignment length for bam2cov (Default=5000)"
     }
     input{
         Array[File] bamArray
@@ -50,9 +52,11 @@ workflow runTuneHyperparameterAlpha{
         Array[Array[File]]? annotationBedArray2D
         Array[Array[String]]? biasAnnotationNameArray2D
         Array[Float] downsampleRateArray=[1.0]
+        Boolean startOnlyMode = false
+        Int minAlignmentLength = 5000
         Boolean runFlaggerPostOptForTrain = false
         Boolean runFlaggerPostOptForValidation = true
-        String flaggerDockerImage="mobinasri/flagger:v1.0.0"
+        String flaggerDockerImage="mobinasri/flagger:v1.1.0-alpha"
         String otherFlaggerParamsForTuning="--convergenceTol 1e-2  --iterations 10"
         Float flaggerPostOptConvergenceTol = 0.001
         Int flaggerPostOptIterations = 50
@@ -112,6 +116,8 @@ workflow runTuneHyperparameterAlpha{
                 includeContigListText = getContigList.trainContigListText,
                 runBiasDetection = (length(select_first([biasAnnotationNameArray,[]])) > 0),
                 format = "all",
+                minAlignmentLength = minAlignmentLength,
+                startOnlyMode = startOnlyMode,
                 memSize = 32,
                 threadCount = 16,
                 dockerImage = flaggerDockerImage
@@ -163,6 +169,8 @@ workflow runTuneHyperparameterAlpha{
                 includeContigListText = getContigList.validationContigListText,
                 runBiasDetection = (length(select_first([biasAnnotationNameArray,[]])) > 0),
                 format = "all",
+                minAlignmentLength = minAlignmentLength,
+                startOnlyMode = startOnlyMode,
                 memSize = 32,
                 threadCount = 16,
                 dockerImage = flaggerDockerImage
@@ -379,7 +387,7 @@ task getTrainAndValidationContigText{
         Int memSize=4
         Int threadCount=2
         Int diskSize=8
-        String dockerImage="mobinasri/flagger:v1.0.0"
+        String dockerImage="mobinasri/flagger:v1.1.0-alpha"
         Int preemptible=2
     }
     command <<<

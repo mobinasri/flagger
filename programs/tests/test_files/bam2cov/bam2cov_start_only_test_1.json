@@ -1,0 +1,4 @@
+{
+  "annot_1": "tests/test_files/bam2cov/bam2cov_start_only_test_1.bed",
+  "annot_2": "tests/test_files/bam2cov/bam2cov_start_only_test_2.bed"
+}

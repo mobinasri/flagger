@@ -64,7 +64,7 @@ Chunk *Chunk_constructWithAllocatedSeq(int chunkCanonicalLen, int windowLen, int
     chunk->windowTruthArray = (int *) malloc(windowLen * sizeof(int));
     chunk->windowPredictionArray = (int *) malloc(windowLen * sizeof(int));
     chunk->fileOffset = 0;
-    chunk->startOnlyMode = true;
+    chunk->startOnlyMode = false;
     return chunk;
 }
 
@@ -239,7 +239,8 @@ void ChunksCreator_subsetChunksToContigs(ChunksCreator *chunksCreator, stList* c
 // it will create a stList of Chunks with no coverage data
 stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCanonicalLen) {
     bool zeroBasedCoors = true;
-    TrackReader *trackReader = TrackReader_construct(filePath, faiPath, zeroBasedCoors);
+    stHash *contigLengthTable = faiPath != NULL ? ptBlock_get_contig_length_stHash_from_fai(faiPath) : NULL;
+    TrackReader *trackReader = TrackReader_construct(filePath, contigLengthTable, zeroBasedCoors);
     if (trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED ||
         trackReader->trackFileFormat == TRACK_FILE_FORMAT_BED_GZ) {
         if (trackReader->contigLengthTable == NULL) {
@@ -286,6 +287,9 @@ stList *ChunksCreator_createCovIndex(char *filePath, char *faiPath, int chunkCan
         preFileOffset = TrackReader_getFilePosition(trackReader);
     }
     TrackReader_destruct(trackReader);
+    if (contigLengthTable != NULL) {
+        stHash_destruct(contigLengthTable);
+    }
     return chunks; // The code should reach here when there is no more trackReader left in the cov file
 }
 
@@ -392,9 +396,11 @@ int Chunk_addWindow(Chunk *chunk) {
     double coverage_high_mapq_window = 0.0;
     double coverage_high_clip_window = 0.0;
     if (chunk->startOnlyMode){
-        coverage_window = (double) chunk->windowSumCoverage;
-        coverage_high_mapq_window = (double) chunk->windowSumCoverageHighMapq;
-        coverage_high_clip_window = (double) chunk->windowSumCoverageHighClip;
+	// multiply by chunk->windowLen / (chunk->windowItr + 1) to make sure
+	// the the counts for shorter windows (the the last windows of contigs) are adjusted 
+        coverage_window = (double) chunk->windowSumCoverage * chunk->windowLen / (chunk->windowItr + 1);
+        coverage_high_mapq_window = (double) chunk->windowSumCoverageHighMapq * chunk->windowLen / (chunk->windowItr + 1);
+        coverage_high_clip_window = (double) chunk->windowSumCoverageHighClip * chunk->windowLen / (chunk->windowItr + 1);
     }else {
         coverage_window = (double) chunk->windowSumCoverage / (chunk->windowItr + 1);
         coverage_high_mapq_window = (double) chunk->windowSumCoverageHighMapq / (chunk->windowItr + 1);
@@ -541,38 +547,50 @@ void ChunksCreator_parseOneChunk(void *chunksCreator_) {
 }
 
 
-void ChunksCreator_parseContigChunksFromMemory(void *chunksCreator) {
-    ChunksCreator *chunksCreator = (ChunksCreator *) chunksCreator_;
+
+stList *Chunk_parseContigChunkListFromMemory(stHash* coverageBlockTable,
+                                             stHash *contigLengthTable,
+                                             int windowLen,
+                                             bool startOnlyMode) {
     // Construct a trackReader for iteration
     bool zeroBasedCoors = true;
-    TrackReader *trackReader = TrackReader_construct(chunksCreator->covPath, NULL, zeroBasedCoors);
-    strcpy(trackReader->ctg, templateChunk->ctg);
-    trackReader->ctgLen = templateChunk->ctgLen;
-    // Open cov file and jump to the first trackReader of the chunk
-    TrackReader_setFilePosition(trackReader, templateChunk->fileOffset);
-    // Get the chunk that has to be filled with the emitted sequence
-    // and set start and end coordinates and also the contig name from the given template chunk
-    Chunk *chunk = stList_get(chunksCreator->chunks, chunksCreator->nextChunkIndexToRead);
-    chunk->coverageInfoSeqLen = 0;
-    chunk->windowItr = -1;
-    chunk->s = templateChunk->s;
-    chunk->e = templateChunk->e;
-    strcpy(chunk->ctg, templateChunk->ctg);
-    chunk->ctgLen = templateChunk->ctgLen;
+    TrackReader *trackReader = TrackReader_constructFromTableInMemory(coverageBlockTable,
+                                                                      contigLengthTable,
+                                                                      zeroBasedCoors);
+    stList *chunks = stList_construct3(0, Chunk_destruct);
+    Chunk *chunk = NULL;
+    char prevCtg[200];
+    prevCtg[0] = '\0';
     // iterate over the tracks in the cov file
     while (0 < TrackReader_next(trackReader)) {
-        // if the trackReader overlaps the chunk
-        if (chunk->s <= trackReader->e && trackReader->s <= chunk->e) {
-            assert(0 < Chunk_addTrack(chunk, trackReader));
+        // for the first chunk or when contig has changed
+        if (chunk == NULL || strcmp(trackReader->ctg, prevCtg) != 0){
+            int chunkCanonicalLen = trackReader->ctgLen;
+            int maxSeqSize = trackReader->ctgLen / windowLen + 1;
+            // make a new chunk with allocated sequence
+            chunk = Chunk_constructWithAllocatedSeq(chunkCanonicalLen, windowLen, maxSeqSize);
+            chunk->startOnlyMode = startOnlyMode;
+            chunk->coverageInfoSeqLen = 0;
+            chunk->windowItr = -1;
+            // the chunk covers the whole contig
+            chunk->s = 0; // 0-based
+            chunk->e = trackReader->ctgLen - 1; //0-based
+            strcpy(chunk->ctg, trackReader->ctg);
+            chunk->ctgLen = trackReader->ctgLen;
+            stList_append(chunks, chunk);
+            // update previous contig
+            strcpy(prevCtg, trackReader->ctg);
         }
+        assert(0 < Chunk_addTrack(chunk, trackReader));
+
         if (chunk->e <= trackReader->e) { // chunk is read completely
             if (chunk->windowItr != -1) { // handle a partially iterated window
                 Chunk_addWindow(chunk);
             }
-            break;
         }
     }
     TrackReader_destruct(trackReader);
+    return chunks;
 }
 
 void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char *binPath) {
