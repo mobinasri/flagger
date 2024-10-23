@@ -66,10 +66,12 @@ task bam2cov{
         echo "}" >> annotations_path.json
 
         # addittional args for --runBiasDetection 
-        ADDITIONAL_ARGS=~{true="--runBiasDetection" false="" runBiasDetection}
+        ADDITIONAL_ARG_1=~{true="--runBiasDetection" false="" runBiasDetection}
 
         # additional args for --startOnlyMode
-        ADDITIONAL_ARGS=${ADDITIONAL_ARGS}~{true=" --startOnlyMode" false="" startOnlyMode}
+        ADDITIONAL_ARG_2=~{true="--startOnlyMode" false="" startOnlyMode}
+
+        ADDITIONAL_ARGS="${ADDITIONAL_ARG_1} ${ADDITIONAL_ARG_2}"
 
         # create a text file containing the list of annotations names for bias detection
         if (( ~{length(biasAnnotationNameArray)} > 0 ));then
