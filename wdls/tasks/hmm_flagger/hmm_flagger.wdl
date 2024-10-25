@@ -22,7 +22,7 @@ task hmmFlagger{
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
-        Float minHighMapqRatio=0.5
+        Float minHighMapqRatio=0.75
         String? moreOptions
         File? alphaTsv
         String modelType = "gaussian"

@@ -28,7 +28,7 @@ HMMFlaggerEndToEnd.enableRunningSecphase,scalar,false
 HMMFlaggerEndToEnd.trackName,scalar,hmm_flagger_v1.1.0
 HMMFlaggerEndToEnd.downSamplingRate,scalar,1.0
 HMMFlaggerEndToEnd.maxHighMapqRatio,scalar,0.25
-HMMFlaggerEndToEnd.minHighMapqRatio,scalar,0.5
+HMMFlaggerEndToEnd.minHighMapqRatio,scalar,0.75
 HMMFlaggerEndToEnd.chunkLen,scalar,20000000
 HMMFlaggerEndToEnd.flaggerMemSize,scalar,32
 HMMFlaggerEndToEnd.flaggerThreadCount,scalar,32

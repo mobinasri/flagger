@@ -463,7 +463,7 @@ int main(int argc, char *argv[]) {
     int numberOfIterations = 100;
     double convergenceTol = 0.001;
     double maxHighMapqRatio = 0.25;
-    double minHighMapqRatio = 0.5;
+    double minHighMapqRatio = 0.75;
     int numberOfCollapsedComps = -1;
     char *outputDir = NULL;
     bool writeParameterStatsPerIteration = false;
@@ -622,7 +622,7 @@ int main(int argc, char *argv[]) {
                         "                           Maximum ratio of high mapq coverage for duplicated state [Default=0.25]\n");
                 fprintf(stderr,
                         "         --minHighMapqRatio, -Q\n"
-                        "                           Minimum ratio of high mapq coverage for collapsed state [Default=0.5]\n");
+                        "                           Minimum ratio of high mapq coverage for collapsed state [Default=0.75]\n");
                 fprintf(stderr,
                         "         --alphaTsv, -A\n"
                         "                           (Optional) The dependency factors of the current emission density\n"

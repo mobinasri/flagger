@@ -57,7 +57,7 @@ workflow HMMFlaggerEndToEnd{
         numberOfIterations : "Number of EM iterations for estimating HMM parameters (Default:100)"
         convergenceTolerance : "Convergence tolerance. The EM iteration will stop once the difference between all model parameter values in two consecutive iterations is less than this value. (Default = 0.001)"
         maxHighMapqRatio : "Maximum ratio of high mapq coverage for duplicated state (Default = 0.25)"
-        minHighMapqRatio : "Minimum ratio of high mapq coverage for collapsed state (Default = 0.5)"
+        minHighMapqRatio : "Minimum ratio of high mapq coverage for collapsed state (Default = 0.75)"
         flaggerMoreOptions : "(Optional) More options for HMM-Flagger provided in a single string (Default = '')"
         modelType : "Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = 'trunc_exp_gaussian')"
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
@@ -89,7 +89,7 @@ workflow HMMFlaggerEndToEnd{
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
-        Float minHighMapqRatio=0.5
+        Float minHighMapqRatio=0.75
         String? flaggerMoreOptions
         String modelType = "trunc_exp_gaussian"
         Array[Int] flaggerMinimumBlockLenArray = []
