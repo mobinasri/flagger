@@ -25,11 +25,12 @@ HMMFlaggerEndToEnd.secphaseVersion,scalar,v0.4.3
 HMMFlaggerEndToEnd.convergenceTolerance,scalar,0.001
 HMMFlaggerEndToEnd.numberOfIterations,scalar,100
 HMMFlaggerEndToEnd.enableRunningSecphase,scalar,false
-HMMFlaggerEndToEnd.trackName,scalar,hmm_flagger_v1.0.0
+HMMFlaggerEndToEnd.trackName,scalar,hmm_flagger_v1.1.0
 HMMFlaggerEndToEnd.downSamplingRate,scalar,1.0
 HMMFlaggerEndToEnd.maxHighMapqRatio,scalar,0.25
+HMMFlaggerEndToEnd.minHighMapqRatio,scalar,0.5
 HMMFlaggerEndToEnd.chunkLen,scalar,20000000
 HMMFlaggerEndToEnd.flaggerMemSize,scalar,32
 HMMFlaggerEndToEnd.flaggerThreadCount,scalar,32
-HMMFlaggerEndToEnd.flaggerDockerImage,scalar,mobinasri/flagger:v1.0.0
+HMMFlaggerEndToEnd.flaggerDockerImage,scalar,mobinasri/flagger:v1.1.0
 HMMFlaggerEndToEnd.enableOutputtingBigWig,scalar,true
