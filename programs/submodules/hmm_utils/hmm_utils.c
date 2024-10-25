@@ -1940,10 +1940,13 @@ const char *EmissionDistSeries_getStateName(int distIndex) {
 
 
 
-TransitionRequirements *TransitionRequirements_construct(double minHighlyClippedRatio, double maxHighMapqRatio) {
+TransitionRequirements *TransitionRequirements_construct(double minHighlyClippedRatio,
+                                                         double maxHighMapqRatio,
+                                                         double minHighMapqRatio) {
     TransitionRequirements *transitionRequirements = malloc(sizeof(TransitionRequirements));
     transitionRequirements->minHighlyClippedRatio = minHighlyClippedRatio;
     transitionRequirements->maxHighMapqRatio = maxHighMapqRatio;
+    transitionRequirements->minHighMapqRatio = minHighMapqRatio;
     return transitionRequirements;
 }
 
@@ -1951,6 +1954,7 @@ TransitionRequirements *TransitionRequirements_copy(TransitionRequirements *src)
     TransitionRequirements *dest = malloc(sizeof(TransitionRequirements));
     dest->minHighlyClippedRatio = src->minHighlyClippedRatio;
     dest->maxHighMapqRatio = src->maxHighMapqRatio;
+    dest->minHighMapqRatio = src->minHighMapqRatio;
     return dest;
 }
 
@@ -2219,6 +2223,15 @@ bool
 ValidityFunction_checkDupByMapq(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements) {
     double highMapqRatio = (double) coverageInfo->coverage_high_mapq / (0.1 + coverageInfo->coverage);
     if ((state == STATE_DUP) && (highMapqRatio > requirements->maxHighMapqRatio)) {
+        return false;
+    }
+    return true;
+}
+
+bool
+ValidityFunction_checkColByMapq(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements) {
+    double highMapqRatio = (double) coverageInfo->coverage_high_mapq / (0.1 + coverageInfo->coverage);
+    if ((state == STATE_COL) && (highMapqRatio < requirements->minHighMapqRatio)) {
         return false;
     }
     return true;

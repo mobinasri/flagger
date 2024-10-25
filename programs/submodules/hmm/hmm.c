@@ -25,6 +25,7 @@ HMM *HMM_construct(int numberOfStates,
                    double **means,
                    double *meanScalePerRegion,
                    double maxHighMapqRatio,
+                   double minHighMapqRatio,
                    double minHighlyClippedRatio,
                    char *pathToTransitionCounts,
                    ModelType modelType,
@@ -58,9 +59,11 @@ HMM *HMM_construct(int numberOfStates,
         TransitionCountData_setPseudoCountMatrix(model->transitionPerRegion[region]->transitionCountData,
                                                  TRANSITION_PSEUDO_COUNT_VALUE);
         Transition_addRequirements(model->transitionPerRegion[region],
-                                   TransitionRequirements_construct(minHighlyClippedRatio, maxHighMapqRatio));
+                                   TransitionRequirements_construct(minHighlyClippedRatio, maxHighMapqRatio, minHighMapqRatio));
         Transition_addValidityFunction(model->transitionPerRegion[region],
                                        ValidityFunction_checkDupByMapq);
+        Transition_addValidityFunction(model->transitionPerRegion[region],
+                                       ValidityFunction_checkColByMapq);
         Transition_addValidityFunction(model->transitionPerRegion[region],
                                        ValidityFunction_checkMsjByClipping);
     }

@@ -130,6 +130,7 @@ HMM *createModel(ModelType modelType,
                  CoverageHeader *header,
                  MatrixDouble *alphaMatrix,
                  double maxHighMapqRatio,
+                 double minHighMapqRatio,
                  int windowLen,
                  double initialDeviation) {
     // calculate initial mean coverages for all region classes
@@ -190,6 +191,7 @@ HMM *createModel(ModelType modelType,
                                means,
                                regionScales,
                                maxHighMapqRatio,
+                               minHighMapqRatio,
                                minHighlyClippedRatio,
                                NULL,
                                modelType,
@@ -427,6 +429,7 @@ static struct option long_options[] =
                 {"convergenceTol",                     required_argument, NULL, 't'},
                 {"modelType",                          required_argument, NULL, 'm'},
                 {"maxHighMapqRatio",                   required_argument, NULL, 'q'},
+                {"minHighMapqRatio",                   required_argument, NULL, 'Q'},
                 {"chunkLen",                           required_argument, NULL, 'C'},
                 {"windowLen",                          required_argument, NULL, 'W'},
                 {"contigsList",                        required_argument, NULL, 'c'},
@@ -460,6 +463,7 @@ int main(int argc, char *argv[]) {
     int numberOfIterations = 100;
     double convergenceTol = 0.001;
     double maxHighMapqRatio = 0.25;
+    double minHighMapqRatio = 0.5;
     int numberOfCollapsedComps = -1;
     char *outputDir = NULL;
     bool writeParameterStatsPerIteration = false;
@@ -544,6 +548,9 @@ int main(int argc, char *argv[]) {
             case 'q':
                 maxHighMapqRatio = atof(optarg);
                 break;
+            case 'Q':
+                minHighMapqRatio = atof(optarg);
+                break;
             case 's':
                 acceleration = true;
                 break;
@@ -612,7 +619,10 @@ int main(int argc, char *argv[]) {
                         "                           less than this value. [Default = 0.001]\n");
                 fprintf(stderr,
                         "         --maxHighMapqRatio, -q\n"
-                        "                           Maximum ratio of high mapq coverage for duplicated component\n");
+                        "                           Maximum ratio of high mapq coverage for duplicated state [Default=0.25]\n");
+                fprintf(stderr,
+                        "         --minHighMapqRatio, -Q\n"
+                        "                           Minimum ratio of high mapq coverage for collapsed state [Default=0.5]\n");
                 fprintf(stderr,
                         "         --alphaTsv, -A\n"
                         "                           (Optional) The dependency factors of the current emission density\n"
@@ -779,6 +789,7 @@ int main(int argc, char *argv[]) {
                              chunksCreator->header,
                              alphaMatrix,
                              maxHighMapqRatio,
+                             minHighMapqRatio,
                              chunksCreator->windowLen,
                              initialRandomDeviation);
 

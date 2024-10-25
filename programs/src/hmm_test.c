@@ -122,6 +122,7 @@ HMM *createModel(ModelType modelType, double medianCoverage, int collapsedComps,
     MatrixDouble *alpha = MatrixDouble_construct0(numberOfStates + 1, numberOfStates + 1);
 
     double maxHighMapqRatio = 1.0; // Dup state is not dependent on high mapq coverage in this test
+    double minHighMapqRatio = 0.0; // Col state is not dependent on high mapq coverage in this test
     double minHighlyClippedRatio = 1.0; // Msj is not present in this test so it doesn't matter
                                         //
     fprintf(stderr, "creating model ...\n");
@@ -131,6 +132,7 @@ HMM *createModel(ModelType modelType, double medianCoverage, int collapsedComps,
                                means,
                                regionScales,
                                maxHighMapqRatio,
+                               minHighMapqRatio,
                                minHighlyClippedRatio,
                                NULL,
                                modelType,
@@ -140,16 +142,19 @@ HMM *createModel(ModelType modelType, double medianCoverage, int collapsedComps,
 
 }
 
-int runTest(char *pathToTestData, HMM *model, int numberOfIterations, double convergenceTol, char* outputDir, bool writeStatsPerIteration) {
-    int seqLen = 0;
-    fprintf(stderr, "parsing test file ...\n");
-    CoverageInfo **coverageInfoSeq = CoverageInfo_parseTestData(pathToTestData, &seqLen);
-    uint8_t *truthStateIndices = parseStateIndicesFromTestData(pathToTestData); 
+int runTest(ChunksCreator *chunksCreator,
+            HMM *model,
+            int numberOfIterations,
+            double convergenceTol,
+            char* outputDir,
+            bool writeParameterStatsPerIteration,
+            bool writeBenchmarkingStatsPerIteration) {
 
     char suffix[200];
-    fprintf(stderr, "creating em ...\n");
+    fprintf(stderr, "Creating em arrays ...\n");
     EM *em = EM_construct(coverageInfoSeq, seqLen, model);
     writeStats(em, outputDir, "initial", false); // will not write posterior tsv
+
     int iter = 0;
     bool converged = false;
     while(iter < numberOfIterations && converged == false) {
@@ -283,23 +288,23 @@ int main(int argc, char *argv[]) {
         }
     }
     if (modelType == MODEL_UNDEFINED){
-	    fprintf(stderr, "(Error) Model type is not defined. Specify the model type with --model (-m) argument.\n");
+	    fprintf(stderr, "Error: Model type is not defined. Specify the model type with --model (-m) argument.\n");
 	    exit(EXIT_FAILURE);
     }
     if (medianCoverage <= 0.0){
-	    fprintf(stderr, "(Error) --coverage, -c should be speficied. It can only be a positive number.\n");
+	    fprintf(stderr, "Error: --coverage, -c should be speficied. It can only be a positive number.\n");
 	    exit(EXIT_FAILURE);
     }
     if (numberOfRegions < 1){
-	    fprintf(stderr, "(Error) --numberOfRegions, -r should be a positive number.\n");
+	    fprintf(stderr, "Error: --numberOfRegions, -r should be a positive number.\n");
             exit(EXIT_FAILURE);
     }
     if (outputDir == NULL){
-	    fprintf(stderr, "(Error) --outputDir, -o should be speficied.\n");
+	    fprintf(stderr, "Error: --outputDir, -o should be speficied.\n");
             exit(EXIT_FAILURE);
     }
     else if (folder_exists(outputDir) == false){
-	   fprintf(stderr, "(Error) Output directory %s does not exist!\n", outputDir);
+	   fprintf(stderr, "Error: Output directory %s does not exist!\n", outputDir);
            exit(EXIT_FAILURE);
     }
     Splitter *splitter = Splitter_construct(regionScalesStr, ',');

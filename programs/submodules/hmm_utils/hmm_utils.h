@@ -692,16 +692,21 @@ void EmissionDistSeriesParamIter_destruct(EmissionDistSeriesParamIter *paramIter
  *                                  for allowing a transition to the misjoin state
  * @field maxHighMapqRatio          The maximum ratio of the coverage of alignments with high mapq over total coverage
  *                                  for allowing a transition to the duplicated state
+ * @field minHighMapqRatio          The minimum ratio of the coverage of alignments with high mapq over total coverage
+ *                                  for allowing a transition to the collapsed state
  */
 typedef struct TransitionRequirements {
     double minHighlyClippedRatio;
     double maxHighMapqRatio;
+    double minHighMapqRatio;
 } TransitionRequirements;
 
 /*
  * Construct a TransitionRequirements structure
  */
-TransitionRequirements *TransitionRequirements_construct(double minHighlyClippedRatio, double maxHighMapqRatio);
+TransitionRequirements *TransitionRequirements_construct(double minHighlyClippedRatio,
+                                                         double maxHighMapqRatio,
+                                                         double minHighMapqRatio);
 
 
 TransitionRequirements *TransitionRequirements_copy(TransitionRequirements * src);
@@ -722,6 +727,12 @@ typedef bool (*ValidityFunction)(StateType, CoverageInfo *, TransitionRequiremen
  * It returns true if state is anything other than duplicated
  */
 bool ValidityFunction_checkDupByMapq(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements);
+
+/*
+ * A validity function that returns true if it is valid to have a transition to the collapsed state otherwise false
+ * It returns true if state is anything other than collapsed
+ */
+bool ValidityFunction_checkColByMapq(StateType state, CoverageInfo *coverageInfo, TransitionRequirements *requirements);
 
 /*
  * A validity function that returns true if it is valid to have a transition to the misjoin state otherwise false
