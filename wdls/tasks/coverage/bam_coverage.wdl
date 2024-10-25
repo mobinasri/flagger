@@ -15,7 +15,7 @@ task bam2cov{
         File bai
         File fasta
         String? suffix=""
-        Int mapqThreshold=20
+        Int mapqThreshold=10
         Float clipRatioThreshold=0.1
         Float downsampleRate=1.0
         Array[File] annotationBedArray=[]

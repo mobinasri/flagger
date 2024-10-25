@@ -58,7 +58,7 @@ static struct option long_options[] =
 int main(int argc, char *argv[]) {
     int c;
     int minAlignmentLength = 5000;
-    int mapqThreshold = 20;
+    int mapqThreshold = 10;
     double clipRatioThreshold = 0.1;
     double downsampleRate = 1.0;
     int threads = 4;
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         -m, --mapqThreshold\n"
                         "                           Minimum mapq for the measuring the coverage of the alignments\n"
-                        "                           with high mapq [Default = 20]\n");
+                        "                           with high mapq [Default = 10]\n");
                 fprintf(stderr,
                         "         -M, --minAlignmentLength\n"
                         "                           Minimum alignment length [Default = 5000]\n");

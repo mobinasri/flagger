@@ -266,7 +266,7 @@ workflow HMMFlaggerEndToEnd{
             bai = select_first([correctBam.correctedBamIndex, readAlignmentBai]),
             fasta = createDipAsm.diploidAssemblyFastaGz,
             suffix = "",
-            mapqThreshold = 20,
+            mapqThreshold = 10,
             clipRatioThreshold = 0.1,
             downsampleRate = downSamplingRate,
             annotationBedArray = collectAnnotations.annotationBedArray,
