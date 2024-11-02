@@ -62,10 +62,10 @@ int main(int argc, char *argv[]) {
     double clipRatioThreshold = 0.1;
     double downsampleRate = 1.0;
     int threads = 4;
-    char *bamPath;
-    char *outPath;
-    char *jsonPath;
-    char *program;
+    char *bamPath = NULL;
+    char *outPath = NULL;
+    char *jsonPath = NULL;
+    char *program = NULL;
     char *restrictBiasAnnotationsPath = NULL;
     char *includeContigsPath = NULL;
     char *baselineAnnotationName = copyString("no_annotation");
