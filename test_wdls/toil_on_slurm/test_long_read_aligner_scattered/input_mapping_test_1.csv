@@ -3,7 +3,7 @@ longReadAlignmentScattered.preset,scalar,$input.preset_param
 longReadAlignmentScattered.suffix,scalar,$input.suffix
 longReadAlignmentScattered.alignerOptions,scalar,$input.aligner_params
 longReadAlignmentScattered.readExtractionOptions,scalar,$input.fastq_params
-longReadAlignmentScattered.alignerDockerImage,scalar,"mobinasri/long_read_aligner:v0.4.0"
+longReadAlignmentScattered.alignerDockerImage,scalar,"mobinasri/long_read_aligner:v1.1.0"
 longReadAlignmentScattered.enableSplittingReadsEqually,scalar,false
 longReadAlignmentScattered.splitNumber,scalar,16
 longReadAlignmentScattered.alignerThreadCount,scalar,8

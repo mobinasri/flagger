@@ -34,7 +34,7 @@ workflow longReadAlignmentScattered {
         minReadLength: "If it is greater than zero, a task will be executed for filtering reads shorter than this value before alignment. [Default = 0]"
         alignerThreadCount : "The number of threads for mapping in each alignment task [Default = 16]"
         alignerMemSize : "The size of the memory in Gb for mapping in each alignment task [Default = 48]"
-        alignerDockerImage : "The mapping docker image [Default = 'mobinasri/long_read_aligner:v0.4.0']"
+        alignerDockerImage : "The mapping docker image [Default = 'mobinasri/long_read_aligner:v1.1.0']"
         enableRunningSecphase: "If true it will run Secphase and apply the corrections reported by Secphase to the final output. [Default = false]"
         secphaseOptions: "--hifi for hifi reads and --ont for ont reads [Default = '--hifi'] "
         secphaseDockerImage: "The secphase docker image. [Default = 'mobinasri/secphase:v0.4.3']"
@@ -61,7 +61,7 @@ workflow longReadAlignmentScattered {
 
         Int alignerThreadCount = 16
         Int alignerMemSize = 48
-        String alignerDockerImage = "mobinasri/long_read_aligner:v0.4.0"
+        String alignerDockerImage = "mobinasri/long_read_aligner:v1.1.0"
 
         Boolean enableRunningSecphase=false
         String secphaseOptions="--hifi"

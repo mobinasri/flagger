@@ -26,7 +26,7 @@ HMMFlaggerEndToEndWithMapping.biasAnnotationsBedArrayToBeProjected,array,$input.
 HMMFlaggerEndToEndWithMapping.minReadLengthForMapping,scalar,0
 HMMFlaggerEndToEndWithMapping.alignerThreadCount,scalar,32
 HMMFlaggerEndToEndWithMapping.alignerMemSize,scalar,48
-HMMFlaggerEndToEndWithMapping.alignerDockerImage,scalar,mobinasri/long_read_aligner:v0.4.0
+HMMFlaggerEndToEndWithMapping.alignerDockerImage,scalar,mobinasri/long_read_aligner:v1.1.0
 HMMFlaggerEndToEndWithMapping.projectionReferenceFasta,scalar,https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz
 HMMFlaggerEndToEndWithMapping.secphaseOptions,scalar,--hifi
 HMMFlaggerEndToEndWithMapping.secphaseDockerImage,scalar,mobinasri/secphase:v0.4.3--c99e0e9f3561192e127b2d913c932c3e68aa21bf

@@ -136,7 +136,7 @@ cat HG002_hifiasm_chr15_only_test_secphase_and_md_tag_long_read_aligner_scattere
   "longReadAlignmentScattered.suffix": "HiFi_minimap2",
   "longReadAlignmentScattered.alignerOptions": "-I8g --eqx -Y -L --cs",
   "longReadAlignmentScattered.readExtractionOptions": " ",
-  "longReadAlignmentScattered.alignment.dockerImage": "mobinasri/long_read_aligner:v0.4.0",
+  "longReadAlignmentScattered.alignment.dockerImage": "mobinasri/long_read_aligner:v1.1.0",
   "longReadAlignmentScattered.enableSplittingReadsEqually": false,
   "longReadAlignmentScattered.splitNumber": 16,
   "longReadAlignmentScattered.alignment.threadCount": 8,
