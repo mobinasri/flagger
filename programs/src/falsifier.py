@@ -267,6 +267,7 @@ def main():
                         help='The suffix to be added to the names of the new contigs (which could be either intact or with mis-assemblies) [Default = "_f"]')
     parser.add_argument('--singleBaseErrorRate', type=float, default = 0.05, help='The rate of single-base errors that will be induced in "Err" blocks [Default = 0.05]')
     parser.add_argument('--maxGapLength', type=int, default = 500, help='Split alignments into smaller alignments with no gaps longer than this parameter[Default = 500]')
+    parser.add_argument('--outPrefix', type=str, default = "falsified_asm", help='Prefix for output files [Default = falsified_asm]')
 
 
 
@@ -287,6 +288,7 @@ def main():
     contigSuffix = args.contigSuffix
     maxGapLength = args.maxGapLength
     singleBaseErrorRate = args.singleBaseErrorRate
+    outPrefix = args.outPrefix
 
 
     # parse the alignments from paf file
@@ -427,7 +429,7 @@ def main():
     print(f"[{datetime.datetime.now()}] Creating mis-assemblies is Done! ({total_successful}/{total_requested}) mi-assemblies could be created successfully.")
 
     print(f"[{datetime.datetime.now()}] Writing actual misassembly rates whole genome and per annotation in the final falsified assembly.")
-    misAssemblyRateTextPath = os.path.join(outputDir, f"falsified_asm.misassembly_rates.txt")
+    misAssemblyRateTextPath = os.path.join(outputDir, f"{outPrefix}.misassembly_rates.txt")
     with open(misAssemblyRateTextPath, "w") as f:
         f.write(f"#annotation\tmisassembly_type\ttotal_misassembly_size_kb\ttotal_annotation_size_kb\tmisassembly_rate_percent\n")
         # Print mis-assembly rate per annotation (both per misassembly type and altogether)
@@ -444,23 +446,23 @@ def main():
 
     os.makedirs(outputDir, exist_ok = True)
 
-    chainsInfoPath = os.path.join(outputDir,"falsified_asm.chains_info.tsv")
+    chainsInfoPath = os.path.join(outputDir,f"{outPrefix}.chains_info.tsv")
     relationChains.writeNewContigCoordinates(chainsInfoPath)
     print(f"[{datetime.datetime.now()}] Chains information are written to {chainsInfoPath}")
 
     print(f"[{datetime.datetime.now()}] Writing Fasta file for the falsified assembly")
-    diploidFastaPath = os.path.join(outputDir,"falsified_asm.dip.fa")
-    hap1FastaPath = os.path.join(outputDir,"falsified_asm.hap1.fa")
-    hap2FastaPath = os.path.join(outputDir,"falsified_asm.hap2.fa")
+    diploidFastaPath = os.path.join(outputDir,f"{outPrefix}.dip.fa")
+    hap1FastaPath = os.path.join(outputDir,f"{outPrefix}.hap1.fa")
+    hap2FastaPath = os.path.join(outputDir,f"{outPrefix}.hap2.fa")
     relationChains.writeNewContigsToFasta(diploidSequences, diploidFastaPath, hap1FastaPath, hap2FastaPath, singleBaseErrorRate)
     print(f"[{datetime.datetime.now()}] The falsified assembly is written to {diploidFastaPath} (hap1={hap1FastaPath}, hap2={hap2FastaPath})")
 
     for annotation in annotationNames:
-        bedPath = os.path.join(outputDir, f"falsified_asm.{annotation}.bed")
+        bedPath = os.path.join(outputDir, f"{outPrefix}.{annotation}.bed")
         relationChains.writeAnnotationCoordinatesToBed(annotation, bedPath)
         print(f"[{datetime.datetime.now()}] The coordinates of the annotation, {annotation} are written to {bedPath}")
 
-    bedPath = os.path.join(outputDir, "falsified_asm.mis_assemblies.bed")
+    bedPath = os.path.join(outputDir, f"{outPrefix}.mis_assemblies.bed")
     relationChains.writeMisAssemblyCoordinatesToBed(bedPath)
     print(f"[{datetime.datetime.now()}] The coordinates of misassemblies are written to {bedPath}")
 
