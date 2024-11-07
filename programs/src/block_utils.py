@@ -1489,7 +1489,6 @@ def runProjection(alignment, mode, blocks, includeEndingIndel, includePostIndel)
     chromName = alignment.chromName
     contigName = alignment.contigName
     orientation = alignment.orientation
-    print("###", chromName, contigName)
     if alignment.isPrimary == False:
         return [chromName, contigName, orientation, [], [], []]
     # rBlocks contains the projections and
