@@ -358,7 +358,7 @@ def main():
     print(f"[{datetime.datetime.now()}] Saving scores table for train files in {scoresTrainTsvPath}", file=sys.stderr)
     with open(scoresTrainTsvPath, "w") as f:
         # write header line
-        f.write("Point_Index\tPoint_Type\tFinal_Score\tIs_Optimum_By_Train")
+        f.write("Point_Index\tPoint_Type\tFinal_Score\tIs_Optimum")
         for inputIndex in range(1, trainSize + 1):
             f.write(f"\tOverlap_Based_{inputIndex}\tBase_Level_{inputIndex}\tAuN_Based_{inputIndex}\tCombined_{inputIndex}")
         f.write("\n")
