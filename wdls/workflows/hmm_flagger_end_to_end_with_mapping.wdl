@@ -40,6 +40,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         SDBed: "(Optional) Bed file containing Segmental Duplications. (in asm coordinates)"
         SDBedToBeProjected: "(Optional) Bed file containing Segmental Duplications. (in ref coordinates)"
         cntrBed: "(Optional) Bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks. (in asm coordinates)"
+        enableDecomposingCntrBed: "If true it means that cntrBed contains different satellite families like ASat and HSat. This Bed file can be decomposed into multiple bed files; one for each family. This decomposition will benefit bias detection since different types of repeat arrays might have different coverage biases. If this option is true biasAnnotationsBedArray will be filled automatically with the decomposed censat bed files and users can exclude it from their input json. This option shouldn't be true if the names of the satellite families are not mentioned in the tracks of cntrBed. [list of patterns for decomposing (case insensitive): 'hsat1A', 'hsat1B', 'hsat2', 'hsat3', 'active_hor', 'bsat'] (Default: false)"
         cntrBedToBeProjected: "(Optional) Bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks. (in ref coordinates)"
         cntrCtBed: "(Optional) Bed file containing centromere transition 'ct' blocks. (in asm coordinates)"
         cntrCtBedToBeProjected: "(Optional) Bed file containing centromere transition 'ct' blocks. (in ref coordinates)"
@@ -120,12 +121,13 @@ workflow HMMFlaggerEndToEndWithMapping{
         File? SDBed
         File? cntrBed # censat annotation with no "ct"
         File? cntrCtBed
+        Boolean enableDecomposingCntrBed = false
 
         File? sexBedToBeProjected
         File? SDBedToBeProjected
         File? cntrBedToBeProjected # censat annotation with no "ct"
         File? cntrCtBedToBeProjected
-
+ 
         Array[File] annotationsBedArray = []
         Array[File] annotationsBedArrayToBeProjected = []
         Array[File] biasAnnotationsBedArray = []
@@ -224,6 +226,7 @@ workflow HMMFlaggerEndToEndWithMapping{
             SDBed = SDBed,
             cntrBed = cntrBed, # censat annotation with no "ct"
             cntrCtBed = cntrCtBed,
+            enableDecomposingCntrBed = enableDecomposingCntrBed,
 
             sexBedToBeProjected = sexBedToBeProjected,
             SDBedToBeProjected = SDBedToBeProjected,

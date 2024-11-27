@@ -35,6 +35,7 @@ workflow HMMFlaggerEndToEnd{
         SDBed: "(Optional) Bed file containing Segmental Duplications. (in asm coordinates)"
         SDBedToBeProjected: "(Optional) Bed file containing Segmental Duplications. (in ref coordinates)"
         cntrBed: "(Optional) Bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks. (in asm coordinates)"
+        enableDecomposingCntrBed: "If true it means that cntrBed contains different satellite families like ASat and HSat. This Bed file can be decomposed into multiple bed files; one for each family. This decomposition will benefit bias detection since different types of repeat arrays might have different coverage biases. If this option is true biasAnnotationsBedArray will be filled automatically with the decomposed censat bed files and users can exclude it from their input json. This option shouldn't be true if the names of the satellite families are not mentioned in the tracks of cntrBed. [list of patterns for decomposing (case insensitive): 'hsat1A', 'hsat1B', 'hsat2', 'hsat3', 'active_hor', 'bsat'] (Default: false)"
         cntrBedToBeProjected: "(Optional) Bed file containing peri/centromeric satellites (ASat, HSat, bSat, gSat) without 'ct' blocks. (in ref coordinates)"
         cntrCtBed: "(Optional) Bed file containing centromere transition 'ct' blocks. (in asm coordinates)"
         cntrCtBedToBeProjected: "(Optional) Bed file containing centromere transition 'ct' blocks. (in ref coordinates)"
@@ -101,6 +102,7 @@ workflow HMMFlaggerEndToEnd{
         File? SDBed
         File? cntrBed # censat annotation with no "ct"
         File? cntrCtBed
+        Boolean enableDecomposingCntrBed = false
 
         File? sexBedToBeProjected
         File? SDBedToBeProjected
@@ -218,10 +220,17 @@ workflow HMMFlaggerEndToEnd{
         }
     }
 
+    if (enableDecomposingCntrBed && defined(cntrBed)){
+        call decomposeCntrBed{
+            input:
+                cntrBed = select_first([cntrBed])
+        }
+    }
+
     # Get bed files containing potentially biased 
     # regions in asm coordinates, which can be 
     # projections from reference
-    Array[File] potentialBiasesBedArrayInAsmCoor = flatten([select_first([project.projectionBiasedBedArray, []]), select_first([biasAnnotationsBedArray, []])])
+    Array[File] potentialBiasesBedArrayInAsmCoor = flatten([select_first([decomposeCntrBed.cntrDecomposedBedFiles, []]), select_first([project.projectionBiasedBedArray, []]), select_first([biasAnnotationsBedArray, []])])
     
     # Get bed files containing additional stratifications
     # regions in asm coordinates, which can be
@@ -236,7 +245,7 @@ workflow HMMFlaggerEndToEnd{
     }
 
     if (defined(project.projectionCntrBed) || defined(cntrBed)){
-        File cntrBedInAsmCoor = select_first([project.projectionCntrBed, cntrBed])
+        File cntrBedInAsmCoor = select_first([decomposeCntrBed.cntrNoCtBed, project.projectionCntrBed, cntrBed])
     }
 
     if (defined(project.projectionSexBed) || defined(sexBed)){
@@ -407,6 +416,61 @@ workflow HMMFlaggerEndToEnd{
         File? secphaseMarkerBlocksBed = secphase.markerBlocksBed
     }
 }
+
+task decomposeCntrBed {
+    input {
+        File cntrBed
+        Array[String] patterns = ["hsat1A", "hsat1B", "hsat2", "hsat3", "active_hor", "bsat"]
+        # runtime configurations
+        Int memSize=4
+        Int threadCount=2
+        Int diskSize=32
+        String dockerImage="mobinasri/flagger:v1.1.0"
+        Int preemptible=2
+    }
+    command <<<
+        # Set the exit code of a pipeline to that of the rightmost command
+        # to exit with a non-zero status, or zero if all commands of the pipeline exit
+        set -o pipefail
+        # cause a bash script to exit immediately when a command fails
+        set -e
+        # cause the bash shell to treat unset variables as an error and exit immediately
+        set -u
+        # echo each line of the script to stdout so we can see what is happening
+        # to turn off echo do 'set +o xtrace'
+        set -o xtrace
+
+        mkdir output
+        
+        for pattern in ~{sep=" " patterns};
+        do
+            cat ~{cntrBed} | \
+                grep -i ${pattern} | \
+                awk '{print $1"\t"$2"\t"$3}' | \
+                bedtools sort -i - | \
+                bedtools merge -i - > output/censat_decomposed.${pattern}.bed
+        done
+
+        cat ~{cntrBed} | \
+            awk '$4 != "ct"{print $1"\t"$2"\t"$3}' | \
+            bedtools sort -i - | \
+            bedtools merge -i - > output/censat.no_ct.bed
+        
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+    }
+    output {
+        Array[File] cntrDecomposedBedFiles = glob("output/censat_decomposed.*")
+        File cntrNoCtBed = glob("output/censat.no_ct.bed")[0]
+    }
+}
+
+
 
 task getFinalBed {
     input {
