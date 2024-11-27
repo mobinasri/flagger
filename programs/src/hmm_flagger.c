@@ -194,9 +194,9 @@ HMM *createModel(ModelType modelType,
 
 
 void writePosteriorIntoBED(ChunksCreator *chunksCreator, stList* emPerChunk, char *outputDir) {
-    fprintf(stderr, "writing posterior bed...\n");
     char outputPath[1000];
     sprintf(outputPath, "%s/posterior_prediction_final.bed", outputDir);
+    fprintf(stderr, "[%s] Writing posterior bed : %s\n", get_timestamp(), outputPath);
     // open file for writing bed
     FILE *fout = fopen(outputPath, "w+");
     if (fout == NULL) {
@@ -212,7 +212,7 @@ void writePosteriorIntoBED(ChunksCreator *chunksCreator, stList* emPerChunk, cha
         const char *stateName = EmissionDistSeries_getStateName(state);
         fprintf(fout, "posterior_%s_%d\t", stateName, state);
     }
-    printf(fout, "prediction\n");
+    fprintf(fout, "prediction\n");
 
     stList *chunks = chunksCreator->chunks;
     int numberOfChunks = stList_length(chunks);
@@ -224,7 +224,7 @@ void writePosteriorIntoBED(ChunksCreator *chunksCreator, stList* emPerChunk, cha
         for(int i=0; i < chunk->coverageInfoSeqLen; i++){
             int start = chunk->s + i * chunk->windowLen; //0-based inclusive
             int end = min(chunk->s + (i + 1) * chunk->windowLen - 1, chunk->e); //0-based inclusive
-            printf(fout, "%s\t%d\t%d\t" chunk->ctg, start, end+1);
+            fprintf(fout, "%s\t%d\t%d\t",chunk->ctg, start, end+1);
             double *posterior = EM_getPosterior(em, i);
             int prediction = EM_getMostProbableState(em, i);
             for (int state = 0; state < model->numberOfStates; state++) {
