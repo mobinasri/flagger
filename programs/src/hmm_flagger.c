@@ -72,15 +72,8 @@ double getRandomNumber(double start, double end) {
 }
 
 
-void writeParameterStats(HMM *model, char *outputDir, char *suffix, bool writePosteriorProbs) {
+void writeParameterStats(HMM *model, char *outputDir, char *suffix) {
     char path[2000];
-    if (writePosteriorProbs) {
-        fprintf(stderr, "writing posterior tsv...\n");
-        sprintf(path, "%s/posterior_prediction_%s.tsv", outputDir, suffix);
-        FILE *posteriorTsvFile = fopen(path, "w+");
-        EM_printPosteriorInTsvFormat(em, posteriorTsvFile);
-        fclose(posteriorTsvFile);
-    }
     sprintf(path, "%s/transition_%s.tsv", outputDir, suffix);
     fprintf(stderr, "[%s] Writing transition tsv...\n", get_timestamp());
     FILE *transitionTsvFile = fopen(path, "w+");
@@ -199,6 +192,52 @@ HMM *createModel(ModelType modelType,
     return model;
 }
 
+
+void writePosteriorIntoBED(ChunksCreator *chunksCreator, stList* emPerChunk, char *outputDir) {
+    fprintf(stderr, "writing posterior bed...\n");
+    char outputPath[1000];
+    sprintf(outputPath, "%s/posterior_prediction_final.bed", outputDir);
+    // open file for writing bed
+    FILE *fout = fopen(outputPath, "w+");
+    if (fout == NULL) {
+        fprintf(stderr, "[%s] Error: %s cannot be opened.\n", get_timestamp(), outputPath);
+        exit(EXIT_FAILURE);
+    }
+
+    EM* em = stList_get(emPerChunk, 0);
+    HMM *model = em->model;
+    // write header
+    fprintf(fout, "#ctg\tstart\tend\t");
+    for (int state = 0; state < model->numberOfStates; state++) {
+        const char *stateName = EmissionDistSeries_getStateName(state);
+        fprintf(fout, "posterior_%s_%d\t", stateName, state);
+    }
+    printf(fout, "prediction\n");
+
+    stList *chunks = chunksCreator->chunks;
+    int numberOfChunks = stList_length(chunks);
+    // iterate over chunks
+    for (int chunkIndex = 0; chunkIndex < numberOfChunks; chunkIndex++) {
+        Chunk *chunk = stList_get(chunks, chunkIndex);
+        em = stList_get(emPerChunk, chunkIndex);
+        // iterate over windows
+        for(int i=0; i < chunk->coverageInfoSeqLen; i++){
+            int start = chunk->s + i * chunk->windowLen; //0-based inclusive
+            int end = min(chunk->s + (i + 1) * chunk->windowLen - 1, chunk->e); //0-based inclusive
+            printf(fout, "%s\t%d\t%d\t" chunk->ctg, start, end+1);
+            double *posterior = EM_getPosterior(em, i);
+            int prediction = EM_getMostProbableState(em, i);
+            for (int state = 0; state < model->numberOfStates; state++) {
+                fprintf(fout, "%.2f\t", posterior[state]);
+            }
+            fprintf(fout, "%s\n", EmissionDistSeries_getStateName(prediction));
+            free(posterior);
+        }
+    }
+    fclose(fout);
+}
+
+
 void runHMMFlagger(ChunksCreator *chunksCreator,
                    HMM **modelPtr,
                    int numberOfIterations,
@@ -239,7 +278,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     }
 
     // write initial parameter values in a tsv file
-    writeParameterStats(model, outputDir, "initial", writePosteriorProbs);
+    writeParameterStats(model, outputDir, "initial");
 
     int iter = 1;
     bool converged = false;
@@ -348,7 +387,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
             } else {
                 sprintf(suffix, "iteration_%d", iter);
             }
-            writeParameterStats(model, outputDir, suffix, writePosteriorProbs);
+            writeParameterStats(model, outputDir, suffix);
         }
         iter += 1;
     }
@@ -381,7 +420,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     fprintf(stderr,
             "[%s] [Final Inference] Writing final parameter and benchmarking stats into tsv file.\n",
             get_timestamp());
-    writeParameterStats(model, outputDir, suffix, writePosteriorProbs);
+    writeParameterStats(model, outputDir, suffix);
     writeBenchmarkingStats(chunksCreator,
                            outputDir,
                            suffix,
@@ -389,7 +428,9 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                            binArrayFilePath,
                            overlapRatioThreshold,
                            threads);
-
+    if(writePosteriorProbs){
+        writePosteriorIntoBED(chunksCreator, emPerChunk, outputDir);
+    }
     stList_destruct(emPerChunk);
     fclose(loglikelihoodTsvFile);
 }
