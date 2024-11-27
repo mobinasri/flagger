@@ -72,16 +72,15 @@ double getRandomNumber(double start, double end) {
 }
 
 
-void writeParameterStats(HMM *model, char *outputDir, char *suffix) {
+void writeParameterStats(HMM *model, char *outputDir, char *suffix, bool writePosteriorProbs) {
     char path[2000];
-    /*
-    if (writePosterior) {
+    if (writePosteriorProbs) {
         fprintf(stderr, "writing posterior tsv...\n");
         sprintf(path, "%s/posterior_prediction_%s.tsv", outputDir, suffix);
         FILE *posteriorTsvFile = fopen(path, "w+");
         EM_printPosteriorInTsvFormat(em, posteriorTsvFile);
         fclose(posteriorTsvFile);
-    }*/
+    }
     sprintf(path, "%s/transition_%s.tsv", outputDir, suffix);
     fprintf(stderr, "[%s] Writing transition tsv...\n", get_timestamp());
     FILE *transitionTsvFile = fopen(path, "w+");
@@ -208,6 +207,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                    int threads,
                    bool writeParameterStatsPerIteration,
                    bool writeBenchmarkingStatsPerIteration,
+                   bool writePosteriorProbs,
                    stList *labelNamesWithUnknown,
                    char *binArrayFilePath,
                    double overlapRatioThreshold,
@@ -239,7 +239,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     }
 
     // write initial parameter values in a tsv file
-    writeParameterStats(model, outputDir, "initial");
+    writeParameterStats(model, outputDir, "initial", writePosteriorProbs);
 
     int iter = 1;
     bool converged = false;
@@ -348,7 +348,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
             } else {
                 sprintf(suffix, "iteration_%d", iter);
             }
-            writeParameterStats(model, outputDir, suffix);
+            writeParameterStats(model, outputDir, suffix, writePosteriorProbs);
         }
         iter += 1;
     }
@@ -381,7 +381,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     fprintf(stderr,
             "[%s] [Final Inference] Writing final parameter and benchmarking stats into tsv file.\n",
             get_timestamp());
-    writeParameterStats(model, outputDir, suffix);
+    writeParameterStats(model, outputDir, suffix, writePosteriorProbs);
     writeBenchmarkingStats(chunksCreator,
                            outputDir,
                            suffix,
@@ -439,6 +439,7 @@ static struct option long_options[] =
                 {"binArrayFile",                       required_argument, NULL, 'a'},
                 {"writeParameterStatsPerIteration",    no_argument,       NULL, 'w'},
                 {"writeBenchmarkingStatsPerIteration", no_argument,       NULL, 'k'},
+                {"writePosteriorProbs", no_argument,       NULL, 'P'},
                 {"outputDir",                          required_argument, NULL, 'o'},
                 {"overlapRatioThreshold",              required_argument, NULL, 'v'},
                 {"labelNames",                         required_argument, NULL, 'l'},
@@ -468,6 +469,7 @@ int main(int argc, char *argv[]) {
     char *outputDir = NULL;
     bool writeParameterStatsPerIteration = false;
     bool writeBenchmarkingStatsPerIteration = false;
+    bool writePosteriorProbs = false;
     ModelType modelType = MODEL_TRUNC_EXP_GAUSSIAN;
     double overlapRatioThreshold = 0.4;
     double initialRandomDeviation = 0.0;
@@ -485,7 +487,7 @@ int main(int argc, char *argv[]) {
     int *minLenPerStateTemp;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wko:v:l:D:BN:M:s", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wkPo:v:l:D:BN:M:s", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -531,6 +533,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'k':
                 writeBenchmarkingStatsPerIteration = true;
+                break;
+            case 'P':
+                writePosteriorProbs = true;
                 break;
             case 'o':
                 outputDir = optarg;
@@ -646,7 +651,10 @@ int main(int argc, char *argv[]) {
                         "                           (Optional) Write benchmarking (precision/recall/f1score)\n"
                         "                           statistics per each iteration (For only investigating how \n"
                         "                           the model is improved over EM iterations) [Default = disabled].\n");
-
+                fprintf(stderr,
+                        "         --writePosteriorProbs, -P\n"
+                        "                           (Optional) Recommended only for development. \n"
+                        "                           Write posterior probabilities in tsv format [Default = disabled].\n");
                 fprintf(stderr,
                         "         --binArrayFile, -b\n"
                         "                           (Optional) A tsv file (tab-delimited) that contains bin arrays \n"
@@ -804,6 +812,7 @@ int main(int argc, char *argv[]) {
                   threads,
                   writeParameterStatsPerIteration,
                   writeBenchmarkingStatsPerIteration,
+                  writePosteriorProbs,
                   labelNamesWithUnknown,
                   binArrayFilePath,
                   overlapRatioThreshold,
