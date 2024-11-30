@@ -50,9 +50,9 @@ workflow HMMFlaggerEndToEndWithMapping{
         biasAnnotationsBedArrayToBeProjected: "(Optional) list similar to annotationsBedArrayToBeProjected but these annotations potentially have read coverage biases like HSat2. (in the reference coordinates)"
         projectionReferenceFasta: "(Optional) If any of the parameters ending with 'ToBeProjected' is not empty a reference fasta should be passed for performing the necessary projections (Default: '')"
         enableRunningSecphase : "If true it will run secphase in the marker mode using the parameters starting with 'secphase' otherwise skip it. (Default: false)"
-        secphaseDockerImage: "Docker image for running Secphase (Default: mobinasri/secphase:v0.4.3)"
+        secphaseDockerImage: "Docker image for running Secphase (Default: mobinasri/secphase:v0.4.4)"
         secphaseOptions: "String containing secphase options (can be either --hifi or --ont). (Default --hifi)"
-        secphaseVersion: "Secphase version. (Default: v0.4.3)"
+        secphaseVersion: "Secphase version. (Default: v0.4.4)"
         includeContigListText : "(Optional) Create coverage file and run HMM-Flagger only on these contigs (listed in a text file with one contig name per line). (Default: all contigs)"
         binSizeArrayTsv : "(Optional)  A tsv file (tab-delimited) that contains bin arrays for stratifying results by event size. Bin intervals can have overlap. It should contain three columns. 1st column is the closed start of the bin and the 2nd column is the open end. The 3rd column has a name for each bin. (Default: all sizes in a single bin named ALL_SIZES)"
         chunkLen : "The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together. (Default: 20000000)"
@@ -136,9 +136,9 @@ workflow HMMFlaggerEndToEndWithMapping{
         File? projectionReferenceFasta
 
         Boolean enableRunningSecphase = false
-        String secphaseDockerImage = "mobinasri/secphase:v0.4.3--c99e0e9f3561192e127b2d913c932c3e68aa21bf"
+        String secphaseDockerImage = "mobinasri/secphase:v0.4.4"
         String secphaseOptions = "--hifi"
-        String secphaseVersion = "v0.4.3"
+        String secphaseVersion = "v0.4.4"
 
         Boolean enableOutputtingBigWig = true
         Boolean enableOutputtingBam = true

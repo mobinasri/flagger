@@ -478,8 +478,8 @@ class BlockList:
             tot += block[1] - block[0] + 1
         return tot
 
-    # This function is adapted from ptBlock_merge_blocks_v2() function from Secphase repo v0.4.3
-    # https://github.com/mobinasri/secphase/blob/v0.4.3/programs/submodules/ptBlock/ptBlock.c
+    # This function is adapted from ptBlock_merge_blocks_v2() function from Secphase repo v0.4.4
+    # https://github.com/mobinasri/secphase/blob/v0.4.4/programs/submodules/ptBlock/ptBlock.c
     def mergeWithOverlapCount(self, inplace):
         blocksMergedFinalized = []
         blocksMergedOngoing = []

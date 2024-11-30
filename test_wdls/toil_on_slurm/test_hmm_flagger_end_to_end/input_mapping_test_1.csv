@@ -19,8 +19,8 @@ HMMFlaggerEndToEnd.minAlignmentLength,scalar,0
 HMMFlaggerEndToEnd.minReadLength,scalar,0
 HMMFlaggerEndToEnd.maxReadDivergence,scalar,1.0
 HMMFlaggerEndToEnd.secphaseOptions,scalar,--ont
-HMMFlaggerEndToEnd.secphaseDockerImage,scalar,mobinasri/secphase:v0.4.3--c99e0e9f3561192e127b2d913c932c3e68aa21bf
-HMMFlaggerEndToEnd.secphaseVersion,scalar,v0.4.3
+HMMFlaggerEndToEnd.secphaseDockerImage,scalar,mobinasri/secphase:v0.4.4
+HMMFlaggerEndToEnd.secphaseVersion,scalar,v0.4.4
 HMMFlaggerEndToEnd.convergenceTolerance,scalar,0.001
 HMMFlaggerEndToEnd.numberOfIterations,scalar,100
 HMMFlaggerEndToEnd.enableRunningSecphase,scalar,false

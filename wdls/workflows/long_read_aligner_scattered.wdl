@@ -37,8 +37,8 @@ workflow longReadAlignmentScattered {
         alignerDockerImage : "The mapping docker image [Default = 'mobinasri/long_read_aligner:v1.1.0']"
         enableRunningSecphase: "If true it will run Secphase and apply the corrections reported by Secphase to the final output. [Default = false]"
         secphaseOptions: "--hifi for hifi reads and --ont for ont reads [Default = '--hifi'] "
-        secphaseDockerImage: "The secphase docker image. [Default = 'mobinasri/secphase:v0.4.3']"
-        secphaseVersion: "Secphase version [Default = 'v0.4.3']"
+        secphaseDockerImage: "The secphase docker image. [Default = 'mobinasri/secphase:v0.4.4']"
+        secphaseVersion: "Secphase version [Default = 'v0.4.4']"
         correctBamOptions: "Options for the correct_bam program that applies the secphase output. [Default = '--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1']"
         preemptible: "Number of retries to use preemptible nodes on Terra/GCP. [Default = 2]"
         zones: "Name of the zone for taking nodes on Terra/GCP. (Default = us-west2-a)"
@@ -65,8 +65,8 @@ workflow longReadAlignmentScattered {
 
         Boolean enableRunningSecphase=false
         String secphaseOptions="--hifi"
-        String secphaseDockerImage="mobinasri/secphase:v0.4.3"
-        String secphaseVersion="v0.4.3"
+        String secphaseDockerImage="mobinasri/secphase:v0.4.4"
+        String secphaseVersion="v0.4.4"
         Boolean enableRunningCorrectBam=false
         String correctBamOptions="--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1"
 

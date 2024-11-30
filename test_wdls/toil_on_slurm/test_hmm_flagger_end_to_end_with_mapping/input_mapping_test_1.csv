@@ -28,8 +28,8 @@ HMMFlaggerEndToEndWithMapping.alignerThreadCount,scalar,32
 HMMFlaggerEndToEndWithMapping.alignerMemSize,scalar,48
 HMMFlaggerEndToEndWithMapping.alignerDockerImage,scalar,mobinasri/long_read_aligner:v1.1.0
 HMMFlaggerEndToEndWithMapping.secphaseOptions,scalar,--ont
-HMMFlaggerEndToEndWithMapping.secphaseDockerImage,scalar,mobinasri/secphase:v0.4.3--c99e0e9f3561192e127b2d913c932c3e68aa21bf
-HMMFlaggerEndToEndWithMapping.secphaseVersion,scalar,v0.4.3
+HMMFlaggerEndToEndWithMapping.secphaseDockerImage,scalar,mobinasri/secphase:v0.4.4
+HMMFlaggerEndToEndWithMapping.secphaseVersion,scalar,v0.4.4
 HMMFlaggerEndToEndWithMapping.convergenceToleranceForFlagger,scalar,0.001
 HMMFlaggerEndToEndWithMapping.numberOfIterationsForFlagger,scalar,100
 HMMFlaggerEndToEndWithMapping.enableRunningSecphase,scalar,false
