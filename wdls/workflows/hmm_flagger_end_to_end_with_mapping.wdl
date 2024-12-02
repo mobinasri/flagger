@@ -34,6 +34,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         alignerMemSize : "The size of the memory in Gb for mapping in each alignment task [Default = 48]"
         alignerDockerImage : "The mapping docker image [Default = 'mobinasri/long_read_aligner:v1.1.0']"
         correctBamOptions : "Options for the correct_bam program that can filters short/highly divergent alignments [ Default = '--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1' ]"
+        enableRunningCorrectBam: "If true it will run correct_bam with correctBamOptions"
         downSamplingRateForFlagger: "Rate of downsampling (Default: 1.0 which means no down-sampling)"
         sexBed: "(Optional) bed file containing regions assigned to X/Y chromosomes. (in asm coordinates)"
         sexBedToBeProjected: "(Optional) bed file containing regions assigned to X/Y chromosomes. (in ref coordinates)"
@@ -94,7 +95,8 @@ workflow HMMFlaggerEndToEndWithMapping{
         Boolean enableSplittingReadsEqually=false
 
         Int minReadLengthForMapping = 0
-        String? correctBamOptions = "--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1" 
+        String correctBamOptions = "--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1" 
+        Boolean enableRunningCorrectBam=false
         Int alignerThreadCount = 16
         Int alignerMemSize = 48
         String alignerDockerImage = "mobinasri/long_read_aligner:v1.1.0"
@@ -184,6 +186,7 @@ workflow HMMFlaggerEndToEndWithMapping{
             secphaseDockerImage = secphaseDockerImage,
             secphaseVersion = secphaseVersion,
             correctBamOptions = correctBamOptions,
+            enableRunningCorrectBam = enableRunningCorrectBam
     }
 
     ## To filter alignments use correctBamOptions above to void running correctBam twice

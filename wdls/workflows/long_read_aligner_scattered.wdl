@@ -40,6 +40,7 @@ workflow longReadAlignmentScattered {
         secphaseDockerImage: "The secphase docker image. [Default = 'mobinasri/secphase:v0.4.4']"
         secphaseVersion: "Secphase version [Default = 'v0.4.4']"
         correctBamOptions: "Options for the correct_bam program that applies the secphase output. [Default = '--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1']"
+        enableRunningCorrectBam: "If true it will run correct_bam with correctBamOptions"
         preemptible: "Number of retries to use preemptible nodes on Terra/GCP. [Default = 2]"
         zones: "Name of the zone for taking nodes on Terra/GCP. (Default = us-west2-a)"
     }
