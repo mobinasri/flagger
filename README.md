@@ -29,7 +29,7 @@ cat ${FASTA_FILE}.fai | \
 ### 2. Convert BAM to COV
 
 ```
-# Put path to the whole-genome bed file in a json file
+# Put the path to the whole-genome bed file in a json file
 echo "{" > annotations_path.json
 echo \"whole_genome\" : \"${PWD}/whole_genome.bed\" >> annotations_path.json
 echo "}" >> annotations_path.json
@@ -66,19 +66,27 @@ PREDICTION	base_level	percentage	annotation	whole_genome	ALL_SIZES	ALL_LABELS	1.
 ```
 
 ### Note about coverage-biased regions
-It has been observed that peri/centromeric satellite regions are prone to have coverage biases (in PacBio HiFi and ONT data). Users can add satellite repeat arrays as separate annotations to the input json for the `bam2cov` program (with enabling `--runBiasDetection`). `bam2cov` will detect if there exist coverage biases in any annotation provided in the json file and add the neccessary information to the coverage file. It will help HMM-Flagger to predict the labels more accurately. It is recommended to provide each satellite in a separate bed file for example putting HSat1A and Hsat2 in separate files.
+It has been observed that peri/centromeric satellite regions are prone to have coverage biases (in PacBio HiFi and ONT data). Users can add satellite repeat arrays as separate annotations to the input json for the `bam2cov` program (with enabling `--runBiasDetection`). `bam2cov` will detect if there exist coverage biases in any annotation provided in the json file and add the neccessary information to the coverage file. It will help HMM-Flagger to predict the labels more accurately. It is recommended to provide each satellite in a separate bed file for example putting HSat1A, HSat1B, Hsat2 and HSat3 in separate files.
 
 ## Running pipeline with WDL
 
-If user has a set of unalinged reads it is easier to run the pipeline (read mapping + HMM-Flagger) using the WDLs described below. Using WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. Even if de-novo annotations are not available it is possible to pass annotations in the coordinates of a reference (for example T2T-CHM13) to the workflow. Given the reference fasta file it can project annotation coordinates from reference to assembly and augment coverage files with the projected annotations. 
+If user has a set of unalinged reads it is easier to run the pipeline (read mapping + HMM-Flagger) using the WDLs described below. By using WDLs it is also easier to incorporate coverage biases that may exist in the satellite regions. Even if de-novo annotations are not available it is possible to pass annotations in the coordinates of a reference (for example T2T-CHM13) to the workflow. Given the reference fasta file (`projectionReferenceFasta`) it can project annotation coordinates from reference to assembly and augment coverage files with the projected annotations. 
 
 A WDL file can be run locally using Cromwell, which is an open-source Workflow Management System for bioinformatics. The latest releases of Cromwell are available [here](https://github.com/broadinstitute/cromwell/releases) and the documentation is available [here](https://cromwell.readthedocs.io/en/stable/CommandLine/).
 
 It is recommended to run the whole pipeline using [hmm_flagger_end_to_end_with_mapping.wdl](https://github.com/mobinasri/flagger/blob/v1.1.0/wdls/workflows/hmm_flagger_end_to_end_with_mapping.wdl).
 
+### The current version of HMM-Flagger-v1.1.0 has different tuned parameters, `windowLen` and `alphaTsv`, for PacBio HiFi, ONT-R9 and ONT-R10.
+Use the table below for setting appropriate `windowLen` and `alphaTsv` based on the sequencing platform.
+
+| Platform        | windowLen  | alphaTsv | 
+|:----------------|:-----|:--------|
+|PacBio-HiFi  | 16000 | https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/HiFi_DC_1.2/alpha_optimum_trunc_exp_gaussian_w_16000_n_50.HiFi_DC_1.2_DEC_2024.v1.1.0.tsv|
+|ONT-R9       | 16000| https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/ONT_R941_Guppy6.3.7/alpha_optimum_trunc_exp_gaussian_w_16000_n_50.ONT_R941_Guppy6.3.7_DEC_2024.v1.1.0.tsv|
+|ONT-R10      | 8000 | https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/ONT_R1041_Dorado/alpha_optimum_trunc_exp_gaussian_w_8000_n_50.ONT_R1041_Dorado_DEC_2024.v1.1.0.tsv| 
+
 Here is a list of input parameters for hmm_flagger_end_to_end_with_mapping.wdl (The parameters marked as **"(Mandatory)"** are mandatory to be defined in the input json):
 
-### Note that the current version of HMM-Flagger-v1.1.0 is tuned only for PacBio HiFi. The parameter `alphaTsv` is mandatory. Use [`alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv`]( https://raw.githubusercontent.com/mobinasri/flagger/main/programs/config/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv) for HiFi reads. TSV files for other parameters will be added later.
 
 | Parameter                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Type | Default                                                          | 
 |--------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| ---  |------------------------------------------------------------------|
