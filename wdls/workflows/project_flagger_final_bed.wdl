@@ -10,6 +10,7 @@ workflow runProjectFlaggerFinalBed {
         File asm2refBamPat
         File finalBed
         Array[String] comps = ["Err", "Dup", "Hap", "Col"]
+        Boolean mergeOutput=false
     }
     call bam2paf_t.bam2paf as matPaf {
        input:
@@ -41,7 +42,8 @@ workflow runProjectFlaggerFinalBed {
                 asm2refPaf = patPaf.pafFile,
                 sampleName = basename("${getHapBed.patBed}", ".bed"),
                 suffix = "projected",
-                mode="asm2ref"
+                mode="asm2ref",
+                mergeOutput=mergeOutput
     	}
         call projectBlocks_t.project as projectMat {
             input:
@@ -49,7 +51,8 @@ workflow runProjectFlaggerFinalBed {
                 asm2refPaf = matPaf.pafFile,
                 sampleName = basename("${getHapBed.matBed}", ".bed"),
                 suffix = "projected",
-                mode="asm2ref"
+                mode="asm2ref",
+                mergeOutput=mergeOutput
         }
     }
     # Merge the paternal BED files containing the projected blocks for 
