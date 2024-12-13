@@ -49,7 +49,7 @@ task project {
         Int memSize=4
         Int threadCount=8
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.4.0"
+        String dockerImage="mobinasri/flagger:v1.1.0"
         Int preemptible=2
     }
     command <<<

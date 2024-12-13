@@ -21,8 +21,8 @@ workflow longReadAlignmentScattered {
         readfiles: "An array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed."
         assemblyFasta: "Path to uncompressed or gzip-compressed fasta file of the diploid or haploid assembly" 
         aligner: "Name of the aligner. It can be either minimap2, winnowmap or veritymap. (Default = winnowmap)"
-        preset: "Paremeter preset should be selected based on aligner and sequencing platform. Common presets are map-pb/map-hifi/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap"
-        kmerSize: "The kmer size for using minimap2 or winnowmap. With winnowmap kmer size should be 15 and with minimap2 kmer size should be 17 and 19 for using the presets map-ont and map-hifi/map-pb respectively."
+        preset: "(Required) Paremeter preset should be selected based on aligner and sequencing platform. Common presets are lr:hqae/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap"
+        kmerSize: "The kmer size for using minimap2 or winnowmap. With winnowmap kmer size should be 15 and with minimap2 kmer size should be 15 and 25 for using the presets map-ont and lr:hqae respectively."
 	alignerOptions: "Aligner options. It can be something like '--eqx --cs -Y -L -y' for minimap2/winnowmap. Note that if assembly is diploid and aligner is either minimap2 or winnowmap '-I8g' is necessary. If the reads contain modification tags and these tags are supposed to be present in the final alignment file, alignerOptions should contain '-y' and the aligner should be either minimap2 or winnowmap. If running secphase is enabled it is recommended to add '-p0.5' to alignerOptions; it will keep more secondary alignments so secphase will have more candidates per read. For veritymap '--careful' can be used but not recommended for whole-genome assembly since it increases the runtime dramatically."
         readExtractionOptions: "The options to be used while converting bam to fastq with samtools fastq. If the reads contain epigentic modification tags it is necessary to use '-TMm,Ml'"
         sampleName: "Name of the sample or assembly. For example 'HG002', 'GRCh38' or 'HG002_hifiasm_v0.19.5'"
@@ -40,6 +40,7 @@ workflow longReadAlignmentScattered {
         secphaseDockerImage: "The secphase docker image. [Default = 'mobinasri/secphase:v0.4.4']"
         secphaseVersion: "Secphase version [Default = 'v0.4.4']"
         correctBamOptions: "Options for the correct_bam program that applies the secphase output. [Default = '--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1']"
+        enableRunningCorrectBam: "If true it will run correct_bam with correctBamOptions"
         preemptible: "Number of retries to use preemptible nodes on Terra/GCP. [Default = 2]"
         zones: "Name of the zone for taking nodes on Terra/GCP. (Default = us-west2-a)"
     }

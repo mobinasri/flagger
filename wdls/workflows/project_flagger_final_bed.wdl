@@ -9,7 +9,8 @@ workflow runProjectFlaggerFinalBed {
         File asm2refBamMat
         File asm2refBamPat
         File finalBed
-        Array[String] comps = ["Cc", "Hc", "Dd", "Ee", "Dh", "Eh", "Hh", "Ec"]
+        Array[String] comps = ["Err", "Dup", "Hap", "Col"]
+        Boolean mergeOutput=false
     }
     call bam2paf_t.bam2paf as matPaf {
        input:
@@ -41,7 +42,8 @@ workflow runProjectFlaggerFinalBed {
                 asm2refPaf = patPaf.pafFile,
                 sampleName = basename("${getHapBed.patBed}", ".bed"),
                 suffix = "projected",
-                mode="asm2ref"
+                mode="asm2ref",
+                mergeOutput=mergeOutput
     	}
         call projectBlocks_t.project as projectMat {
             input:
@@ -49,7 +51,8 @@ workflow runProjectFlaggerFinalBed {
                 asm2refPaf = matPaf.pafFile,
                 sampleName = basename("${getHapBed.matBed}", ".bed"),
                 suffix = "projected",
-                mode="asm2ref"
+                mode="asm2ref",
+                mergeOutput=mergeOutput
         }
     }
     # Merge the paternal BED files containing the projected blocks for 
@@ -222,7 +225,7 @@ task mergeBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v0.4.0"
+        String dockerImage="mobinasri/flagger:v1.1.0"
         Int preemptible=2
     }
 
@@ -248,7 +251,7 @@ task mergeBeds {
 
         echo "track name=\"~{trackName}\" visibility=1 itemRgb="On"" > output/~{outputName}.bed
         bedtools sort -i output/all.bed > output/all.sorted.bed
-        awk 'FNR==NR{c[$1]=$2;next}{print $0"\t0\t+\t"$2"\t"$3"\t"c[$4]}' \
+        awk 'FNR==NR{c[$1]=$2;next}{print $0"\t0\t.\t"$2"\t"$3"\t"c[$4]}' \
             /home/scripts/colors.txt \
             output/all.sorted.bed \
             >> output/~{outputName}.bed
