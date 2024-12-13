@@ -480,17 +480,18 @@ class BlockList:
 
     # This function is adapted from ptBlock_merge_blocks_v2() function from Secphase repo v0.4.4
     # https://github.com/mobinasri/secphase/blob/v0.4.4/programs/submodules/ptBlock/ptBlock.c
-    def mergeWithOverlapCount(self, inplace):
+    def mergeWithCustomFunction(self, mergeFunction, inplace=True):
         blocksMergedFinalized = []
         blocksMergedOngoing = []
         if len(self.blocks) == 0: return blocksMergedFinalized
 
         for b2 in self.blocks:
             if len(blocksMergedOngoing) == 0: # Initiate bMerged for the first block
-                blocksMergedOngoing.append((b2[0], b2[1], 1))
+                blocksMergedOngoing.append((b2[0], b2[1], b2[2]))
                 continue
             e2 = b2[1]
             s2 = b2[0]
+            c2 = b2[2]
             blocksMergedTemp = blocksMergedOngoing
             blocksMergedOngoing = []
             for b1 in blocksMergedTemp:
@@ -529,7 +530,7 @@ class BlockList:
                     #       s2      e2                        s2   e2
                     #
                     #
-                    bMerged = (s2, min(e1, e2), c + 1)
+                    bMerged = (s2, min(e1, e2), mergeFunction(c, c2))
                     blocksMergedOngoing.append(bMerged)
                     #
                     # finalized:
@@ -550,7 +551,7 @@ class BlockList:
                 #        s2              e2
                 #
                 elif e1 <= e2: # && s2 < s1
-                    bMerged = (s1, e1, c + 1)
+                    bMerged = (s1, e1, mergeFunction(c,c2))
                     blocksMergedOngoing.append(bMerged)
                 else: # e2 < e1 && s2 < s1
                     #
@@ -562,7 +563,7 @@ class BlockList:
                     #        s2       e2
                     #
                     if s1 <= e2:
-                        bMerged = (s1, e2, c + 1)
+                        bMerged = (s1, e2, mergeFunction(c, c2))
                         blocksMergedOngoing.append(bMerged)
                     #
                     # ongoing:
@@ -584,7 +585,7 @@ class BlockList:
             #            s2       e2
             #
             if max(e1 + 1, s2) <= e2:
-                bMerged = (max(e1 + 1, s2), e2, 1)
+                bMerged = (max(e1 + 1, s2), e2, c2)
                 blocksMergedOngoing.append(bMerged)
 
         # Add the remaining blocks
@@ -596,6 +597,12 @@ class BlockList:
             self.blocks = blocksMergedFinalized
         else:
             return BlockList(blocksMergedFinalized)
+
+    def mergeWithOverlapCount(self, inplace=True):
+        def mergeCount(c1, c2):
+            return c1 + c2
+        self.blocks = [(b[0], b[1], 1) for b in self.blocks]
+        return self.mergeWithCustomFunction(mergeCount, inplace)
 
     @staticmethod
     def parseBed(bedPath, saveFourthColumnAsNumeric=False, saveAllOtherColumns=False):
@@ -785,6 +792,7 @@ class Alignment:
                 self.editDistance = int(editString)
             else:
                 self.editDistance = None
+            self.divergence = None
     def createEmptyAlignment(self):
         self.contigName = None
         self.contigLength = None
@@ -800,6 +808,7 @@ class Alignment:
         self.editDistance = None
         self.leftHardClip = None
         self.rightHardClip = None
+        self.divergence = None
 
     @staticmethod
     def createFromPysamRecord(record, header):
@@ -821,9 +830,11 @@ class Alignment:
         alignment.chromName = record.reference_name
         alignment.chromStart = record.reference_start # 0-based closed
         alignment.chromEnd = record.reference_end # 1-based closed
+        alignment.alignmentLength = alignment.chromEnd - alignment.chromStart
         alignment.chromLength = header.get_reference_length(alignment.chromName)
         alignment.isPrimary = (not record.is_secondary) and (not record.is_unmapped)
         alignment.cigarList = removeClippingFromCigarList(cigarListOrig)
+        alignment.divergence = record.get_tag("de", with_value_type=False) if record.has_tag("de") else None
         return alignment
 
 
