@@ -242,6 +242,8 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                    HMM **modelPtr,
                    int numberOfIterations,
                    double convergenceTol,
+                   bool adjustContigEnds,
+                   double minReadFractionAtEnds,
                    char *outputDir,
                    int threads,
                    bool writeParameterStatsPerIteration,
@@ -263,6 +265,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
 
     char suffix[200];
     stList *chunks = chunksCreator->chunks;
+    int meanReadLength = chunksCreator->header->averageAlignmentLength;
     int numberOfChunks = stList_length(chunks);
 
 
@@ -273,7 +276,12 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     stList *emPerChunk = stList_construct3(0, EM_destruct);
     for (int chunkIndex = 0; chunkIndex < numberOfChunks; chunkIndex++) {
         Chunk *chunk = stList_get(chunks, chunkIndex);
-        EM *em = EM_construct(chunk->coverageInfoSeq, chunk->coverageInfoSeqLen, model);
+        EM *em = EM_construct(chunk->coverageInfoSeq,
+                              chunk->coverageInfoSeqLen,
+                              model,
+                              chunk,
+                              meanReadLength);
+        if (adjustContigEnds) EM_setMinReadFractionAtEnds(em, minReadFractionAtEnds);
         stList_append(emPerChunk, em);
     }
 
@@ -468,6 +476,8 @@ static struct option long_options[] =
                 {"input",                              required_argument, NULL, 'i'},
                 {"iterations",                         required_argument, NULL, 'n'},
                 {"convergenceTol",                     required_argument, NULL, 't'},
+                {"adjustContigEnds",                     required_argument, NULL, 'e'},
+                {"minReadFractionAtEnds",                     required_argument, NULL, 'f'},
                 {"modelType",                          required_argument, NULL, 'm'},
                 {"maxHighMapqRatio",                   required_argument, NULL, 'q'},
                 {"minHighMapqRatio",                   required_argument, NULL, 'Q'},
@@ -504,6 +514,8 @@ int main(int argc, char *argv[]) {
     stList *contigList = NULL;
     int numberOfIterations = 100;
     double convergenceTol = 0.001;
+    bool adjustContigEnds = false;
+    double minReadFractionAtEnds = 0.5;
     double maxHighMapqRatio = 0.25;
     double minHighMapqRatio = 0.75;
     int numberOfCollapsedComps = -1;
@@ -528,7 +540,7 @@ int main(int argc, char *argv[]) {
     int *minLenPerStateTemp;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wkPo:v:l:D:BN:M:s", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:f:en:t:m:q:C:W:c:@:p:A:a:wkPo:v:l:D:BN:M:s", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -544,6 +556,12 @@ int main(int argc, char *argv[]) {
                 break;
             case 't':
                 convergenceTol = atof(optarg);
+                break;
+            case 'e':
+                adjustContigEnds = true;
+                break;
+            case 'f':
+                minReadFractionAtEnds = atof(optarg);
                 break;
             case 'm':
                 modelType = getModelTypeFromString(optarg);
@@ -664,6 +682,17 @@ int main(int argc, char *argv[]) {
                         "                           between all model parameter values in two consecutive iterations is \n"
                         "                           less than this value. [Default = 0.001]\n");
                 fprintf(stderr,
+                        "         --adjustContigEnds, -e\n"
+                        "                           If enabled it will adjust coverage expectations at contig ends \n"
+                        "                           [Default = Disabled]\n");
+                fprintf(stderr,
+                        "         --minReadFractionAtEnds, -f\n"
+                        "                           Used only if --adjustContigEnds is turned on. The reads will be reported\n"
+                        "                           mapped to the contig ends only when they have at least this fraction\n"
+                        "                           of their sequence mapped. It will adjust coverage expectations at\n"
+                        "                           contig ends based on this parameter and average alignment length.\n"
+                        "                           [Default = 0.5]\n");
+                fprintf(stderr,
                         "         --maxHighMapqRatio, -q\n"
                         "                           Maximum ratio of high mapq coverage for duplicated state [Default=0.25]\n");
                 fprintf(stderr,
@@ -761,6 +790,10 @@ int main(int argc, char *argv[]) {
                 convergenceTol);
         exit(EXIT_FAILURE);
     }
+    if (adjustContigEnds == true && (minReadFractionAtEnds > 1.0 || minReadFractionAtEnds < 0.0)){
+        fprintf(stderr, "[%s] Error: --minReadFractionAtEnds, -f should be between 0 and 1.\n", get_timestamp());
+        exit(EXIT_FAILURE);
+    }
     if (outputDir == NULL) {
         fprintf(stderr, "[%s] Error: --outputDir, -o should be specified.\n", get_timestamp());
         exit(EXIT_FAILURE);
@@ -849,6 +882,8 @@ int main(int argc, char *argv[]) {
                   &model,
                   numberOfIterations,
                   convergenceTol,
+                  adjustContigEnds,
+                  minReadFractionAtEnds,
                   outputDir,
                   threads,
                   writeParameterStatsPerIteration,

@@ -250,7 +250,7 @@ void HMM_destruct(HMM *model) {
 }
 
 
-EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model) {
+EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model, Chunk* chunk, int meanReadLength) {
     assert(seqLen > 0);
     EM *em = malloc(sizeof(EM));
     em->coverageInfoSeq = coverageInfoSeq;
@@ -266,7 +266,15 @@ EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model) {
     em->px = -1.0;
     em->loglikelihood = 0.0;
     em->numberOfRegions = model->numberOfRegions;
+    em->chunk = chunk;
+    em->meanReadLength = meanReadLength;
+    em->adjustContigEnds = false;
+    em->minReadFractionAtEnds = 0.0;
     return em;
+}
+void EM_setMinReadFractionAtEnds(EM *em, double minReadFractionAtEnds){
+    em->adjustContigEnds = true;
+    em->minReadFractionAtEnds = minReadFractionAtEnds;
 }
 
 void EM_destruct(EM *em) {
@@ -290,6 +298,18 @@ void EM_renewParametersAndEstimatorsFromModel(EM *em, HMM *model){
 }
 
 
+double EM_computeAdjustmentBeta(EM* em,int columnIndex){
+    if (em->adjustContigEnds == false){
+        return 1.0;
+    }
+    double minFrac = em->minReadFractionAtEnds;
+    int midWindowLoc = em->chunk->s + (double) em->chunk->windowLen * (columnIndex + 0.5);
+    int meanReadLength = em->meanReadLength;
+    int l = max(midWindowLoc - meanReadLength + 1, -(1 - minFrac) * meanReadLength);
+    int u = min(midWindowLoc, em->chunk->ctgLen - minFrac * meanReadLength);
+    double beta = (u - l) / meanReadLength;
+    return beta;
+}
 ///////////////////////////////////////
 // Functions for forward algorithm   //
 //////////////////////////////////////
@@ -313,17 +333,19 @@ void EM_fillFirstColumnForward(EM *em) {
     double tProb;
     uint8_t preX = 0;
     double alpha = 0.0; // for the first column alpha can not be greater than 0
+    double beta = EM_computeAdjustmentBeta(em, 0);
     // Set the 0-th block of the forward matrix
     scale = 0.0;
     for (int state = 0; state < model->numberOfStates; state++) {
         uint8_t region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[0]);
-	uint8_t x = em->coverageInfoSeq[0]->coverage;
+	    uint8_t x = em->coverageInfoSeq[0]->coverage;
         // Emission probability
         eProb = EmissionDistSeries_getProb(model->emissionDistSeriesPerRegion[region],
                                            state,
                                            x,
                                            preX,
-                                           alpha);
+                                           alpha,
+                                           beta);
         // Transition probability
         tProb = Transition_getStartProb(model->transitionPerRegion[region], state);
         // Update forward
@@ -351,6 +373,7 @@ void EM_fillOneColumnForward(EM *em, int columnIndex) {
     uint8_t x;
     uint8_t preX;
     double alpha;
+    double beta = EM_computeAdjustmentBeta(em, i);
     double scale = 0.0;
     region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
     preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i - 1]);
@@ -366,7 +389,8 @@ void EM_fillOneColumnForward(EM *em, int columnIndex) {
                                                state,
                                                x,
                                                preX,
-                                               model->alpha->data[preState][state]);
+                                               alpha,
+                                               beta);
             if (region != preRegion) { // if the region class has changed
                 // Make the transition prob uniform
                 tProb = 1.0 / (model->numberOfStates + 1);
@@ -455,6 +479,7 @@ void EM_fillOneColumnBackward(EM *em, int columnIndex) {
     CoverageInfo *covInfo;
     CoverageInfo *preCovInfo;
     double alpha;
+    double beta = EM_computeAdjustmentBeta(em, i + 1);
     region = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i + 1]);
     preRegion = CoverageInfo_getRegionIndex(em->coverageInfoSeq[i]);
     covInfo = em->coverageInfoSeq[i + 1];
@@ -471,7 +496,8 @@ void EM_fillOneColumnBackward(EM *em, int columnIndex) {
                                                state,
                                                x,
                                                preX,
-                                               alpha);
+                                               alpha,
+                                               beta);
             if (region != preRegion) { // if the region class has changed
                 // Make the transition prob uniform
                 tProb = 1.0 / (model->numberOfStates + 1);
@@ -543,6 +569,7 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
     uint8_t x;
     uint8_t preX;
     double alpha;
+    double beta = EM_computeAdjustmentBeta(em, i + 1);
     EmissionDistSeries *emissionDistSeries;
     Transition *transition;
 
@@ -565,7 +592,8 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
                                                state,
                                                x,
                                                preX,
-                                               alpha);
+                                               alpha,
+                                               beta);
 
             if (region != preRegion) { // if the region class has changed
                 // Make the transition prob uniform
@@ -588,6 +616,7 @@ void EM_updateEstimatorsUsingOneColumn(EM *em, int columnIndex) {
                                                    x,
                                                    preX,
                                                    alpha,
+                                                   beta,
                                                    adjustedCount);
             }
 

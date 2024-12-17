@@ -335,17 +335,24 @@ bool Gaussian_isFeasible(Gaussian *gaussian);
 
 Gaussian *Gaussian_copy(Gaussian *src, EmissionDist *emissionDistDest);
 
-/*
- * Get the probability of observing x given the previous observation preX and alpha the factor for adjusting
- * mean of Gaussian with the previous observation
+/**
+ * Returns the total probability of emitting a value from the given Gaussian
+ *
+ * @param x	        The emitted value
+ * @param gaussian	The gaussian object
+ * @param preX  previous emitted value
+ * @param alpha the factor for adjusting parameters based on preX (alpha=0.0 means no adjustment)
+ * @param beta the factor for adjusting parameters based on distance to contig ends (beta=1.0 means no adjustment)
+ * @return prob	    The emission probability
  */
-double Gaussian_getProb(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha);
+double Gaussian_getProb(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha, double beta);
 
 /*
  * Get the probability of observing x from different components given the previous observation preX
  * and alpha the factor for adjusting mean of Gaussian with the previous observation
+ * and beta for adjusting mean and var of Gaussian based on distance to contig ends
  */
-double *Gaussian_getComponentProbs(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha);
+double *Gaussian_getComponentProbs(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha, double beta);
 
 ParameterEstimator *Gaussian_getEstimator(Gaussian *gaussian, GaussianParameterType parameterType);
 
@@ -356,6 +363,7 @@ void Gaussian_updateEstimator(Gaussian *gaussian,
                               uint8_t x,
                               uint8_t preX,
                               double alpha,
+                              double beta,
                               double count);
 
 bool Gaussian_updateParameter(Gaussian *gaussian, GaussianParameterType parameterType, int compIndex, double value,
@@ -403,8 +411,9 @@ TruncExponential *TruncExponential_copy(TruncExponential *src, EmissionDist *emi
 
 /*
  * Get the probability of observing x
+ * Beta  (0< beta <=1) is for adjusting lambda and truncation point (1.0 means no adjustment)
  */
-double TruncExponential_getProb(TruncExponential *truncExponential, uint8_t x);
+double TruncExponential_getProb(TruncExponential *truncExponential, uint8_t x, double beta);
 
 /*
  * Get the log likelihood of observing the count data (equivalent to a list of values)
@@ -479,8 +488,9 @@ int EmissionDist_getNumberOfComps(EmissionDist *emissionDist);
  * Get the probability of observing x given preX, the previous observation and alpha, the factor for adjusting
  * mean of distribution with the previous observation (if applicable). Alpha and preX are only considered for
  * Gaussian distribution and ignored for NegativeBinomial and TruncExponential
+ * Beta is for adjusting coverage expectations based on distance to contig ends
  */
-double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha);
+double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double beta);
 
 bool EmissionDist_updateParameter(EmissionDist *emissionDist, void *parameterTypePtr, int compIndex, double value,
                                   double convergenceTol);
@@ -499,7 +509,7 @@ ParameterEstimator *EmissionDist_getEstimator(EmissionDist *emissionDist, void *
 
 void EmissionDist_updateEstimatorFromOtherEstimator(EmissionDist *dest, EmissionDist *src);
 
-void EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double count);
+void EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double beta, double count);
 
 void **EmissionDist_getParameterTypePtrsForLogging(EmissionDist *emissionDist, int *length);
 
@@ -587,23 +597,27 @@ void EmissionDistSeries_destruct(EmissionDistSeries *emissionDistSeries);
 /*
  * Get the array of probabilities of observing x for all distributions given preX, the previous observation
  * and alpha, the factor for adjusting mean of distribution with the previous observation (if applicable).
- * Alpha and preX are only considered for Gaussian distribution and ignored for NegativeBinomial and TruncExponential
+ * Beta is for adjusting mean and var of Gaussian based on distance to contig ends
+ * Alpha, Beta and preX are only considered for Gaussian distribution and ignored for NegativeBinomial and TruncExponential
  */
 double *EmissionDistSeries_getAllProbs(EmissionDistSeries *emissionDistSeries,
                                        uint8_t x,
                                        uint8_t preX,
-                                       double alpha);
+                                       double alpha,
+                                       double beta);
 
 /*
  * Get the probability of observing x for a specific distribution given preX, the previous observation
  * and alpha, the factor for adjusting mean of distribution with the previous observation (if applicable).
- * Alpha and preX are only considered for Gaussian distribution and ignored for NegativeBinomial and TruncExponential
+ * Beta is for adjusting mean and var of Gaussian based on distance to contig ends
+ * Alpha, Beta and preX are only considered for Gaussian distribution and ignored for NegativeBinomial and TruncExponential
  */
 double EmissionDistSeries_getProb(EmissionDistSeries *emissionDistSeries,
                                   int distIndex,
                                   uint8_t x,
                                   uint8_t preX,
-                                  double alpha);
+                                  double alpha,
+                                  double beta);
 
 
 int EmissionDistSeries_getNumberOfComps(EmissionDistSeries *emissionDistSeries, int distIndex);
@@ -615,6 +629,7 @@ void EmissionDistSeries_updateEstimator(EmissionDistSeries *emissionDistSeries,
                                         uint8_t x,
                                         uint8_t preX,
                                         double alpha,
+                                        double beta,
                                         double count);
 
 ParameterEstimator *EmissionDistSeries_getBoundParameterEstimator(EmissionDistSeries *emissionDistSeries,
