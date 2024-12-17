@@ -307,7 +307,7 @@ double EM_computeAdjustmentBeta(EM* em,int columnIndex){
     int meanReadLength = em->meanReadLength;
     int l = max(midWindowLoc - meanReadLength + 1, -(1 - minFrac) * meanReadLength);
     int u = min(midWindowLoc, em->chunk->ctgLen - minFrac * meanReadLength);
-    double beta = (u - l) / meanReadLength;
+    double beta = (double) (u - l) / meanReadLength;
     return beta;
 }
 ///////////////////////////////////////

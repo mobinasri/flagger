@@ -9,7 +9,7 @@
 #include "math.h"
 #include "digamma.h"
 #include "hmm_utils.h"
-
+#include "chunk.h"
 
 typedef struct HMM {
     EmissionDistSeries **emissionDistSeriesPerRegion;
