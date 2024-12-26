@@ -303,7 +303,8 @@ double EM_computeAdjustmentBeta(EM* em,int columnIndex){
         return 1.0;
     }
     double minFrac = em->minReadFractionAtEnds;
-    int midWindowLoc = em->chunk->s + (double) em->chunk->windowLen * (columnIndex + 0.5);
+    int midWindowLoc = min(em->chunk->s + (double) em->chunk->windowLen * (columnIndex + 0.5),
+                           (em->chunk->s + (double) em->chunk->windowLen * columnIndex + em->chunk->e) / 2 );
     int meanReadLength = em->meanReadLength;
     int l = max(midWindowLoc - meanReadLength + 1, -(1 - minFrac) * meanReadLength);
     int u = min(midWindowLoc, em->chunk->ctgLen - minFrac * meanReadLength);

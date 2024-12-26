@@ -686,7 +686,7 @@ int main(int argc, char *argv[]) {
                         "                           If enabled it will adjust coverage expectations at contig ends \n"
                         "                           [Default = Disabled]\n");
                 fprintf(stderr,
-                        "         --minReadFractionAtEnds, -f\n"
+                        "         --minReadFractionAtEnds\n"
                         "                           Used only if --adjustContigEnds is turned on. The reads will be reported\n"
                         "                           mapped to the contig ends only when they have at least this fraction\n"
                         "                           of their sequence mapped. It will adjust coverage expectations at\n"
