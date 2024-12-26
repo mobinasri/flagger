@@ -476,7 +476,7 @@ static struct option long_options[] =
                 {"input",                              required_argument, NULL, 'i'},
                 {"iterations",                         required_argument, NULL, 'n'},
                 {"convergenceTol",                     required_argument, NULL, 't'},
-                {"adjustContigEnds",                     required_argument, NULL, 'e'},
+                {"adjustContigEnds",                     no_argument, NULL, 'e'},
                 {"minReadFractionAtEnds",                     required_argument, NULL, 'f'},
                 {"modelType",                          required_argument, NULL, 'm'},
                 {"maxHighMapqRatio",                   required_argument, NULL, 'q'},
