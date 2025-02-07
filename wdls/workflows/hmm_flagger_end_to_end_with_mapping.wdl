@@ -71,6 +71,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
         flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.1.0)"
         enableOutputtingBigWig: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: true)"
+        enableCreatingConservativeBed: "If true it will map assembly contigs to themselves to create self-homology mappings and those mappings will be used for filtering HMM-Flagger calls. Among outputs there will be a conservative bed file and also its related summary tables. (Default: true)"
         enableOutputtingBam: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: false)" 
         truthBedForMisassemblies : "(Optional) A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) (Default: None)"
     }
@@ -85,9 +86,9 @@ workflow HMMFlaggerEndToEndWithMapping{
         String presetForMapping
         File alphaTsv
 
-        String aligner="winnowmap"
+        String aligner="minimap2"
         Int kmerSize = 15
-        String alignerOptions="--eqx --cs -Y -L -y"
+        String alignerOptions="--eqx --cs -Y -L -y -I8g"
         String readExtractionOptions="-TMM,ML,Mm,Ml"
         File? referenceFastaForReadExtraction
         Boolean enableAddingMDTag=true
@@ -99,6 +100,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         Boolean enableRunningCorrectBam=false
         Int alignerThreadCount = 16
         Int alignerMemSize = 48
+        String flaggerVersion = "v1.2.0-dev"
         String alignerDockerImage = "mobinasri/long_read_aligner:v1.1.0"
         Float downSamplingRateForFlagger = 1.0
 
@@ -107,7 +109,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         Int chunkLen = 20000000
         Int windowLen = 4000
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.1.0"
+        String trackName = "hmm_flagger_v1.2.0"
         Int numberOfIterationsForFlagger = 100
         Float convergenceToleranceForFlagger = 0.001
         Float maxHighMapqRatio=0.25
@@ -117,7 +119,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=16
-        String flaggerDockerImage="mobinasri/flagger:v1.1.0"
+        String flaggerDockerImage="mobinasri/flagger:v1.2.0"
 
         File? sexBed
         File? SDBed
@@ -143,8 +145,10 @@ workflow HMMFlaggerEndToEndWithMapping{
         String secphaseVersion = "v0.4.4"
 
         Boolean enableOutputtingBigWig = true
+        Boolean enableCreatingConservativeBed = true
         Boolean enableOutputtingBam = true
         File? truthBedForMisassemblies
+
         
     }
 
@@ -245,6 +249,7 @@ workflow HMMFlaggerEndToEndWithMapping{
 
             enableRunningSecphase = false,
             enableOutputtingBigWig = enableOutputtingBigWig,
+            enableCreatingConservativeBed = enableCreatingConservativeBed,
             truthBedForMisassemblies = truthBedForMisassemblies,
     }
     if (enableOutputtingBam){
@@ -268,6 +273,15 @@ workflow HMMFlaggerEndToEndWithMapping{
         File? contiguitySummaryTsv = hmmFlaggerTask.contiguitySummaryTsv
         File fullStatsTsv = hmmFlaggerTask.fullStatsTsv
 
+        # outputs for conservative calls (they will exist only if enableCreatingConservativeBed is true)
+        File? finalPredictionBedConservative = hmmFlaggerTask.finalBedConservative
+        File? intermediatePredictionBedConservative = hmmFlaggerTask.predictionBedConservative
+
+        File? benchmarkingSummaryTsvConservative = hmmFlaggerTask.benchmarkingSummaryTsvConservative
+        File? contiguitySummaryTsvConservative = hmmFlaggerTask.contiguitySummaryTsvConservative
+        File? fullStatsTsvConservative = hmmFlaggerTask.fullStatsTsvConservative
+
+ 
         # Get projected bed files if there is any
         File? projectionSexBed = hmmFlaggerTask.projectionSexBed
         File? projectionSDBed = hmmFlaggerTask.projectionSDBed
