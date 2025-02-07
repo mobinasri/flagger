@@ -65,7 +65,7 @@ workflow HMMFlaggerEndToEnd{
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
-        flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.1.0)"
+        flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
         truthBedForMisassemblies : "(Optional) A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) (Default: None)"
     }
     input{
@@ -514,7 +514,7 @@ task decomposeCntrBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v1.1.0"
+        String dockerImage="mobinasri/flagger:v1.2.0"
         Int preemptible=2
     }
     command <<<
@@ -643,7 +643,7 @@ task collectAnnotations{
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v1.1.0"
+        String dockerImage="mobinasri/flagger:v1.2.0"
         Int preemptible=2
     }
     command <<<

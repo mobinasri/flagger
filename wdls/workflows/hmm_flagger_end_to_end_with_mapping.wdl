@@ -69,7 +69,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
-        flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.1.0)"
+        flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
         enableOutputtingBigWig: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: true)"
         enableCreatingConservativeBed: "If true it will map assembly contigs to themselves to create self-homology mappings and those mappings will be used for filtering HMM-Flagger calls. Among outputs there will be a conservative bed file and also its related summary tables. (Default: true)"
         enableOutputtingBam: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: false)" 
@@ -100,7 +100,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         Boolean enableRunningCorrectBam=false
         Int alignerThreadCount = 16
         Int alignerMemSize = 48
-        String flaggerVersion = "v1.2.0-dev"
+        String flaggerVersion = "v1.2.0"
         String alignerDockerImage = "mobinasri/long_read_aligner:v1.1.0"
         Float downSamplingRateForFlagger = 1.0
 
