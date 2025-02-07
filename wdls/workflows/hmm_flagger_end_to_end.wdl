@@ -87,7 +87,7 @@ workflow HMMFlaggerEndToEnd{
         Int chunkLen = 20000000
         Int windowLen = 4000
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.1.0"
+        String trackName = "hmm_flagger_v1.2.0"
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
