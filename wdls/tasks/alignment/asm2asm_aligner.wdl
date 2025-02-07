@@ -8,6 +8,7 @@ workflow asm2asmAlignment {
         File queryAssemblyFasta
         File refAssemblyFasta
         String suffix=""
+        String options=""
         # splitAssembly is recommended to be true if the assembly is having almost
         # the same quality as reference (including complete centromeres) since minimap2/winnowmap tests showed
         # that it takes forever to do the alignment of such assemblies to a reference like chm13v2.0
@@ -34,6 +35,7 @@ workflow asm2asmAlignment {
             refAssembly = refAssemblyFasta,
             readFastq_or_queryAssembly = queryAssemblyFasta,
             kmerSize = 19,
+            options = options,
             dockerImage="mobinasri/long_read_aligner:v1.1.0",
             diskSize = 64,
             zones = zones,
