@@ -14,9 +14,11 @@ import datetime
 def parseBlocksFromBed(inputBed):
     # Read the desired blocks. Their start and end positions are converted into the 1-based format
     inputBlocks = defaultdict(list)
+    header = None
     with open(inputBed,"r") as f:
         for line in f:
             if line.startswith("track name"):
+                header = line.strip()
                 continue
             attrbs = line.strip().split()
             chromName = attrbs[0]
@@ -25,21 +27,22 @@ def parseBlocksFromBed(inputBed):
             end = int(attrbs[2])
             info = {"ref_label": attrbs[3], "query_labels":{"asm2ref": [], "ref2asm": []}}
             inputBlocks[chromName].append((start, end, info))
-    return inputBlocks
+    return inputBlocks, header
 
 def parseAlignmentsFromSam(inputSamPath, minAlignmentLen, maxDivergence):
     alignments = []
     inputPysamAlignmentFile = pysam.AlignmentFile(inputSamPath, "r")
     for inputPysamRecord in inputPysamAlignmentFile.fetch():
         alignment = Alignment.createFromPysamRecord(inputPysamRecord, inputPysamAlignmentFile.header)
-        if (alignment.alignmentLength > minAlignmentLen and
+        if (alignment.isPrimary and 
+                alignment.alignmentLength > minAlignmentLen and
                 alignment.divergence is not None and
                 alignment.divergence < maxDivergence):
             alignments.append(alignment)
     return  alignments
 
 
-def saveConservativeBlocksInBed(blockListPerContig, bedPath):
+def saveConservativeBlocksInBed(blockListPerContig, header, bedPath):
     label2color = {"Err": "162,0,37",
                    "Dup": "250,104,0",
                    "Hap": "0,138,0",
@@ -48,6 +51,8 @@ def saveConservativeBlocksInBed(blockListPerContig, bedPath):
                    "Msj": "250,200,0",
                    "NNN": "0,0,0"}
     with open(bedPath, "w") as outFile:
+        if header is not None:
+            outFile.write(f"{header}\n")
         for ctg, blockList in blockListPerContig.items():
             preLabel = None
             preStart = None
@@ -90,13 +95,13 @@ def main():
     parser.add_argument('--inputBam', type=str,
                         help='(BAM/SAM format) The self homology mappings of the assembly contigs. This bam file can be created by running minimap2 with the parameters "-D -ax asm5" by using the diploid assembly both as reference and query.')
     parser.add_argument('--inputBed', type=str,
-                        help='(BED format) The hmm-flagger output bed file.')
+                        help='(BED format) The hmm-flagger output prediction bed file.')
     parser.add_argument('--outputBed', type=str,
                         help='(BAM/SAM format) The filtered hmm-flagger bed file with lower number of false positive calls.')
     parser.add_argument('--threads', type=int, default=4,
                         help='Number of threads for performing label projections between haplotypes.')
     parser.add_argument('--maxDivergence', type=float, default=0.005,
-                        help='The alignment records with gap-compressed divergence rate higher than this will be skipped. (Default=0.01)')
+                        help='The alignment records with gap-compressed divergence rate higher than this will be skipped. (Default=0.005)')
     parser.add_argument('--minAlignmentLen', type=int, default=10000,
                         help='The alignment records shorter than this will be skipped. (Default=10000)')
 
@@ -110,7 +115,7 @@ def main():
     maxDivergence = args.maxDivergence
     minAlignmentLen = args.minAlignmentLen
 
-    inputBlocks = parseBlocksFromBed(inputBed)
+    inputBlocks, header = parseBlocksFromBed(inputBed)
     print(f"[{datetime.datetime.now()}] Input HMM-Flagger blocks have been parsed.")
 
     print(f"[{datetime.datetime.now()}] Started parsing alignments.")
@@ -219,7 +224,7 @@ def main():
                 outFile.write(f"{ctg}\t{start}\t{end}\t({','.join(query_labels_ref2asm)}),({','.join(query_labels_asm2ref)})\n")
                 conservativeBlockListPerContig[ctg].append((start, end, conservative_label))
     # save blocks with conservative labels in the output bed file
-    saveConservativeBlocksInBed(conservativeBlockListPerContig, outputBed)
+    saveConservativeBlocksInBed(conservativeBlockListPerContig, header, outputBed)
 
     print(f"[{datetime.datetime.now()}] Done! Output BED file : ", outputBed)
 
