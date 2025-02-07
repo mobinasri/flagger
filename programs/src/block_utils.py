@@ -59,6 +59,8 @@ def induceSingleBaseErrors(seq, errorRate):
 def removeClippingFromCigarList(cigarList):
     s = 0
     e = len(cigarList)
+    if len(cigarList) <= 1:
+        return cigarList[:]
     # get first index with no clipping
     if cigarList[0][0] == 'H' or cigarList[0][0] == 'S':
         s = 1
@@ -196,7 +198,7 @@ class BlockList:
             if len(blocks[0]) == 2:
                 self.blocks = sorted([(block[0], block[1], 0) for block in blocks])
             else:
-                self.blocks = sorted(blocks)
+                self.blocks = sorted(blocks, key=lambda x:(x[0],x[1]))
 
     def isEqual(self, otherBlockList):
         if len(self.blocks) != len(otherBlockList.blocks): return False
