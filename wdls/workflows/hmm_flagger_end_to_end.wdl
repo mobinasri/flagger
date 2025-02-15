@@ -66,7 +66,6 @@ workflow HMMFlaggerEndToEnd{
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
-        flaggerVersion : "HMM-Flagger version ( Default: v1.2.0 )"
         flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
         truthBedForMisassemblies : "(Optional) A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) (Default: None)"
     }
@@ -100,7 +99,6 @@ workflow HMMFlaggerEndToEnd{
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=16
-        String flaggerVersion = "v1.2.0"
         String flaggerDockerImage="mobinasri/flagger:v1.2.0"
 
         File? sexBed
@@ -330,7 +328,6 @@ workflow HMMFlaggerEndToEnd{
             windowLen = windowLen,
             memSize = flaggerMemSize,
             threadCount = flaggerThreadCount,
-            flaggerVersion = flaggerVersion,
             dockerImage = flaggerDockerImage,
     }
 
@@ -432,8 +429,7 @@ workflow HMMFlaggerEndToEnd{
             input:
                 predictionBed = filterCalls.conservativeBed,
                 canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed,
-                sampleName = sampleName,
-                suffix = "hmm_flagger_${flaggerVersion}",
+                trackName = trackName,
                 dockerImage = flaggerDockerImage
          }
     }
@@ -457,8 +453,7 @@ workflow HMMFlaggerEndToEnd{
         input:
             predictionBed = hmmFlagger.predictionBed,
             canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed, 
-            sampleName = sampleName,
-            suffix = "hmm_flagger_${flaggerVersion}",
+            trackName = trackName,
             dockerImage = flaggerDockerImage
     }
 
@@ -568,8 +563,7 @@ task getFinalBed {
     input {
         File predictionBed
         File canonicalBasesDiploidBed
-        String sampleName
-        String suffix
+        String trackName
         # runtime configurations
         Int memSize=4
         Int threadCount=2
@@ -588,6 +582,9 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
+
+        IN_BED_PATH="~{predictionBed}"
+        PREFIX=$(basename ${IN_BED_PATH%.bed})
 
         mkdir output
         
@@ -609,10 +606,10 @@ task getFinalBed {
         
         
         # add track name
-        echo "track name=\"~{sampleName}.~{suffix}\" visibility=2 itemRgb=\"On\"" > output/~{sampleName}.~{suffix}.no_Hap.bed
+        echo "track name=\"~{trackName}\" visibility=2 itemRgb=\"On\"" > output/${PREFIX}.canonical.no_Hap.bed
 
         # merge canonical and non-canonical tracks in the final bed
-        cat non_canonical.bed canonical.no_Hap.bed | bedtools sort -i - >> output/~{sampleName}.~{suffix}.no_Hap.bed
+        cat non_canonical.bed canonical.no_Hap.bed | bedtools sort -i - >> output/${PREFIX}.canonical.no_Hap.bed
         
     >>>
     runtime {

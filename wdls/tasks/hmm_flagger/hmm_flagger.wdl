@@ -15,10 +15,10 @@ task hmmFlagger{
     input{
         File coverage
         String preset
+        String suffix
         File? binArrayTsv
         String labelNames = "Err,Dup,Hap,Col"
         String trackName = "hmm_flagger"
-        String flaggerVersion = "v1.2.0"
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
@@ -98,8 +98,8 @@ task hmmFlagger{
             --threads ~{threadCount} ${ADDITIONAL_ARGS}
         
         mkdir -p output
-        cp ${OUTPUT_DIR}/*.bed output/${PREFIX}.hmm_flagger_~{flaggerVersion}_prediction.bed
-        cp ${OUTPUT_DIR}/prediction_summary_final.tsv output/${PREFIX}.hmm_flagger_~{flaggerVersion}.prediction_summary_final.tsv
+        cp ${OUTPUT_DIR}/*.bed output/${PREFIX}.~{suffix}_prediction.bed
+        cp ${OUTPUT_DIR}/prediction_summary_final.tsv output/${PREFIX}.~{suffix}.prediction_summary_final.tsv
         cp ${OUTPUT_DIR}/loglikelihood.tsv output/
 
         tar -cf  ${OUTPUT_DIR}.tar ${OUTPUT_DIR}

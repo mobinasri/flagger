@@ -70,7 +70,6 @@ workflow HMMFlaggerEndToEndWithMapping{
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
-        flaggerVersion : "HMM-Flagger version ( Default: v1.2.0 )"
         flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
         enableOutputtingBigWig: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: true)"
         enableCreatingConservativeBed: "If true it will map assembly contigs to themselves to create self-homology mappings and those mappings will be used for filtering HMM-Flagger calls. Among outputs there will be a conservative bed file and also its related summary tables. (Default: true)"
@@ -121,7 +120,6 @@ workflow HMMFlaggerEndToEndWithMapping{
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=16
-        String flaggerVersion = "v1.2.0"
         String flaggerDockerImage="mobinasri/flagger:v1.2.0"
 
         File? sexBed
@@ -230,7 +228,6 @@ workflow HMMFlaggerEndToEndWithMapping{
             flaggerMinimumBlockLenArray = flaggerMinimumBlockLenArray,
             flaggerMemSize = flaggerMemSize,
             flaggerThreadCount = flaggerThreadCount,
-            flaggerVersion = flaggerVersion,
             flaggerDockerImage = flaggerDockerImage,
 
             sexBed = sexBed,
