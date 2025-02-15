@@ -14,18 +14,20 @@ workflow runHmmFlagger{
 task hmmFlagger{
     input{
         File coverage
+        String preset
         File? binArrayTsv
-        Int chunkLen = 20000000
-        Int windowLen = 4000
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.2"
+        String trackName = "hmm_flagger"
+        String flaggerVersion = "v1.2.0"
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
         Float minHighMapqRatio=0.75
         String? moreOptions
         File? alphaTsv
-        String modelType = "gaussian"
+        String? modelType
+        Int? chunkLen
+        Int? windowLen
         Array[Int] minimumBlockLenArray = []
         # runtime configurations
         Int memSize=32
@@ -53,8 +55,23 @@ task hmmFlagger{
         if [ -n "~{binArrayTsv}" ]
         then
             ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --binArrayFile ~{binArrayTsv}"
-        fi 
-        
+        fi
+
+        if [ -n "~{chunkLen}" ]
+        then
+            ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --chunkLen ~{chunkLen}"
+        fi
+
+        if [ -n "~{windowLen}" ]
+        then
+            ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --windowLen ~{windowLen}"
+        fi
+
+        if [ -n "~{modelType}" ]
+        then
+            ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --modelType ~{modelType}"
+        fi
+
         if [ -n "~{moreOptions}" ]
         then
             ADDITIONAL_ARGS="${ADDITIONAL_ARGS} ~{moreOptions}"
@@ -70,12 +87,10 @@ task hmmFlagger{
 
         hmm_flagger \
             --input ~{coverage} \
+            --preset ~{preset} \
             --outputDir ${OUTPUT_DIR}  \
-            --chunkLen ~{chunkLen} \
-            --windowLen ~{windowLen} \
             --maxHighMapqRatio ~{maxHighMapqRatio} \
             --minHighMapqRatio ~{minHighMapqRatio} \
-            --modelType ~{modelType} \
             --iterations ~{numberOfIterations} \
             --trackName ~{trackName} \
             --convergenceTol ~{convergenceTolerance} \
@@ -83,8 +98,8 @@ task hmmFlagger{
             --threads ~{threadCount} ${ADDITIONAL_ARGS}
         
         mkdir -p output
-        cp ${OUTPUT_DIR}/*.bed output/${PREFIX}.hmm_flagger_prediction.bed
-        cp ${OUTPUT_DIR}/prediction_summary_final.tsv output/${PREFIX}.prediction_summary_final.tsv
+        cp ${OUTPUT_DIR}/*.bed output/${PREFIX}.hmm_flagger_~{flaggerVersion}_prediction.bed
+        cp ${OUTPUT_DIR}/prediction_summary_final.tsv output/${PREFIX}.hmm_flagger_~{flaggerVersion}.prediction_summary_final.tsv
         cp ${OUTPUT_DIR}/loglikelihood.tsv output/
 
         tar -cf  ${OUTPUT_DIR}.tar ${OUTPUT_DIR}

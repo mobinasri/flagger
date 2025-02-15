@@ -25,7 +25,8 @@ workflow HMMFlaggerEndToEnd{
         hap2AssemblyFasta: "(Required) Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype."
         readAlignmentBam: "(Required) Path to sorted read alignment bam."
         readAlignmentBai: "(Required) Path to bam index for read alignment"
-        alphaTsv : "(Required) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1."
+        presetForFlagger :  "(Required) HMM-Flagger preset (can be one of 'hifi', 'ont-r9', or 'ont-r10')"
+        alphaTsv : "(Optional) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. (Default = will be determined based on presetForFlagger)"
         maxReadDivergence: "Alignments with gap-compressed ratio higher than this will be filtered in the pre-process step. (Default: 0.1)"
         minReadLength: "Minimum read size (Default: 5000)"
         minAlignmentLength: "Minimum alignment size (Default: 5000)"
@@ -52,19 +53,20 @@ workflow HMMFlaggerEndToEnd{
         enableCreatingConservativeBed: "If true it will map assembly contigs to themselves to create self-homology mappings and it will use them for filtering HMM-Flagger calls. Among outputs there will be a conservative bed file and also its related summary tables. (Default: true)"
         includeContigListText : "(Optional) Create coverage file and run HMM-Flagger only on these contigs (listed in a text file with one contig name per line). (Default: all contigs)"
         binArrayTsv : "(Optional)  A tsv file (tab-delimited) that contains bin arrays for stratifying results by event size. Bin intervals can have overlap. It should contain three columns. 1st column is the closed start of the bin and the 2nd column is the open end. The 3rd column has a name for each bin. (Default: all sizes in a single bin named ALL_SIZES)"
-        chunkLen : "The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together. (Default: 20000000)"
-        windowLen : "The length of windows for running HMM-Flagger. The coverage values will be averaged over the bases in each window and then the average value will be considered as an emission. (Default: 4000)"
+        chunkLen : "(Optional) The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together. (Default: 20000000)"
+        windowLen : "(Optional) The length of windows for running HMM-Flagger. The coverage values will be averaged over the bases in each window and then the average value will be considered as an emission. (Default: will be determined based on presetForFlagger)"
         labelNames : "The names of the labels/states for reporting in the final summary tsv files (Default: 'Err,Dup,Hap,Col')"
-        trackName : "The track name in the final BED file (Default: hmm_flagger_v1.0)"
+        trackName : "The track name in the final BED file (Default: hmm_flagger)"
         numberOfIterations : "Number of EM iterations for estimating HMM parameters (Default:100)"
         convergenceTolerance : "Convergence tolerance. The EM iteration will stop once the difference between all model parameter values in two consecutive iterations is less than this value. (Default = 0.001)"
         maxHighMapqRatio : "Maximum ratio of high mapq coverage for duplicated state (Default = 0.25)"
         minHighMapqRatio : "Minimum ratio of high mapq coverage for collapsed state (Default = 0.75)"
         flaggerMoreOptions : "(Optional) More options for HMM-Flagger provided in a single string (Default = '')"
-        modelType : "Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = 'trunc_exp_gaussian')"
+        modelType : "(Optional) Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = will be determined based on presetForFlagger)"
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
+        flaggerVersion : "HMM-Flagger version ( Default: v1.2.0 )"
         flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
         truthBedForMisassemblies : "(Optional) A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) (Default: None)"
     }
@@ -75,8 +77,8 @@ workflow HMMFlaggerEndToEnd{
         File hap1AssemblyFasta
         File hap2AssemblyFasta
         File readAlignmentBam
-	File readAlignmentBai
-	File alphaTsv
+        File readAlignmentBai
+        File? alphaTsv
         Float maxReadDivergence = 0.1
         Int minReadLength = 5000
         Int minAlignmentLength = 5000
@@ -84,16 +86,17 @@ workflow HMMFlaggerEndToEnd{
               
         File? includeContigListText
         File? binArrayTsv
-        Int chunkLen = 20000000
-        Int windowLen = 4000
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.2.0"
+        String trackName = "hmm_flagger"
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
         Float minHighMapqRatio=0.75
+        String presetForFlagger
         String? flaggerMoreOptions
-        String modelType = "trunc_exp_gaussian"
+        String? modelType
+        Int? chunkLen
+        Int? windowLen
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=16
@@ -311,9 +314,8 @@ workflow HMMFlaggerEndToEnd{
     call hmm_flagger_t.hmmFlagger {
         input:
             coverage = bam2cov.coverageGz,
+            preset = presetForFlagger,
             binArrayTsv = binArrayTsv,
-            chunkLen = chunkLen,
-            windowLen = windowLen,
             labelNames = labelNames,
             trackName = trackName,
             numberOfIterations = numberOfIterations,
@@ -324,8 +326,11 @@ workflow HMMFlaggerEndToEnd{
             minimumBlockLenArray = flaggerMinimumBlockLenArray, 
             alphaTsv = alphaTsv,
             modelType = modelType,
+            chunkLen = chunkLen,
+            windowLen = windowLen,
             memSize = flaggerMemSize,
             threadCount = flaggerThreadCount,
+            flaggerVersion = flaggerVersion,
             dockerImage = flaggerDockerImage,
     }
 
@@ -361,8 +366,8 @@ workflow HMMFlaggerEndToEnd{
     call augment_cov_t.augmentCoverageByLabels {
         input:
             coverage = bam2cov.coverageGz,
-            fai = produceFai.fai, 
-	    numberOfLabels = 4,
+            fai = produceFai.fai,
+            numberOfLabels = 4,
             truthBed = labelTruth.labeledBed,
             predictionBed = labelPrediction.labeledBed,
             includeContigListText = includeContigListText,
@@ -428,8 +433,7 @@ workflow HMMFlaggerEndToEnd{
                 predictionBed = filterCalls.conservativeBed,
                 canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed,
                 sampleName = sampleName,
-                suffix = suffix,
-                flaggerVersion = flaggerVersion,
+                suffix = "hmm_flagger_${flaggerVersion}",
                 dockerImage = flaggerDockerImage
          }
     }
@@ -442,7 +446,7 @@ workflow HMMFlaggerEndToEnd{
             input:
                 coverage = bam2cov.coverageGz,
                 windowLen = 1000,
-                trackName = "${sampleName}.${suffix}",
+                trackName = trackName,
                 fai = produceFai.fai,
                 dockerImage = flaggerDockerImage,
         }
@@ -454,8 +458,7 @@ workflow HMMFlaggerEndToEnd{
             predictionBed = hmmFlagger.predictionBed,
             canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed, 
             sampleName = sampleName,
-            suffix = suffix,
-            flaggerVersion = flaggerVersion,
+            suffix = "hmm_flagger_${flaggerVersion}",
             dockerImage = flaggerDockerImage
     }
 
@@ -567,7 +570,6 @@ task getFinalBed {
         File canonicalBasesDiploidBed
         String sampleName
         String suffix
-        String flaggerVersion
         # runtime configurations
         Int memSize=4
         Int threadCount=2
@@ -607,10 +609,10 @@ task getFinalBed {
         
         
         # add track name
-        echo "track name=\"~{sampleName}.~{suffix}\" visibility=2 itemRgb=\"On\"" > output/~{sampleName}.~{suffix}.hmm_flagger_~{flaggerVersion}.no_Hap.bed
+        echo "track name=\"~{sampleName}.~{suffix}\" visibility=2 itemRgb=\"On\"" > output/~{sampleName}.~{suffix}.no_Hap.bed
 
         # merge canonical and non-canonical tracks in the final bed
-        cat non_canonical.bed canonical.no_Hap.bed | bedtools sort -i - >> output/~{sampleName}.~{suffix}.hmm_flagger_~{flaggerVersion}.no_Hap.bed
+        cat non_canonical.bed canonical.no_Hap.bed | bedtools sort -i - >> output/~{sampleName}.~{suffix}.no_Hap.bed
         
     >>>
     runtime {

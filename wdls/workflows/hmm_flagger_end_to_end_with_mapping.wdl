@@ -19,9 +19,10 @@ workflow HMMFlaggerEndToEndWithMapping{
         hap1AssemblyFasta: "(Required) Path to uncompressed or gzip-compressed fasta file of the 1st haplotype."
         hap2AssemblyFasta: "(Required) Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype."
         readFiles: "(Required) Array of read files. Their format can be either fastq, fq, fastq.gz, fq.gz, bam or cram. For cram format referenceFastaForReadExtraction should also be passed."
+        presetForFlagger :  "(Required) HMM-Flagger preset (can be one of 'hifi', 'ont-r9', or 'ont-r10')"
         aligner: "Name of the aligner. It can be either minimap2, winnowmap or veritymap. (Default = winnowmap)"
         presetForMapping: "(Required) Paremeter preset should be selected based on aligner and sequencing platform. Common presets are lr:hqae/map-ont for minimap2, map-pb/map-ont for winnowmap and hifi-haploid/hifi-haploid-complete/hifi-diploid/ont-haploid-complete for veritymap"
-        alphaTsv : "(Required) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. (Default = all alpha factors set to 0)"
+        alphaTsv : "(Optional) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. (Default = will be determined based on presetForFlagger)"
         kmerSize: "The kmer size for using minimap2 or winnowmap. With winnowmap kmer size should be 15 and with minimap2 kmer size should be 15 and 25 for using the presets map-ont and lr:hqae respectively."
         alignerOptions: "Aligner options. It can be something like '--eqx --cs -Y -L -y' for minimap2/winnowmap. Note that if assembly is diploid and aligner is either minimap2 or winnowmap '-I8g' is necessary. If the reads contain modification tags and these tags are supposed to be present in the final alignment file, alignerOptions should contain '-y' and the aligner should be either minimap2 or winnowmap. If running secphase is enabled it is recommended to add '-p0.5' to alignerOptions; it will keep more secondary alignments so secphase will have more candidates per read. For veritymap '--careful' can be used but not recommended for whole-genome assembly since it increases the runtime dramatically."
         readExtractionOptions: "The options to be used while converting bam to fastq with samtools fastq. If the reads contain epigentic modification tags it is necessary to use '-TMm,Ml,MM,ML'"
@@ -56,19 +57,20 @@ workflow HMMFlaggerEndToEndWithMapping{
         secphaseVersion: "Secphase version. (Default: v0.4.4)"
         includeContigListText : "(Optional) Create coverage file and run HMM-Flagger only on these contigs (listed in a text file with one contig name per line). (Default: all contigs)"
         binSizeArrayTsv : "(Optional)  A tsv file (tab-delimited) that contains bin arrays for stratifying results by event size. Bin intervals can have overlap. It should contain three columns. 1st column is the closed start of the bin and the 2nd column is the open end. The 3rd column has a name for each bin. (Default: all sizes in a single bin named ALL_SIZES)"
-        chunkLen : "The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together. (Default: 20000000)"
-        windowLen : "The length of windows for running HMM-Flagger. The coverage values will be averaged over the bases in each window and then the average value will be considered as an emission. (Default: 4000)"
+        chunkLen : "(Optional) The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together. (Default: 20000000)"
+        windowLen : "(Optional) The length of windows for running HMM-Flagger. The coverage values will be averaged over the bases in each window and then the average value will be considered as an emission. (Default: will be determined based on presetForFlagger)"
         labelNames : "The names of the labels/states for reporting in the final summary tsv files (Default: 'Err,Dup,Hap,Col')"
-        trackName : "The track name in the final BED file (Default: hmm_flagger_v1.0)"
+        trackName : "The track name in the final BED file (Default: hmm_flagger)"
         numberOfIterationsForFlagger : "Number of EM iterations for estimating HMM parameters (Default:100)"
         convergenceToleranceForFlagger : "Convergence tolerance. The EM iteration will stop once the difference between all model parameter values in two consecutive iterations is less than this value. (Default = 0.001)"
         maxHighMapqRatio : "Maximum ratio of high mapq coverage for duplicated state (Default = 0.25)"
         minHighMapqRatio : "Minimum ratio of high mapq coverage for collapsed state (Default = 0.75)"
         flaggerMoreOptions : "(Optional) More options for HMM-Flagger provided in a single string (Default = '')"
-        modelType : "Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = 'trunc_exp_gaussian')"
+        modelType : "(Optional) Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = will be determined based on presetForFlagger)"
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
+        flaggerVersion : "HMM-Flagger version ( Default: v1.2.0 )"
         flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
         enableOutputtingBigWig: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: true)"
         enableCreatingConservativeBed: "If true it will map assembly contigs to themselves to create self-homology mappings and those mappings will be used for filtering HMM-Flagger calls. Among outputs there will be a conservative bed file and also its related summary tables. (Default: true)"
@@ -83,8 +85,9 @@ workflow HMMFlaggerEndToEndWithMapping{
         File hap1AssemblyFasta
         File hap2AssemblyFasta
         Array[File] readFiles
+        String presetForFlagger
         String presetForMapping
-        File alphaTsv
+        File? alphaTsv
 
         String aligner="minimap2"
         Int kmerSize = 15
@@ -100,25 +103,25 @@ workflow HMMFlaggerEndToEndWithMapping{
         Boolean enableRunningCorrectBam=false
         Int alignerThreadCount = 16
         Int alignerMemSize = 48
-        String flaggerVersion = "v1.2.0"
         String alignerDockerImage = "mobinasri/long_read_aligner:v1.1.0"
         Float downSamplingRateForFlagger = 1.0
 
         File? includeContigListText
         File? binSizeArrayTsv
-        Int chunkLen = 20000000
-        Int windowLen = 4000
+        String? modelType
+        Int? chunkLen
+        Int? windowLen
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.2.0"
+        String trackName = "hmm_flagger"
         Int numberOfIterationsForFlagger = 100
         Float convergenceToleranceForFlagger = 0.001
         Float maxHighMapqRatio=0.25
         Float minHighMapqRatio=0.75
         String? flaggerMoreOptions
-        String modelType = "trunc_exp_gaussian"
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=16
+        String flaggerVersion = "v1.2.0"
         String flaggerDockerImage="mobinasri/flagger:v1.2.0"
 
         File? sexBed
@@ -227,6 +230,7 @@ workflow HMMFlaggerEndToEndWithMapping{
             flaggerMinimumBlockLenArray = flaggerMinimumBlockLenArray,
             flaggerMemSize = flaggerMemSize,
             flaggerThreadCount = flaggerThreadCount,
+            flaggerVersion = flaggerVersion,
             flaggerDockerImage = flaggerDockerImage,
 
             sexBed = sexBed,
