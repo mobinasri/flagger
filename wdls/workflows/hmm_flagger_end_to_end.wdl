@@ -313,6 +313,7 @@ workflow HMMFlaggerEndToEnd{
         input:
             coverage = bam2cov.coverageGz,
             preset = presetForFlagger,
+            suffix = suffix,
             binArrayTsv = binArrayTsv,
             labelNames = labelNames,
             trackName = trackName,
