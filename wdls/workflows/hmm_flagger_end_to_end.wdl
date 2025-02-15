@@ -486,7 +486,7 @@ workflow HMMFlaggerEndToEnd{
 
         # outputs for conservative calls (they will exist only if enableCreatingConservativeBed is true)
         File? benchmarkingSummaryTsvConservative = benchmarkingSummaryTsvOutputConservative
-        File? contiguitySummaryTsvConvervative = contiguitySummaryTsvOutputConservative
+        File? contiguitySummaryTsvConservative = contiguitySummaryTsvOutputConservative
         File? fullStatsTsvConservative = makeSummaryTableConservative.fullStatsTsv
         
         File? finalBedConservative = getFinalBedConservative.finalBed
