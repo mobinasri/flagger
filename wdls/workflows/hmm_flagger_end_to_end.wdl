@@ -139,6 +139,18 @@ workflow HMMFlaggerEndToEnd{
             outputName = "${sampleName}.dip.asm"
     }
 
+    # Index hap1 assembly
+    call fai_t.produceFai as produceFaiHap1 {
+        input:
+            fasta = hap1AssemblyFasta
+    }
+
+    # Index hap2 assembly
+    call fai_t.produceFai as produceFaiHap2 {
+        input:
+            fasta = hap2AssemblyFasta
+    }
+
     # Index diploid assembly
     call fai_t.produceFai {
         input:
@@ -431,6 +443,8 @@ workflow HMMFlaggerEndToEnd{
                 predictionBed = filterCalls.conservativeBed,
                 canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed,
                 trackName = trackName,
+                hap1Fai = produceFaiHap1.fai,
+                hap2Fai = produceFaiHap2.fai,
                 dockerImage = flaggerDockerImage
          }
     }
@@ -455,6 +469,8 @@ workflow HMMFlaggerEndToEnd{
             predictionBed = hmmFlagger.predictionBed,
             canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed, 
             trackName = trackName,
+            hap1Fai = produceFaiHap1.fai,
+            hap2Fai = produceFaiHap2.fai,
             dockerImage = flaggerDockerImage
     }
 
@@ -476,6 +492,8 @@ workflow HMMFlaggerEndToEnd{
         File fullStatsTsv = makeSummaryTable.fullStatsTsv
 
         File finalBed = getFinalBed.finalBed
+        File finalBedHap1 = getFinalBed.finalBedHap1
+        File finalBedHap2 = getFinalBed.finalBedHap2
         File predictionBed = hmmFlagger.predictionBed
         File loglikelihoodTsv = hmmFlagger.loglikelihoodTsv
         File miscFilesTarGz = hmmFlagger.outputTarGz
@@ -486,6 +504,8 @@ workflow HMMFlaggerEndToEnd{
         File? fullStatsTsvConservative = makeSummaryTableConservative.fullStatsTsv
         
         File? finalBedConservative = getFinalBedConservative.finalBed
+        File? finalBedConservativeHap1 = getFinalBedConservative.finalBedHap1
+        File? finalBedConservativeHap2 = getFinalBedConservative.finalBedHap2
         File? predictionBedConservative = filterCalls.conservativeBed
 
         # get projected bed files if there is any
@@ -565,6 +585,8 @@ task getFinalBed {
         File predictionBed
         File canonicalBasesDiploidBed
         String trackName
+        File hap1Fai
+        File hap2Fai
         # runtime configurations
         Int memSize=4
         Int threadCount=2
@@ -611,7 +633,15 @@ task getFinalBed {
 
         # merge canonical and non-canonical tracks in the final bed
         cat non_canonical.bed canonical.no_Hap.bed | bedtools sort -i - >> output/${PREFIX}.canonical.no_Hap.bed
-        
+
+        # add track name for hap1
+        echo "track name=\"~{trackName}_hap1\" visibility=2 itemRgb=\"On\"" > output/${PREFIX}.canonical.no_Hap.hap1.bed
+        cut -f1 ~{hap1Fai} | grep -F -f - output/${PREFIX}.canonical.no_Hap.bed >> output/${PREFIX}.canonical.no_Hap.hap1.bed
+
+        # add track name for hap2
+        echo "track name=\"~{trackName}_hap2\" visibility=2 itemRgb=\"On\"" > output/${PREFIX}.canonical.no_Hap.hap2.bed
+        cut -f1 ~{hap2Fai} | grep -F -f - output/${PREFIX}.canonical.no_Hap.bed >> output/${PREFIX}.canonical.no_Hap.hap2.bed
+
     >>>
     runtime {
         docker: dockerImage
@@ -622,6 +652,8 @@ task getFinalBed {
     }
     output {
         File finalBed = glob("output/*.no_Hap.bed")[0]
+        File finalBedHap1 = glob("output/*.no_Hap.hap1.bed")[0]
+        File finalBedHap2 = glob("output/*.no_Hap.hap2.bed")[0]
     }
 }
 

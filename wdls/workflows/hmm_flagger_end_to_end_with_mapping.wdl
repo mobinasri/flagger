@@ -264,6 +264,8 @@ workflow HMMFlaggerEndToEndWithMapping{
 
         # HMM-Flagger output bed files
         File finalPredictionBed = hmmFlaggerTask.finalBed
+        File finalPredictionBedHap1 = hmmFlaggerTask.finalBedHap1
+        File finalPredictionBedHap2 = hmmFlaggerTask.finalBedHap2
         File intermediatePredictionBed = hmmFlaggerTask.predictionBed
 
         # HMM-Flagger summary files
@@ -276,6 +278,8 @@ workflow HMMFlaggerEndToEndWithMapping{
 
         # outputs for conservative calls (they will exist only if enableCreatingConservativeBed is true)
         File? finalPredictionBedConservative = hmmFlaggerTask.finalBedConservative
+        File? finalPredictionBedConservativeHap1 = hmmFlaggerTask.finalBedConservativeHap1
+        File? finalPredictionBedConservativeHap2 = hmmFlaggerTask.finalBedConservativeHap2
         File? intermediatePredictionBedConservative = hmmFlaggerTask.predictionBedConservative
 
         File? benchmarkingSummaryTsvConservative = hmmFlaggerTask.benchmarkingSummaryTsvConservative
