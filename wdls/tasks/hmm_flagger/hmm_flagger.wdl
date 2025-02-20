@@ -125,6 +125,7 @@ task hmmFlagger{
 task filterHmmFlaggerCalls{
     input{
         File selfAsmMapBam
+        File selfAsmMapBamIndex
         File flaggerBed
         Int minAlignmentLen=10000
         Float maxDivergence=0.005
@@ -145,10 +146,12 @@ task filterHmmFlaggerCalls{
         IN_BED_PATH="~{flaggerBed}"
         PREFIX=$(basename ${IN_BED_PATH%.bed})
 
+        ln -s ~{selfAsmMapBam} self_hom_alignment.bam
+        ln -s ~{selfAsmMapBamIndex} self_hom_alignment.bam.bai
         mkdir -p output
 
         python3 /home/programs/src/filter_hmm_flagger_calls.py \
-            --inputBam ~{selfAsmMapBam} \
+            --inputBam self_hom_alignment.bam \
             --inputBed ~{flaggerBed} \
             --outputBed output/${PREFIX}.conservative.bed \
             --minAlignmentLen ~{minAlignmentLen} \
