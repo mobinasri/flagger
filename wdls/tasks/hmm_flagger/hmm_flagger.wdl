@@ -126,7 +126,7 @@ task filterHmmFlaggerCalls{
     input{
         File selfAsmMapBam
         File flaggerBed
-        Float minAlignmentLen=10000
+        Int minAlignmentLen=10000
         Float maxDivergence=0.005
         String? moreOptions
         # runtime configurations

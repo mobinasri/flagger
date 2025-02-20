@@ -166,7 +166,7 @@ workflow HMMFlaggerEndToEnd{
             input :
                 aligner = "minimap2",
                 preset = "asm5",
-                options = "-D",
+                options = "-D -I8g",
                 queryAssemblyFasta = createDipAsm.diploidAssemblyFastaGz,
                 refAssemblyFasta = createDipAsm.diploidAssemblyFastaGz
         }
