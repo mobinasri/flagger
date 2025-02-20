@@ -404,6 +404,7 @@ workflow HMMFlaggerEndToEnd{
         call hmm_flagger_t.filterHmmFlaggerCalls as filterCalls {
             input:
                 selfAsmMapBam = select_first([selfHomologyMapping.sortedBamFile]),
+                selfAsmMapBamIndex = select_first([selfHomologyMapping.sortedBamIndexFile]),
                 flaggerBed = hmmFlagger.predictionBed
         }
         
@@ -426,7 +427,7 @@ workflow HMMFlaggerEndToEnd{
                 truthBed = labelTruth.labeledBed,
                 predictionBed = labelPredictionConservative.labeledBed,
                 includeContigListText = includeContigListText,
-                suffix="augmented",
+                suffix="augmented.conservative",
                 dockerImage = flaggerDockerImage,
          }
          # make a summary table for conservative calls
