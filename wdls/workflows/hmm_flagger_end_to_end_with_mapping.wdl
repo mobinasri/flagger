@@ -203,6 +203,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         input:
             sampleName = sampleName,
             suffix = suffixForFlagger,
+            presetForFlagger = presetForFlagger,
 
             hap1AssemblyFasta = hap1AssemblyFasta,
             hap2AssemblyFasta = hap2AssemblyFasta,
