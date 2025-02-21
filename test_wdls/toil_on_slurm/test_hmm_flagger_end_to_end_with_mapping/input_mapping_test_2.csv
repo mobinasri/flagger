@@ -14,9 +14,7 @@ HMMFlaggerEndToEndWithMapping.enableAddingMDTag,scalar,$input.enable_adding_md_t
 HMMFlaggerEndToEndWithMapping.splitNumber,scalar,$input.split_number
 HMMFlaggerEndToEndWithMapping.enableSplittingReadsEqually,scalar,$input.enable_splitting_reads_equally
 HMMFlaggerEndToEndWithMapping.flaggerMinimumBlockLenArray,array,$input.flagger_minimum_block_len_array
-HMMFlaggerEndToEndWithMapping.windowLen,scalar,4000
-HMMFlaggerEndToEndWithMapping.alphaTsv,scalar,https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/hmm_flagger_files/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv
-HMMFlaggerEndToEndWithMapping.modelType,scalar,trunc_exp_gaussian
+HMMFlaggerEndToEndWithMapping.presetForFlagger,scalar,hifi
 HMMFlaggerEndToEndWithMapping.binSizeArrayTsv,scalar,https://s3-us-west-2.amazonaws.com/human-pangenomics/submissions/e093fd72-e31a-11ee-b020-27964ee37032--flagger_test_files/hmm_flagger_files/bin_size_array.tsv
 HMMFlaggerEndToEndWithMapping.sexBedToBeProjected,scalar,$input.sex_bed_to_be_projected
 HMMFlaggerEndToEndWithMapping.cntrBedToBeProjected,scalar,$input.cntr_bed_to_be_projected
@@ -34,13 +32,13 @@ HMMFlaggerEndToEndWithMapping.secphaseVersion,scalar,v0.4.4
 HMMFlaggerEndToEndWithMapping.convergenceToleranceForFlagger,scalar,0.001
 HMMFlaggerEndToEndWithMapping.numberOfIterationsForFlagger,scalar,100
 HMMFlaggerEndToEndWithMapping.enableRunningSecphase,scalar,false
-HMMFlaggerEndToEndWithMapping.trackName,scalar,hmm_flagger_v1.1.0
+HMMFlaggerEndToEndWithMapping.trackName,scalar,hmm_flagger_v1.2.0
 HMMFlaggerEndToEndWithMapping.downSamplingRateForFlagger,scalar,1.0
 HMMFlaggerEndToEndWithMapping.maxHighMapqRatio,scalar,0.25
 HMMFlaggerEndToEndWithMapping.minHighMapqRatio,scalar,0.75
 HMMFlaggerEndToEndWithMapping.chunkLen,scalar,20000000
 HMMFlaggerEndToEndWithMapping.flaggerMemSize,scalar,32
 HMMFlaggerEndToEndWithMapping.flaggerThreadCount,scalar,32
-HMMFlaggerEndToEndWithMapping.flaggerDockerImage,scalar,mobinasri/flagger:v1.1.0
+HMMFlaggerEndToEndWithMapping.flaggerDockerImage,scalar,mobinasri/flagger:v1.2.0
 HMMFlaggerEndToEndWithMapping.enableOutputtingBigWig,scalar,true
 HMMFlaggerEndToEndWithMapping.enableOutputtingBam,scalar,false
