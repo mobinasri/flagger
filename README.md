@@ -65,6 +65,29 @@ cat hmm_flagger_outputs/prediction_summary_final.tsv | grep base_level | grep wh
 PREDICTION	base_level	percentage	annotation	whole_genome	ALL_SIZES	ALL_LABELS	1.24	1.37	95.99	1.40	0.00
 ```
 
+### 4. (Optional) Create conservative BED
+
+This step will create a new BED file in which some of the 'Col' or 'Dup' predictions are replaced by 'Hap' therefore it is more conservative in calling misassemblies (`final_flagger_prediction.conservative.bed`).
+
+#### 4.1. Map diploid assembly to itself
+```
+# map with minimap2 and use diploid assembly as both reference and target
+minimap2 -k 19 -a -x asm5 -D -I8g -t8 ${FASTA_FILE} ${FASTA_FILE} | samtools view -h -b | samtools sort -@8 > self_hom_alignment.bam
+
+# index bam file
+samtools index self_hom_alignment.bam
+```
+#### 4.2. Filter HMM-Flagger predictions
+```
+# filter flagger predictions and create a conservative BED
+docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.2.0 \
+    python3 /home/programs/src/filter_hmm_flagger_calls.py \
+        --inputBam self_hom_alignment.bam \
+        --inputBed ${WORKING_DIR}/hmm_flagger_outputs/final_flagger_prediction.bed \
+        --outputBed final_flagger_prediction.conservative.bed \
+        --threads 8 ~{moreOptions}
+```
+
 ### Note about coverage-biased regions
 It has been observed that peri/centromeric satellite regions are prone to have coverage biases (in PacBio HiFi and ONT data). Users can add satellite repeat arrays as separate annotations to the input json for the `bam2cov` program (with enabling `--runBiasDetection`). `bam2cov` will detect if there exist coverage biases in any annotation provided in the json file and add the neccessary information to the coverage file. It will help HMM-Flagger to predict the labels more accurately. It is recommended to provide each satellite in a separate bed file for example putting HSat1A, HSat1B, Hsat2 and HSat3 in separate files.
 
