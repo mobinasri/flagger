@@ -964,8 +964,9 @@ class Projection:
                info, diff, projectionCigar):
         if (projectionEndPos - projectionStartPos + 1) == 0:
             print("projectable:", projectableStartPos, projectableEndPos)
-            print("projection:", projectionStartPos, projectionEndPos)
-        r = None if diff == None else diff/ (projectionEndPos - projectionStartPos + 1) * 100
+            print("(ZERO LENGTH!) projection:", projectionStartPos, projectionEndPos)
+            return
+        r = None if diff == None else diff / (projectionEndPos - projectionStartPos + 1) * 100
         self.projectionBlocks.append((projectionStartPos, projectionEndPos, info, r)) # there is no valid projection for this block
         if self.orientation == '+':
             self.projectableBlocks.append((projectableStartPos, projectableEndPos, info, r))
