@@ -55,7 +55,10 @@ task cov2bigwig{
         # saving mappable regions in a BED file
         cat output/${PREFIX}.high_mapq.bedgraph | \
             grep -v "track type" | \
-            awk '$4 >= ~{minHighMapqCov}' > output/${PREFIX}.mapq_ge_~{minMapq}.cov_ge_~{minHighMapqCov}.mappable.bed
+            awk '$4 >= ~{minHighMapqCov} {print $1"\t"$2"\t"$3}' | \
+            bedtools sort -i - | \
+            bedtools merge -i - > output/${PREFIX}.mapq_ge_~{minMapq}.cov_ge_~{minHighMapqCov}.mappable.bed
+
 
         cut -f1 ~{hap1Fai} | \
             grep -F -f - output/${PREFIX}.mapq_ge_~{minMapq}.cov_ge_~{minHighMapqCov}.mappable.bed > output/${PREFIX}.mapq_ge_~{minMapq}.cov_ge_~{minHighMapqCov}.mappable.hap1.bed
