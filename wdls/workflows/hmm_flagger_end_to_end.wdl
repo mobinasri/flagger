@@ -405,7 +405,8 @@ workflow HMMFlaggerEndToEnd{
             input:
                 selfAsmMapBam = select_first([selfHomologyMapping.sortedBamFile]),
                 selfAsmMapBamIndex = select_first([selfHomologyMapping.sortedBamIndexFile]),
-                flaggerBed = hmmFlagger.predictionBed
+                flaggerBed = hmmFlagger.predictionBed,
+                dockerImage = flaggerDockerImage
         }
         
         # make a prediction bed file that contains
