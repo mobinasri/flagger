@@ -297,6 +297,8 @@ workflow HMMFlaggerEndToEndWithMapping{
 
         # bigwig files if user enabled outputting them
         Array[File]? bigwigArray = hmmFlaggerTask.bigwigArray
+        File? mappableHap1Bed = hmmFlaggerTask.mappableHap1Bed
+        File? mappableHap2Bed = hmmFlaggerTask.mappableHap2Bed
         
         # read alignment bam file if user enabled outputting it
         File? readAlignmentBam = readAlignmentBamToOutput

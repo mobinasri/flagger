@@ -130,6 +130,8 @@ workflow HMMFlaggerEndToEnd{
 
     }
 
+    Int mapqThreshold = 10
+
     # Create a diploid assembly 
     # from the given haplotypes
     call misc_t.createDipAsm {
@@ -306,7 +308,7 @@ workflow HMMFlaggerEndToEnd{
             bai = select_first([correctBam.correctedBamIndex, readAlignmentBai]),
             fasta = createDipAsm.diploidAssemblyFastaGz,
             suffix = "",
-            mapqThreshold = 10,
+            mapqThreshold = mapqThreshold,
             clipRatioThreshold = 0.1,
             downsampleRate = downSamplingRate,
             annotationBedArray = collectAnnotations.annotationBedArray,
@@ -459,8 +461,11 @@ workflow HMMFlaggerEndToEnd{
             input:
                 coverage = bam2cov.coverageGz,
                 windowLen = 1000,
+                minHighMapqCov = 4,
+                minMapq = mapqThreshold,
+                hap1Fai = produceFaiHap1.fai,
+                hap2Fai = produceFaiHap2.fai,
                 trackName = trackName,
-                fai = produceFai.fai,
                 dockerImage = flaggerDockerImage,
         }
     }
@@ -519,6 +524,8 @@ workflow HMMFlaggerEndToEnd{
 
         # bigwig files if user enabled outputting them
         Array[File]? bigwigArray = cov2bigwig.bigwigArray
+        File? mappableHap1Bed = cov2bigwig.mappableHap1Bed
+        File? mappableHap2Bed = cov2bigwig.mappableHap2Bed
         
         # secphase output
         File? secphaseOutputLog = secphase.outLog
