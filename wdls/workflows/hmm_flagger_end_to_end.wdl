@@ -637,11 +637,11 @@ task getFinalBed {
 
         # add track name for hap1
         echo "track name=\"~{trackName}_hap1\" visibility=2 itemRgb=\"On\"" > output/${PREFIX}.canonical.no_Hap.hap1.bed
-        cut -f1 ~{hap1Fai} | grep -F -f - output/${PREFIX}.canonical.no_Hap.bed >> output/${PREFIX}.canonical.no_Hap.hap1.bed
+        cut -f1 ~{hap1Fai} | grep -F -f - output/${PREFIX}.canonical.no_Hap.bed >> output/${PREFIX}.canonical.no_Hap.hap1.bed || true
 
         # add track name for hap2
         echo "track name=\"~{trackName}_hap2\" visibility=2 itemRgb=\"On\"" > output/${PREFIX}.canonical.no_Hap.hap2.bed
-        cut -f1 ~{hap2Fai} | grep -F -f - output/${PREFIX}.canonical.no_Hap.bed >> output/${PREFIX}.canonical.no_Hap.hap2.bed
+        cut -f1 ~{hap2Fai} | grep -F -f - output/${PREFIX}.canonical.no_Hap.bed >> output/${PREFIX}.canonical.no_Hap.hap2.bed || true
 
     >>>
     runtime {
