@@ -9,6 +9,111 @@ from Bio import SeqIO
 import gzip
 import math
 
+def subtractInterval(intervals, sub_interval):
+    """
+    Subtracts an interval from a list of intervals.
+    Args:
+        intervals (list of tuples): List of intervals in the form [(start1, end1), (start2, end2), ...].
+        sub_interval (tuple): Interval to subtract in the form (sub_start, sub_end).
+    Returns:
+        list of tuples: Updated list of intervals after subtraction.
+    """
+    sub_start, sub_end = sub_interval
+    result = []
+    for start, end in intervals:
+        # Case 1: No overlap (current interval is entirely before or after sub_interval)
+        if end < sub_start or start > sub_end:
+            result.append((start, end))
+        # Case 2: Overlap on the left side (partial overlap)
+        elif start < sub_start < end:
+            result.append((start, sub_start - 1))
+        # Case 3: Overlap on the right side (partial overlap)
+        elif start < sub_end < end:
+            result.append((sub_end + 1, end))
+        # Case 4: Full containment (sub_interval covers the current interval)
+        # Do nothing, as this interval is completely removed.
+    # Check for any invalid intervals in the result
+    for interval in result:
+        if interval[0] is None or interval[1] is None:
+            print(f"Invalid interval detected in subtractInterval: {interval}")
+    return result
+def splitCandidatesByHaplotype(preliminaryCandidates, alignments):
+    """
+    Splits preliminaryCandidates into two lists: one for reference haplotype and another for query haplotype.
+    Args:
+        preliminaryCandidates (list): List of intervals (chrom, start, end).
+        alignments (list): List of Alignment objects.
+    Returns:
+        tuple: (ref_haplotype_candidates, query_haplotype_candidates)
+    """
+    # Determine haplotype classification based on alignment data
+    reference_chromosomes = set()
+    query_chromosomes = set()
+    for alignment in alignments:
+        reference_chromosomes.add(alignment.chromName)  # Reference haplotype chromosomes
+        query_chromosomes.add(alignment.contigName)     # Query haplotype chromosomes
+     # Initialize dictionaries
+    ref_haplotype_dict = {}
+    query_haplotype_dict = {}
+    # Classify and group candidates based on chromosome
+    for chrom, start, end, info in preliminaryCandidates:
+        if chrom in reference_chromosomes:
+            if chrom not in ref_haplotype_dict:
+                ref_haplotype_dict[chrom] = []
+            ref_haplotype_dict[chrom].append((start, end, info))
+        elif chrom in query_chromosomes:
+            if chrom not in query_haplotype_dict:
+                query_haplotype_dict[chrom] = []
+            query_haplotype_dict[chrom].append((start, end, info))
+    return ref_haplotype_dict, query_haplotype_dict
+def mergeProjectionDictionaries(projectedrefBlocks, projectedqueryBlocks):
+    """
+    Merges projected reference and query blocks into a single dictionary for further projection.
+    Args:
+        projectedrefBlocks (list): Output from runProjection for reference haplotype projection.
+        projectedqueryBlocks (list): Output from runProjection for query haplotype projection.
+    Returns:
+        dict: Merged blocks keyed by chromosome name.
+    """
+    mergedBlocks = {}
+    # Merge blocks from projectedrefBlocks
+    for result in projectedrefBlocks:
+        _, contigName, _, _, projectionBlocks, _ = result
+        if contigName not in mergedBlocks:
+            mergedBlocks[contigName] = []
+        # Add the "deletion" info field to each block
+        for block in projectionBlocks:
+            mergedBlocks[contigName].append((*block, "deletion"))
+    # Merge blocks from projectedqueryBlocks
+    for result in projectedqueryBlocks:
+        chromName, _, _, _, projectionBlocks, _ = result
+        if chromName not in mergedBlocks:
+            mergedBlocks[chromName] = []
+        # Add the "deletion" info field to each block
+        for block in projectionBlocks:
+            mergedBlocks[chromName].append((*block, "deletion"))
+    return mergedBlocks
+def mergeIntervals(intervals):
+    """
+    Merges overlapping or adjacent intervals.
+    Args:
+        intervals (list): List of tuples (start, end).
+    Returns:
+        list: Merged list of intervals.
+    """
+    if not intervals:
+        return []
+    # Sort intervals by start position
+    intervals.sort(key=lambda x: x[0])
+    # Merge intervals
+    merged = [intervals[0]]
+    for current in intervals[1:]:
+        last = merged[-1]
+        if current[0] <= last[1]:  # Overlapping or adjacent
+            merged[-1] = (last[0], max(last[1], current[1]))
+        else:
+            merged.append(current)
+    return merged
 CS_PATTERN = r'(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)'
 
 def countQueryBases(cigarList):
@@ -602,7 +707,24 @@ class BlockList:
 
     def mergeWithOverlapCount(self, inplace=True):
         def mergeCount(c1, c2):
-            return c1 + c2
+            # Check if c1 and c2 are the same string, and use it once
+            if isinstance(c1, str) and isinstance(c2, str) and c1 == c2:
+                return c1
+            # Check if c1 and c2 are strings and concatenate them
+            if isinstance(c1, str) and isinstance(c2, str):
+                return f"{c1},{c2}"
+            # If both are numbers, sum them
+            if isinstance(c1, (int, float)) and isinstance(c2, (int, float)):
+                return c1 + c2
+            # If one is None, use the other
+            if c1 is None:
+                return c2
+            if c2 is None:
+                return c1
+            # For other types, fallback to returning both as a tuple
+            return (c1, c2)
+    
+        # Ensure all blocks have a valid third entry
         self.blocks = [(b[0], b[1], 1) for b in self.blocks]
         return self.mergeWithCustomFunction(mergeCount, inplace)
 
@@ -1307,7 +1429,7 @@ def findProjectionsInternal(mode, cigarList, forwardBlocks,
                     diff += overlapOpSize
 
         ####################################
-        ####### Case 2: Deletion ###########
+        ####### Case 3: Deletion ###########
         ####################################
         elif cigarOp == 'D':
             # if deletion is completely within the block
@@ -1472,6 +1594,10 @@ def getLongDeletionBlocks(alignment, threshold):
     for op, opLen, refInterval, contigInterval in iterateCigar(alignment):
         if op == 'D' and opLen > threshold:
             blocks.append((alignment.chromName, refInterval[0], refInterval[1]))
+    # Check for any invalid blocks in the result
+    for block in blocks:
+        if block[1] is None or block[2] is None:
+            print(f"Invalid block detected in getLongDeletionBlocks: {block}")
     return blocks
 
 def parseAssemblyIntervals(faiPath):
@@ -1508,7 +1634,7 @@ def runProjection(alignment, mode, blocks, includeEndingIndel, includePostIndel)
     # rBlocks contains the projections and
     # qBlocks contains the projectable blocks
     if mode == "asm2ref":
-        if len(blocks[contigName]) == 0: # Continue if there is no block in the contig
+        if contigName not in blocks or len(blocks[contigName]) == 0: # Continue if the contig is not present in the blocks dictionary or if there is no block in the contig
             return [chromName, contigName, orientation, [], [], []]
             #print(blocks[contigName], contigStart, contigEnd, chrom, chromStart, chromEnd)
         projectableBlocks, projectionBlocks, cigarList = findProjections(mode,
@@ -1521,7 +1647,7 @@ def runProjection(alignment, mode, blocks, includeEndingIndel, includePostIndel)
                                                                          alignment.orientation,
                                                                          includeEndingIndel, includePostIndel)
     else:
-        if len(blocks[chromName]) == 0: # Continue if there is no block in the chrom
+        if chromName not in blocks or len(blocks[chromName]) == 0: # Continue if the chrom is not present in the blocks dictionary or if there is no block in the chrom
             return [chromName, contigName, orientation, [], [], []]
         projectableBlocks, projectionBlocks, cigarList = findProjections(mode,
                                                                          alignment.cigarList,
