@@ -36,7 +36,7 @@ pip install toil[all]
 git clone -b v1.1.0 https://github.com/mobinasri/flagger
 ```
 
-Set some environment variables
+Set some variables
 ```
 # Go to the flagger directory
 cd flagger
@@ -97,7 +97,7 @@ cd ${WORKING_DIR}
 ## Get the script for creating input json files.
 wget https://raw.githubusercontent.com/human-pangenomics/hprc_intermediate_assembly/1f61ff0043442d8350a282ef3533def588bee8dc/hpc/launch_from_table.py
 
-## Save WDL path and name in environment variables
+## Save WDL path and name in variables
 WDL_PATH=${FLAGGER_DIR}/wdls/workflows/long_read_aligner_scattered.wdl
 WDL_FILENAME=$(basename ${WDL_PATH})
 WDL_NAME=${WDL_FILENAME%%.wdl}
@@ -164,7 +164,7 @@ cd ${WORKING_DIR}
 ## Get the bash script for running WDLs on Slurm using Toil
 wget https://raw.githubusercontent.com/human-pangenomics/hprc_intermediate_assembly/b81bbb9540eaf5632a53faba43be71a0974f14f6/hpc/toil_sbatch_single_machine.sh
 
-## Set environment variables for sbatch
+## Set variables for sbatch
 USERNAME="your_user_name"
 EMAIL="your@email"
 TIME_LIMIT="5:00:00"
@@ -222,7 +222,7 @@ ${WORKING_DIR}/run_test_1_toil_slurm/${SAMPLE_ID}/${SAMPLE_ID}_${WDL_NAME}
 git clone -b v1.1.0 https://github.com/mobinasri/flagger
 ```
 
-Set some environment variables
+Set some variables
 ```
 # Go to the flagger directory
 cd flagger
@@ -318,7 +318,7 @@ For running either of Test_1 or Test_2 users can use the steps explained in [ste
 git clone -b v1.1.0 https://github.com/mobinasri/flagger
 ```
 
-Set some environment variables
+Set some variables
 ```
 # Go to the flagger directory
 cd flagger
