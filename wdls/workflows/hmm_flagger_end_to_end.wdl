@@ -229,6 +229,7 @@ workflow HMMFlaggerEndToEnd{
             input :
                 aligner="minimap2",
                 preset="asm5",
+                options="-I8g",
                 queryAssemblyFasta=hap1AssemblyFasta,
                 refAssemblyFasta=select_first([projectionReferenceFasta]),
         }
@@ -236,6 +237,7 @@ workflow HMMFlaggerEndToEnd{
             input :
                 aligner="minimap2",
                 preset="asm5",
+                options="-I8g",
                 queryAssemblyFasta=hap2AssemblyFasta,
                 refAssemblyFasta=select_first([projectionReferenceFasta]),
         }
