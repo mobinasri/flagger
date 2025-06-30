@@ -170,7 +170,8 @@ workflow HMMFlaggerEndToEnd{
                 preset = "asm5",
                 options = "-D -I8g",
                 queryAssemblyFasta = createDipAsm.diploidAssemblyFastaGz,
-                refAssemblyFasta = createDipAsm.diploidAssemblyFastaGz
+                refAssemblyFasta = createDipAsm.diploidAssemblyFastaGz,
+                memSize = 96
         }
     }
 

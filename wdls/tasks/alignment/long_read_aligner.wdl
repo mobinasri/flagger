@@ -15,6 +15,7 @@ workflow longReadAlignment {
         File? referenceFasta
         Int preemptible=2
         Int extractReadsDiskSize=256
+        Int memSize=64
         String zones
     }
 
@@ -37,6 +38,7 @@ workflow longReadAlignment {
                  refAssembly=assembly,
                  readFastq_or_queryAssembly = extractReads.extractedRead,
                  diskSize = extractReads.fileSizeGB * 3,
+                 memSize = memSize,
                  preemptible = preemptible,
                  zones = zones
         }
