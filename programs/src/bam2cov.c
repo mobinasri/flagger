@@ -32,6 +32,18 @@
 #include "track_reader.h"
 
 
+void check_bam_index(char *bamPath){
+	char *baiPath = (char *) malloc(strlen(bamPath) + 10);
+	strcpy(baiPath, bamPath);
+	strcat(baiPath, ".bai");
+	// exit if bam index does not exist
+	if(!file_exists(baiPath)){
+		fprintf(stderr, "[%s] The index of the bam file does not exist : %s\n", get_timestamp(), baiPath);
+		exit(EXIT_FAILURE);
+	}
+	free(baiPath);
+}
+
 static struct option long_options[] =
         {
                 {"bam",                     required_argument, NULL, 'i'},
@@ -222,6 +234,9 @@ int main(int argc, char *argv[]) {
         }
     }
     double realtimeStart = System_getRealTimePoint();
+
+    // check if bam index exists
+    check_bam_index(bamPath);
 
     int averageAlignmentLength = 0;
     //merge and create the final block table
