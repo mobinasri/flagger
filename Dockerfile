@@ -54,7 +54,7 @@ RUN apt-get update
 RUN apt-get install -y libc6-dbg gdb
 RUN pip install smt #https://smt.readthedocs.io/en/latest/_src_docs/applications/ego.html
 RUN cd /home/apps && \
-    wget https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedGraphToBigWig && \
+    wget https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v369/bedGraphToBigWig && \
     chmod 777 bedGraphToBigWig
 
 COPY ./programs /home/programs

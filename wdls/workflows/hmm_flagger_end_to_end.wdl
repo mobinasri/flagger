@@ -25,7 +25,8 @@ workflow HMMFlaggerEndToEnd{
         hap2AssemblyFasta: "(Required) Path to uncompressed or gzip-compressed fasta file of the 2nd haplotype."
         readAlignmentBam: "(Required) Path to sorted read alignment bam."
         readAlignmentBai: "(Required) Path to bam index for read alignment"
-        alphaTsv : "(Required) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1."
+        presetForFlagger :  "(Required) HMM-Flagger preset (can be one of 'hifi', 'ont-r9', or 'ont-r10')"
+        alphaTsv : "(Optional) The dependency factors for adjusting emission parameters with previous emission. This parameter is a tsv file with 4 rows and 4 columns with no header line. All numbers should be between 0 and 1. (Default = will be determined based on presetForFlagger)"
         maxReadDivergence: "Alignments with gap-compressed ratio higher than this will be filtered in the pre-process step. (Default: 0.1)"
         minReadLength: "Minimum read size (Default: 5000)"
         minAlignmentLength: "Minimum alignment size (Default: 5000)"
@@ -49,22 +50,23 @@ workflow HMMFlaggerEndToEnd{
         secphaseOptions: "String containing secphase options (can be either --hifi or --ont). (Default --hifi)"
         secphaseVersion: "Secphase version. (Default: v0.4.4)"
         enableOutputtingBigWig: "If true it will make bigwig files from cov files and output them. bigwig files can be easily imported into IGV sessions (Default: true)"
+        enableCreatingConservativeBed: "If true it will map assembly contigs to themselves to create self-homology mappings and it will use them for filtering HMM-Flagger calls. Among outputs there will be a conservative bed file and also its related summary tables. (Default: true)"
         includeContigListText : "(Optional) Create coverage file and run HMM-Flagger only on these contigs (listed in a text file with one contig name per line). (Default: all contigs)"
         binArrayTsv : "(Optional)  A tsv file (tab-delimited) that contains bin arrays for stratifying results by event size. Bin intervals can have overlap. It should contain three columns. 1st column is the closed start of the bin and the 2nd column is the open end. The 3rd column has a name for each bin. (Default: all sizes in a single bin named ALL_SIZES)"
-        chunkLen : "The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together. (Default: 20000000)"
-        windowLen : "The length of windows for running HMM-Flagger. The coverage values will be averaged over the bases in each window and then the average value will be considered as an emission. (Default: 4000)"
+        chunkLen : "(Optional) The length of chunks for running HMM-Flagger. Each chunk will be processed in a separate thread before merging results together. (Default: 20000000)"
+        windowLen : "(Optional) The length of windows for running HMM-Flagger. The coverage values will be averaged over the bases in each window and then the average value will be considered as an emission. (Default: will be determined based on presetForFlagger)"
         labelNames : "The names of the labels/states for reporting in the final summary tsv files (Default: 'Err,Dup,Hap,Col')"
-        trackName : "The track name in the final BED file (Default: hmm_flagger_v1.0)"
+        trackName : "The track name in the final BED file (Default: hmm_flagger)"
         numberOfIterations : "Number of EM iterations for estimating HMM parameters (Default:100)"
         convergenceTolerance : "Convergence tolerance. The EM iteration will stop once the difference between all model parameter values in two consecutive iterations is less than this value. (Default = 0.001)"
         maxHighMapqRatio : "Maximum ratio of high mapq coverage for duplicated state (Default = 0.25)"
         minHighMapqRatio : "Minimum ratio of high mapq coverage for collapsed state (Default = 0.75)"
         flaggerMoreOptions : "(Optional) More options for HMM-Flagger provided in a single string (Default = '')"
-        modelType : "Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = 'trunc_exp_gaussian')"
+        modelType : "(Optional) Model type can be either 'gaussian', 'negative_binomial', or 'trunc_exp_gaussian' (Default = will be determined based on presetForFlagger)"
         flaggerMinimumBlockLenArray : "Array of minimum lengths for converting short non-Hap blocks into Hap blocks. Given numbers should be related to the states Err, Dup and Col respectively. (Default: [0,0,0])"
         flaggerMemSize : "Memory size in GB for running HMM-Flagger (Default : 32)"
         flaggerThreadCount : "Number of threads for running HMM-Flagger (Default : 16)"
-        flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.1.0)"
+        flaggerDockerImage : "Docker image for HMM-Flagger (Default : mobinasri/flagger:v1.2.0)"
         truthBedForMisassemblies : "(Optional) A BED file containing the coordinates and labels of the truth misassemblies. It can be useful when the misassemblies are simulated (e.g. with Falsifier) (Default: None)"
     }
     input{
@@ -74,8 +76,8 @@ workflow HMMFlaggerEndToEnd{
         File hap1AssemblyFasta
         File hap2AssemblyFasta
         File readAlignmentBam
-	File readAlignmentBai
-	File alphaTsv
+        File readAlignmentBai
+        File? alphaTsv
         Float maxReadDivergence = 0.1
         Int minReadLength = 5000
         Int minAlignmentLength = 5000
@@ -83,20 +85,21 @@ workflow HMMFlaggerEndToEnd{
               
         File? includeContigListText
         File? binArrayTsv
-        Int chunkLen = 20000000
-        Int windowLen = 4000
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.1.0"
+        String trackName = "hmm_flagger"
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
         Float minHighMapqRatio=0.75
+        String presetForFlagger
         String? flaggerMoreOptions
-        String modelType = "trunc_exp_gaussian"
+        String? modelType
+        Int? chunkLen
+        Int? windowLen
         Array[Int] flaggerMinimumBlockLenArray = []
         Int flaggerMemSize=32
         Int flaggerThreadCount=16
-        String flaggerDockerImage="mobinasri/flagger:v1.1.0"
+        String flaggerDockerImage="mobinasri/flagger:v1.2.0"
 
         File? sexBed
         File? SDBed
@@ -122,9 +125,12 @@ workflow HMMFlaggerEndToEnd{
         String secphaseVersion = "v0.4.4"
 
         Boolean enableOutputtingBigWig = true
+        Boolean enableCreatingConservativeBed = true
         File? truthBedForMisassemblies
 
     }
+
+    Int mapqThreshold = 10
 
     # Create a diploid assembly 
     # from the given haplotypes
@@ -135,10 +141,38 @@ workflow HMMFlaggerEndToEnd{
             outputName = "${sampleName}.dip.asm"
     }
 
+    # Index hap1 assembly
+    call fai_t.produceFai as produceFaiHap1 {
+        input:
+            fasta = hap1AssemblyFasta
+    }
+
+    # Index hap2 assembly
+    call fai_t.produceFai as produceFaiHap2 {
+        input:
+            fasta = hap2AssemblyFasta
+    }
+
     # Index diploid assembly
     call fai_t.produceFai {
         input:
             fasta = createDipAsm.diploidAssemblyFastaGz
+    }
+
+    # if creating conservative bed is enabled by user
+    # then map assembly to itself with -D parameter. 
+    # This mapping will be used for filtering hmm-flagger 
+    # predictions in a later task
+    if (enableCreatingConservativeBed) {
+        call asm2asm_t.asm2asmAlignment as selfHomologyMapping {
+            input :
+                aligner = "minimap2",
+                preset = "asm5",
+                options = "-D -I8g",
+                queryAssemblyFasta = createDipAsm.diploidAssemblyFastaGz,
+                refAssemblyFasta = createDipAsm.diploidAssemblyFastaGz,
+                memSize = 64
+        }
     }
 
     # Run Secphase if it is enabled by user
@@ -196,6 +230,7 @@ workflow HMMFlaggerEndToEnd{
             input :
                 aligner="minimap2",
                 preset="asm5",
+                options="-I8g",
                 queryAssemblyFasta=hap1AssemblyFasta,
                 refAssemblyFasta=select_first([projectionReferenceFasta]),
         }
@@ -203,6 +238,7 @@ workflow HMMFlaggerEndToEnd{
             input :
                 aligner="minimap2",
                 preset="asm5",
+                options="-I8g",
                 queryAssemblyFasta=hap2AssemblyFasta,
                 refAssemblyFasta=select_first([projectionReferenceFasta]),
         }
@@ -275,7 +311,7 @@ workflow HMMFlaggerEndToEnd{
             bai = select_first([correctBam.correctedBamIndex, readAlignmentBai]),
             fasta = createDipAsm.diploidAssemblyFastaGz,
             suffix = "",
-            mapqThreshold = 10,
+            mapqThreshold = mapqThreshold,
             clipRatioThreshold = 0.1,
             downsampleRate = downSamplingRate,
             annotationBedArray = collectAnnotations.annotationBedArray,
@@ -293,9 +329,9 @@ workflow HMMFlaggerEndToEnd{
     call hmm_flagger_t.hmmFlagger {
         input:
             coverage = bam2cov.coverageGz,
+            preset = presetForFlagger,
+            suffix = suffix,
             binArrayTsv = binArrayTsv,
-            chunkLen = chunkLen,
-            windowLen = windowLen,
             labelNames = labelNames,
             trackName = trackName,
             numberOfIterations = numberOfIterations,
@@ -306,10 +342,13 @@ workflow HMMFlaggerEndToEnd{
             minimumBlockLenArray = flaggerMinimumBlockLenArray, 
             alphaTsv = alphaTsv,
             modelType = modelType,
+            chunkLen = chunkLen,
+            windowLen = windowLen,
             memSize = flaggerMemSize,
             threadCount = flaggerThreadCount,
             dockerImage = flaggerDockerImage,
     }
+
 
     # Get coordinates of canonical bases only (no "N" which may come from scaffolding)
     call misc_t.getCanonicalBasesBed as dipCanonical{
@@ -342,8 +381,8 @@ workflow HMMFlaggerEndToEnd{
     call augment_cov_t.augmentCoverageByLabels {
         input:
             coverage = bam2cov.coverageGz,
-            fai = produceFai.fai, 
-	    numberOfLabels = 4,
+            fai = produceFai.fai,
+            numberOfLabels = 4,
             truthBed = labelTruth.labeledBed,
             predictionBed = labelPrediction.labeledBed,
             includeContigListText = includeContigListText,
@@ -358,6 +397,66 @@ workflow HMMFlaggerEndToEnd{
            dockerImage = flaggerDockerImage
     }
 
+
+    # if creating conservative bed was enabled by user
+    # then 
+    # - Filter hmm-flagger calls using self-homology mappings
+    # - Make a coverage file augmented with conservative calls
+    # - Make a summary table using conservative bed
+    if (enableCreatingConservativeBed) {
+
+        # filter calls with self-homology mappings
+        call hmm_flagger_t.filterHmmFlaggerCalls as filterCalls {
+            input:
+                selfAsmMapBam = select_first([selfHomologyMapping.sortedBamFile]),
+                selfAsmMapBamIndex = select_first([selfHomologyMapping.sortedBamIndexFile]),
+                flaggerBed = hmmFlagger.predictionBed,
+                dockerImage = flaggerDockerImage
+        }
+        
+        # make a prediction bed file that contains
+        # state indices instead of the names of the states
+        # for conservative calls
+        call misc_t.getIndexLabeledBed as labelPredictionConservative{
+            input:
+                bed = filterCalls.conservativeBed
+        }
+
+        # Augment coverage file with prediction labels
+        # it will add truth labels if available
+        # for conservative calls
+        call augment_cov_t.augmentCoverageByLabels as augmentCoverageByLabelsConservative{
+            input:
+                coverage = bam2cov.coverageGz,
+                fai = produceFai.fai,
+                numberOfLabels = 4,
+                truthBed = labelTruth.labeledBed,
+                predictionBed = labelPredictionConservative.labeledBed,
+                includeContigListText = includeContigListText,
+                suffix="augmented.conservative",
+                dockerImage = flaggerDockerImage,
+         }
+         # make a summary table for conservative calls
+         call make_summary_table_t.makeSummaryTable as makeSummaryTableConservative{
+             input:
+                 coverage = augmentCoverageByLabelsConservative.augmentedCoverageGz,
+                 binArrayTsv = binArrayTsv,
+                 dockerImage = flaggerDockerImage
+         }
+         # add labels for N bases and remove Hap labels from bed file
+         # for conservative
+         call getFinalBed as getFinalBedConservative {
+            input:
+                predictionBed = filterCalls.conservativeBed,
+                canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed,
+                trackName = trackName,
+                hap1Fai = produceFaiHap1.fai,
+                hap2Fai = produceFaiHap2.fai,
+                dockerImage = flaggerDockerImage
+         }
+    }
+
+
     # make bigwig files from cov files
     # bigwig files can be easily imported into IGV sessions
     if (enableOutputtingBigWig) {
@@ -365,8 +464,11 @@ workflow HMMFlaggerEndToEnd{
             input:
                 coverage = bam2cov.coverageGz,
                 windowLen = 1000,
-                trackName = "${sampleName}.${suffix}",
-                fai = produceFai.fai,
+                minHighMapqCov = 4,
+                minMapq = mapqThreshold,
+                hap1Fai = produceFaiHap1.fai,
+                hap2Fai = produceFaiHap2.fai,
+                trackName = trackName,
                 dockerImage = flaggerDockerImage,
         }
     }
@@ -376,16 +478,20 @@ workflow HMMFlaggerEndToEnd{
         input:
             predictionBed = hmmFlagger.predictionBed,
             canonicalBasesDiploidBed = dipCanonical.canonicalBasesBed, 
-            sampleName = sampleName,
-            suffix = suffix,
+            trackName = trackName,
+            hap1Fai = produceFaiHap1.fai,
+            hap2Fai = produceFaiHap2.fai,
             dockerImage = flaggerDockerImage
     }
 
     if (defined(truthBedForMisassemblies)){
         File benchmarkingSummaryTsvOutput = makeSummaryTable.benchmarkingSummaryTsv
         File contiguitySummaryTsvOutput = makeSummaryTable.contiguitySummaryTsv
+        if (enableCreatingConservativeBed) {
+            File benchmarkingSummaryTsvOutputConservative = select_first([makeSummaryTableConservative.benchmarkingSummaryTsv])
+            File contiguitySummaryTsvOutputConservative = select_first([makeSummaryTableConservative.contiguitySummaryTsv])
+        }
     }
-
 
     output {
         File coverageGz = augmentCoverageByLabels.augmentedCoverageGz
@@ -396,9 +502,21 @@ workflow HMMFlaggerEndToEnd{
         File fullStatsTsv = makeSummaryTable.fullStatsTsv
 
         File finalBed = getFinalBed.finalBed
+        File finalBedHap1 = getFinalBed.finalBedHap1
+        File finalBedHap2 = getFinalBed.finalBedHap2
         File predictionBed = hmmFlagger.predictionBed
         File loglikelihoodTsv = hmmFlagger.loglikelihoodTsv
         File miscFilesTarGz = hmmFlagger.outputTarGz
+
+        # outputs for conservative calls (they will exist only if enableCreatingConservativeBed is true)
+        File? benchmarkingSummaryTsvConservative = benchmarkingSummaryTsvOutputConservative
+        File? contiguitySummaryTsvConservative = contiguitySummaryTsvOutputConservative
+        File? fullStatsTsvConservative = makeSummaryTableConservative.fullStatsTsv
+        
+        File? finalBedConservative = getFinalBedConservative.finalBed
+        File? finalBedConservativeHap1 = getFinalBedConservative.finalBedHap1
+        File? finalBedConservativeHap2 = getFinalBedConservative.finalBedHap2
+        File? predictionBedConservative = filterCalls.conservativeBed
 
         # get projected bed files if there is any
         File? projectionSexBed = project.projectionSexBed
@@ -409,6 +527,8 @@ workflow HMMFlaggerEndToEnd{
 
         # bigwig files if user enabled outputting them
         Array[File]? bigwigArray = cov2bigwig.bigwigArray
+        File? mappableHap1Bed = cov2bigwig.mappableHap1Bed
+        File? mappableHap2Bed = cov2bigwig.mappableHap2Bed
         
         # secphase output
         File? secphaseOutputLog = secphase.outLog
@@ -425,7 +545,7 @@ task decomposeCntrBed {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v1.1.0"
+        String dockerImage="mobinasri/flagger:v1.2.0"
         Int preemptible=2
     }
     command <<<
@@ -476,8 +596,9 @@ task getFinalBed {
     input {
         File predictionBed
         File canonicalBasesDiploidBed
-        String sampleName
-        String suffix
+        String trackName
+        File hap1Fai
+        File hap2Fai
         # runtime configurations
         Int memSize=4
         Int threadCount=2
@@ -496,6 +617,9 @@ task getFinalBed {
         # echo each line of the script to stdout so we can see what is happening
         # to turn off echo do 'set +o xtrace'
         set -o xtrace
+
+        IN_BED_PATH="~{predictionBed}"
+        PREFIX=$(basename ${IN_BED_PATH%.bed})
 
         mkdir output
         
@@ -517,11 +641,19 @@ task getFinalBed {
         
         
         # add track name
-        echo "track name=\"~{sampleName}.~{suffix}\" visibility=2 itemRgb=\"On\"" > output/~{sampleName}.~{suffix}.hmm_flagger.no_Hap.bed
+        echo "track name=\"~{trackName}\" visibility=2 itemRgb=\"On\"" > output/${PREFIX}.canonical.no_Hap.bed
 
         # merge canonical and non-canonical tracks in the final bed
-        cat non_canonical.bed canonical.no_Hap.bed | bedtools sort -i - >> output/~{sampleName}.~{suffix}.hmm_flagger.no_Hap.bed
-        
+        cat non_canonical.bed canonical.no_Hap.bed | bedtools sort -i - >> output/${PREFIX}.canonical.no_Hap.bed
+
+        # add track name for hap1
+        echo "track name=\"~{trackName}_hap1\" visibility=2 itemRgb=\"On\"" > output/${PREFIX}.canonical.no_Hap.hap1.bed
+        cut -f1 ~{hap1Fai} | grep -F -f - output/${PREFIX}.canonical.no_Hap.bed >> output/${PREFIX}.canonical.no_Hap.hap1.bed || true
+
+        # add track name for hap2
+        echo "track name=\"~{trackName}_hap2\" visibility=2 itemRgb=\"On\"" > output/${PREFIX}.canonical.no_Hap.hap2.bed
+        cut -f1 ~{hap2Fai} | grep -F -f - output/${PREFIX}.canonical.no_Hap.bed >> output/${PREFIX}.canonical.no_Hap.hap2.bed || true
+
     >>>
     runtime {
         docker: dockerImage
@@ -532,6 +664,8 @@ task getFinalBed {
     }
     output {
         File finalBed = glob("output/*.no_Hap.bed")[0]
+        File finalBedHap1 = glob("output/*.no_Hap.hap1.bed")[0]
+        File finalBedHap2 = glob("output/*.no_Hap.hap2.bed")[0]
     }
 }
 
@@ -553,7 +687,7 @@ task collectAnnotations{
         Int memSize=8
         Int threadCount=4
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v1.1.0"
+        String dockerImage="mobinasri/flagger:v1.2.0"
         Int preemptible=2
     }
     command <<<

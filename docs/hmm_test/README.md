@@ -2,7 +2,7 @@
 
 ## Overview
 It is possible to simulate a coverage file with previously defined emission and transition probabilities. For this simulation
-the python script, [simulate_coverage_data.py](https://github.com/mobinasri/flagger/blob/dev-hmm-flagger-v1.1.0/programs/src/simulate_coverage_data.py) can be used.
+the python script, [simulate_coverage_data.py](https://github.com/mobinasri/flagger/blob/dev-hmm-flagger-v1.2.0/programs/src/simulate_coverage_data.py) can be used.
 
 ```
 python3 /home/programs/src/simulate_coverage_data.py -h
@@ -101,7 +101,7 @@ Here we use `emission_gaussian.tsv` and `transition.tsv` to generate a coverage 
 cd programs/tests/test_files/simulate_coverage/
 
 docker run --rm -v$PWD:/data \
-    mobinasri/flagger:v1.1.0 \
+    mobinasri/flagger:v1.2.0 \
     python3 /home/programs/src/simulate_coverage_data.py \
     --pathToEmission emission_gaussian.tsv \
     --pathToTransition transition.tsv \
@@ -120,7 +120,7 @@ cd programs/tests/test_files/simulate_coverage/
 mkdir -p hmm_flagger_runs/gaussian_100k
 
 docker run --rm -it -u$(id -u):$(id -g) -v$PWD:/data \
-    mobinasri/flagger:v1.1.0 \
+    mobinasri/flagger:v1.2.0 \
     hmm_flagger_new \
     --input test_gaussian_100k.cov \
     --outputDir hmm_flagger_runs/gaussian_100k \

@@ -8,12 +8,14 @@ workflow asm2asmAlignment {
         File queryAssemblyFasta
         File refAssemblyFasta
         String suffix=""
+        String options=""
         # splitAssembly is recommended to be true if the assembly is having almost
         # the same quality as reference (including complete centromeres) since minimap2/winnowmap tests showed
         # that it takes forever to do the alignment of such assemblies to a reference like chm13v2.0
         Boolean splitAssembly = false # split contigs before alignment
         Int splitSize = 20000000 # maximum size (in bases) of split contigs
         String zones = "us-west2-a"
+        Int memSize = 64
         Int preemptible = 2
     }
     ##if (splitAssembly){
@@ -34,8 +36,10 @@ workflow asm2asmAlignment {
             refAssembly = refAssemblyFasta,
             readFastq_or_queryAssembly = queryAssemblyFasta,
             kmerSize = 19,
+            options = options,
             dockerImage="mobinasri/long_read_aligner:v1.1.0",
             diskSize = 64,
+            memSize = memSize,
             zones = zones,
             preemptible = preemptible
     }

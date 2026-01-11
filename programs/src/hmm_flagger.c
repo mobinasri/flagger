@@ -13,6 +13,50 @@
 #include "chunk.h"
 #include "summary_table.h"
 
+
+// alpha matrix for hifi reads (latest update from Dec 2024 v1.1.0)
+// https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/HiFi_DC_1.2/alpha_optimum_trunc_exp_gaussian_w_16000_n_50.HiFi_DC_1.2_DEC_2024.v1.1.0.tsv
+// window size = 16000
+// model type = trunc_exp_gaussian
+int ALPHA_ARRAY_HIFI[4][4] = {
+	{0.753, 0.000, 0.236, 0.000},
+	{0.000, 0.464, 0.440, 0.000},
+	{0.527, 0.162, 0.010, 0.218},
+	{0.000, 0.000, 0.041, 0.206}
+} ;
+int WINDOW_SIZE_HIFI = 16000;
+double MIN_READ_FRACTION_HIFI = 0.95;
+ModelType MODEL_TYPE_HIFI = MODEL_TRUNC_EXP_GAUSSIAN; 
+
+
+// alpha matrix for ONT-R9 reads (latest update from Dec 2024 v1.1.0)
+// https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/ONT_R941_Guppy6.3.7/alpha_optimum_trunc_exp_gaussian_w_16000_n_50.ONT_R941_Guppy6.3.7_DEC_2024.v1.1.0.tsv
+// window size = 16000
+// model type = trunc_exp_gaussian
+int ALPHA_ARRAY_R9[4][4] = {
+	{0.000, 0.000, 0.383, 0.000},
+	{0.000, 0.800, 0.000, 0.000},
+	{0.800, 0.000, 0.584, 0.000},
+	{0.000, 0.000, 0.366, 0.374}
+} ;
+int WINDOW_SIZE_R9 = 16000;
+double MIN_READ_FRACTION_R9 = 1.0;
+ModelType MODEL_TYPE_R9 = MODEL_TRUNC_EXP_GAUSSIAN;
+
+// alpha matrix for ONT-R10 reads (latest update from Dec 2024 v1.1.0)
+// https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/ONT_R1041_Dorado/alpha_optimum_trunc_exp_gaussian_w_8000_n_50.ONT_R1041_Dorado_DEC_2024.v1.1.0.tsv
+// window size = 8000
+// model type = trunc_exp_gaussian
+int ALPHA_ARRAY_R10[4][4] = {
+	{0.684, 0.000, 0.478, 0.000},
+	{0.000, 0.800, 0.017, 0.000},
+	{0.006, 0.000, 0.722, 0.081},
+	{0.000, 0.000, 0.366, 0.476}
+} ;
+int WINDOW_SIZE_R10 = 8000;
+double MIN_READ_FRACTION_R10 = 0.8;
+ModelType MODEL_TYPE_R10 = MODEL_TRUNC_EXP_GAUSSIAN;
+
 ChunksCreator *getChunksCreator(char *inputPath,
                                 int chunkCanonicalLen,
                                 int windowLen,
@@ -242,6 +286,8 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
                    HMM **modelPtr,
                    int numberOfIterations,
                    double convergenceTol,
+                   bool adjustContigEnds,
+                   double minReadFractionAtEnds,
                    char *outputDir,
                    int threads,
                    bool writeParameterStatsPerIteration,
@@ -263,6 +309,7 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
 
     char suffix[200];
     stList *chunks = chunksCreator->chunks;
+    int meanReadLength = chunksCreator->header->averageAlignmentLength;
     int numberOfChunks = stList_length(chunks);
 
 
@@ -273,7 +320,12 @@ void runHMMFlagger(ChunksCreator *chunksCreator,
     stList *emPerChunk = stList_construct3(0, EM_destruct);
     for (int chunkIndex = 0; chunkIndex < numberOfChunks; chunkIndex++) {
         Chunk *chunk = stList_get(chunks, chunkIndex);
-        EM *em = EM_construct(chunk->coverageInfoSeq, chunk->coverageInfoSeqLen, model);
+        EM *em = EM_construct(chunk->coverageInfoSeq,
+                              chunk->coverageInfoSeqLen,
+                              model,
+                              chunk,
+                              meanReadLength);
+        if (adjustContigEnds) EM_setMinReadFractionAtEnds(em, minReadFractionAtEnds);
         stList_append(emPerChunk, em);
     }
 
@@ -463,11 +515,74 @@ MatrixDouble *getAlphaMatrix(char *alphaTsvPath) {
 }
 
 
+void setAlphaByPreset(MatrixDouble * alpha, const char* preset){
+	for (int i = 0; i < alpha->dim1; i++) {
+		for (int j = 0; j < alpha->dim2; j++) {
+			if (strcmp(preset, "hifi") == 0){
+				alpha->data[i][j] = ALPHA_ARRAY_HIFI[i][j];
+			}else if (strcmp(preset, "ont-r9") == 0){
+				alpha->data[i][j] = ALPHA_ARRAY_R9[i][j];
+			}else if (strcmp(preset, "ont-r10") == 0){
+                                alpha->data[i][j] = ALPHA_ARRAY_R10[i][j];
+                        }else{
+				fprintf(stderr, "[%s] Error: preset can be one of hifi, ont-r9, ont-r10. It cannot be %s . \n", get_timestamp(), preset);
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+}
+
+
+int getWindowSizeByPreset(const char* preset){
+	if (strcmp(preset, "hifi") == 0){
+		return WINDOW_SIZE_HIFI;
+	}else if (strcmp(preset, "ont-r9") == 0){
+		return WINDOW_SIZE_R9;
+	}else if (strcmp(preset, "ont-r10") == 0){
+		return WINDOW_SIZE_R10;
+	}else{
+		fprintf(stderr, "[%s] Error: preset can be one of hifi, ont-r9, and ont-r10. It cannot be %s . \n", get_timestamp(), preset);
+		exit(EXIT_FAILURE);
+        }
+}
+
+
+double getMinReadFractionAtEndsByPreset(const char* preset){
+	if (strcmp(preset, "hifi") == 0){
+                return MIN_READ_FRACTION_HIFI;
+        }else if (strcmp(preset, "ont-r9") == 0){
+                return MIN_READ_FRACTION_R9;
+        }else if (strcmp(preset, "ont-r10") == 0){
+                return MIN_READ_FRACTION_R10;
+        }else{
+                fprintf(stderr, "[%s] Error: preset can be one of hifi, ont-r9, and ont-r10. It cannot be %s . \n", get_timestamp(), preset);
+                exit(EXIT_FAILURE);
+        }
+}
+
+
+ModelType getModelTypeByPreset(const char* preset){
+        if (strcmp(preset, "hifi") == 0){
+                return MODEL_TYPE_HIFI;
+        }else if (strcmp(preset, "ont-r9") == 0){
+                return MODEL_TYPE_R9;
+        }else if (strcmp(preset, "ont-r10") == 0){
+                return MODEL_TYPE_R10;
+        }else{
+                fprintf(stderr, "[%s] Error: preset can be one of hifi, ont-r9, and ont-r10. It cannot be %s . \n", get_timestamp(), preset);
+                exit(EXIT_FAILURE);
+        }
+}
+
+
 static struct option long_options[] =
         {
                 {"input",                              required_argument, NULL, 'i'},
+		{"preset",                              required_argument, NULL, 'x'},
                 {"iterations",                         required_argument, NULL, 'n'},
                 {"convergenceTol",                     required_argument, NULL, 't'},
+                {"disableAdjustContigEnds",                     no_argument, NULL, 'e'},
+                {"minReadFractionAtEnds",                     required_argument, NULL, 'f'},
                 {"modelType",                          required_argument, NULL, 'm'},
                 {"maxHighMapqRatio",                   required_argument, NULL, 'q'},
                 {"minHighMapqRatio",                   required_argument, NULL, 'Q'},
@@ -495,7 +610,8 @@ static struct option long_options[] =
 
 int main(int argc, char *argv[]) {
     int c;
-    char *trackName = copyString("final_flagger");
+    char *trackName = copyString("final_hmm_flagger");
+    char *preset = copyString("hifi");
     char *inputPath = NULL;
     char *alphaTsvPath = NULL;
     char *contigListPath = NULL;
@@ -504,6 +620,8 @@ int main(int argc, char *argv[]) {
     stList *contigList = NULL;
     int numberOfIterations = 100;
     double convergenceTol = 0.001;
+    // adjust contig ends is enabled by default (v1.2.0)
+    bool adjustContigEnds = true;
     double maxHighMapqRatio = 0.25;
     double minHighMapqRatio = 0.75;
     int numberOfCollapsedComps = -1;
@@ -511,11 +629,17 @@ int main(int argc, char *argv[]) {
     bool writeParameterStatsPerIteration = false;
     bool writeBenchmarkingStatsPerIteration = false;
     bool writePosteriorProbs = false;
-    ModelType modelType = MODEL_TRUNC_EXP_GAUSSIAN;
     double overlapRatioThreshold = 0.4;
     double initialRandomDeviation = 0.0;
-    int chunkCanonicalLen = 20000000; //20Mb
-    int windowLen = 4000;
+    int chunkCanonicalLen = 20000000; // 20Mb
+    // parameters that will be set based on preset
+    // - alphaMatrix
+    // - minReadFractionAtEnds
+    // - modelType
+    // - windowLen
+    double minReadFractionAtEnds = -1.0; // not defined yet
+    ModelType modelType = MODEL_UNDEFINED; // not defined yet
+    int windowLen = -1; // not defined yet
     int threads = 4;
     bool dumpBin = false;
     bool acceleration = false;
@@ -528,11 +652,14 @@ int main(int argc, char *argv[]) {
     int *minLenPerStateTemp;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:n:t:m:q:C:W:c:@:p:A:a:wkPo:v:l:D:BN:M:s", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:x:f:en:t:m:q:C:W:c:@:p:A:a:wkPo:v:l:D:BN:M:s", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
                 break;
+	    case 'x':
+		preset = optarg;
+		break;
             case 'n':
                 numberOfIterations = atoi(optarg);
                 break;
@@ -544,6 +671,13 @@ int main(int argc, char *argv[]) {
                 break;
             case 't':
                 convergenceTol = atof(optarg);
+                break;
+            case 'e':
+		// -e or --disableAdjustContigEnds will disable adjusting contig ends
+                adjustContigEnds = false;
+                break;
+            case 'f':
+                minReadFractionAtEnds = atof(optarg);
                 break;
             case 'm':
                 modelType = getModelTypeFromString(optarg);
@@ -622,6 +756,12 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                         "         --input, -i\n"
                         "                           Path to the input file (cov/cov.gz or binary output of create_bin_chunks) \n");
+		fprintf(stderr,
+                        "         --preset, -x\n"
+                        "                           Parameter preset [Default: hifi] (can be one of 'hifi', 'ont-r9', or 'ont-r10'). \n"
+			"                           (-x hifi    is equal to -W 16000  -f 0.95 -m trunc_exp_gaussian , \n"
+			"                            -x ont-r9  is equal to -W 16000  -f 1.00 -m trunc_exp_gaussian , \n"
+			"                            -x ont-r10 is equal to -W  8000  -f 0.80 -m trunc_exp_gaussian) \n");
                 fprintf(stderr,
                         "         --outputDir, -o\n"
                         "                           Directory for saving output files.\n");
@@ -663,6 +803,16 @@ int main(int argc, char *argv[]) {
                         "                           Convergence tolerance. The EM iteration will stop once the difference \n"
                         "                           between all model parameter values in two consecutive iterations is \n"
                         "                           less than this value. [Default = 0.001]\n");
+                fprintf(stderr,
+                        "         --disableAdjustContigEnds, -e\n"
+                        "                           It will disable adjusting coverage expectations at contig ends \n");
+                fprintf(stderr,
+                        "         --minReadFractionAtEnds, -f\n"
+                        "                           Used only if --adjustContigEnds is turned on. The reads will be reported\n"
+                        "                           mapped to the contig ends only when they have at least this fraction\n"
+                        "                           of their sequence mapped. It will adjust coverage expectations at\n"
+                        "                           contig ends based on this parameter and average alignment length.\n"
+                        "                           [Default = 0.85]\n");
                 fprintf(stderr,
                         "         --maxHighMapqRatio, -q\n"
                         "                           Maximum ratio of high mapq coverage for duplicated state [Default=0.25]\n");
@@ -749,12 +899,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "[%s] Error: Input path cannot be NULL.\n", get_timestamp());
         exit(EXIT_FAILURE);
     }
-    if (modelType == MODEL_UNDEFINED) {
-        fprintf(stderr,
-                "[%s] Error: Model type is not defined. Specify the model type with --model (-m) argument.\n",
-                get_timestamp());
-        exit(EXIT_FAILURE);
-    }
     if (convergenceTol <= 0.0 || convergenceTol > 1.0) {
         fprintf(stderr, "[%s] Error: convergence tol = %2.f should be between 0 and 1.\n",
                 get_timestamp(),
@@ -776,6 +920,7 @@ int main(int argc, char *argv[]) {
                 stList_length(contigList));
     }
 
+
     // check input file extensions
     char *inputExtension = extractFileExtension(inputPath);
     if (strcmp(inputExtension, "cov") != 0 &&
@@ -787,6 +932,53 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     free(inputExtension);
+
+
+    // make alpha matrix if there is one given as input argument
+    // otherwise it will be set to zero
+    // preset will be used later for setting alpha matrix
+    MatrixDouble *alphaMatrix = getAlphaMatrix(alphaTsvPath);
+
+    // set these parameters based on preset
+    // they won't be modified if they have already been set
+    // with the input arugments (input arguments have priority over preset)
+    if (alphaTsvPath == NULL){
+            setAlphaByPreset(alphaMatrix, preset);
+    }
+    if (minReadFractionAtEnds < 0.0 && adjustContigEnds == true) {
+            minReadFractionAtEnds = getMinReadFractionAtEndsByPreset(preset);
+    }
+    if (windowLen < 0){
+            windowLen = getWindowSizeByPreset(preset);
+    }
+    if (modelType == MODEL_UNDEFINED){
+            modelType = getModelTypeByPreset(preset);
+    }
+
+    // Some additional checks for catching invalid values
+    //
+    // checking minReadFractionAtEnds
+    if (adjustContigEnds == true && (minReadFractionAtEnds > 1.0 || minReadFractionAtEnds < 0.0)){
+        fprintf(stderr, "[%s] Error: --minReadFractionAtEnds, -f should be between 0 and 1.\n", get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+
+    // checking modelType
+    if (modelType == MODEL_UNDEFINED) {
+        fprintf(stderr,
+                "[%s] Error: Model type is not defined. Specify the model type with --model (-m) argument.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+
+    // checking windowLen
+    if (windowLen <= 0) {
+        fprintf(stderr,
+                "[%s] Error: windowLen cannot be <= 0.\n",
+                get_timestamp());
+        exit(EXIT_FAILURE);
+    }
+
 
     // 1. get chunks and subset to contigs if given
     fprintf(stderr, "[%s] Parsing/Creating coverage chunks. \n", get_timestamp());
@@ -832,7 +1024,8 @@ int main(int argc, char *argv[]) {
     // 3. create a model
     fprintf(stderr, "[%s] Creating HMM model. \n", get_timestamp());
 
-    MatrixDouble *alphaMatrix = getAlphaMatrix(alphaTsvPath);
+
+    // create HMM model object
     HMM *model = createModel(modelType,
                              numberOfCollapsedComps,
                              chunksCreator->header,
@@ -849,6 +1042,8 @@ int main(int argc, char *argv[]) {
                   &model,
                   numberOfIterations,
                   convergenceTol,
+                  adjustContigEnds,
+                  minReadFractionAtEnds,
                   outputDir,
                   threads,
                   writeParameterStatsPerIteration,

@@ -9,7 +9,7 @@
 #include "math.h"
 #include "digamma.h"
 #include "hmm_utils.h"
-
+#include "chunk.h"
 
 typedef struct HMM {
     EmissionDistSeries **emissionDistSeriesPerRegion;
@@ -59,6 +59,10 @@ void HMM_printEmissionParametersInTsvFormat(HMM *model, FILE *fout);
 
 typedef struct EM {
     CoverageInfo **coverageInfoSeq; // the sequence of emissions
+    Chunk *chunk;
+    int meanReadLength;
+    bool adjustContigEnds;
+    double minReadFractionAtEnds;
     int seqLen;
     double **f; // Forward matrix: #SEQ_LEN x #nComps
     double **b; // Backward matrix: #SEQ_LEN x #nComps
@@ -72,11 +76,15 @@ typedef struct EM {
 } EM;
 
 
-EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model);
+EM *EM_construct(CoverageInfo **coverageInfoSeq, int seqLen, HMM *model, Chunk* chunk, int meanReadLength);
+
+void EM_setMinReadFractionAtEnds(EM *em, double minReadFractionAtEnds);
 
 void EM_renewParametersAndEstimatorsFromModel(EM *em, HMM *model);
 
 void EM_destruct(EM *em);
+
+double EM_computeAdjustmentBeta(EM* em,int columnIndex);
 
 void EM_runForward(EM *em);
 

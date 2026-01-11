@@ -745,11 +745,13 @@ Gaussian *Gaussian_constructByMean(double *mean, double factor, int numberOfComp
  *
  * @param x	        The emitted value
  * @param gaussian	The gaussian object
+ * @param preX  previous emitted value
+ * @param alpha the factor for adjusting parameters based on preX (alpha=0.0 means no adjustment)
+ * @param beta the factor for adjusting parameters based on distance to contig ends (beta=1.0 means no adjustment)
  * @return prob	    The emission probability
  */
-
-double Gaussian_getProb(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha) {
-    double *probs = Gaussian_getComponentProbs(gaussian, x, preX, alpha);
+double Gaussian_getProb(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha, double beta) {
+    double *probs = Gaussian_getComponentProbs(gaussian, x, preX, alpha, beta);
     double totProb = Double_sum1DArray(probs, gaussian->numberOfComps);
     free(probs);
     return totProb;
@@ -763,7 +765,7 @@ double Gaussian_getProb(Gaussian *gaussian, uint8_t x, uint8_t preX, double alph
  * @param gaussian      The Gaussian object
  * @return probs        An array of probabilities for all Gaussian components
  */
-double *Gaussian_getComponentProbs(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha) {
+double *Gaussian_getComponentProbs(Gaussian *gaussian, uint8_t x, uint8_t preX, double alpha, double beta) {
     double mean;
     double var;
     double w;
@@ -771,7 +773,9 @@ double *Gaussian_getComponentProbs(Gaussian *gaussian, uint8_t x, uint8_t preX, 
     // iterate over mixture components
     for (int comp = 0; comp < gaussian->numberOfComps; comp++) {
         mean = (1 - alpha) * gaussian->mean[comp] + alpha * preX;
+        mean *= beta;
         var = gaussian->var[comp];
+        var *= beta;
         w = gaussian->weights[comp];
         // adjust the mean value based on the previous observation and alpha (dependency factor)
         probs[comp] = w / (sqrt(var * 2 * PI)) * exp(-0.5 * pow((x - mean), 2) / var);
@@ -809,9 +813,10 @@ void Gaussian_updateEstimator(Gaussian *gaussian,
                               uint8_t x,
                               uint8_t preX,
                               double alpha,
+                              double beta,
                               double count) {
     double x_adjusted = (x - alpha * preX) / (1.0 - alpha);
-    double *componentProbs = Gaussian_getComponentProbs(gaussian, x, preX, alpha);
+    double *componentProbs = Gaussian_getComponentProbs(gaussian, x, preX, alpha, beta);
     double totProb = Double_sum1DArray(componentProbs, gaussian->numberOfComps);
     for (int c = 0; c < gaussian->numberOfComps; c++) {
         double w = count * componentProbs[c] / totProb;
@@ -933,9 +938,9 @@ void TruncExponential_destruct(TruncExponential *truncExponential) {
     free(truncExponential);
 }
 
-double TruncExponential_getProb(TruncExponential *truncExponential, uint8_t x) {
-    double lam = truncExponential->lambda;
-    double b = truncExponential->truncPoint;
+double TruncExponential_getProb(TruncExponential *truncExponential, uint8_t x, double beta) {
+    double lam = truncExponential->lambda / beta;
+    double b = beta * truncExponential->truncPoint;
     if (x < 0.0 || truncExponential->truncPoint < x)
         return 0.0;
     return lam * exp(-lam * x) / (1 - exp(-lam * b));
@@ -1401,11 +1406,11 @@ void EmissionDist_destruct(EmissionDist *emissionDist) {
     free(emissionDist);
 }
 
-double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha) {
+double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double beta) {
     if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
-        return TruncExponential_getProb((TruncExponential *) emissionDist->dist, x);
+        return TruncExponential_getProb((TruncExponential *) emissionDist->dist, x, beta);
     } else if (emissionDist->distType == DIST_GAUSSIAN) {
-        return Gaussian_getProb((Gaussian *) emissionDist->dist, x, preX, alpha);
+        return Gaussian_getProb((Gaussian *) emissionDist->dist, x, preX, alpha, beta);
     } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
         return NegativeBinomial_getProb((NegativeBinomial *) emissionDist->dist, x);
     }
@@ -1424,11 +1429,11 @@ void EmissionDist_updateEstimatorFromOtherEstimator(EmissionDist *dest, Emission
     }
 }
 
-void EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double count) {
+void EmissionDist_updateEstimator(EmissionDist *emissionDist, uint8_t x, uint8_t preX, double alpha, double beta, double count) {
     if (emissionDist->distType == DIST_TRUNC_EXPONENTIAL) {
         TruncExponential_updateEstimator((TruncExponential *) emissionDist->dist, x, count);
     } else if (emissionDist->distType == DIST_GAUSSIAN) {
-        Gaussian_updateEstimator((Gaussian *) emissionDist->dist, x, preX, alpha, count);
+        Gaussian_updateEstimator((Gaussian *) emissionDist->dist, x, preX, alpha, beta, count);
     } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
         NegativeBinomial_updateEstimator((NegativeBinomial *) emissionDist->dist, x, count);
     }
@@ -1660,7 +1665,7 @@ void EmissionDistSeries_updateAllEstimatorsUsingCountData(EmissionDistSeries *em
         for (uint8_t x = 0; x < MAX_COVERAGE_VALUE; x++) {
             double count = emissionDistSeries->countDataPerDist[distIndex]->counts[x];
             if (0 < count) {
-                EmissionDist_updateEstimator(emissionDist, x, 0, 0, count);
+                EmissionDist_updateEstimator(emissionDist, x, 0, 0, 1.0, count);
             }
         }
     }
@@ -1736,10 +1741,11 @@ void EmissionDistSeries_destruct(EmissionDistSeries *emissionDistSeries) {
 double *EmissionDistSeries_getAllProbs(EmissionDistSeries *emissionDistSeries,
                                        uint8_t x,
                                        uint8_t preX,
-                                       double alpha) {
+                                       double alpha,
+                                       double beta) {
     double *probs = malloc(emissionDistSeries->numberOfDists * sizeof(double));
     for (int s = 0; s < emissionDistSeries->numberOfDists; s++) {
-        probs[s] = EmissionDist_getProb(emissionDistSeries->emissionDists[s], x, preX, alpha);
+        probs[s] = EmissionDist_getProb(emissionDistSeries->emissionDists[s], x, preX, alpha, beta);
     }
     return probs;
 }
@@ -1748,8 +1754,9 @@ double EmissionDistSeries_getProb(EmissionDistSeries *emissionDistSeries,
                                   int distIndex,
                                   uint8_t x,
                                   uint8_t preX,
-                                  double alpha) {
-    return EmissionDist_getProb(emissionDistSeries->emissionDists[distIndex], x, preX, alpha);
+                                  double alpha,
+                                  double beta) {
+    return EmissionDist_getProb(emissionDistSeries->emissionDists[distIndex], x, preX, alpha, beta);
 }
 
 
@@ -1768,9 +1775,9 @@ void EmissionDistSeries_updateEstimatorFromOtherEstimator(EmissionDistSeries *de
 
 
 void EmissionDistSeries_updateEstimator(EmissionDistSeries *emissionDistSeries, int distIndex, uint8_t x, uint8_t preX,
-                                        double alpha, double count) {
+                                        double alpha, double beta, double count) {
     EmissionDist *emissionDist = emissionDistSeries->emissionDists[distIndex];
-    EmissionDist_updateEstimator(emissionDist, x, preX, alpha, count);
+    EmissionDist_updateEstimator(emissionDist, x, preX, alpha, beta, count);
 }
 
 

@@ -660,7 +660,8 @@ void ChunksCreator_writeChunksIntoBinaryFile(ChunksCreator *chunksCreator, char 
         fwrite(&ctgNameLen, sizeof(int32_t), 1, fp);
         // write the contig name
         fwrite(chunk->ctg, sizeof(char), ctgNameLen, fp);
-        // write start and end
+        // write length, start and end
+        fwrite(&(chunk->ctgLen), sizeof(int32_t), 1, fp);
         fwrite(&(chunk->s), sizeof(int32_t), 1, fp);
         fwrite(&(chunk->e), sizeof(int32_t), 1, fp);
         //write actual size of chunk
@@ -773,6 +774,7 @@ void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char 
     int8_t *predictionArray = malloc(sizeof(int8_t) * maxSeqSize);
     // create a buffer for contig name
     char ctg[1000];
+    int32_t ctgLen;
     int32_t start;
     int32_t end;
     int32_t seqLen;
@@ -780,7 +782,8 @@ void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char 
     while (fread(&ctgNameLen, sizeof(int32_t), 1, fp) > 0) {
         // read the contig name
         fread(ctg, sizeof(char), ctgNameLen, fp);
-        // read start and end
+        // read length, start and end
+        fread(&ctgLen, sizeof(int32_t), 1, fp);
         fread(&start, sizeof(int32_t), 1, fp);
         fread(&end, sizeof(int32_t), 1, fp);
         // read actual size of chunk
@@ -792,6 +795,7 @@ void ChunksCreator_parseChunksFromBinaryFile(ChunksCreator *chunksCreator, char 
         // set contig name
         strcpy(chunk->ctg, ctg);
         // set coordinates
+        chunk->ctgLen = ctgLen;
         chunk->s = start;
         chunk->e = end;
         chunk->coverageInfoSeqLen = seqLen;

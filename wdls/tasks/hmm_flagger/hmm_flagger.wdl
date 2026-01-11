@@ -14,24 +14,26 @@ workflow runHmmFlagger{
 task hmmFlagger{
     input{
         File coverage
+        String preset
+        String suffix
         File? binArrayTsv
-        Int chunkLen = 20000000
-        Int windowLen = 4000
         String labelNames = "Err,Dup,Hap,Col"
-        String trackName = "hmm_flagger_v1.0"
+        String trackName = "hmm_flagger"
         Int numberOfIterations = 100
         Float convergenceTolerance = 0.001
         Float maxHighMapqRatio=0.25
         Float minHighMapqRatio=0.75
         String? moreOptions
         File? alphaTsv
-        String modelType = "gaussian"
+        String? modelType
+        Int? chunkLen
+        Int? windowLen
         Array[Int] minimumBlockLenArray = []
         # runtime configurations
         Int memSize=32
         Int threadCount=8
         Int diskSize=ceil(size(coverage, "GB")) + 64
-        String dockerImage="mobinasri/flagger:v1.1.0"
+        String dockerImage="mobinasri/flagger:v1.2.0"
         Int preemptible=2
     }
     command <<<
@@ -53,8 +55,23 @@ task hmmFlagger{
         if [ -n "~{binArrayTsv}" ]
         then
             ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --binArrayFile ~{binArrayTsv}"
-        fi 
-        
+        fi
+
+        if [ -n "~{chunkLen}" ]
+        then
+            ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --chunkLen ~{chunkLen}"
+        fi
+
+        if [ -n "~{windowLen}" ]
+        then
+            ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --windowLen ~{windowLen}"
+        fi
+
+        if [ -n "~{modelType}" ]
+        then
+            ADDITIONAL_ARGS="${ADDITIONAL_ARGS} --modelType ~{modelType}"
+        fi
+
         if [ -n "~{moreOptions}" ]
         then
             ADDITIONAL_ARGS="${ADDITIONAL_ARGS} ~{moreOptions}"
@@ -70,12 +87,10 @@ task hmmFlagger{
 
         hmm_flagger \
             --input ~{coverage} \
+            --preset ~{preset} \
             --outputDir ${OUTPUT_DIR}  \
-            --chunkLen ~{chunkLen} \
-            --windowLen ~{windowLen} \
             --maxHighMapqRatio ~{maxHighMapqRatio} \
             --minHighMapqRatio ~{minHighMapqRatio} \
-            --modelType ~{modelType} \
             --iterations ~{numberOfIterations} \
             --trackName ~{trackName} \
             --convergenceTol ~{convergenceTolerance} \
@@ -83,8 +98,8 @@ task hmmFlagger{
             --threads ~{threadCount} ${ADDITIONAL_ARGS}
         
         mkdir -p output
-        cp ${OUTPUT_DIR}/*.bed output/${PREFIX}.hmm_flagger_prediction.bed
-        cp ${OUTPUT_DIR}/prediction_summary_final.tsv output/${PREFIX}.prediction_summary_final.tsv
+        cp ${OUTPUT_DIR}/*.bed output/${PREFIX}.~{suffix}_prediction.bed
+        cp ${OUTPUT_DIR}/prediction_summary_final.tsv output/${PREFIX}.~{suffix}.prediction_summary_final.tsv
         cp ${OUTPUT_DIR}/loglikelihood.tsv output/
 
         tar -cf  ${OUTPUT_DIR}.tar ${OUTPUT_DIR}
@@ -102,6 +117,57 @@ task hmmFlagger{
         File predictionSummaryTsv = glob("output/*.prediction_summary_final.tsv")[0]
         File loglikelihoodTsv = glob("output/loglikelihood.tsv")[0]
         File outputTarGz = glob("*.tar.gz")[0]
+    }
+}
+
+
+
+task filterHmmFlaggerCalls{
+    input{
+        File selfAsmMapBam
+        File selfAsmMapBamIndex
+        File flaggerBed
+        Int minAlignmentLen=10000
+        Float maxDivergence=0.005
+        String? moreOptions
+        # runtime configurations
+        Int memSize=32
+        Int threadCount=8
+        Int diskSize=32
+        String dockerImage="mobinasri/flagger:v1.2.0"
+        Int preemptible=2
+    }
+    command <<<
+        set -o pipefail
+        set -e
+        set -u
+        set -o xtrace
+
+        IN_BED_PATH="~{flaggerBed}"
+        PREFIX=$(basename ${IN_BED_PATH%.bed})
+
+        ln -s ~{selfAsmMapBam} self_hom_alignment.bam
+        ln -s ~{selfAsmMapBamIndex} self_hom_alignment.bam.bai
+        mkdir -p output
+
+        python3 /home/programs/src/filter_hmm_flagger_calls.py \
+            --inputBam self_hom_alignment.bam \
+            --inputBed ~{flaggerBed} \
+            --outputBed output/${PREFIX}.conservative.bed \
+            --minAlignmentLen ~{minAlignmentLen} \
+            --maxDivergence ~{maxDivergence} \
+            --threads ~{threadCount} ~{moreOptions}
+        
+    >>>
+    runtime {
+        docker: dockerImage
+        memory: memSize + " GB"
+        cpu: threadCount
+        disks: "local-disk " + diskSize + " SSD"
+        preemptible : preemptible
+    }
+    output{
+        File conservativeBed = glob("output/*.conservative.bed")[0]
     }
 }
 
