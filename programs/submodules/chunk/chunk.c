@@ -140,6 +140,12 @@ ChunksCreator *ChunksCreator_constructEmpty() {
 
 ChunksCreator *
 ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalLen, int nThreads, int windowLen) {
+    return ChunksCreator_constructFromCovWithOptions(covPath, faiPath, chunkCanonicalLen, nThreads, windowLen, true);
+}
+
+ChunksCreator *
+ChunksCreator_constructFromCovWithOptions(char *covPath, char *faiPath, int chunkCanonicalLen, int nThreads,
+                                           int windowLen, bool constructChunksWithAllocatedSeq) {
     char *extension = extractFileExtension(covPath);
     if (strcmp(extension, "cov") != 0 &&
         strcmp(extension, "cov.gz") != 0 &&
@@ -188,11 +194,18 @@ ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalL
     chunksCreator->nextChunkIndexToRead = 0;
     chunksCreator->nThreads = nThreads;
     chunksCreator->chunkCanonicalLen = chunkCanonicalLen;
-    fprintf(stderr, "[%s] Creating empty chunks.\n", get_timestamp());
-    // create empty chunks
-    chunksCreator->chunks = Chunk_constructListWithAllocatedSeq(chunksCreator->templateChunks,
-                                                                windowLen,
-                                                                chunksCreator->header->startOnlyMode);
+    if (constructChunksWithAllocatedSeq) {
+        fprintf(stderr, "[%s] Creating empty chunks.\n", get_timestamp());
+        // create empty chunks
+        chunksCreator->chunks = Chunk_constructListWithAllocatedSeq(chunksCreator->templateChunks,
+                                                                    windowLen,
+                                                                    chunksCreator->header->startOnlyMode);
+    } else {
+        // caller only needs chunksCreator->templateChunks; skip allocating the per-chunk
+        // windowRegionArray/windowTruthArray/windowPredictionArray/coverageInfoSeq buffers,
+        // which are sized off windowLen regardless of each chunk's actual span
+        chunksCreator->chunks = NULL;
+    }
     chunksCreator->windowLen = windowLen;
     chunksCreator->mutex = malloc(sizeof(pthread_mutex_t));
     chunksCreator->startOnlyMode = chunksCreator->header->startOnlyMode;
