@@ -1,0 +1,81 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  c-programs:
+    name: Build and test C programs
+    runs-on: ubuntu-22.04
+    env:
+      HTSLIB_VERSION: "1.13"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential autoconf automake make gcc perl \
+            zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev wget
+
+      # The programs Makefile expects sonLib at /home/apps/sonLib (same layout as the Dockerfile)
+      - name: Prepare /home/apps
+        run: |
+          sudo mkdir -p /home/apps
+          sudo chown "$USER" /home/apps
+
+      - name: Install htslib
+        run: |
+          cd /home/apps
+          wget -q https://github.com/samtools/htslib/releases/download/${HTSLIB_VERSION}/htslib-${HTSLIB_VERSION}.tar.bz2
+          tar -xjf htslib-${HTSLIB_VERSION}.tar.bz2
+          cd htslib-${HTSLIB_VERSION}
+          ./configure
+          make -j"$(nproc)"
+          sudo make install
+          sudo ldconfig
+
+      - name: Install sonLib
+        run: |
+          cd /home/apps
+          git clone --depth 1 https://github.com/benedictpaten/sonLib
+          cd sonLib
+          make
+
+      - name: Build programs and run tests
+        working-directory: programs
+        run: make
+
+      # run_tests records each result in tests_status.txt but never exits non-zero,
+      # so fail the job here if any test is marked FAILED
+      - name: Check test results
+        working-directory: programs
+        run: |
+          {
+            echo '## Test results'
+            echo
+            echo '| Test | Status |'
+            echo '|---|---|'
+            tail -n +2 tests_status.txt | awk -F'\t' '{printf "| %s | %s |\n", $1, $2}'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$(tail -n +2 tests_status.txt | wc -l)" -eq 0 ]; then
+            echo "::error::No test results found in tests_status.txt"
+            exit 1
+          fi
+          if grep -q 'FAILED' tests_status.txt; then
+            echo "::error::Some tests failed:"
+            grep 'FAILED' tests_status.txt
+            exit 1
+          fi
+          echo "All $(tail -n +2 tests_status.txt | wc -l) tests passed."
+
+      - name: Upload test status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests_status
+          path: programs/tests_status.txt
+          if-no-files-found: ignore
