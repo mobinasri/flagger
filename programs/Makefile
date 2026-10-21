@@ -173,8 +173,8 @@ run_tests:
 		-i tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.cov \
 		-o tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.output.bed \
 		-f tests/test_files/coverage_format_converter/test_1.fa.fai; \
-		cmp tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.output.cov \
-		    tests/test_files/coverage_format_converter/truth/test_1_with_only_truth_labels.truth.cov; \
+		cmp tests/test_files/coverage_format_converter/test_1_with_only_truth_labels.output.bed \
+		    tests/test_files/coverage_format_converter/truth/test_1_with_only_truth_labels.truth.bed; \
 		return_code=$$?; \
 		if [ $$return_code -eq 0 ]; then printf "PROGRAM:coverage_format_converter:for_cov_to_bed_only_truth_labels\tOK\n" >> tests_status.txt; \
 		                            else printf "PROGRAM:coverage_format_converter:for_cov_to_bed_only_truth_labels\tFAILED\n" >> tests_status.txt; fi ;\
