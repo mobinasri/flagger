@@ -1,0 +1,168 @@
+# Reusable workflow: builds one image natively for linux/amd64 and linux/arm64
+# and, if push is true, merges both into a single multi-arch tag on Docker Hub.
+# Called by docker-base-images.yml and docker-flagger.yml.
+name: docker-build
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: "Image name without tag, e.g. mobinasri/bio_base"
+        required: true
+        type: string
+      context:
+        description: "Build context directory"
+        required: true
+        type: string
+      version:
+        description: "Version tag, e.g. v1.2.1 (required when push is true)"
+        required: false
+        type: string
+        default: ""
+      push:
+        description: "Push the image to Docker Hub"
+        required: false
+        type: boolean
+        default: false
+      latest:
+        description: "Also tag the pushed image as latest"
+        required: false
+        type: boolean
+        default: false
+      build-args:
+        description: "Newline-separated build args"
+        required: false
+        type: string
+        default: ""
+      smoke-test:
+        description: "Shell command run inside the built image to check it works"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      DOCKERHUB_TOKEN:
+        required: false
+
+env:
+  DOCKERHUB_USERNAME: mobinasri
+
+jobs:
+  build:
+    name: ${{ inputs.image }} (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version is set when pushing
+        if: inputs.push && inputs.version == ''
+        run: |
+          echo "::error::version must be set when push is true"
+          exit 1
+
+      # e.g. mobinasri/bio_base -> mobinasri-bio_base, used in cache scopes and artifact names
+      - name: Make image key
+        id: key
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: echo "key=${IMAGE//\//-}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: inputs.push
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # When pushing, push by digest only; the merge job adds the tags.
+      # Otherwise load the image into the local docker daemon for the smoke test.
+      - name: Build
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          platforms: linux/${{ matrix.arch }}
+          build-args: ${{ inputs.build-args }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ inputs.version }}
+          outputs: ${{ inputs.push && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', inputs.image) || format('type=docker,name={0}:ci', inputs.image) }}
+          cache-from: type=gha,scope=${{ steps.key.outputs.key }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ steps.key.outputs.key }}-${{ matrix.arch }}
+
+      - name: Smoke test
+        if: inputs.smoke-test != ''
+        env:
+          IMAGE_REF: ${{ inputs.push && format('{0}@{1}', inputs.image, steps.build.outputs.digest) || format('{0}:ci', inputs.image) }}
+          SMOKE_TEST: ${{ inputs.smoke-test }}
+        run: docker run --rm "$IMAGE_REF" bash -euo pipefail -c "$SMOKE_TEST"
+
+      - name: Export digest
+        if: inputs.push
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        if: inputs.push
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ steps.key.outputs.key }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Push multi-arch ${{ inputs.image }}
+    if: inputs.push
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Make image key
+        id: key
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: echo "key=${IMAGE//\//-}" >> "$GITHUB_OUTPUT"
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ steps.key.outputs.key }}-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Same tags as the Makefiles: <version>, <version>--<commit> and optionally latest
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGE: ${{ inputs.image }}
+          VERSION: ${{ inputs.version }}
+          LATEST: ${{ inputs.latest }}
+        run: |
+          tags=(-t "${IMAGE}:${VERSION}" -t "${IMAGE}:${VERSION}--${GITHUB_SHA}")
+          if [ "${LATEST}" = "true" ]; then tags+=(-t "${IMAGE}:latest"); fi
+          docker buildx imagetools create "${tags[@]}" $(printf "${IMAGE}@sha256:%s " *)
+
+      - name: Inspect image
+        run: docker buildx imagetools inspect "${{ inputs.image }}:${{ inputs.version }}"
