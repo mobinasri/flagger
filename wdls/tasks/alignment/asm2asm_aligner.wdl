@@ -37,7 +37,7 @@ workflow asm2asmAlignment {
             readFastq_or_queryAssembly = queryAssemblyFasta,
             kmerSize = 19,
             options = options,
-            dockerImage="mobinasri/long_read_aligner:v1.1.0",
+            dockerImage="mobinasri/long_read_aligner:v1.2.1",
             diskSize = 64,
             memSize = memSize,
             zones = zones,
