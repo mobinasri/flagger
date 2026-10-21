@@ -1,0 +1,85 @@
+# Builds the base images (mobinasri/bio_base and mobinasri/long_read_aligner) for linux/amd64 and linux/arm64.
+# Pull requests that touch these images only build and smoke-test them.
+# Publishing is manual: Actions -> docker-base-images -> Run workflow, with push checked.
+name: docker-base-images
+
+on:
+  pull_request:
+    paths:
+      - "misc/docker/bio_base/**"
+      - "misc/docker/long_read_aligner/**"
+      - ".github/workflows/docker-base-images.yml"
+      - ".github/workflows/docker-build.yml"
+  workflow_dispatch:
+    inputs:
+      images:
+        description: "Which images to build"
+        type: choice
+        options: [both, bio_base, long_read_aligner]
+        default: both
+      version:
+        description: "Version tag to push, e.g. v1.2.1 (required if push is checked)"
+        type: string
+        default: ""
+      bio_base_version:
+        description: "bio_base tag that long_read_aligner is built on. Empty = the version above if bio_base is pushed in this run, otherwise the Dockerfile default"
+        type: string
+        default: ""
+      push:
+        description: "Push the images to Docker Hub"
+        type: boolean
+        default: false
+      latest:
+        description: "Also tag the pushed images as latest"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  bio_base:
+    if: github.event_name == 'pull_request' || inputs.images != 'long_read_aligner'
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      image: mobinasri/bio_base
+      context: misc/docker/bio_base
+      version: ${{ inputs.version }}
+      push: ${{ inputs.push == true }}
+      latest: ${{ inputs.latest == true }}
+      smoke-test: |
+        samtools --version | head -1
+        bcftools --version | head -1
+        bedtools --version
+        seqkit version
+        command -v seqtk
+        "$JAVA_HOME/bin/java" -version
+        test -f /home/apps/picard.jar
+        test -f /home/apps/jvarkit/dist/jvarkit.jar
+        micromamba --version
+    secrets: inherit
+
+  long_read_aligner:
+    needs: bio_base
+    if: >-
+      !cancelled() && needs.bio_base.result != 'failure' &&
+      (github.event_name == 'pull_request' || inputs.images != 'bio_base')
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      image: mobinasri/long_read_aligner
+      context: misc/docker/long_read_aligner
+      version: ${{ inputs.version }}
+      push: ${{ inputs.push == true }}
+      latest: ${{ inputs.latest == true }}
+      build-args: >-
+        ${{ inputs.bio_base_version != '' && format('BIO_BASE=mobinasri/bio_base:{0}', inputs.bio_base_version)
+        || (inputs.push && inputs.images == 'both') && format('BIO_BASE=mobinasri/bio_base:{0}', inputs.version)
+        || '' }}
+      smoke-test: |
+        minimap2 --version
+        winnowmap --version
+        k8 "$PAFTOOLS_PATH" version
+        test -f "$VERITY_MAP_PY"
+        samtools --version | head -1
+    secrets: inherit
