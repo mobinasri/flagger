@@ -17,7 +17,13 @@ RUN ARCH=${TARGETARCH:-$(dpkg --print-architecture)} && \
     unzip v2.03.zip && \
     rm v2.03.zip && \
     cd Winnowmap-2.03 && \
-    if [ "${ARCH}" = "arm64" ]; then make -j8 arm_neon=1 aarch64=1; else make -j8; fi
+    if [ "${ARCH}" = "arm64" ]; then \
+        # The top-level Makefile exports CPPFLAGS and runs "make -e -C src", so the
+        # aarch64 flags that src/Makefile appends are dropped. Without -fsigned-char,
+        # char is unsigned on arm64 and chain.c's "-1" in a char table fails to compile.
+        sed -i 's/^export CPPFLAGS=/export CPPFLAGS= -fsigned-char -D_FILE_OFFSET_BITS=64/' Makefile && \
+        make -j8 arm_neon=1 aarch64=1; \
+    else make -j8; fi
 ENV PATH="/home/apps/Winnowmap-2.03/bin:${PATH}"
 
 ## minimap2
