@@ -1,0 +1,16 @@
+# compiled C objects and binaries
+*.o
+programs/bin/
+
+# SLURM job logs and downloaded tarballs from docker builds
+misc/docker/**/*.log
+misc/docker/*.tar.gz
+
+# test outputs (written by programs/Makefile test targets and programs/tests/*.c)
+programs/tests_status.txt
+programs/tests/test_files/**/*.output.*
+programs/tests/test_files/**/*.cov.index
+programs/tests/test_files/chunks_creator/tmp.bin
+programs/tests/test_files/test_bias_detector.tsv
+programs/tests/test_files/summary_table/*.tsv
+programs/tests/test_files/track_reader/test_header_*

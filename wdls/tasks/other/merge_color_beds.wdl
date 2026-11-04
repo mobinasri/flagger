@@ -16,7 +16,7 @@ task mergeColorBeds {
         Int memSize=4
         Int threadCount=2
         Int diskSize=32
-        String dockerImage="mobinasri/bio_base:v0.4.0"
+        String dockerImage="mobinasri/bio_base:v1.2.1"
         Int preemptible=2
     }
     command <<<

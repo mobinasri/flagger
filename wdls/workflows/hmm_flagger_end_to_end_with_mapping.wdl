@@ -33,7 +33,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         minReadLengthForMapping: "If it is greater than zero, a task will be executed for filtering reads shorter than this value before alignment. [Default = 0]"
         alignerThreadCount : "The number of threads for mapping in each alignment task [Default = 16]"
         alignerMemSize : "The size of the memory in Gb for mapping in each alignment task [Default = 48]"
-        alignerDockerImage : "The mapping docker image [Default = 'mobinasri/long_read_aligner:v1.1.0']"
+        alignerDockerImage : "The mapping docker image [Default = 'mobinasri/long_read_aligner:v1.2.1']"
         correctBamOptions : "Options for the correct_bam program that can filters short/highly divergent alignments [ Default = '--primaryOnly --minReadLen 5000 --minAlignment 5000 --maxDiv 0.1' ]"
         enableRunningCorrectBam: "If true it will run correct_bam with correctBamOptions"
         downSamplingRateForFlagger: "Rate of downsampling (Default: 1.0 which means no down-sampling)"
@@ -102,7 +102,7 @@ workflow HMMFlaggerEndToEndWithMapping{
         Boolean enableRunningCorrectBam=false
         Int alignerThreadCount = 16
         Int alignerMemSize = 48
-        String alignerDockerImage = "mobinasri/long_read_aligner:v1.1.0"
+        String alignerDockerImage = "mobinasri/long_read_aligner:v1.2.1"
         Float downSamplingRateForFlagger = 1.0
 
         File? includeContigListText

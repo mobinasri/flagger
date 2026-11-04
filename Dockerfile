@@ -1,16 +1,15 @@
-FROM mobinasri/bio_base:v0.4.0
+ARG BIO_BASE=mobinasri/bio_base:v1.2.1
+FROM ${BIO_BASE}
 MAINTAINER Mobin Asri, masri@ucsc.edu
+
+# TARGETARCH (amd64/arm64) is set by BuildKit; fall back to dpkg for the legacy builder
+ARG TARGETARCH
 
 RUN mkdir -p /home/apps
 RUN pip3 install scipy pandas matplotlib
 RUN apt-get update && apt-get install -y build-essential python3-dev autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev wget unzip vim
 
-
-#install Java
-RUN cd /home/apps && \
-    wget https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz && \
-    tar -xvzf jdk-23_linux-x64_bin.tar.gz
-ENV PATH=$PATH:/home/apps/jdk-23.0.1/bin
+# Java (OpenJDK 21) comes from bio_base
 
 #intstall IGV
 RUN cd /home/apps && \
@@ -43,8 +42,9 @@ ENV LANG="C.UTF-8"
 RUN pip3 install cython && pip3 install whatshap
 
 RUN cd /home/apps && \
-     git clone https://sourceware.org/git/valgrind.git && \
-     cd valgrind && \
+     wget https://sourceware.org/pub/valgrind/valgrind-3.27.1.tar.bz2 && \
+     tar -xvjf valgrind-3.27.1.tar.bz2 && \
+     cd valgrind-3.27.1 && \
      ./autogen.sh  && \
      ./configure && \
      make && \
@@ -53,9 +53,18 @@ RUN cd /home/apps && \
 RUN apt-get update
 RUN apt-get install -y libc6-dbg gdb
 RUN pip install smt #https://smt.readthedocs.io/en/latest/_src_docs/applications/ego.html
-RUN cd /home/apps && \
-    wget https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v369/bedGraphToBigWig && \
-    chmod 777 bedGraphToBigWig
+# UCSC's arm64 build of bedGraphToBigWig needs a newer glibc than Ubuntu 20.04 has,
+# so on arm64 it is installed from bioconda with micromamba instead
+RUN ARCH=${TARGETARCH:-$(dpkg --print-architecture)} && \
+    cd /home/apps && \
+    if [ "${ARCH}" = "arm64" ]; then \
+        micromamba create -y -p /home/apps/conda_env -c conda-forge -c bioconda ucsc-bedgraphtobigwig=482 && \
+        micromamba clean -a -y && \
+        ln -s /home/apps/conda_env/bin/bedGraphToBigWig /home/apps/bedGraphToBigWig; \
+    else \
+        wget https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v369/bedGraphToBigWig && \
+        chmod 777 bedGraphToBigWig; \
+    fi
 
 COPY ./programs /home/programs
 # Add cigar_it to the submodules dir

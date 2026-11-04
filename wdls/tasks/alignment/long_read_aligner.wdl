@@ -73,7 +73,7 @@ task indexBam{
         Int memSize=16
         Int threadCount=8
         Int diskSize=ceil(size(bam, "GB")) + 32
-        String dockerImage="mobinasri/long_read_aligner:v1.1.0"
+        String dockerImage="mobinasri/long_read_aligner:v1.2.1"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -118,7 +118,7 @@ task alignmentBam{
         Int memSize=64
         Int threadCount=32
         Int diskSize
-        String dockerImage="mobinasri/long_read_aligner:v1.1.0"
+        String dockerImage="mobinasri/long_read_aligner:v1.2.1"
         Int preemptible=2
         String zones="us-west2-a"
     }
@@ -218,7 +218,7 @@ task alignmentPaf{
         Int memSize=64
         Int threadCount=32
         Int diskSize
-        String dockerImage="mobinasri/long_read_aligner:v1.1.0"
+        String dockerImage="mobinasri/long_read_aligner:v1.2.1"
         Int preemptible=2
         String zones="us-west2-a"
     }

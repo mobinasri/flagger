@@ -1,0 +1,185 @@
+# Builds the Docker images for linux/amd64 and linux/arm64:
+#   mobinasri/bio_base           (misc/docker/bio_base)
+#   mobinasri/long_read_aligner  (misc/docker/long_read_aligner, built on bio_base)
+#   mobinasri/flagger            (root Dockerfile, built on bio_base)
+# When bio_base is built in a run, the images built on it use that bio_base instead of the
+# one on Docker Hub, so a change to bio_base is tested together with everything built on it.
+# - Pull requests build and smoke-test the images whose files changed, plus the images built on them.
+# - Pushing a version tag (e.g. v1.2.1) publishes flagger:<tag>, flagger:<tag>--<commit> and flagger:latest.
+# - Anything can be built and published by hand: Actions -> docker-images -> Run workflow.
+name: docker-images
+
+on:
+  pull_request:
+    paths:
+      - "misc/docker/bio_base/**"
+      - "misc/docker/long_read_aligner/**"
+      - "Dockerfile"
+      - "programs/**"
+      - "scripts/**"
+      - "ext/secphase/programs/submodules/cigar_it/**"
+      - ".github/workflows/docker-images.yml"
+      - ".github/workflows/docker-build.yml"
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      bio_base:
+        description: "Build mobinasri/bio_base"
+        type: boolean
+        default: false
+      long_read_aligner:
+        description: "Build mobinasri/long_read_aligner"
+        type: boolean
+        default: false
+      flagger:
+        description: "Build mobinasri/flagger"
+        type: boolean
+        default: false
+      version:
+        description: "Version tag to push, e.g. v1.2.1 (required if push is checked)"
+        type: string
+        default: ""
+      bio_base_version:
+        description: "bio_base tag to build on when bio_base is not built in this run. Empty = the Dockerfile default"
+        type: string
+        default: ""
+      push:
+        description: "Push the images to Docker Hub"
+        type: boolean
+        default: false
+      latest:
+        description: "Also tag the pushed images as latest"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    name: Choose images to build
+    runs-on: ubuntu-24.04
+    outputs:
+      bio_base: ${{ steps.plan.outputs.bio_base }}
+      long_read_aligner: ${{ steps.plan.outputs.long_read_aligner }}
+      flagger: ${{ steps.plan.outputs.flagger }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+
+      - name: Plan
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          IN_BIO_BASE: ${{ inputs.bio_base }}
+          IN_LONG_READ_ALIGNER: ${{ inputs.long_read_aligner }}
+          IN_FLAGGER: ${{ inputs.flagger }}
+        run: |
+          set -euo pipefail
+          case "${EVENT}" in
+            pull_request)
+              changed=$(git diff --name-only "${BASE_SHA}" HEAD)
+              has() { grep -qE "$1" <<<"${changed}"; }
+              # A change to the workflows rebuilds everything
+              ci=false; has '^\.github/workflows/docker-(images|build)\.yml$' && ci=true
+              bio_base=false; { ${ci} || has '^misc/docker/bio_base/'; } && bio_base=true
+              long_read_aligner=false
+              { ${ci} || ${bio_base} || has '^misc/docker/long_read_aligner/'; } && long_read_aligner=true
+              flagger=false
+              { ${ci} || ${bio_base} || has '^(Dockerfile$|programs/|scripts/|ext/secphase/programs/submodules/cigar_it(/|$))'; } && flagger=true
+              ;;
+            push)
+              bio_base=false; long_read_aligner=false; flagger=true
+              ;;
+            *)
+              bio_base=${IN_BIO_BASE}; long_read_aligner=${IN_LONG_READ_ALIGNER}; flagger=${IN_FLAGGER}
+              ;;
+          esac
+          echo "bio_base=${bio_base} long_read_aligner=${long_read_aligner} flagger=${flagger}"
+          {
+            echo "bio_base=${bio_base}"
+            echo "long_read_aligner=${long_read_aligner}"
+            echo "flagger=${flagger}"
+          } >> "$GITHUB_OUTPUT"
+
+  bio_base:
+    needs: plan
+    if: needs.plan.outputs.bio_base == 'true'
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      image: mobinasri/bio_base
+      context: misc/docker/bio_base
+      version: ${{ inputs.version }}
+      push: ${{ inputs.push == true }}
+      latest: ${{ inputs.latest == true }}
+      # Saved for the images below that are built on it in this run
+      export-artifact: ${{ needs.plan.outputs.long_read_aligner == 'true' || needs.plan.outputs.flagger == 'true' }}
+      smoke-test: |
+        samtools --version | head -1
+        bcftools --version | head -1
+        bedtools --version
+        seqkit version
+        command -v seqtk
+        "$JAVA_HOME/bin/java" -version
+        test -f /home/apps/picard.jar
+        test -f /home/apps/jvarkit/dist/jvarkit.jar
+        micromamba --version
+    secrets: inherit
+
+  long_read_aligner:
+    needs: [plan, bio_base]
+    if: >-
+      !cancelled() && needs.plan.outputs.long_read_aligner == 'true' &&
+      needs.bio_base.result != 'failure'
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      image: mobinasri/long_read_aligner
+      context: misc/docker/long_read_aligner
+      version: ${{ inputs.version }}
+      push: ${{ inputs.push == true }}
+      latest: ${{ inputs.latest == true }}
+      base-arg: BIO_BASE
+      base-artifact: ${{ needs.bio_base.result == 'success' && 'mobinasri-bio_base' || '' }}
+      base-image: ${{ inputs.bio_base_version != '' && format('mobinasri/bio_base:{0}', inputs.bio_base_version) || '' }}
+      smoke-test: |
+        minimap2 --version
+        winnowmap --version
+        k8 "$PAFTOOLS_PATH" version
+        test -f "$VERITY_MAP_PY"
+        samtools --version | head -1
+    secrets: inherit
+
+  flagger:
+    needs: [plan, bio_base]
+    if: >-
+      !cancelled() && needs.plan.outputs.flagger == 'true' &&
+      needs.bio_base.result != 'failure'
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      image: mobinasri/flagger
+      context: .
+      version: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+      push: ${{ github.event_name == 'push' || inputs.push == true }}
+      latest: ${{ github.event_name == 'push' || inputs.latest == true }}
+      base-arg: BIO_BASE
+      base-artifact: ${{ needs.bio_base.result == 'success' && 'mobinasri-bio_base' || '' }}
+      base-image: ${{ inputs.bio_base_version != '' && format('mobinasri/bio_base:{0}', inputs.bio_base_version) || '' }}
+      smoke-test: |
+        for p in hmm_flagger bam2cov cov2counts cov2wig coverage_format_converter depth2cov \
+                 filter_alt_reads find_blocks_from_table make_summary_table split_cov_by_contig; do
+          command -v "$p"
+        done
+        samtools --version | head -1
+        whatshap --version
+        python3 -c "import scipy, pandas, matplotlib, smt"
+        java -version
+        printf 'chr1\t1000\n' > /tmp/chrom.sizes
+        printf 'chr1\t0\t100\t1.5\n' > /tmp/test.bedgraph
+        bedGraphToBigWig /tmp/test.bedgraph /tmp/chrom.sizes /tmp/test.bigwig
+        test -s /tmp/test.bigwig
+    secrets: inherit
