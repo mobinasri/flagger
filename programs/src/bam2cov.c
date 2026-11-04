@@ -63,6 +63,7 @@ static struct option long_options[] =
                 {"includeContigs",          required_argument, NULL, 'I'},
                 {"downsampleRate",          required_argument, NULL, 'D'},
                 {"startOnlyMode",          no_argument, NULL, 's'},
+                {"help",                   no_argument,       NULL, 'h'},
                 {NULL,                      0,                 NULL, 0}
         };
 
@@ -230,7 +231,7 @@ int main(int argc, char *argv[]) {
                         "                           it will take windows with the same length as the average alignment\n"
                         "                           length and count the number of alignments starting in each window.\n"
                         "                           [Default : disabled]\n");
-                return 1;
+                return c == 'h' ? 0 : 1;
         }
     }
     double realtimeStart = System_getRealTimePoint();

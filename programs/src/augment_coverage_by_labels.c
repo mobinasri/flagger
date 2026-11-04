@@ -29,6 +29,7 @@ static struct option long_options[] =
                 {"numberOfLabels", required_argument, NULL, 'n'},
                 {"output",         required_argument, NULL, 'o'},
                 {"threads",         required_argument, NULL, '@'},
+                {"help",                   no_argument,       NULL, 'h'},
                 {NULL,             0,                 NULL, 0}
         };
 
@@ -84,7 +85,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "         --numberOfLabels, -n         number of labels [Default = 4]\n");
                 fprintf(stderr, "         --threads, -@       number of threads [Default = 4]\n");
 
-                return 1;
+                return c == 'h' ? 0 : 1;
         }
     }
 

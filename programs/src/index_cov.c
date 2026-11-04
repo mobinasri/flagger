@@ -17,7 +17,11 @@ int main(int argc, char *argv[]) {
    int chunkCanonicalLen = 20000000;
    char *program;
    (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-   while (~(c=getopt(argc, argv, "i:l:f:h"))) {
+   static struct option long_options[] = {
+           {"help", no_argument, NULL, 'h'},
+           {NULL,   0,           NULL, 0}
+   };
+   while (~(c=getopt_long(argc, argv, "i:l:f:h", long_options, NULL))) {
 		switch (c) {
 			case 'i':
                                 covPath = optarg;
@@ -36,7 +40,7 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr, "         -i         path to input coverage file (can be either cov/cov.gz/bed/bed.gz)\n");
 				fprintf(stderr, "         -f         path to fai file (It can be skipped if the coverage file is cov/cov.gz)\n");
 				fprintf(stderr, "         -l         chunk length [Default = 20000000 (20Mb)]\n");
-				return 1;	
+				return c == 'h' ? 0 : 1;	
 		}		
    }
    stList* templateChunks = ChunksCreator_createCovIndex(covPath, faiPath, chunkCanonicalLen);

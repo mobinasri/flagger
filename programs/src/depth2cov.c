@@ -130,7 +130,11 @@ int main(int argc, char *argv[]) {
    char* covPath;
    char *program;
    (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-   while (~(c=getopt(argc, argv, "f:d:o:"))) {
+   static struct option long_options[] = {
+           {"help", no_argument, NULL, 'h'},
+           {NULL,   0,           NULL, 0}
+   };
+   while (~(c=getopt_long(argc, argv, "f:d:o:h", long_options, NULL))) {
 		switch (c) {
 			case 'f':
 				faiPath = optarg; 
@@ -149,7 +153,7 @@ help:
 				fprintf(stderr, "         -f         input .fai file\n");
 			        fprintf(stderr, "         -d         input .depth file\n");	
 				fprintf(stderr, "         -o         output .cov file\n");
-				return 1;	
+				return c == 'h' ? 0 : 1;	
 		}		
    }
    char** contigNames;

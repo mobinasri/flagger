@@ -29,7 +29,11 @@ int main(int argc, char *argv[]) {
     int chunkCanonicalLen = 20000000;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "i:o:f:w:t:n:c:h"))) {
+    static struct option long_options[] = {
+            {"help", no_argument, NULL, 'h'},
+            {NULL,   0,           NULL, 0}
+    };
+    while (~(c = getopt_long(argc, argv, "i:o:f:w:t:n:c:h", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -70,7 +74,7 @@ int main(int argc, char *argv[]) {
                         "         -n         track name (only be used for generating bedgraph file) [Default = 'coverage_bedgraph']\n");
                 fprintf(stderr,
                         "         -c         chunk length for converting to bin. [Default: 20000000 (20 Mb)]\n");
-                return 1;
+                return c == 'h' ? 0 : 1;
         }
     }
 

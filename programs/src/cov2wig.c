@@ -109,7 +109,11 @@ int main(int argc, char *argv[]) {
    int threshold=250;
    char *program;
    (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-   while (~(c=getopt(argc, argv, "i:o:t:f:s:n:h"))) {
+   static struct option long_options[] = {
+           {"help", no_argument, NULL, 'h'},
+           {NULL,   0,           NULL, 0}
+   };
+   while (~(c=getopt_long(argc, argv, "i:o:t:f:s:n:h", long_options, NULL))) {
 		switch (c) {
 			case 'i':
                                 covPath = optarg;
@@ -140,7 +144,7 @@ help:
 				fprintf(stderr, "         -s         segment size[default : 1024]\n");
 				fprintf(stderr, "         -t         does not allow any coverage larger than this threshold[default : 250]\n");
 				fprintf(stderr, "         -n         track name\n");
-				return 1;	
+				return c == 'h' ? 0 : 1;	
 		}		
    }
    splitCov(covPath, segmentSize, wigPath, trackName, threshold);
