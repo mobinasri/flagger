@@ -604,6 +604,7 @@ static struct option long_options[] =
                 {"dumpBin",                            no_argument,       NULL, 'B'},
                 {"accelerate",                         no_argument,       NULL, 's'},
                 {"minimumLengths",                     required_argument, NULL, 'M'},
+                {"help",                   no_argument,       NULL, 'h'},
                 {NULL,                                 0,                 NULL, 0}
         };
 
@@ -652,7 +653,7 @@ int main(int argc, char *argv[]) {
     int *minLenPerStateTemp;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt_long(argc, argv, "i:x:f:en:t:m:q:C:W:c:@:p:A:a:wkPo:v:l:D:BN:M:s", long_options, NULL))) {
+    while (~(c = getopt_long(argc, argv, "i:x:f:en:t:m:q:C:W:c:@:p:A:a:wkPo:v:l:D:BN:M:sh", long_options, NULL))) {
         switch (c) {
             case 'i':
                 inputPath = optarg;
@@ -889,7 +890,7 @@ int main(int argc, char *argv[]) {
                         "                           non-Hap short blocks into Hap blocks. Given numbers should be \n"
                         "                           related to states Err, Dup and Col respectively. \n"
                         "                           [default: '0,0,0']\n");
-                return 1;
+                return c == 'h' ? 0 : 1;
         }
     }
 

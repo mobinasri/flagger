@@ -196,7 +196,11 @@ int main(int argc, char *argv[]) {
     char *prefix;
     char *program;
     (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-    while (~(c = getopt(argc, argv, "c:p:f:s:h"))) {
+    static struct option long_options[] = {
+            {"help", no_argument, NULL, 'h'},
+            {NULL,   0,           NULL, 0}
+    };
+    while (~(c = getopt_long(argc, argv, "c:p:f:s:h", long_options, NULL))) {
         switch (c) {
             case 'c':
                 covPath = optarg;
@@ -221,7 +225,7 @@ int main(int argc, char *argv[]) {
                         "         -f         a 2-column tab-delimited file (1st: contig name, 2st: effective contig length)\n");
                 fprintf(stderr, "         -p         prefix for the output cov files\n");
                 fprintf(stderr, "         -s         window size[default : 5Mb]\n");
-                return 1;
+                return c == 'h' ? 0 : 1;
         }
     }
     fprintf(stderr, "reading contig lens\n");

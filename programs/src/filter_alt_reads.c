@@ -203,7 +203,11 @@ int main(int argc, char *argv[]){
 	double ratioThreshold = 0.3;
         char *program;
         (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-        while (~(c=getopt(argc, argv, "i:o:f:v:r:m:t:q:h"))) {
+        static struct option long_options[] = {
+                {"help", no_argument, NULL, 'h'},
+                {NULL,   0,           NULL, 0}
+        };
+        while (~(c=getopt_long(argc, argv, "i:o:f:v:r:m:t:q:h", long_options, NULL))) {
                 switch (c) {
                         case 'i':
                                 inputPath = optarg;
@@ -242,7 +246,7 @@ int main(int argc, char *argv[]){
 				fprintf(stderr, "         -m         margin creating snp clusters [Default: 1000]\n");
 				fprintf(stderr, "         -r         threshold for cluster mismatch ratio [Default: 0.3]\n");
 				fprintf(stderr, "         -q         minimum base quality for a mismatch [Default: 10]\n");
-                                return 1;
+                                return c == 'h' ? 0 : 1;
                 }
         }
 	stHash* snpTable = getSnpTable(vcfPath);

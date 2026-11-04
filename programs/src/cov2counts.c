@@ -59,7 +59,11 @@ int main(int argc, char *argv[]) {
    char* outputPath;
    char *program;
    (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-   while (~(c=getopt(argc, argv, "i:o:h"))) {
+   static struct option long_options[] = {
+           {"help", no_argument, NULL, 'h'},
+           {NULL,   0,           NULL, 0}
+   };
+   while (~(c=getopt_long(argc, argv, "i:o:h", long_options, NULL))) {
 		switch (c) {
 			case 'i':
 				inputPath = optarg; 
@@ -74,7 +78,7 @@ help:
 				fprintf(stderr, "Options:\n");	
 				fprintf(stderr, "         -i         input .cov file\n");	
 				fprintf(stderr, "         -o         output .counts file\n");
-				return 1;	
+				return c == 'h' ? 0 : 1;	
 		}		
    }
    cov2counts(inputPath, outputPath);

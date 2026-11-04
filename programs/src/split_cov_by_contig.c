@@ -91,7 +91,11 @@ int main(int argc, char *argv[]) {
    char* prefix;
    char *program;
    (program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-   while (~(c=getopt(argc, argv, "t:c:p:h"))) {
+   static struct option long_options[] = {
+           {"help", no_argument, NULL, 'h'},
+           {NULL,   0,           NULL, 0}
+   };
+   while (~(c=getopt_long(argc, argv, "t:c:p:h", long_options, NULL))) {
 		switch (c) {
 			case 'c':
                                 covPath = optarg;
@@ -106,7 +110,7 @@ help:
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -c         coverage file\n");
 				fprintf(stderr, "         -p         prefix for the output cov files\n");
-				return 1;	
+				return c == 'h' ? 0 : 1;	
 		}		
    }
    findBlocks(covPath, prefix);

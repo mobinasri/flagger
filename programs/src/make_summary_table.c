@@ -29,6 +29,7 @@ static struct option long_options[] =
                 {"threads",               required_argument, NULL, '@'},
                 {"overlapRatioThreshold", required_argument, NULL, 'v'},
                 {"labelNames",            required_argument, NULL, 'l'},
+                {"help",                   no_argument,       NULL, 'h'},
                 {NULL,                    0,                 NULL, 0}
         };
 
@@ -102,7 +103,7 @@ int main(int argc, char *argv[]) {
                         "                           (Optional) A comma-delimited string of label names (for example 'Err,Dup,Hap,Col').\n"
                         "                           It should match the number of labels in the header of the input file.[default: none]\n");
 
-                return 1;
+                return c == 'h' ? 0 : 1;
         }
     }
 
