@@ -15,8 +15,8 @@ If you only need `bam2cov` and `hmm_flagger`, you can skip building: every
 ```
 VERSION=v1.2.1    # pick a release
 ARCH=amd64        # or arm64 (x86_64 -> amd64, aarch64 -> arm64)
-wget https://github.com/mobinasri/flagger/releases/download/${VERSION}/hmm-flagger-${VERSION}-linux-${ARCH}.tar.gz
-tar -xzf hmm-flagger-${VERSION}-linux-${ARCH}.tar.gz
+wget https://github.com/mobinasri/flagger/releases/download/${VERSION}/hmm-flagger-${VERSION}-linux-${ARCH}.zip
+unzip hmm-flagger-${VERSION}-linux-${ARCH}.zip
 export PATH=${PWD}/hmm-flagger-${VERSION}-linux-${ARCH}:${PATH}
 hmm_flagger -h
 ```

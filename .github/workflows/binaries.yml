@@ -115,6 +115,9 @@ jobs:
             docker run --rm -v "$PWD":/src -v "${RUNNER_TEMP}":/t -w /src "${image}" bash /t/test_binaries.sh /src/dist
           done
 
+      # The run artifact holds the binaries themselves, so one unzip of the artifact gives them
+      # (GitHub's artifact zip does not keep the executable bit, so they need chmod +x).
+      # For releases they are zipped here with zip, which keeps the executable bit.
       - name: Package
         id: package
         env:
@@ -122,25 +125,30 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           name="hmm-flagger-${VERSION}-linux-${ARCH}"
-          mkdir -p "package/${name}"
+          mkdir -p "package/${name}" release
           cp dist/bam2cov dist/hmm_flagger LICENSE "package/${name}/"
-          tar -C package -czf "${name}.tar.gz" "${name}"
-          sha256sum "${name}.tar.gz" > "${name}.tar.gz.sha256"
+          (cd package && zip -r "../release/${name}.zip" "${name}")
+          (cd release && sha256sum "${name}.zip" > "${name}.zip.sha256")
           echo "name=${name}" >> "$GITHUB_OUTPUT"
           {
             echo "### ${name}"
             echo '```'
             file dist/bam2cov dist/hmm_flagger
-            cat "${name}.tar.gz.sha256"
+            cat "release/${name}.zip.sha256"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
           name: binaries-linux-${{ matrix.arch }}
-          path: |
-            ${{ steps.package.outputs.name }}.tar.gz
-            ${{ steps.package.outputs.name }}.tar.gz.sha256
+          path: package/${{ steps.package.outputs.name }}/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type == 'tag' || inputs.release_tag != ''
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: release/
           if-no-files-found: error
 
   release:
@@ -153,7 +161,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: binaries-linux-*
+          pattern: release-linux-*
           merge-multiple: true
           path: release
 
