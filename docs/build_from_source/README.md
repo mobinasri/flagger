@@ -21,8 +21,22 @@ export PATH=${PWD}/hmm-flagger-${VERSION}-linux-${ARCH}:${PATH}
 hmm_flagger -h
 ```
 
+For Macs with Apple Silicon (M1 and newer, macOS 11 or newer) there is also a `macos-arm64` build.
+It is not signed with an Apple Developer ID, so download it with `curl` or `wget` as below. If you
+download it with a browser, macOS will refuse to open it until you run
+`xattr -dr com.apple.quarantine hmm-flagger-${VERSION}-macos-arm64`.
+
+```
+VERSION=v1.2.1    # pick a release
+curl -fLO https://github.com/mobinasri/flagger/releases/download/${VERSION}/hmm-flagger-${VERSION}-macos-arm64.zip
+unzip hmm-flagger-${VERSION}-macos-arm64.zip
+export PATH=${PWD}/hmm-flagger-${VERSION}-macos-arm64:${PATH}
+hmm_flagger -h
+```
+
 They are built by the [binaries workflow](../../.github/workflows/binaries.yml) with
-[`misc/static_binaries/build_static_binaries.sh`](../../misc/static_binaries/build_static_binaries.sh).
+[`misc/static_binaries/build_static_binaries.sh`](../../misc/static_binaries/build_static_binaries.sh)
+(Linux) and [`misc/static_binaries/build_macos_binaries.sh`](../../misc/static_binaries/build_macos_binaries.sh) (macOS).
 The python scripts still need the setup in section 5. To build all the programs yourself, follow the
 steps below.
 

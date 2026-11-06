@@ -1,7 +1,10 @@
-# Builds statically linked bam2cov and hmm_flagger binaries for linux/amd64 and linux/arm64.
+# Builds statically linked bam2cov and hmm_flagger binaries for linux/amd64 and linux/arm64,
+# and bam2cov and hmm_flagger for macOS on Apple Silicon (macos-arm64).
 # The binaries are built in Alpine (musl libc) with htslib, zlib, bzip2, xz and the mimalloc
 # allocator (much faster than musl's malloc with many threads) linked in,
 # so they run on any Linux machine of the same architecture without installing anything.
+# macOS cannot link fully static binaries, so there htslib, liblzma and sonLib are linked in statically
+# and the binaries only use libraries that come with macOS (11 or newer).
 # - Pull requests and pushes to main build and test the binaries and keep them as workflow artifacts.
 # - Pushing a version tag (e.g. v1.2.1) also attaches them to the GitHub release for that tag
 #   (the release is created if it does not exist yet).
@@ -90,31 +93,11 @@ jobs:
       # on the runner itself and inside an old distribution (glibc 2.17) to check portability
       - name: Test the binaries
         run: |
-          cat > "${RUNNER_TEMP}/test_binaries.sh" <<'EOF'
-          set -eu
-          BIN=$(cd "$1" && pwd)
-          # the annotation JSON lists BED paths relative to programs/
-          cd programs
-          T=tests/test_files/bam2cov
-          OUT=$(mktemp -d)
-          "${BIN}/hmm_flagger" -h > /dev/null
-          "${BIN}/bam2cov" -h > /dev/null
-          "${BIN}/bam2cov" \
-            --bam ${T}/ptBlock_bam2cov_test.bam \
-            --annotationJson ${T}/ptBlock_bam2cov_test.json \
-            --output ${OUT}/test.cov \
-            --runBiasDetection --minBiasCoverage 1 --minBiasLength 1 \
-            --minAlignmentLength 0 --baselineAnnotation annot_1
-          # sha256sum instead of cmp, which some minimal images lack
-          [ "$(sha256sum < ${OUT}/test.cov)" = "$(sha256sum < ${T}/ptBlock_bam2cov_test.truth.cov)" ] ||
-            { echo "::error::bam2cov output differs from the truth file"; exit 1; }
-          echo "bam2cov output matches the truth file"
-          EOF
           echo "== ${{ matrix.runner }}"
-          bash "${RUNNER_TEMP}/test_binaries.sh" dist
+          bash misc/static_binaries/test_binaries.sh dist
           for image in ubuntu:18.04 rockylinux:8; do
             echo "== ${image}"
-            docker run --rm -v "$PWD":/src -v "${RUNNER_TEMP}":/t -w /src "${image}" bash /t/test_binaries.sh /src/dist
+            docker run --rm -v "$PWD":/src -w /src "${image}" bash misc/static_binaries/test_binaries.sh /src/dist
           done
 
       # The run artifact holds the binaries themselves, so one unzip of the artifact gives them
@@ -153,9 +136,93 @@ jobs:
           path: release/
           if-no-files-found: error
 
+  build-macos:
+    name: Build binaries (macos-arm64)
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      XZ_VERSION: "5.6.4"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+
+      - name: Choose version label
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [ -n "${RELEASE_TAG}" ]; then
+            version="${RELEASE_TAG}"
+          elif [ "${REF_TYPE}" = "tag" ]; then
+            version="${REF_NAME}"
+          else
+            version="$(git rev-parse --short HEAD)"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Build binaries
+        run: bash misc/static_binaries/build_macos_binaries.sh dist
+
+      # Only libraries that are part of macOS may be linked dynamically, the binaries must be
+      # arm64, signed, and must not need a newer macOS than MACOSX_DEPLOYMENT_TARGET
+      - name: Check the binaries
+        run: |
+          for prog in bam2cov hmm_flagger; do
+            file dist/${prog}
+            file dist/${prog} | grep -q 'arm64' || { echo "::error::${prog} is not arm64"; exit 1; }
+            otool -L dist/${prog}
+            if otool -L dist/${prog} | tail -n +2 | grep -vE '^[[:space:]]+/usr/lib/'; then
+              echo "::error::${prog} links libraries that are not part of macOS"; exit 1
+            fi
+            minos=$(otool -l dist/${prog} | awk '/minos/ {print $2; exit}')
+            echo "minos ${minos}"
+            [ "${minos}" = "${MACOSX_DEPLOYMENT_TARGET}" ] ||
+              { echo "::error::${prog} needs macOS ${minos}, expected ${MACOSX_DEPLOYMENT_TARGET}"; exit 1; }
+            codesign --verify --verbose dist/${prog}
+          done
+
+      - name: Test the binaries
+        run: bash misc/static_binaries/test_binaries.sh dist
+
+      - name: Package
+        id: package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          name="hmm-flagger-${VERSION}-macos-arm64"
+          mkdir -p "package/${name}" release
+          cp dist/bam2cov dist/hmm_flagger LICENSE "package/${name}/"
+          (cd package && zip -r "../release/${name}.zip" "${name}")
+          (cd release && shasum -a 256 "${name}.zip" > "${name}.zip.sha256")
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### ${name}"
+            echo '```'
+            file dist/bam2cov dist/hmm_flagger
+            cat "release/${name}.zip.sha256"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-macos-arm64
+          path: package/${{ steps.package.outputs.name }}/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type == 'tag' || inputs.release_tag != ''
+        with:
+          name: release-macos-arm64
+          path: release/
+          if-no-files-found: error
+
   release:
     name: Attach binaries to release
-    needs: build
+    needs: [build, build-macos]
     if: github.ref_type == 'tag' || inputs.release_tag != ''
     runs-on: ubuntu-24.04
     permissions:
@@ -163,7 +230,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: release-linux-*
+          pattern: release-*
           merge-multiple: true
           path: release
 
