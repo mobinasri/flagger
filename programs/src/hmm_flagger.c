@@ -503,7 +503,7 @@ MatrixDouble *getAlphaMatrix(char *alphaTsvPath) {
     for (int i = 0; i < alpha->dim1; i++) {
         for (int j = 0; j < alpha->dim2; j++) {
             if (1.0 < alpha->data[i][j] || alpha->data[i][j] < 0.0) {
-                fprintf(stderr, "[%s] Error: There is at least one alpha value in '%s' not between 0 and 1. \n%s\n",
+                fprintf(stderr, "[%s] Error: There is at least one alpha value not between 0 and 1. \n%s\n",
                         get_timestamp(),
                         MatrixDouble_toString(alpha)
                 );

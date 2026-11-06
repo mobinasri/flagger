@@ -1789,7 +1789,7 @@ stHash *ptBlock_get_whole_genome_blocks_per_contig(char *bam_path, stSet *contig
         stHash_insert(blocks_per_contig, copyString(ctg_name), block_list);
         total_len += ctg_len;
     }
-    fprintf("[%s] Size of the whole genome = %ld (n=%d)\n", get_timestamp(), total_len, sam_hdr->n_targets);
+    fprintf(stderr, "[%s] Size of the whole genome = %ld (n=%d)\n", get_timestamp(), total_len, sam_hdr->n_targets);
     sam_hdr_destroy(sam_hdr);
     sam_close(fp);
     return blocks_per_contig;
@@ -2301,7 +2301,7 @@ void ptBlock_write_blocks_per_contig(stHash *blockTable,
             get_string_function = get_string_cov_info_data_format_default;
         }
     } else {
-        fprintf(stderr, "[%s] Error: format %s is not valid.\n", format);
+        fprintf(stderr, "[%s] Error: format %s is not valid.\n", get_timestamp(), format);
         exit(EXIT_FAILURE);
     }
 

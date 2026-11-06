@@ -6,6 +6,26 @@ HMM-Flagger programs themselves on Linux.
 The steps are the same on amd64 (x86_64) and arm64 (aarch64) machines. You can check which one you have
 with `uname -m`.
 
+### Prebuilt binaries
+
+If you only need `bam2cov` and `hmm_flagger`, you can skip building: every
+[release](https://github.com/mobinasri/flagger/releases) has statically linked binaries for
+`linux-amd64` and `linux-arm64` that run on any Linux machine without installing htslib or anything else.
+
+```
+VERSION=v1.2.1    # pick a release
+ARCH=amd64        # or arm64 (x86_64 -> amd64, aarch64 -> arm64)
+wget https://github.com/mobinasri/flagger/releases/download/${VERSION}/hmm-flagger-${VERSION}-linux-${ARCH}.tar.gz
+tar -xzf hmm-flagger-${VERSION}-linux-${ARCH}.tar.gz
+export PATH=${PWD}/hmm-flagger-${VERSION}-linux-${ARCH}:${PATH}
+hmm_flagger -h
+```
+
+They are built by the [binaries workflow](../../.github/workflows/binaries.yml) with
+[`misc/static_binaries/build_static_binaries.sh`](../../misc/static_binaries/build_static_binaries.sh).
+The python scripts still need the setup in section 5. To build all the programs yourself, follow the
+steps below.
+
 ### 1. Install system dependencies
 
 You need a C compiler, `make`, autotools and the compression/network libraries that htslib links against.
