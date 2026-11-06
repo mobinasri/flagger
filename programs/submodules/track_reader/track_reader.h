@@ -115,4 +115,6 @@ int TrackReader_readNextTrackBed(TrackReader *trackReader);
 
 int TrackReader_readNextTrackCov(TrackReader *trackReader);
 
+int TrackReader_readNextFromMemory(TrackReader *trackReader);
+
 #endif

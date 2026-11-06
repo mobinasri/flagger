@@ -1,5 +1,6 @@
 #include "tpool.h"
 #include <pthread.h>
+#include <stdlib.h>
 
 static tpool_work_t *tpool_work_create(thread_func_t func, void *arg) {
     tpool_work_t *work;

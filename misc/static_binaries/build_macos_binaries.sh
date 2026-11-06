@@ -74,8 +74,10 @@ sed -i '' \
     -e "s|/home/apps/sonLib|${SONLIB_DIR}|g" \
     -e "s|-I /usr/local/include/htslib|-I ${HTS_DIR} -I ${HTS_DIR}/htslib|" \
     Makefile
-# Static libraries are given by path so the linker cannot pick a dylib with the same name
-LINK='-w $(STATIC_LIBS) $(INC) '"${HTS_DIR}/libhts.a ${PREFIX}/lib/liblzma.a"' -lz -lbz2 -lm -lpthread'
+# Static libraries are given by path so the linker cannot pick a dylib with the same name.
+# clang 16+ rejects passing e.g. void ptBlock_destruct(ptBlock *) where sonLib expects a
+# void (*)(void *) destructor; such calls are fine on every ABI we build for, so allow them.
+LINK='-w -Wno-error=incompatible-function-pointer-types $(STATIC_LIBS) $(INC) '"${HTS_DIR}/libhts.a ${PREFIX}/lib/liblzma.a"' -lz -lbz2 -lm -lpthread'
 for prog in ${PROGRAMS}; do
     make -j"${NCPU}" CC=clang "bin/${prog}" CCFLAGS="${LINK}"
 done

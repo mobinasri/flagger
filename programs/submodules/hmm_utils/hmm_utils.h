@@ -101,7 +101,6 @@ typedef struct ParameterEstimator {
     // multiple threads for faster runtime it is necessary
     // to keep a mutex per estimator
     pthread_mutex_t *mutexPtr;
-    bool
 } ParameterEstimator;
 
 ParameterEstimator *ParameterEstimator_construct(EmissionDist *emissionDist, int numberOfComps);
@@ -809,7 +808,7 @@ void TransitionCountData_resetCountMatrix(TransitionCountData *transitionCountDa
 /*
  * Destruct a TransitionCountData structure
  */
-TransitionCountData *TransitionCountData_destruct(TransitionCountData *transitionCountData);
+void TransitionCountData_destruct(TransitionCountData *transitionCountData);
 
 /*! @typedef
  * @abstract Structure for holding the current transition probabilities, additional attributes for

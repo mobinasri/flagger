@@ -1353,7 +1353,7 @@ MergingBlocksArgs *MergingBlocksArgs_construct(stHash *unmerged_blocks_per_conti
     return mergingBlocksArgs;
 }
 
-MergingBlocksArgs *MergingBlocksArgs_destruct(MergingBlocksArgs *mergingBlocksArgs) {
+void MergingBlocksArgs_destruct(MergingBlocksArgs *mergingBlocksArgs) {
     free(mergingBlocksArgs);
 }
 

@@ -468,7 +468,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     }
     if (blocksPerContig != NULL) {
         // free iterator
-        ptBlockItrPerContig_construct((ptBlockItrPerContig *) iterator);
+        ptBlockItrPerContig_destruct((ptBlockItrPerContig *) iterator);
         // free blocks/chunks
         stHash_destruct(blocksPerContig);
         // free header
