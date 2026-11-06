@@ -1,3 +1,8 @@
+// Absolute path of the programs directory (set by the Makefile) so tests run from any cwd
+#ifndef TEST_ROOT
+#define TEST_ROOT ""
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -255,7 +260,7 @@ bool test_CoverageInfo_getEndingAnnotationIndices() {
 
 
 int main(int argc, char *argv[]) {
-    char bed_path[200] = "tests/test_files/ptBlock/test.bed";
+    char bed_path[] = TEST_ROOT "tests/test_files/ptBlock/test.bed";
 
     bool all_tests_passed = true;
     // test 1
