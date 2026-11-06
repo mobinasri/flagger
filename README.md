@@ -5,6 +5,8 @@
 
 HMM-Flagger is a read-mapping-based tool that can detect different types of mis-assemblies in a dual or diploid genome assembly. HMM-Flagger recieves the read alignments to a genome assembly, uses Hidden Markov Model to detect anomalies in the read coverage along the assembly and finally partitions the assembly into four classes; erroneous, falsely duplicated, haploid (structurally correct) and collapsed.
 
+All programs are available in the docker image `mobinasri/flagger` (linux/amd64 and linux/arm64). If you cannot use Docker, see [Building from source](docs/build_from_source/README.md) for instructions on compiling the binaries on amd64 and arm64 systems.
+
 ## Quick Start In Three Steps (Needs a BAM and FASTA file)
 Performing these three steps took less than 15 minutes in our internal tests for a PacBio HiFi bam file with 40x coverage. The speed of step 2 is highly dependent on the speed and bandwidth of the storage disk.
 
@@ -85,7 +87,7 @@ docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.2.0 \
         --inputBam self_hom_alignment.bam \
         --inputBed ${WORKING_DIR}/hmm_flagger_outputs/final_flagger_prediction.bed \
         --outputBed final_flagger_prediction.conservative.bed \
-        --threads 8 ~{moreOptions}
+        --threads 8
 ```
 
 ### Note about coverage-biased regions
