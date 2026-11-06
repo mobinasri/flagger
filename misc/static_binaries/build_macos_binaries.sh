@@ -63,6 +63,7 @@ fi
 # Build in a copy of programs/ so the checkout is left untouched; remove any objects or binaries
 # from earlier builds in the checkout so everything is compiled here
 BUILD_DIR=$(mktemp -d)
+cd "${SRC_DIR}"
 cp -r programs "${BUILD_DIR}/"
 cd "${BUILD_DIR}/programs"
 find . -name '*.o' -delete
