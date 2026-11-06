@@ -10,10 +10,11 @@ set -eu
 
 OUT_DIR=${1:-dist}
 HTSLIB_VERSION=${HTSLIB_VERSION:-1.13}
+MIMALLOC_VERSION=${MIMALLOC_VERSION:-2.1.7}
 PROGRAMS="bam2cov hmm_flagger"
 
 apk add --no-cache build-base git wget perl bash autoconf automake \
-    zlib-dev zlib-static bzip2-dev bzip2-static xz-dev xz-static
+    zlib-dev zlib-static bzip2-dev bzip2-static xz-dev xz-static cmake linux-headers
 
 SRC_DIR=$(pwd)
 mkdir -p /home/apps
@@ -36,6 +37,20 @@ if [ ! -f /usr/local/lib/libhts.a ]; then
     cd "${SRC_DIR}"
 fi
 
+# mimalloc as a single object file linked into each program, so it replaces musl's malloc.
+# musl's malloc serializes all threads on one lock, which made the multi-threaded parsing of
+# coverage chunks in hmm_flagger minutes slower than with glibc; with mimalloc it is as fast.
+if [ ! -f /usr/local/lib/mimalloc.o ]; then
+    cd /tmp
+    wget -q https://github.com/microsoft/mimalloc/archive/refs/tags/v${MIMALLOC_VERSION}.tar.gz -O mimalloc-${MIMALLOC_VERSION}.tar.gz
+    tar -xzf mimalloc-${MIMALLOC_VERSION}.tar.gz
+    cmake -S mimalloc-${MIMALLOC_VERSION} -B mimalloc-build -DCMAKE_BUILD_TYPE=Release \
+        -DMI_BUILD_SHARED=OFF -DMI_BUILD_STATIC=OFF -DMI_BUILD_OBJECT=ON -DMI_BUILD_TESTS=OFF -DMI_OVERRIDE=ON
+    make -C mimalloc-build -j"$(nproc)"
+    cp mimalloc-build/mimalloc.o /usr/local/lib/mimalloc.o
+    cd "${SRC_DIR}"
+fi
+
 # Build in a copy of programs/ so the checkout is left untouched; remove any objects or binaries
 # from earlier builds in the checkout so everything is compiled here against musl
 BUILD_DIR=$(mktemp -d)
@@ -46,7 +61,7 @@ rm -rf bin
 mkdir -p bin
 # musl gives new threads only 128 KB of stack by default; with -z stack-size it uses 8 MB
 # (the glibc default) instead, so the multi-threaded code behaves as it does with glibc.
-STATIC_LINK='-w $(STATIC_LIBS) $(INC) -static -Wl,-z,stack-size=8388608 -lhts -lz -lbz2 -llzma -lm -lpthread'
+STATIC_LINK='/usr/local/lib/mimalloc.o -w $(STATIC_LIBS) $(INC) -static -Wl,-z,stack-size=8388608 -lhts -lz -lbz2 -llzma -lm -lpthread'
 for prog in ${PROGRAMS}; do
     make -j"$(nproc)" "bin/${prog}" CCFLAGS="${STATIC_LINK}"
 done

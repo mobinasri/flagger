@@ -1,5 +1,6 @@
 # Builds statically linked bam2cov and hmm_flagger binaries for linux/amd64 and linux/arm64.
-# The binaries are built in Alpine (musl libc) with htslib, zlib, bzip2 and xz linked in,
+# The binaries are built in Alpine (musl libc) with htslib, zlib, bzip2, xz and the mimalloc
+# allocator (much faster than musl's malloc with many threads) linked in,
 # so they run on any Linux machine of the same architecture without installing anything.
 # - Pull requests and pushes to main build and test the binaries and keep them as workflow artifacts.
 # - Pushing a version tag (e.g. v1.2.1) also attaches them to the GitHub release for that tag
@@ -35,6 +36,7 @@ concurrency:
 env:
   ALPINE_IMAGE: alpine:3.20
   HTSLIB_VERSION: "1.13"
+  MIMALLOC_VERSION: "2.1.7"
 
 jobs:
   build:
@@ -74,7 +76,7 @@ jobs:
 
       - name: Build static binaries
         run: |
-          docker run --rm -e HTSLIB_VERSION -v "$PWD":/src -w /src "${ALPINE_IMAGE}" \
+          docker run --rm -e HTSLIB_VERSION -e MIMALLOC_VERSION -v "$PWD":/src -w /src "${ALPINE_IMAGE}" \
             sh -c 'sh misc/static_binaries/build_static_binaries.sh /src/dist && chown -R '"$(id -u):$(id -g)"' /src/dist'
 
       - name: Check the binaries are static
