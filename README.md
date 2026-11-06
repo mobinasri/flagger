@@ -50,11 +50,13 @@ docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.2.0 \
 
 ```
 mkdir -p ${WORKING_DIR}/hmm_flagger_outputs
+
+# PRESET can be either "ont-r10", "ont-r9" or "hifi"
 docker run -it --rm -v${WORKING_DIR}:${WORKING_DIR} mobinasri/flagger:v1.2.0 \
         hmm_flagger \
             --input ${WORKING_DIR}/coverage_file.cov.gz \
             --outputDir ${WORKING_DIR}/hmm_flagger_outputs  \
-            --alphaTsv /home/programs/config/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv \
+            --preset ${PRESET} \
             --labelNames Err,Dup,Hap,Col \
             --threads 16
 ```
