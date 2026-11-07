@@ -3,12 +3,14 @@
 
 #include <stdbool.h>
 #include "sam.h"
-#include <regex.h>
 
-// One match per cs/MD operation. Only the whole match is used, never the sub-groups.
-// '+', '*' and '^' are escaped outside brackets so every libc (glibc, musl, macOS) reads them the same way.
-#define CS_PATTERN "(:[0-9]+)|((\\+|-)[a-z]+)|((\\*[a-z]+)+)"
-#define MD_PATTERN "([A-Z](0[A-Z])*)|([0-9]+)|(\\^[A-Z]+)"
+// cs and MD tags are split into operations by ptCigarIt_find_cs_token() and
+// ptCigarIt_find_md_token(), which find the same tokens as these POSIX regexes
+// (leftmost-longest match, searching forward from the current offset):
+//   cs: (:[0-9]+)|([+-][a-z]+)|((\*[a-z]+)+)
+//   MD: ([A-Z](0[A-Z])*)|([0-9]+)|(\^[A-Z]+)
+// They are not matched with regcomp()/regexec() because the macOS regex library
+// rejected or mis-matched valid tags (e.g. "regcomp() failed, returning nonzero (11)").
 
 typedef struct {
         // the constant attributes
@@ -23,12 +25,10 @@ typedef struct {
         bool use_cs;
         char* cs;
         int offset_cs;
-        const regex_t *preg_cs; // shared, compiled once
 	// md tag attributes
 	bool use_md;
 	char* md;
 	int offset_md;
-	const regex_t *preg_md; // shared, compiled once
 	// private attributes
 	// This is used to sync the iteration over mis/matches in CIGAR and MD (or CS) tag
 	int match_remain;
@@ -44,6 +44,12 @@ typedef struct {
 void ptCigarIt_destruct(ptCigarIt* cigar_it);
 
 ptCigarIt* ptCigarIt_construct(bam1_t* b, bool use_cs, bool use_md);
+
+// Find the first cs (or MD) token in the string s. On success it returns true and sets
+// [*start, *end) to the token's position in s; it returns false if s has no more tokens.
+bool ptCigarIt_find_cs_token(const char* s, int* start, int* end);
+
+bool ptCigarIt_find_md_token(const char* s, int* start, int* end);
 
 int ptCigarIt_next_cs(ptCigarIt* cigar_it);
 
