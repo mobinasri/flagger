@@ -26,6 +26,7 @@ echo "bam2cov output matches the truth file"
 # ~3000 alignments (SEQ/QUAL removed) parsed by 8 threads, once using the cs tags and once
 # using the MD tags (the MD BAM has no cs tags). This exercises the cs/MD regex parsing from
 # many threads at once, which failed on macOS with "regcomp() failed, returning nonzero (11)".
+failed=0
 for tag in cs md; do
   "${BIN}/bam2cov" \
     --bam ${T}/regex_threads_test.${tag}.bam \
@@ -34,8 +35,15 @@ for tag in cs md; do
     --threads 8 \
     --output ${OUT}/regex_threads_test.${tag}.cov > ${OUT}/regex_threads_test.${tag}.log 2>&1 ||
     { cat ${OUT}/regex_threads_test.${tag}.log; echo "::error::bam2cov failed on the ${tag} test BAM"; exit 1; }
-  [ "$(sum < ${OUT}/regex_threads_test.${tag}.cov)" = "$(sum < ${T}/regex_threads_test.truth.cov)" ] ||
-    { echo "::error::bam2cov output for the ${tag} test BAM differs from the truth file"; exit 1; }
-  echo "bam2cov output for the ${tag} test BAM matches the truth file"
+  if [ "$(sum < ${OUT}/regex_threads_test.${tag}.cov)" = "$(sum < ${T}/regex_threads_test.truth.cov)" ]; then
+    echo "bam2cov output for the ${tag} test BAM matches the truth file"
+  else
+    echo "::error::bam2cov output for the ${tag} test BAM differs from the truth file"
+    # show where it differs (diff exits 1 when the files differ, which set -e must not stop on)
+    echo "lines: $(wc -l < ${OUT}/regex_threads_test.${tag}.cov) (truth: $(wc -l < ${T}/regex_threads_test.truth.cov))"
+    diff ${T}/regex_threads_test.truth.cov ${OUT}/regex_threads_test.${tag}.cov | head -n 40 || true
+    failed=1
+  fi
 done
+[ "${failed}" = 0 ] || exit 1
 rm -rf "${OUT}"
