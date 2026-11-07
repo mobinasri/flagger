@@ -14,3 +14,6 @@ programs/tests/test_files/chunks_creator/tmp.bin
 programs/tests/test_files/test_bias_detector.tsv
 programs/tests/test_files/summary_table/*.tsv
 programs/tests/test_files/track_reader/test_header_*
+
+# dependencies built by misc/static_binaries/build_macos_binaries.sh
+.macos_deps/

@@ -1,3 +1,8 @@
+// Absolute path of the programs directory (set by the Makefile) so tests run from any cwd
+#ifndef TEST_ROOT
+#define TEST_ROOT ""
+#endif
+
 #include "track_reader.h"
 #include "chunk.h"
 #include "sonLib.h"
@@ -144,12 +149,12 @@ bool testCreatingChunksWithLabels(char *covPath, bool doWriteAndRead) {
     }
 
     if(doWriteAndRead){
-        ChunksCreator_writeChunksIntoBinaryFile(chunksCreator, "tests/test_files/chunks_creator/tmp.bin");
+        ChunksCreator_writeChunksIntoBinaryFile(chunksCreator, TEST_ROOT "tests/test_files/chunks_creator/tmp.bin");
 
         // free previous ChunksCreator and make an empty for parsing the saved binary file
         ChunksCreator_destruct(chunksCreator);
         chunksCreator = ChunksCreator_constructEmpty();
-        ChunksCreator_parseChunksFromBinaryFile(chunksCreator, "tests/test_files/chunks_creator/tmp.bin");
+        ChunksCreator_parseChunksFromBinaryFile(chunksCreator, TEST_ROOT "tests/test_files/chunks_creator/tmp.bin");
     }
 
 
@@ -235,25 +240,25 @@ int main(int argc, char *argv[]) {
     bool allTestsPassed = true;
 
     // test 1
-    bool test1Passed = testCreatingChunks("tests/test_files/chunks_creator/test_1.cov");
+    bool test1Passed = testCreatingChunks(TEST_ROOT "tests/test_files/chunks_creator/test_1.cov");
     printf("[chunks_creator] Test creating chunks from uncompressed file:");
     printf(test1Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test1Passed;
 
     // test 2
-    bool test2Passed = testCreatingChunks("tests/test_files/chunks_creator/test_1.cov.gz");
+    bool test2Passed = testCreatingChunks(TEST_ROOT "tests/test_files/chunks_creator/test_1.cov.gz");
     printf("[chunks_creator] Test creating chunks from compressed file:");
     printf(test2Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test2Passed;
 
     // test 3
-    bool test3Passed = testCreatingChunksWithLabels("tests/test_files/chunks_creator/test_1_with_labels.cov", false);
+    bool test3Passed = testCreatingChunksWithLabels(TEST_ROOT "tests/test_files/chunks_creator/test_1_with_labels.cov", false);
     printf("[chunks_creator] Test creating chunks from uncompressed file with labels:");
     printf(test3Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test3Passed;
 
     // test 3
-    bool test4Passed = testCreatingChunksWithLabels("tests/test_files/chunks_creator/test_1_with_labels.cov", true);
+    bool test4Passed = testCreatingChunksWithLabels(TEST_ROOT "tests/test_files/chunks_creator/test_1_with_labels.cov", true);
     printf("[chunks_creator] Test creating chunks from uncompressed file with labels (also checked writing and reading):");
     printf(test4Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test4Passed;

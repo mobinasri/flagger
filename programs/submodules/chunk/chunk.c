@@ -1023,9 +1023,9 @@ void ChunksCreator_writePredictionIntoFinalBED(ChunksCreator *chunksCreator, cha
         if (coverageInfo->data == NULL) {
             fprintf(stderr, "[%s] Warning: inference data %s:%d-%d does not exist for writing final bed.\n",
                     get_timestamp(),
+                    ctg,
                     start,
-                    end,
-                    ctg);
+                    end);
         }else {
             Inference *inference = coverageInfo->data;
             if (inference->prediction != -1) {

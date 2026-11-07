@@ -5,9 +5,10 @@
 #include "sam.h"
 #include <regex.h>
 
-#define CS_PATTERN "(:([0-9]+))|(([+-])([a-z]+)|([\\*]([a-z]+))+)"
-//#define MD_PATTERN "(([A-Z]){0,1}(0([A-Z]+))*)|([0-9]+)|(\\^([A-Z]+))|([A-Z])"
-#define MD_PATTERN "(([A-Z])([0][A-Z])*)|([0-9]+)|([\\^]([A-Z]+))"
+// One match per cs/MD operation. Only the whole match is used, never the sub-groups.
+// '+', '*' and '^' are escaped outside brackets so every libc (glibc, musl, macOS) reads them the same way.
+#define CS_PATTERN "(:[0-9]+)|((\\+|-)[a-z]+)|((\\*[a-z]+)+)"
+#define MD_PATTERN "([A-Z](0[A-Z])*)|([0-9]+)|(\\^[A-Z]+)"
 
 typedef struct {
         // the constant attributes
@@ -22,12 +23,12 @@ typedef struct {
         bool use_cs;
         char* cs;
         int offset_cs;
-        regex_t preg_cs;
+        const regex_t *preg_cs; // shared, compiled once
 	// md tag attributes
 	bool use_md;
 	char* md;
 	int offset_md;
-	regex_t preg_md;
+	const regex_t *preg_md; // shared, compiled once
 	// private attributes
 	// This is used to sync the iteration over mis/matches in CIGAR and MD (or CS) tag
 	int match_remain;

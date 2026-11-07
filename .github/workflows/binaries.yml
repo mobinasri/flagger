@@ -1,0 +1,247 @@
+# Builds statically linked bam2cov and hmm_flagger binaries for linux/amd64 and linux/arm64,
+# and bam2cov and hmm_flagger for macOS on Apple Silicon (macos-arm64).
+# The binaries are built in Alpine (musl libc) with htslib, zlib, bzip2, xz and the mimalloc
+# allocator (much faster than musl's malloc with many threads) linked in,
+# so they run on any Linux machine of the same architecture without installing anything.
+# macOS cannot link fully static binaries, so there htslib, liblzma and sonLib are linked in statically
+# and the binaries only use libraries that come with macOS (11 or newer).
+# - Pull requests and pushes to main build and test the binaries and keep them as workflow artifacts.
+# - Pushing a version tag (e.g. v1.2.1) also attaches them to the GitHub release for that tag
+#   (the release is created if it does not exist yet).
+# - Actions -> binaries -> Run workflow builds them by hand; give a tag to build that tag and attach
+#   the binaries to its release (the tag must include misc/static_binaries).
+name: binaries
+
+on:
+  pull_request:
+    paths:
+      - "programs/**"
+      - "misc/static_binaries/**"
+      - ".github/workflows/binaries.yml"
+  push:
+    branches: [main]
+    paths:
+      - "programs/**"
+      - "misc/static_binaries/**"
+      - ".github/workflows/binaries.yml"
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing tag to attach the binaries to, e.g. v1.2.1. Empty = only keep them as workflow artifacts"
+        type: string
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ALPINE_IMAGE: alpine:3.20
+  HTSLIB_VERSION: "1.13"
+  MIMALLOC_VERSION: "2.1.7"
+
+jobs:
+  build:
+    name: Build binaries (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      # A manual run with release_tag builds that tag, so the binaries match the release
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+
+      # Tag name for tag pushes and manual release runs, otherwise the short commit
+      - name: Choose version label
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [ -n "${RELEASE_TAG}" ]; then
+            version="${RELEASE_TAG}"
+          elif [ "${REF_TYPE}" = "tag" ]; then
+            version="${REF_NAME}"
+          else
+            version="$(git rev-parse --short HEAD)"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Build static binaries
+        run: |
+          docker run --rm -e HTSLIB_VERSION -e MIMALLOC_VERSION -v "$PWD":/src -w /src "${ALPINE_IMAGE}" \
+            sh -c 'sh misc/static_binaries/build_static_binaries.sh /src/dist && chown -R '"$(id -u):$(id -g)"' /src/dist'
+
+      - name: Check the binaries are static
+        run: |
+          for prog in bam2cov hmm_flagger; do
+            file dist/${prog}
+            file dist/${prog} | grep -q 'statically linked' || { echo "::error::${prog} is not statically linked"; exit 1; }
+          done
+
+      # Runs bam2cov on a test BAM from programs/tests and compares with the expected output,
+      # on the runner itself and inside an old distribution (glibc 2.17) to check portability
+      - name: Test the binaries
+        run: |
+          echo "== ${{ matrix.runner }}"
+          bash misc/static_binaries/test_binaries.sh dist
+          for image in ubuntu:18.04 rockylinux:8; do
+            echo "== ${image}"
+            docker run --rm -v "$PWD":/src -w /src "${image}" bash misc/static_binaries/test_binaries.sh /src/dist
+          done
+
+      # The run artifact holds the binaries themselves, so one unzip of the artifact gives them
+      # (GitHub's artifact zip does not keep the executable bit, so they need chmod +x).
+      # For releases they are zipped here with zip, which keeps the executable bit.
+      - name: Package
+        id: package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          name="hmm-flagger-${VERSION}-linux-${ARCH}"
+          mkdir -p "package/${name}" release
+          cp dist/bam2cov dist/hmm_flagger LICENSE "package/${name}/"
+          (cd package && zip -r "../release/${name}.zip" "${name}")
+          (cd release && sha256sum "${name}.zip" > "${name}.zip.sha256")
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### ${name}"
+            echo '```'
+            file dist/bam2cov dist/hmm_flagger
+            cat "release/${name}.zip.sha256"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-linux-${{ matrix.arch }}
+          path: package/${{ steps.package.outputs.name }}/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type == 'tag' || inputs.release_tag != ''
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: release/
+          if-no-files-found: error
+
+  build-macos:
+    name: Build binaries (macos-arm64)
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      XZ_VERSION: "5.6.4"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+
+      - name: Choose version label
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [ -n "${RELEASE_TAG}" ]; then
+            version="${RELEASE_TAG}"
+          elif [ "${REF_TYPE}" = "tag" ]; then
+            version="${REF_NAME}"
+          else
+            version="$(git rev-parse --short HEAD)"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Build binaries
+        run: bash misc/static_binaries/build_macos_binaries.sh dist
+
+      # Only libraries that are part of macOS may be linked dynamically, the binaries must be
+      # arm64, signed, and must not need a newer macOS than MACOSX_DEPLOYMENT_TARGET
+      - name: Check the binaries
+        run: |
+          for prog in bam2cov hmm_flagger; do
+            file dist/${prog}
+            file dist/${prog} | grep -q 'arm64' || { echo "::error::${prog} is not arm64"; exit 1; }
+            otool -L dist/${prog}
+            if otool -L dist/${prog} | tail -n +2 | grep -vE '^[[:space:]]+/usr/lib/'; then
+              echo "::error::${prog} links libraries that are not part of macOS"; exit 1
+            fi
+            minos=$(otool -l dist/${prog} | awk '/minos/ {print $2; exit}')
+            echo "minos ${minos}"
+            [ "${minos}" = "${MACOSX_DEPLOYMENT_TARGET}" ] ||
+              { echo "::error::${prog} needs macOS ${minos}, expected ${MACOSX_DEPLOYMENT_TARGET}"; exit 1; }
+            codesign --verify --verbose dist/${prog}
+          done
+
+      - name: Test the binaries
+        run: bash misc/static_binaries/test_binaries.sh dist
+
+      - name: Package
+        id: package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          name="hmm-flagger-${VERSION}-macos-arm64"
+          mkdir -p "package/${name}" release
+          cp dist/bam2cov dist/hmm_flagger LICENSE "package/${name}/"
+          (cd package && zip -r "../release/${name}.zip" "${name}")
+          (cd release && shasum -a 256 "${name}.zip" > "${name}.zip.sha256")
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### ${name}"
+            echo '```'
+            file dist/bam2cov dist/hmm_flagger
+            cat "release/${name}.zip.sha256"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-macos-arm64
+          path: package/${{ steps.package.outputs.name }}/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type == 'tag' || inputs.release_tag != ''
+        with:
+          name: release-macos-arm64
+          path: release/
+          if-no-files-found: error
+
+  release:
+    name: Attach binaries to release
+    needs: [build, build-macos]
+    if: github.ref_type == 'tag' || inputs.release_tag != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag || github.ref_name }}
+        run: |
+          ls -l release
+          if ! gh release view "${TAG}" > /dev/null 2>&1; then
+            gh release create "${TAG}" --verify-tag --title "${TAG}" --generate-notes
+          fi
+          gh release upload "${TAG}" release/* --clobber

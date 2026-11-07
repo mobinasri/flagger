@@ -6,6 +6,9 @@
 #include "common.h"
 #include "block_it.h"
 
+int readNextBlockBed(FILE* fileReader, Block_t* block);
+int readNextBlockCov(FILE* fileReader, Block_t* block);
+
 
 Block_t* Block_construct(Format_t format){
 	Block_t* b = malloc(sizeof(Block_t));
@@ -14,6 +17,7 @@ Block_t* Block_construct(Format_t format){
 	b->s=-1; b->e=-1;
 	b->attrbs = NULL;
 	b->attrbsLen = 0;
+	return b;
 }
 
 void Block_destruct(Block_t* block){

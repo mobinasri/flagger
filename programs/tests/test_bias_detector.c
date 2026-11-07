@@ -1,8 +1,14 @@
+// Absolute path of the programs directory (set by the Makefile) so tests run from any cwd
+#ifndef TEST_ROOT
+#define TEST_ROOT ""
+#endif
+
 #include "bias_detector.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 #include "ptBlock.h"
 #include "sonLib.h"
 
@@ -51,7 +57,7 @@ bool test_BiasDetector_getAnnotationToRegionMap(char *bamPath, char *jsonPath) {
     stList_append(annotationNamesToCheck, copyString("annot_4"));
     stList_append(annotationNamesToCheck, copyString("annot_5"));
 
-    const char *tsvPathToWriteTable = "tests/test_files/test_bias_detector.tsv";
+    const char *tsvPathToWriteTable = TEST_ROOT "tests/test_files/test_bias_detector.tsv";
     BiasDetector_runBiasDetection(biasDetector, annotationNamesToCheck, tsvPathToWriteTable);
     int *annotationToRegionMap = biasDetector->annotationToRegionMap;
     int *coveragePerRegion = biasDetector->coveragePerRegion;
@@ -82,8 +88,13 @@ bool test_BiasDetector_getAnnotationToRegionMap(char *bamPath, char *jsonPath) {
 
 
 int main(int argc, char *argv[]) {
-    char bamPath[1000] = "tests/test_files/bias_detector/test.bam";
-    char jsonPath[1000] = "tests/test_files/bias_detector/test.json";
+    // The BED paths inside test.json are relative to the programs directory, so run from there
+    if (TEST_ROOT[0] != '\0' && chdir(TEST_ROOT) != 0) {
+        fprintf(stderr, "[bias_detector] Cannot change directory to %s\n", TEST_ROOT);
+        return 1;
+    }
+    char bamPath[] = TEST_ROOT "tests/test_files/bias_detector/test.bam";
+    char jsonPath[] = TEST_ROOT "tests/test_files/bias_detector/test.json";
 
     bool allTestsPassed = true;
 
