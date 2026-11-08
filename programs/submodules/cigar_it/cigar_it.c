@@ -1,56 +1,27 @@
 #include "sam.h"
 #include "cigar_it.h"
 #include "common.h"
+#include <regex.h>
 #include <getopt.h>
+#include <pthread.h>
 
-static inline bool is_digit(char c) { return '0' <= c && c <= '9'; }
-static inline bool is_lower(char c) { return 'a' <= c && c <= 'z'; }
-static inline bool is_upper(char c) { return 'A' <= c && c <= 'Z'; }
+// The cs and MD patterns are compiled once and shared by all iterators and threads.
+// regexec() on a compiled pattern is thread-safe, while calling regcomp() for every
+// alignment from many threads at once fails on macOS ("regcomp() failed ... (11)").
+static regex_t preg_cs_shared;
+static regex_t preg_md_shared;
+static pthread_once_t preg_once = PTHREAD_ONCE_INIT;
 
-// cs token: ":<digits>" | "+<a-z>+" | "-<a-z>+" | ("*<a-z>+")+
-bool ptCigarIt_find_cs_token(const char* s, int* start, int* end){
-	for (int i = 0; s[i] != '\0'; i++) {
-		int j = i + 1;
-		if (s[i] == ':' && is_digit(s[j])) {
-			while (is_digit(s[j])) j++;
-		} else if ((s[i] == '+' || s[i] == '-') && is_lower(s[j])) {
-			while (is_lower(s[j])) j++;
-		} else if (s[i] == '*' && is_lower(s[j])) {
-			// one or more consecutive substitutions
-			while (is_lower(s[j])) j++;
-			while (s[j] == '*' && is_lower(s[j + 1])) {
-				j++;
-				while (is_lower(s[j])) j++;
-			}
-		} else {
-			continue;
-		}
-		*start = i;
-		*end = j;
-		return true;
+static void ptCigarIt_compile_patterns(void){
+	int error;
+	if ((error = regcomp(&preg_cs_shared, CS_PATTERN, REG_EXTENDED)) != 0) {
+		fprintf(stderr, "regcomp() failed for the cs pattern, returning nonzero (%d)\n", error);
+		exit(1);
 	}
-	return false;
-}
-
-// MD token: "<A-Z>" followed by any number of "0<A-Z>" | "<digits>" | "^<A-Z>+"
-bool ptCigarIt_find_md_token(const char* s, int* start, int* end){
-	for (int i = 0; s[i] != '\0'; i++) {
-		int j = i + 1;
-		if (is_upper(s[i])) {
-			// consecutive mismatches are separated by a zero
-			while (s[j] == '0' && is_upper(s[j + 1])) j += 2;
-		} else if (is_digit(s[i])) {
-			while (is_digit(s[j])) j++;
-		} else if (s[i] == '^' && is_upper(s[j])) {
-			while (is_upper(s[j])) j++;
-		} else {
-			continue;
-		}
-		*start = i;
-		*end = j;
-		return true;
+	if ((error = regcomp(&preg_md_shared, MD_PATTERN, REG_EXTENDED)) != 0) {
+		fprintf(stderr, "regcomp() failed for the MD pattern, returning nonzero (%d)\n", error);
+		exit(1);
 	}
-	return false;
 }
 
 void ptCigarIt_destruct(ptCigarIt* cigar_it){
@@ -86,17 +57,20 @@ ptCigarIt* ptCigarIt_construct(bam1_t* b, bool use_cs, bool use_md){
         }
 	cigar_it->rds_f = cigar_it->is_rev ? rclip + lclip + b->core.l_qseq : 0;
 	cigar_it->rde_f = cigar_it->is_rev ? rclip + lclip + b->core.l_qseq  - 1 : -1;
+	pthread_once(&preg_once, ptCigarIt_compile_patterns);
 	cigar_it->cs = bam_aux_get(b, "cs");
 	cigar_it->md = bam_aux_get(b, "MD");
 	if(cigar_it->cs && use_cs){
 		cigar_it->cs += 1; // skip "Z" at the beginning
 		cigar_it->use_cs = true;
 		cigar_it->offset_cs = 0;
+		cigar_it->preg_cs = &preg_cs_shared;
 	}
 	else if (cigar_it->md && use_md){
 		cigar_it->md += 1; // skip "Z" at the beginning
 		cigar_it->use_md = true;
                 cigar_it->offset_md = 0;
+		cigar_it->preg_md = &preg_md_shared;
 	}
 	else{
 		fprintf(stderr, "At least one of the MD or CS tags should be present!\n");
@@ -107,9 +81,10 @@ ptCigarIt* ptCigarIt_construct(bam1_t* b, bool use_cs, bool use_md){
 
 
 int ptCigarIt_next_md(ptCigarIt* cigar_it){
-        struct { int rm_so; int rm_eo; } pm;
+        regmatch_t pm;
         char* md_shifted = cigar_it->md + cigar_it->offset_md;
-        if (!ptCigarIt_find_md_token(md_shifted, &pm.rm_so, &pm.rm_eo)) return 0;
+        int error = regexec(cigar_it->preg_md, md_shifted, 1, &pm, REG_NOTBOL);
+        if (error != 0) return 0;
         /*int rd_step;
         int sq_step;
         int rf_step;*/
@@ -179,9 +154,10 @@ int ptCigarIt_next_md(ptCigarIt* cigar_it){
 
 
 int ptCigarIt_next_cs(ptCigarIt* cigar_it){
-        struct { int rm_so; int rm_eo; } pm;
+        regmatch_t pm;
 	char* cs_shifted = cigar_it->cs + cigar_it->offset_cs;
-	if (!ptCigarIt_find_cs_token(cs_shifted, &pm.rm_so, &pm.rm_eo)) return 0;
+	int error = regexec(cigar_it->preg_cs, cs_shifted, 1, &pm, REG_NOTBOL);
+	if (error != 0) return 0;
 	/*int rd_step;
         int sq_step;
         int rf_step;*/
