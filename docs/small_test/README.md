@@ -45,14 +45,10 @@ bam2cov --bam bam_files/*.bam \
         --baselineAnnotation whole_genome \
         --threads 8
 
-# alpha matrix for the HiFi preset
-curl -fLO https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/HiFi_DC_1.2/alpha_optimum_trunc_exp_gaussian_w_16000_n_50.HiFi_DC_1.2_DEC_2024.v1.1.0.tsv
-
 mkdir -p hmm_flagger_outputs
 hmm_flagger --input coverage.cov.gz \
             --outputDir hmm_flagger_outputs \
-            --alphaTsv alpha_optimum_trunc_exp_gaussian_w_16000_n_50.HiFi_DC_1.2_DEC_2024.v1.1.0.tsv \
-            --windowLen 16000 \
+            --preset hifi \
             --labelNames Err,Dup,Hap,Col \
             --threads 8
 ```
