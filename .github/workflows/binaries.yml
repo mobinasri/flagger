@@ -185,6 +185,19 @@ jobs:
             codesign --verify --verbose dist/${prog}
           done
 
+      # Temporary: reports cs/MD tags that the macOS regex library splits differently from the
+      # expected tokens (see misc/static_binaries/regex_probe.c)
+      - name: Probe the macOS regex library
+        continue-on-error: true
+        run: |
+          H=.macos_deps/htslib-1.13
+          clang -O2 -w -o regex_probe misc/static_binaries/regex_probe.c \
+            -I programs/submodules/cigar_it -I $H -I $H/htslib \
+            $H/libhts.a .macos_deps/prefix/lib/liblzma.a -lz -lbz2 -lm -lpthread
+          T=programs/tests/test_files/bam2cov
+          ./regex_probe $T/regex_threads_test.cs.bam cs
+          ./regex_probe $T/regex_threads_test.md.bam md
+
       - name: Test the binaries
         run: bash misc/static_binaries/test_binaries.sh dist
 
