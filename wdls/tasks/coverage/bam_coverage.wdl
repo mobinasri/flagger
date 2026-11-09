@@ -30,7 +30,7 @@ task bam2cov{
         Int memSize=32
         Int threadCount=8
         Int diskSize=ceil(size(bam, "GB"))  + 512
-        String dockerImage="mobinasri/flagger:v1.2.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<
@@ -146,7 +146,7 @@ task bamCoverageFast{
         Int memSize=32
         Int threadCount=16
         Int diskSize=ceil(size(bam, "GB"))  + 512
-        String dockerImage="mobinasri/flagger:v0.4.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<
@@ -217,7 +217,7 @@ task bamCoverage{
         Int memSize=16
         Int threadCount=4
         Int diskSize=ceil(size(bam, "GB"))  + 512
-        String dockerImage="mobinasri/flagger:v0.4.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<

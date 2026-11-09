@@ -17,7 +17,7 @@ task subsetCoverage {
         Int memSize=8
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.4.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<

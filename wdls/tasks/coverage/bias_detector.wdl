@@ -21,7 +21,7 @@ task biasDetector {
         Int memSize=64
         Int threadCount=16
         Int diskSize=floor(size(inputBam, "GB")) + 64
-        String dockerImage="mobinasri/flagger:v0.4.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<

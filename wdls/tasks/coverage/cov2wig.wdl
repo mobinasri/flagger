@@ -20,7 +20,7 @@ task cov2bigwig{
         Int memSize=32
         Int threadCount=8
         Int diskSize=ceil(size(coverage, "GB"))  + 64
-        String dockerImage="mobinasri/flagger:v1.2.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<
@@ -94,7 +94,7 @@ task cov2wig{
         Int memSize=4
         Int threadCount=2
         Int diskSize=256
-        String dockerImage="mobinasri/flagger:v0.4.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<

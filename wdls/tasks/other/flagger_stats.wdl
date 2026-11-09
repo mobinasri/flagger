@@ -26,7 +26,7 @@ task flaggerStats {
         Int memSize=4
         Int threadCount=4
         Int diskSize=128
-        String dockerImage="mobinasri/flagger:v0.4.0--98d66028a969211773077f005511f3d78afdc21c"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<

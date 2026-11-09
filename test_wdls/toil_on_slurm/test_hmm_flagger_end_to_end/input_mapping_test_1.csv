@@ -28,5 +28,5 @@ HMMFlaggerEndToEnd.maxHighMapqRatio,scalar,0.25
 HMMFlaggerEndToEnd.minHighMapqRatio,scalar,0.75
 HMMFlaggerEndToEnd.flaggerMemSize,scalar,32
 HMMFlaggerEndToEnd.flaggerThreadCount,scalar,32
-HMMFlaggerEndToEnd.flaggerDockerImage,scalar,mobinasri/flagger:v1.2.0
+HMMFlaggerEndToEnd.flaggerDockerImage,scalar,mobinasri/flagger:v1.2.1
 HMMFlaggerEndToEnd.enableOutputtingBigWig,scalar,true

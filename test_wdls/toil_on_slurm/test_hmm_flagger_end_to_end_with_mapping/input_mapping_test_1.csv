@@ -24,7 +24,7 @@ HMMFlaggerEndToEndWithMapping.biasAnnotationsBedArray,array,$input.bias_annotati
 HMMFlaggerEndToEndWithMapping.minReadLengthForMapping,scalar,0
 HMMFlaggerEndToEndWithMapping.alignerThreadCount,scalar,32
 HMMFlaggerEndToEndWithMapping.alignerMemSize,scalar,48
-HMMFlaggerEndToEndWithMapping.alignerDockerImage,scalar,mobinasri/long_read_aligner:v1.1.0
+HMMFlaggerEndToEndWithMapping.alignerDockerImage,scalar,mobinasri/long_read_aligner:v1.2.1
 HMMFlaggerEndToEndWithMapping.secphaseOptions,scalar,--ont
 HMMFlaggerEndToEndWithMapping.secphaseDockerImage,scalar,mobinasri/secphase:v0.4.4
 HMMFlaggerEndToEndWithMapping.secphaseVersion,scalar,v0.4.4
@@ -38,6 +38,6 @@ HMMFlaggerEndToEndWithMapping.minHighMapqRatio,scalar,0.75
 HMMFlaggerEndToEndWithMapping.chunkLen,scalar,20000000
 HMMFlaggerEndToEndWithMapping.flaggerMemSize,scalar,32
 HMMFlaggerEndToEndWithMapping.flaggerThreadCount,scalar,32
-HMMFlaggerEndToEndWithMapping.flaggerDockerImage,scalar,mobinasri/flagger:v1.2.0
+HMMFlaggerEndToEndWithMapping.flaggerDockerImage,scalar,mobinasri/flagger:v1.2.1
 HMMFlaggerEndToEndWithMapping.enableOutputtingBigWig,scalar,true
 HMMFlaggerEndToEndWithMapping.enableOutputtingBam,scalar,false

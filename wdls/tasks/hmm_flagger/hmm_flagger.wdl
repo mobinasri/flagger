@@ -33,7 +33,7 @@ task hmmFlagger{
         Int memSize=32
         Int threadCount=8
         Int diskSize=ceil(size(coverage, "GB")) + 64
-        String dockerImage="mobinasri/flagger:v1.2.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<
@@ -134,7 +134,7 @@ task filterHmmFlaggerCalls{
         Int memSize=32
         Int threadCount=8
         Int diskSize=32
-        String dockerImage="mobinasri/flagger:v1.2.0"
+        String dockerImage="mobinasri/flagger:v1.2.1"
         Int preemptible=2
     }
     command <<<
