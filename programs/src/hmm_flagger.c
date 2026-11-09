@@ -18,7 +18,7 @@
 // https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/HiFi_DC_1.2/alpha_optimum_trunc_exp_gaussian_w_16000_n_50.HiFi_DC_1.2_DEC_2024.v1.1.0.tsv
 // window size = 16000
 // model type = trunc_exp_gaussian
-int ALPHA_ARRAY_HIFI[4][4] = {
+double ALPHA_ARRAY_HIFI[4][4] = {
 	{0.753, 0.000, 0.236, 0.000},
 	{0.000, 0.464, 0.440, 0.000},
 	{0.527, 0.162, 0.010, 0.218},
@@ -33,7 +33,7 @@ ModelType MODEL_TYPE_HIFI = MODEL_TRUNC_EXP_GAUSSIAN;
 // https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/ONT_R941_Guppy6.3.7/alpha_optimum_trunc_exp_gaussian_w_16000_n_50.ONT_R941_Guppy6.3.7_DEC_2024.v1.1.0.tsv
 // window size = 16000
 // model type = trunc_exp_gaussian
-int ALPHA_ARRAY_R9[4][4] = {
+double ALPHA_ARRAY_R9[4][4] = {
 	{0.000, 0.000, 0.383, 0.000},
 	{0.000, 0.800, 0.000, 0.000},
 	{0.800, 0.000, 0.584, 0.000},
@@ -47,7 +47,7 @@ ModelType MODEL_TYPE_R9 = MODEL_TRUNC_EXP_GAUSSIAN;
 // https://raw.githubusercontent.com/mobinasri/flagger/refs/heads/main/misc/alpha_tsv/ONT_R1041_Dorado/alpha_optimum_trunc_exp_gaussian_w_8000_n_50.ONT_R1041_Dorado_DEC_2024.v1.1.0.tsv
 // window size = 8000
 // model type = trunc_exp_gaussian
-int ALPHA_ARRAY_R10[4][4] = {
+double ALPHA_ARRAY_R10[4][4] = {
 	{0.684, 0.000, 0.478, 0.000},
 	{0.000, 0.800, 0.017, 0.000},
 	{0.006, 0.000, 0.722, 0.081},
@@ -503,7 +503,7 @@ MatrixDouble *getAlphaMatrix(char *alphaTsvPath) {
     for (int i = 0; i < alpha->dim1; i++) {
         for (int j = 0; j < alpha->dim2; j++) {
             if (1.0 < alpha->data[i][j] || alpha->data[i][j] < 0.0) {
-                fprintf(stderr, "[%s] Error: There is at least one alpha value in '%s' not between 0 and 1. \n%s\n",
+                fprintf(stderr, "[%s] Error: There is at least one alpha value not between 0 and 1. \n%s\n",
                         get_timestamp(),
                         MatrixDouble_toString(alpha)
                 );

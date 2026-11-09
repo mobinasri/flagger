@@ -1,4 +1,9 @@
 
+// Absolute path of the programs directory (set by the Makefile) so tests run from any cwd
+#ifndef TEST_ROOT
+#define TEST_ROOT ""
+#endif
+
 #include "chunk.h"
 #include "ptBlock.h"
 #include <stdio.h>
@@ -137,7 +142,7 @@ int main(int argc, char *argv[]) {
     bool allTestsPassed = true;
 
     // test 1
-    bool test1Passed = testChunkIterator("tests/test_files/chunk_iterator/test_1_with_labels.cov");
+    bool test1Passed = testChunkIterator(TEST_ROOT "tests/test_files/chunk_iterator/test_1_with_labels.cov");
     printf("[chunk_iterator] Test iterating over chunks with ChunkIterator:");
     printf(test1Passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     allTestsPassed &= test1Passed;

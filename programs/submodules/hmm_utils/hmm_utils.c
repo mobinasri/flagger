@@ -186,6 +186,8 @@ ParameterBinding_getDefault1DArrayForModel(ModelType modelType, int numberOfColl
     } else if (modelType == MODEL_NEGATIVE_BINOMIAL) {
         return ParameterBinding_getDefault1DArrayForNegativeBinomial(numberOfCollapsedComps, excludeMisjoin);
     }
+    fprintf(stderr, "[%s] Error: %s: unknown type.\n", get_timestamp(), __func__);
+    exit(EXIT_FAILURE);
 }
 
 ParameterBinding **ParameterBinding_getDefault1DArrayForGaussian(int numberOfCollapsedComps, bool excludeMisjoin) {
@@ -523,6 +525,8 @@ ParameterEstimator *NegativeBinomial_getEstimator(NegativeBinomial *nb, Negative
     } else if (parameterType == NB_WEIGHT) {
         return nb->weightsEstimator;
     }
+    fprintf(stderr, "[%s] Error: %s: unknown type.\n", get_timestamp(), __func__);
+    exit(EXIT_FAILURE);
 }
 
 
@@ -800,6 +804,8 @@ ParameterEstimator *Gaussian_getEstimator(Gaussian *gaussian, GaussianParameterT
     } else if (parameterType == GAUSSIAN_WEIGHT) {
         return gaussian->weightsEstimator;
     }
+    fprintf(stderr, "[%s] Error: %s: unknown type.\n", get_timestamp(), __func__);
+    exit(EXIT_FAILURE);
 }
 
 void Gaussian_updateEstimatorFromOtherEstimator(Gaussian *dest,
@@ -1016,6 +1022,8 @@ TruncExponential_getEstimator(TruncExponential *truncExponential, TruncatedExpon
     if (parameterType == TRUNC_EXP_LAMBDA) {
         return truncExponential->lambdaEstimator;
     }
+    fprintf(stderr, "[%s] Error: %s: unknown type.\n", get_timestamp(), __func__);
+    exit(EXIT_FAILURE);
 }
 
 
@@ -1349,6 +1357,8 @@ int EmissionDist_getNumberOfComps(EmissionDist *emissionDist) {
         NegativeBinomial *nb = (NegativeBinomial *) emissionDist->dist;
         return nb->numberOfComps;
     }
+    fprintf(stderr, "[%s] Error: %s: unknown type.\n", get_timestamp(), __func__);
+    exit(EXIT_FAILURE);
 }
 
 ParameterEstimator *EmissionDist_getEstimator(EmissionDist *emissionDist, void *parameterTypePtr) {
@@ -1414,6 +1424,8 @@ double EmissionDist_getProb(EmissionDist *emissionDist, uint8_t x, uint8_t preX,
     } else if (emissionDist->distType == DIST_NEGATIVE_BINOMIAL) {
         return NegativeBinomial_getProb((NegativeBinomial *) emissionDist->dist, x);
     }
+    fprintf(stderr, "[%s] Error: %s: unknown type.\n", get_timestamp(), __func__);
+    exit(EXIT_FAILURE);
 }
 
 void EmissionDist_updateEstimatorFromOtherEstimator(EmissionDist *dest, EmissionDist *src) {
@@ -2030,7 +2042,7 @@ void TransitionCountData_setPseudoCountMatrix(TransitionCountData *transitionCou
     MatrixDouble_setValue(transitionCountData->pseudoCountMatrix, value);
 }
 
-TransitionCountData *TransitionCountData_destruct(TransitionCountData *transitionCountData) {
+void TransitionCountData_destruct(TransitionCountData *transitionCountData) {
     free(transitionCountData->countMatrix);
     free(transitionCountData->pseudoCountMatrix);
     free(transitionCountData->mutexPtr);

@@ -1,5 +1,6 @@
 #include "tpool.h"
 #include <pthread.h>
+#include <stdlib.h>
 
 static tpool_work_t *tpool_work_create(thread_func_t func, void *arg) {
     tpool_work_t *work;
@@ -96,10 +97,16 @@ tpool_t *tpool_create(size_t num) {
     tm->work_first = NULL;
     tm->work_last  = NULL;
 
+    // Give each worker 8 MB of stack (the glibc default) on every platform;
+    // musl gives new threads 128 KB and macOS 512 KB by default
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
     for (i = 0; i < num; i++) {
-        pthread_create(&thread, NULL, tpool_worker, tm);
+        pthread_create(&thread, &attr, tpool_worker, tm);
         pthread_detach(thread);
     }
+    pthread_attr_destroy(&attr);
 
     return tm;
 }

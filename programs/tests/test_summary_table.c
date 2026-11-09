@@ -1,3 +1,8 @@
+// Absolute path of the programs directory (set by the Makefile) so tests run from any cwd
+#ifndef TEST_ROOT
+#define TEST_ROOT ""
+#endif
+
 #include "common.h"
 #include "summary_table.h"
 #include "ptBlock.h"
@@ -463,7 +468,7 @@ int test_ptBlock_updateSummaryTableListWithIterator(const char *covPath, const c
     }
     if (blocksPerContig != NULL) {
         // free iterator
-        ptBlockItrPerContig_construct((ptBlockItrPerContig *) iterator);
+        ptBlockItrPerContig_destruct((ptBlockItrPerContig *) iterator);
         // free blocks/chunks
         stHash_destruct(blocksPerContig);
         // free header
@@ -511,8 +516,8 @@ int main(int argc, char *argv[]) {
 
 
     // test 5
-    bool test5Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
-                                                                       "tests/test_files/summary_table/test_1_bin_array.txt",
+    bool test5Passed = test_ptBlock_updateSummaryTableListWithIterator(TEST_ROOT "tests/test_files/summary_table/test_1.cov",
+                                                                       TEST_ROOT "tests/test_files/summary_table/test_1_bin_array.txt",
                                                                        true,
                                                                        false);
     printf("[summary_table] Test updating SummaryTableList with ChunkIterator:");
@@ -520,8 +525,8 @@ int main(int argc, char *argv[]) {
     allTestsPassed &= test5Passed;
 
     // test 6
-    bool test6Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
-                                                                       "tests/test_files/summary_table/test_1_bin_array.txt",
+    bool test6Passed = test_ptBlock_updateSummaryTableListWithIterator(TEST_ROOT "tests/test_files/summary_table/test_1.cov",
+                                                                       TEST_ROOT "tests/test_files/summary_table/test_1_bin_array.txt",
                                                                        false,
                                                                        false);
     printf("[summary_table] Test updating SummaryTableList with ptBlockItrPerContig:");
@@ -529,8 +534,8 @@ int main(int argc, char *argv[]) {
     allTestsPassed &= test6Passed;
 
     // test 7
-    bool test7Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
-                                                                       "tests/test_files/summary_table/test_1_bin_array.txt",
+    bool test7Passed = test_ptBlock_updateSummaryTableListWithIterator(TEST_ROOT "tests/test_files/summary_table/test_1.cov",
+                                                                       TEST_ROOT "tests/test_files/summary_table/test_1_bin_array.txt",
                                                                        true,
                                                                        true);
     printf("[summary_table] Test updating SummaryTableList with ChunkIterator (overlap-based):");
@@ -538,8 +543,8 @@ int main(int argc, char *argv[]) {
     allTestsPassed &= test7Passed;
 
     // test 8
-    bool test8Passed = test_ptBlock_updateSummaryTableListWithIterator("tests/test_files/summary_table/test_1.cov",
-                                                                       "tests/test_files/summary_table/test_1_bin_array.txt",
+    bool test8Passed = test_ptBlock_updateSummaryTableListWithIterator(TEST_ROOT "tests/test_files/summary_table/test_1.cov",
+                                                                       TEST_ROOT "tests/test_files/summary_table/test_1_bin_array.txt",
                                                                        false,
                                                                        true);
     printf("[summary_table] Test updating SummaryTableList with ptBlockItrPerContig (overlap-based):");

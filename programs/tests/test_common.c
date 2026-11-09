@@ -1,3 +1,8 @@
+// Absolute path of the programs directory (set by the Makefile) so tests run from any cwd
+#ifndef TEST_ROOT
+#define TEST_ROOT ""
+#endif
+
 #include "common.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -179,9 +184,9 @@ bool test_Double_getString2DArray() {
 
 
 int main(int argc, char *argv[]) {
-    char test1Path[1000] = "tests/test_files/common/test_common_1.txt";
-    char test2Path[1000] = "tests/test_files/common/test_common_bin_array.txt";
-    char test3Path[1000] = "tests/test_files/common/test_common_bin_array_2.txt";
+    char test1Path[] = TEST_ROOT "tests/test_files/common/test_common_1.txt";
+    char test2Path[] = TEST_ROOT "tests/test_files/common/test_common_bin_array.txt";
+    char test3Path[] = TEST_ROOT "tests/test_files/common/test_common_bin_array_2.txt";
 
     bool allTestsPassed = true;
 

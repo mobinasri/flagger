@@ -3,11 +3,38 @@
 #include "common.h"
 #include <regex.h>
 #include <getopt.h>
+#include <pthread.h>
 
+// The cs and MD patterns are compiled once and shared by all iterators and threads.
+// Calling regcomp() for every alignment from many threads at once fails on macOS
+// ("regcomp() failed ... (11)"), and regexec() on a shared pattern from many threads at
+// once returns wrong matches there (e.g. ":66" instead of ":665"), so on macOS regexec()
+// calls are serialized with regex_lock. glibc and musl need no lock.
+static regex_t preg_cs_shared;
+static regex_t preg_md_shared;
+static pthread_once_t preg_once = PTHREAD_ONCE_INIT;
+#ifdef __APPLE__
+static pthread_mutex_t regex_lock = PTHREAD_MUTEX_INITIALIZER;
+#define REGEX_LOCK()   pthread_mutex_lock(&regex_lock)
+#define REGEX_UNLOCK() pthread_mutex_unlock(&regex_lock)
+#else
+#define REGEX_LOCK()
+#define REGEX_UNLOCK()
+#endif
+
+static void ptCigarIt_compile_patterns(void){
+	int error;
+	if ((error = regcomp(&preg_cs_shared, CS_PATTERN, REG_EXTENDED)) != 0) {
+		fprintf(stderr, "regcomp() failed for the cs pattern, returning nonzero (%d)\n", error);
+		exit(1);
+	}
+	if ((error = regcomp(&preg_md_shared, MD_PATTERN, REG_EXTENDED)) != 0) {
+		fprintf(stderr, "regcomp() failed for the MD pattern, returning nonzero (%d)\n", error);
+		exit(1);
+	}
+}
 
 void ptCigarIt_destruct(ptCigarIt* cigar_it){
-	if(cigar_it->use_cs) regfree(&cigar_it->preg_cs);
-	if(cigar_it->use_md) regfree(&cigar_it->preg_md);
 	free(cigar_it);
 }
 
@@ -40,26 +67,20 @@ ptCigarIt* ptCigarIt_construct(bam1_t* b, bool use_cs, bool use_md){
         }
 	cigar_it->rds_f = cigar_it->is_rev ? rclip + lclip + b->core.l_qseq : 0;
 	cigar_it->rde_f = cigar_it->is_rev ? rclip + lclip + b->core.l_qseq  - 1 : -1;
-	int error;
+	pthread_once(&preg_once, ptCigarIt_compile_patterns);
 	cigar_it->cs = bam_aux_get(b, "cs");
 	cigar_it->md = bam_aux_get(b, "MD");
 	if(cigar_it->cs && use_cs){
 		cigar_it->cs += 1; // skip "Z" at the beginning
 		cigar_it->use_cs = true;
 		cigar_it->offset_cs = 0;
-		if ((error = regcomp(&cigar_it->preg_cs, CS_PATTERN, REG_EXTENDED)) != 0) {
-                        printf("regcomp() failed, returning nonzero (%d)\n", error);
-                        exit(1);
-                }
+		cigar_it->preg_cs = &preg_cs_shared;
 	}
 	else if (cigar_it->md && use_md){
 		cigar_it->md += 1; // skip "Z" at the beginning
 		cigar_it->use_md = true;
                 cigar_it->offset_md = 0;
-                if ((error = regcomp(&cigar_it->preg_md, MD_PATTERN, REG_EXTENDED)) != 0) {
-                        printf("regcomp() failed, returning nonzero (%d)\n", error);
-                        exit(1);
-                }
+		cigar_it->preg_md = &preg_md_shared;
 	}
 	else{
 		fprintf(stderr, "At least one of the MD or CS tags should be present!\n");
@@ -72,7 +93,9 @@ ptCigarIt* ptCigarIt_construct(bam1_t* b, bool use_cs, bool use_md){
 int ptCigarIt_next_md(ptCigarIt* cigar_it){
         regmatch_t pm;
         char* md_shifted = cigar_it->md + cigar_it->offset_md;
-        int error = regexec(&cigar_it->preg_md, md_shifted, 1, &pm, REG_NOTBOL);
+        REGEX_LOCK();
+        int error = regexec(cigar_it->preg_md, md_shifted, 1, &pm, REG_NOTBOL);
+        REGEX_UNLOCK();
         if (error != 0) return 0;
         /*int rd_step;
         int sq_step;
@@ -145,7 +168,9 @@ int ptCigarIt_next_md(ptCigarIt* cigar_it){
 int ptCigarIt_next_cs(ptCigarIt* cigar_it){
         regmatch_t pm;
 	char* cs_shifted = cigar_it->cs + cigar_it->offset_cs;
-	int error = regexec(&cigar_it->preg_cs, cs_shifted, 1, &pm, REG_NOTBOL);
+	REGEX_LOCK();
+	int error = regexec(cigar_it->preg_cs, cs_shifted, 1, &pm, REG_NOTBOL);
+	REGEX_UNLOCK();
 	if (error != 0) return 0;
 	/*int rd_step;
         int sq_step;

@@ -7,6 +7,8 @@ HMM-Flagger is a read-mapping-based tool that can detect different types of mis-
 
 All programs are available in the docker image `mobinasri/flagger` (linux/amd64 and linux/arm64). If you cannot use Docker, see [Building from source](docs/build_from_source/README.md) for instructions on compiling the binaries on amd64 and arm64 systems.
 
+To try HMM-Flagger in a few seconds on Linux or macOS with the prebuilt binaries, see [Running a small test](docs/small_test/README.md).
+
 ## Quick Start In Three Steps (Needs a BAM and FASTA file)
 Performing these three steps took less than 15 minutes in our internal tests for a PacBio HiFi bam file with 40x coverage. The speed of step 2 is highly dependent on the speed and bandwidth of the storage disk.
 

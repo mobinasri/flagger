@@ -1,3 +1,8 @@
+// Absolute path of the programs directory (set by the Makefile) so tests run from any cwd
+#ifndef TEST_ROOT
+#define TEST_ROOT ""
+#endif
+
 #include "track_reader.h"
 #include "cov_fast_reader.h"
 #include "sonLib.h"
@@ -247,13 +252,13 @@ int main(int argc, char *argv[]) {
 
 
     // test 1
-    bool testParsingCov_passed = testParsingCov("tests/test_files/track_reader/test_1.cov");
+    bool testParsingCov_passed = testParsingCov(TEST_ROOT "tests/test_files/track_reader/test_1.cov");
     all_tests_passed &= testParsingCov_passed;
     printf("Test parsing cov with TrackReader for uncompressed file:");
     printf(testParsingCov_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
 
     // test 2
-    bool testParsingCovGz_passed = testParsingCov("tests/test_files/track_reader/test_1.cov.gz");
+    bool testParsingCovGz_passed = testParsingCov(TEST_ROOT "tests/test_files/track_reader/test_1.cov.gz");
     all_tests_passed &= testParsingCovGz_passed;
     printf("Test parsing cov with TrackReader for compressed file:");
     printf(testParsingCovGz_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
@@ -261,14 +266,14 @@ int main(int argc, char *argv[]) {
 
     // test 3
     bool test_CoverageHeader_write_and_read_compressed_passed = test_CoverageHeader_write_and_read_compressed(
-            "tests/test_files/track_reader/test_header_1.cov.gz");
+            TEST_ROOT "tests/test_files/track_reader/test_header_1.cov.gz");
     all_tests_passed &= test_CoverageHeader_write_and_read_compressed_passed;
     printf("Test writing and reading coverage header with compressed file");
     printf(test_CoverageHeader_write_and_read_compressed_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
 
     // test 4
     bool test_CoverageHeader_write_and_read_uncompressed_passed = test_CoverageHeader_write_and_read_uncompressed(
-            "tests/test_files/track_reader/test_header_1.cov");
+            TEST_ROOT "tests/test_files/track_reader/test_header_1.cov");
     all_tests_passed &= test_CoverageHeader_write_and_read_uncompressed_passed;
     printf("Test writing and reading coverage header with uncompressed file:");
     printf(test_CoverageHeader_write_and_read_uncompressed_passed ? "\x1B[32m OK \x1B[0m\n"
@@ -276,14 +281,14 @@ int main(int argc, char *argv[]) {
 
     // test 5
     bool test_CoverageHeader_createByAttributes_passed = test_CoverageHeader_createByAttributes(
-            "tests/test_files/track_reader/test_header_2.cov");
+            TEST_ROOT "tests/test_files/track_reader/test_header_2.cov");
     all_tests_passed &= test_CoverageHeader_createByAttributes_passed;
     printf("Test creating coverage header by attributes:");
     printf(test_CoverageHeader_createByAttributes_passed ? "\x1B[32m OK \x1B[0m\n"
                                                          : "\x1B[31m FAIL \x1B[0m\n");
 
-    bool testReadingFromMemory_passed = testReadingFromMemory("tests/test_files/track_reader/test_1.cov",
-                                                              "tests/test_files/bam2cov/test_1.fa.fai");
+    bool testReadingFromMemory_passed = testReadingFromMemory(TEST_ROOT "tests/test_files/track_reader/test_1.cov",
+                                                              TEST_ROOT "tests/test_files/bam2cov/test_1.fa.fai");
     all_tests_passed &= testReadingFromMemory_passed;
     printf("Test reading from memory with TrackReader:");
     printf(testReadingFromMemory_passed ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
