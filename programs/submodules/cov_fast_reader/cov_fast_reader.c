@@ -36,7 +36,13 @@ void CovFastReaderPerThread_destruct(CovFastReaderPerThread *covFastReaderPerThr
 
 CovFastReader *CovFastReader_construct(char *covPath, int chunkLen, int threads) {
     CovFastReader *covFastReader = malloc(sizeof(CovFastReader));
-    covFastReader->chunksCreator = ChunksCreator_constructFromCov(covPath, NULL, chunkLen, threads, chunkLen);
+    // CovFastReader has no window concept of its own (it walks blocks directly via TrackReader/
+    // ptBlock, not through ChunksCreator's per-chunk Chunk objects), so pass
+    // constructChunksWithAllocatedSeq=false to skip allocating the windowRegionArray/
+    // windowTruthArray/windowPredictionArray/coverageInfoSeq buffers those chunks would otherwise
+    // carry sized at chunkLen (here reused as windowLen for lack of a real window size) per chunk.
+    covFastReader->chunksCreator = ChunksCreator_constructFromCovWithOptions(covPath, NULL, chunkLen, threads,
+                                                                             chunkLen, false);
     covFastReader->blockTablePerContig = stHash_construct3(stHash_stringKey, stHash_stringEqualKey, NULL,
                                                            (void (*)(void *)) stList_destruct);
     covFastReader->threads = threads;

@@ -81,6 +81,17 @@ ChunksCreator *ChunksCreator_constructEmpty();
 ChunksCreator *
 ChunksCreator_constructFromCov(char *covPath, char *faiPath, int chunkCanonicalLen, int nThreads, int windowLen);
 
+// Like ChunksCreator_constructFromCov, but when constructChunksWithAllocatedSeq is false, skips
+// building chunksCreator->chunks (the per-chunk windowRegionArray/windowTruthArray/windowPredictionArray/
+// coverageInfoSeq buffers used by hmm_flagger's windowed processing). Callers that only need
+// chunksCreator->templateChunks (e.g. augment_coverage_by_labels via CovFastReader) should pass false:
+// those buffers are sized off windowLen regardless of the actual per-chunk span, so reusing a large
+// chunkCanonicalLen as windowLen (as CovFastReader does, since it has no real window size of its own)
+// would otherwise allocate 3 * windowLen * sizeof(int) bytes per chunk for buffers nothing ever reads.
+ChunksCreator *
+ChunksCreator_constructFromCovWithOptions(char *covPath, char *faiPath, int chunkCanonicalLen, int nThreads,
+                                           int windowLen, bool constructChunksWithAllocatedSeq);
+
 int ChunksCreator_getMaximumCoverageValue(ChunksCreator *chunksCreator);
 
 void ChunksCreator_subsetChunksToContigs(ChunksCreator *chunksCreator, stList* contigList);
