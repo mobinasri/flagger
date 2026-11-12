@@ -33,15 +33,21 @@
 
 
 void check_bam_index(char *bamPath){
-	char *baiPath = (char *) malloc(strlen(bamPath) + 10);
-	strcpy(baiPath, bamPath);
-	strcat(baiPath, ".bai");
-	// exit if bam index does not exist
-	if(!file_exists(baiPath)){
-		fprintf(stderr, "[%s] The index of the bam file does not exist : %s\n", get_timestamp(), baiPath);
+	// let htslib locate the index so that both .bai and .csi
+	// (and other naming conventions it supports) are accepted
+	samFile *fp = sam_open(bamPath, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "[%s] Error: could not open the bam file : %s\n", get_timestamp(), bamPath);
 		exit(EXIT_FAILURE);
 	}
-	free(baiPath);
+	hts_idx_t *idx = sam_index_load(fp, bamPath);
+	if (idx == NULL) {
+		fprintf(stderr, "[%s] Error: could not find/load an index (.bai or .csi) for the bam file : %s\n", get_timestamp(), bamPath);
+		sam_close(fp);
+		exit(EXIT_FAILURE);
+	}
+	hts_idx_destroy(idx);
+	sam_close(fp);
 }
 
 static struct option long_options[] =
