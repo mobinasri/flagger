@@ -5,7 +5,7 @@
 
 HMM-Flagger is a read-mapping-based tool that can detect different types of mis-assemblies in a dual or diploid genome assembly. HMM-Flagger receives the read alignments to a genome assembly, uses Hidden Markov Model to detect anomalies in the read coverage along the assembly and finally partitions the assembly into four classes; erroneous, falsely duplicated, haploid (structurally correct) and collapsed.
 
-All programs are available in the docker image `mobinasri/flagger` (linux/amd64 and linux/arm64). If you cannot use Docker, see [Building from source](docs/build_from_source/README.md) for instructions on compiling the binaries on amd64 and arm64 systems.
+All programs are available in the docker image `mobinasri/flagger` (linux/amd64 and linux/arm64). If you cannot use Docker, see [Building from source](docs/build_from_source/README.md) for instructions on compiling the binaries on amd64 and arm64 systems. The versions of all main dependencies are listed in [Dependencies](docs/dependencies/README.md).
 
 To try HMM-Flagger in a few seconds on Linux or macOS with the prebuilt binaries, see [Running a small test](docs/small_test/README.md).
 
